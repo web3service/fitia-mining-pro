@@ -7,51 +7,11 @@ const CONFIG = {
 };
 
 const i18n = {
-    en: {
-        connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND",
-        power: "POWER", ftaSec: "FTA / sec", pending: "PENDING", fta: "FTA",
-        miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop",
-        machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances",
-        plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.",
-        machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", 
-        swapTitle: "💱 Swap (AMM)", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP",
-        loading: "Loading...", currentRate: "Current price: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap",
-        connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...",
-        wcIdMissing: "WalletConnect ID missing in code!", refLinked: "Referrer linked successfully!", connFirst: "Connect first",
-        enterRefAddr: "Referrer address (0x...)",
-        buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...",
-        confirming: "Confirming...", calcFta: "Calculating FTA price...", machineBought: "Machine purchased!",
-        buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID",
-        pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in successfully! ⚡", invalidAmount: "Invalid amount",
-        swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!",
-        error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive",
-        recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND",
-        sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address"
-    },
-    fr: {
-        connect: "Connecter", refTitle: "👥 Système de Parrainage", refDesc: "Entrez l'adresse de votre parrain pour le lier.", bindRef: "LIER",
-        power: "PUISSANCE", ftaSec: "FTA / sec", pending: "EN ATTENTE", fta: "FTA",
-        miningActive: "MINAGE ACTIF", noMachine: "AUCUNE MACHINE", claim: "RÉCLAMER", shopTitle: "⛏️ Boutique",
-        machines: "Machines", batteries: "Batteries", buy: "ACHETER", myAssets: "⚙️ Wallet & Actifs", walletBal: "💰 Soldes",
-        plugMachine: "🔌 Brancher une machine", plugDesc: "Entrez l'ID de votre machine éteinte et choisissez une batterie.",
-        machineId: "ID Machine (0, 1...)", plug: "BRANCHER ⚡", 
-        swapTitle: "💱 Échange (AMM)", youPay: "Vous payez", balance: "Solde:", youReceive: "Vous recevez", swap: "ÉCHANGER",
-        loading: "Chargement...", currentRate: "Prix actuel: 1 FTA = ", home: "Accueil", shop: "Boutique", assets: "Wallet", swapNav: "Swap",
-        connWallet: "Connexion...", errConn: "Erreur connexion", linking: "Liaison...",
-        wcIdMissing: "ID WalletConnect manquant dans le code !", refLinked: "Parrain lié avec succès !", connFirst: "Connectez-vous d'abord",
-        enterRefAddr: "Adresse du parrain (0x...)",
-        buyingMachine: "Achat Machine", approveUsdt: "Approbation USDT...", approveFta: "Approbation FTA...",
-        confirming: "Confirmation...", calcFta: "Calcul du prix FTA...", machineBought: "Machine achetée !",
-        buyingBattery: "Achat Batterie", batteryBought: "Batterie achetée !", invalidId: "ID Machine invalide",
-        pluggingIn: "Branchement...", pluggedIn: "Machine branchée avec succès ! ⚡", invalidAmount: "Montant invalide",
-        swapping: "Swap...", swapSuccess: "Échange réussi !", claiming: "Claim...", claimed: "Gains réclamés !",
-        error: "Erreur", days: "Jours", rig: "RIG", send: "Envoyer", receive: "Recevoir",
-        recipientAddr: "Adresse du destinataire (0x...)", amount: "Montant", confirmSend: "CONFIRMER ENVOI",
-        sending: "Envoi...", sentSuccess: "Envoi réussi !", addrCopied: "Adresse copiée !", invalidAddr: "Adresse invalide"
-    },
-    de: { connect: "Verbinden", refTitle: "👥 Empfehlungssystem", refDesc: "Geben Sie die Adresse Ihres Empfehlers ein.", bindRef: "BINDEN", power: "LEISTUNG", ftaSec: "FTA / sek", pending: "AUSSTEHEND", fta: "FTA", miningActive: "MINING AKTIV", noMachine: "KEINE MASCHINE", claim: "EINFORDERN", shopTitle: "⛏️ Shop", machines: "Maschinen", batteries: "Batterien", buy: "KAUFEN", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Guthaben", plugMachine: "🔌 Maschine anschließen", plugDesc: "Geben Sie die ID Ihrer Offline-Maschine ein.", machineId: "Maschinen-ID (0, 1...)", plug: "ANSCHLIESSEN ⚡", swapTitle: "💱 Tausch (AMM)", youPay: "Sie zahlen", balance: "Guthaben:", youReceive: "Sie erhalten", swap: "TAUSCHEN", loading: "Laden...", currentRate: "Aktueller Preis: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Verbindung...", errConn: "Verbindungsfehler", linking: "Verknüpfung...", wcIdMissing: "WalletConnect-ID fehlt!", refLinked: "Empfehler verknüpft!", connFirst: "Zuerst verbinden", enterRefAddr: "Empfehler-Adresse (0x...)", buyingMachine: "Kaufe Maschine", approveUsdt: "USDT genehmigen...", approveFta: "FTA genehmigen...", confirming: "Bestätigung...", calcFta: "FTA-Preis berechnen...", machineBought: "Maschine gekauft!", buyingBattery: "Kaufe Batterie", batteryBought: "Batterie gekauft!", invalidId: "Ungültige ID", pluggingIn: "Anschließen...", pluggedIn: "Maschine angeschlossen! ⚡", invalidAmount: "Ungültiger Betrag", swapping: "Tauschen...", swapSuccess: "Tausch erfolgreich!", claiming: "Einforderung...", claimed: "Eingefordert!", error: "Fehler", days: "Tage", rig: "RIG", send: "Senden", receive: "Empfangen", recipientAddr: "Empfängeradresse (0x...)", amount: "Betrag", confirmSend: "SENDUNG BESTÄTIGEN", sending: "Senden...", sentSuccess: "Gesendet!", addrCopied: "Kopiert!", invalidAddr: "Ungültige Adresse" },
-    zh: { connect: "连接", refTitle: "👥 推荐系统", refDesc: "输入推荐人地址进行绑定。", bindRef: "绑定", power: "算力", ftaSec: "FTA / 秒", pending: "待领取", fta: "FTA", miningActive: "挖矿中", noMachine: "无机器", claim: "领取", shopTitle: "⛏️ 商店", machines: "矿机", batteries: "电池", buy: "购买", myAssets: "⚙️ 钱包与资产", walletBal: "💰 余额", plugMachine: "🔌 插入机器", plugDesc: "输入离线机器ID并选择电池。", machineId: "机器ID (0, 1...)", plug: "插入 ⚡", swapTitle: "💱 兑换 (AMM)", youPay: "您支付", balance: "余额:", youReceive: "您收到", swap: "兑换", loading: "加载中...", currentRate: "当前价格: 1 FTA = ", home: "首页", shop: "商店", assets: "钱包", swapNav: "兑换", connWallet: "连接中...", errConn: "连接错误", linking: "绑定中...", wcIdMissing: "缺少 WalletConnect ID！", refLinked: "推荐人绑定成功！", connFirst: "请先连接", enterRefAddr: "推荐人地址 (0x...)", buyingMachine: "购买机器", approveUsdt: "授权 USDT...", approveFta: "授权 FTA...", confirming: "确认中...", calcFta: "计算 FTA 价格...", machineBought: "机器购买成功！", buyingBattery: "购买电池", batteryBought: "电池购买成功！", invalidId: "无效ID", pluggingIn: "插入中...", pluggedIn: "机器插入成功！ ⚡", invalidAmount: "无效金额", swapping: "兑换中...", swapSuccess: "兑换成功！", claiming: "领取中...", claimed: "奖励已领取！", error: "错误", days: "天", rig: "矿机", send: "发送", receive: "接收", recipientAddr: "接收方地址 (0x...)", amount: "金额", confirmSend: "确认发送", sending: "发送中...", sentSuccess: "发送成功！", addrCopied: "地址已复制！", invalidAddr: "无效地址" },
-    sg: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "FTA / sec", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap (AMM)", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "Current price: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", wcIdMissing: "WalletConnect ID missing!", refLinked: "Referrer linked successfully!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating FTA price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in successfully! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address" }
+    en: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "FTA / sec", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap (AMM)", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "Current price: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", wcIdMissing: "WalletConnect ID missing in code!", refLinked: "Referrer linked successfully!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating FTA price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in successfully! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address", totalBal: "Total Balance" },
+    fr: { connect: "Connecter", refTitle: "👥 Système de Parrainage", refDesc: "Entrez l'adresse de votre parrain pour le lier.", bindRef: "LIER", power: "PUISSANCE", ftaSec: "FTA / sec", pending: "EN ATTENTE", fta: "FTA", miningActive: "MINAGE ACTIF", noMachine: "AUCUNE MACHINE", claim: "RÉCLAMER", shopTitle: "⛏️ Boutique", machines: "Machines", batteries: "Batteries", buy: "ACHETER", myAssets: "⚙️ Wallet & Actifs", walletBal: "💰 Soldes", plugMachine: "🔌 Brancher une machine", plugDesc: "Entrez l'ID de votre machine éteinte et choisissez une batterie.", machineId: "ID Machine (0, 1...)", plug: "BRANCHER ⚡", swapTitle: "💱 Échange (AMM)", youPay: "Vous payez", balance: "Solde:", youReceive: "Vous recevez", swap: "ÉCHANGER", loading: "Chargement...", currentRate: "Prix actuel: 1 FTA = ", home: "Accueil", shop: "Boutique", assets: "Wallet", swapNav: "Swap", connWallet: "Connexion...", errConn: "Erreur connexion", linking: "Liaison...", wcIdMissing: "ID WalletConnect manquant !", refLinked: "Parrain lié avec succès !", connFirst: "Connectez-vous d'abord", enterRefAddr: "Adresse du parrain (0x...)", buyingMachine: "Achat Machine", approveUsdt: "Approbation USDT...", approveFta: "Approbation FTA...", confirming: "Confirmation...", calcFta: "Calcul du prix FTA...", machineBought: "Machine achetée !", buyingBattery: "Achat Batterie", batteryBought: "Batterie achetée !", invalidId: "ID Machine invalide", pluggingIn: "Branchement...", pluggedIn: "Machine branchée ! ⚡", invalidAmount: "Montant invalide", swapping: "Swap...", swapSuccess: "Échange réussi !", claiming: "Claim...", claimed: "Gains réclamés !", error: "Erreur", days: "Jours", rig: "RIG", send: "Envoyer", receive: "Recevoir", recipientAddr: "Adresse du destinataire (0x...)", amount: "Montant", confirmSend: "CONFIRMER ENVOI", sending: "Envoi...", sentSuccess: "Envoi réussi !", addrCopied: "Adresse copiée !", invalidAddr: "Adresse invalide", totalBal: "Solde Total" },
+    de: { connect: "Verbinden", refTitle: "👥 Empfehlungssystem", refDesc: "Geben Sie die Adresse Ihres Empfehlers ein.", bindRef: "BINDEN", power: "LEISTUNG", ftaSec: "FTA / sek", pending: "AUSSTEHEND", fta: "FTA", miningActive: "MINING AKTIV", noMachine: "KEINE MASCHINE", claim: "EINFORDERN", shopTitle: "⛏️ Shop", machines: "Maschinen", batteries: "Batterien", buy: "KAUFEN", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Guthaben", plugMachine: "🔌 Maschine anschließen", plugDesc: "Geben Sie die ID Ihrer Offline-Maschine ein.", machineId: "Maschinen-ID (0, 1...)", plug: "ANSCHLIESSEN ⚡", swapTitle: "💱 Tausch (AMM)", youPay: "Sie zahlen", balance: "Guthaben:", youReceive: "Sie erhalten", swap: "TAUSCHEN", loading: "Laden...", currentRate: "Aktueller Preis: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Verbindung...", errConn: "Verbindungsfehler", linking: "Verknüpfung...", wcIdMissing: "WalletConnect-ID fehlt!", refLinked: "Empfehler verknüpft!", connFirst: "Zuerst verbinden", enterRefAddr: "Empfehler-Adresse (0x...)", buyingMachine: "Kaufe Maschine", approveUsdt: "USDT genehmigen...", approveFta: "FTA genehmigen...", confirming: "Bestätigung...", calcFta: "FTA-Preis berechnen...", machineBought: "Maschine gekauft!", buyingBattery: "Kaufe Batterie", batteryBought: "Batterie gekauft!", invalidId: "Ungültige ID", pluggingIn: "Anschließen...", pluggedIn: "Maschine angeschlossen! ⚡", invalidAmount: "Ungültiger Betrag", swapping: "Tauschen...", swapSuccess: "Tausch erfolgreich!", claiming: "Einforderung...", claimed: "Eingefordert!", error: "Fehler", days: "Tage", rig: "RIG", send: "Senden", receive: "Empfangen", recipientAddr: "Empfängeradresse (0x...)", amount: "Betrag", confirmSend: "SENDUNG BESTÄTIGEN", sending: "Senden...", sentSuccess: "Gesendet!", addrCopied: "Kopiert!", invalidAddr: "Ungültige Adresse", totalBal: "Gesamtguthaben" },
+    zh: { connect: "连接", refTitle: "👥 推荐系统", refDesc: "输入推荐人地址进行绑定。", bindRef: "绑定", power: "算力", ftaSec: "FTA / 秒", pending: "待领取", fta: "FTA", miningActive: "挖矿中", noMachine: "无机器", claim: "领取", shopTitle: "⛏️ 商店", machines: "矿机", batteries: "电池", buy: "购买", myAssets: "⚙️ 钱包与资产", walletBal: "💰 余额", plugMachine: "🔌 插入机器", plugDesc: "输入离线机器ID并选择电池。", machineId: "机器ID (0, 1...)", plug: "插入 ⚡", swapTitle: "💱 兑换 (AMM)", youPay: "您支付", balance: "余额:", youReceive: "您收到", swap: "兑换", loading: "加载中...", currentRate: "当前价格: 1 FTA = ", home: "首页", shop: "商店", assets: "钱包", swapNav: "兑换", connWallet: "连接中...", errConn: "连接错误", linking: "绑定中...", wcIdMissing: "缺少 WalletConnect ID！", refLinked: "推荐人绑定成功！", connFirst: "请先连接", enterRefAddr: "推荐人地址 (0x...)", buyingMachine: "购买机器", approveUsdt: "授权 USDT...", approveFta: "授权 FTA...", confirming: "确认中...", calcFta: "计算 FTA 价格...", machineBought: "机器购买成功！", buyingBattery: "购买电池", batteryBought: "电池购买成功！", invalidId: "无效ID", pluggingIn: "插入中...", pluggedIn: "机器插入成功！ ⚡", invalidAmount: "无效金额", swapping: "兑换中...", swapSuccess: "兑换成功！", claiming: "领取中...", claimed: "奖励已领取！", error: "错误", days: "天", rig: "矿机", send: "发送", receive: "接收", recipientAddr: "接收方地址 (0x...)", amount: "金额", confirmSend: "确认发送", sending: "发送中...", sentSuccess: "发送成功！", addrCopied: "地址已复制！", invalidAddr: "无效地址", totalBal: "总余额" },
+    sg: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "FTA / sec", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap (AMM)", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "Current price: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", wcIdMissing: "WalletConnect ID missing!", refLinked: "Referrer linked successfully!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating FTA price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in successfully! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address", totalBal: "Total Balance" }
 };
 
 const MINING_ABI = [
@@ -62,22 +22,15 @@ const MINING_ABI = [
     "function batteryTypes(uint256) view returns (uint256 price, uint256 duration)",
     "function users(address) view returns (uint256 lastClaimTime)",
     "function difficultyMultiplier() view returns (uint256)",
-    "function claimFee() view returns (uint256)",
-    "function devFeeMachine() view returns (uint256)",
-    "function commissionRates(uint256) view returns (uint256)",
     "function getCurrentRate() view returns (uint256)",
     "function getFtaOutForUsdtBuy(uint256) view returns (uint256)",
     "function getUsdtOutForFtaSell(uint256) view returns (uint256)",
     "function getFtaCostForUsdtSell(uint256) view returns (uint256)",
-    "function buyMachine(uint256 typeId)",
-    "function buyMachineWithFTA(uint256 typeId)",
-    "function buyBattery(uint256 typeId)",
-    "function buyBatteryWithFTA(uint256 typeId)",
+    "function buyMachine(uint256 typeId)", "function buyMachineWithFTA(uint256 typeId)",
+    "function buyBattery(uint256 typeId)", "function buyBatteryWithFTA(uint256 typeId)",
     "function plugInMachine(uint256 machineIndex, uint256 batteryTypeId)",
-    "function claimRewards()",
-    "function setReferrer(address)",
-    "function swapUsdtForFta(uint256 amount)",
-    "function swapFtaForUsdt(uint256 amount)"
+    "function claimRewards()", "function setReferrer(address)",
+    "function swapUsdtForFta(uint256 amount)", "function swapFtaForUsdt(uint256 amount)"
 ];
 
 const ERC20_ABI = [
@@ -102,6 +55,10 @@ class Application {
         this.vizContext = null; this.vizBars = [];
         this.sendTokenSymbol = 'POL';
         
+        // Prix pour le calcul du Total Balance
+        this.polPriceUsd = 0; 
+        this.ftaPriceUsd = 0; 
+        
         const savedLang = localStorage.getItem('fitia_lang');
         this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'en';
     }
@@ -120,19 +77,17 @@ class Application {
 
     applyTranslations() {
         document.getElementById('btn-connect').innerText = this.t('connect');
+        document.querySelector('.total-balance-card small').innerText = this.t('totalBal');
         document.querySelector('.referral-card h3').innerText = this.t('refTitle');
         document.querySelector('.referral-card p.small-text').innerText = this.t('refDesc');
         document.querySelector('#ref-address-input').placeholder = this.t('enterRefAddr');
         document.querySelector('.referral-card .btn-full').innerText = this.t('bindRef');
         const stats = document.querySelectorAll('.stat-card');
-        stats[0].querySelector('small:first-child').innerText = this.t('power');
-        stats[0].querySelector('small:last-child').innerText = this.t('ftaSec');
-        stats[1].querySelector('small:first-child').innerText = this.t('pending');
-        stats[1].querySelector('small:last-child').innerText = this.t('fta');
+        stats[0].querySelector('small:first-child').innerText = this.t('power'); stats[0].querySelector('small:last-child').innerText = this.t('ftaSec');
+        stats[1].querySelector('small:first-child').innerText = this.t('pending'); stats[1].querySelector('small:last-child').innerText = this.t('fta');
         document.querySelector('.btn-mega').childNodes[1].textContent = this.t('claim');
         document.querySelector('#view-shop .view-title').innerText = this.t('shopTitle');
-        document.querySelectorAll('.shop-tab')[0].innerText = this.t('machines');
-        document.querySelectorAll('.shop-tab')[1].innerText = this.t('batteries');
+        document.querySelectorAll('.shop-tab')[0].innerText = this.t('machines'); document.querySelectorAll('.shop-tab')[1].innerText = this.t('batteries');
         document.querySelector('#view-my-rigs .view-title').innerText = this.t('myAssets');
         document.querySelector('#view-my-rigs .card:first-child h3').innerText = this.t('walletBal');
         document.querySelectorAll('.btn-wallet').forEach(b => { if(b.textContent.includes('Send')) b.innerText = this.t('send'); if(b.textContent.includes('Receive')) b.innerText = this.t('receive'); });
@@ -150,10 +105,20 @@ class Application {
 
     async init() { this.setLanguage(this.currentLang); }
 
-    async connect() {
-        if (!CONFIG.WC_PROJECT_ID || CONFIG.WC_PROJECT_ID === "VOTRE_PROJECT_ID_WALLETCONNECT") {
-            this.showToast(this.t('wcIdMissing'), true); return;
+    // Récupérer le prix du POL via CoinGecko
+    async fetchPolPrice() {
+        try {
+            const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
+            const data = await response.json();
+            this.polPriceUsd = data['matic-network']?.usd || 0.5; // 0.5 comme fallback
+        } catch (e) {
+            console.error("POL Price fetch failed", e);
+            this.polPriceUsd = 0.5; // Fallback en cas d'erreur API
         }
+    }
+
+    async connect() {
+        if (!CONFIG.WC_PROJECT_ID || CONFIG.WC_PROJECT_ID === "VOTRE_PROJECT_ID_WALLETCONNECT") { this.showToast(this.t('wcIdMissing'), true); return; }
         if (window.ethereum) {
             this.setLoader(true, this.t('connWallet'));
             try {
@@ -166,24 +131,18 @@ class Application {
                 this.initContracts();
                 window.ethereum.on('accountsChanged', () => window.location.reload());
                 window.ethereum.on('chainChanged', () => window.location.reload());
-            } catch (e) { this.showToast(this.t('errConn'), true); } 
-            this.setLoader(false);
+            } catch (e) { this.showToast(this.t('errConn'), true); } this.setLoader(false);
         } else if (typeof EthereumProvider !== 'undefined') {
             this.setLoader(true, this.t('connWallet'));
             try {
-                const wcProvider = await EthereumProvider.init({
-                    projectId: CONFIG.WC_PROJECT_ID, chains: [CONFIG.CHAIN_ID], showQrModal: true,
-                    methods: ['eth_sendTransaction', 'personal_sign'],
-                    metadata: { name: 'FITIA PRO MINER', description: 'Mining DApp', url: window.location.origin, icons: [window.location.origin + '/logo.png'] }
-                });
+                const wcProvider = await EthereumProvider.init({ projectId: CONFIG.WC_PROJECT_ID, chains: [CONFIG.CHAIN_ID], showQrModal: true, methods: ['eth_sendTransaction', 'personal_sign'], metadata: { name: 'FITIA PRO MINER', description: 'Mining DApp', url: window.location.origin, icons: [window.location.origin + '/logo.png'] } });
                 await wcProvider.enable();
                 this.provider = new ethers.BrowserProvider(wcProvider);
                 this.signer = await this.provider.getSigner();
                 this.user = await this.signer.getAddress();
                 this.initContracts();
                 wcProvider.on("disconnect", () => window.location.reload());
-            } catch (e) { this.showToast(this.t('errConn'), true); } 
-            this.setLoader(false);
+            } catch (e) { this.showToast(this.t('errConn'), true); } this.setLoader(false);
         }
     }
 
@@ -196,31 +155,23 @@ class Application {
         document.getElementById('wallet-status').classList.remove('hidden');
         document.getElementById('addr-display').innerText = this.user.slice(0,6) + "..." + this.user.slice(38);
         if (!localStorage.getItem(this.storageKey)) { localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); }
+        
+        await this.fetchPolPrice(); // Récupère le prix POL une fois connecté
         await this.updateData();
         setInterval(() => this.updateData(), 15000);
         this.initVisualizer();
         window.addEventListener('resize', () => this.resizeCanvas());
     }
 
-    async switchNetwork() {
-        try { await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x89' }] });
-        } catch (e) { if (e.code === 4902) { await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x89', chainName: 'Polygon', nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 }, rpcUrls: ['https://polygon-rpc.com/'], blockExplorerUrls: ['https://polygonscan.com/'] }] }); } }
-    }
+    async switchNetwork() { try { await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x89' }] }); } catch (e) { if (e.code === 4902) { await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x89', chainName: 'Polygon', nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 }, rpcUrls: ['https://polygon-rpc.com/'], blockExplorerUrls: ['https://polygonscan.com/'] }] }); } } }
 
-    setShopView(view) {
-        this.shopViewMode = view;
-        document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
-        event.currentTarget.classList.add('active');
-        this.renderShop();
-    }
+    setShopView(view) { this.shopViewMode = view; document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active')); event.currentTarget.classList.add('active'); this.renderShop(); }
 
     async updateData() {
         if (!this.user) return;
         try {
             const rawPower = await this.contracts.mining.getActivePower(this.user);
             try { this.currentMultiplier = await this.contracts.mining.difficultyMultiplier(); } catch(e) {}
-
-            // Formule exacte du Smart Contract : (time * power * difficultyMultiplier) / 1e18
             const realPowerBN = (rawPower * this.currentMultiplier) / BigInt(10**18); 
             this.currentRealPower = parseFloat(ethers.formatUnits(realPowerBN, this.ftaDecimals)); 
 
@@ -237,23 +188,31 @@ class Application {
                 document.getElementById('viz-status').innerText = this.t('noMachine'); document.getElementById('viz-status').style.color = "#666";
                 this.pendingBalance = 0; document.getElementById('val-pending').innerText = "0.00000";
             }
-
             document.getElementById('val-power').innerText = this.currentRealPower.toFixed(5);
 
             const polBal = await this.provider.getBalance(this.user);
             const usdtBal = await this.contracts.usdt.balanceOf(this.user);
             const ftaBal = await this.contracts.fta.balanceOf(this.user);
             
-            const pB = parseFloat(ethers.formatUnits(polBal, 18)).toFixed(2);
-            const uB = parseFloat(ethers.formatUnits(usdtBal, this.usdtDecimals)).toFixed(2);
-            const fB = parseFloat(ethers.formatUnits(ftaBal, this.ftaDecimals)).toFixed(2);
+            const pB = parseFloat(ethers.formatUnits(polBal, 18));
+            const uB = parseFloat(ethers.formatUnits(usdtBal, this.usdtDecimals));
+            const fB = parseFloat(ethers.formatUnits(ftaBal, this.ftaDecimals));
 
-            document.getElementById('bal-pol').innerText = pB; document.getElementById('bal-usdt').innerText = uB; document.getElementById('bal-fta').innerText = fB;
-            document.getElementById('bal-pol-2').innerText = pB; document.getElementById('bal-usdt-2').innerText = uB; document.getElementById('bal-fta-2').innerText = fB;
+            document.getElementById('bal-pol').innerText = pB.toFixed(2); document.getElementById('bal-usdt').innerText = uB.toFixed(2); document.getElementById('bal-fta').innerText = fB.toFixed(2);
+            document.getElementById('bal-pol-2').innerText = pB.toFixed(2); document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); document.getElementById('bal-fta-2').innerText = fB.toFixed(2);
 
+            // Calcul du Total Balance en USD
             const rate = await this.contracts.mining.getCurrentRate();
-            const rateVal = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
-            document.getElementById('swap-rate').innerText = this.t('currentRate') + rateVal.toFixed(4) + " USDT";
+            this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
+            
+            const polUsdVal = pB * this.polPriceUsd;
+            const usdtUsdVal = uB * 1; // 1 USDT = 1 USD
+            const ftaUsdVal = fB * this.ftaPriceUsd;
+            const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
+
+            document.getElementById('val-total-usd').innerText = '$' + totalUsdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            document.getElementById('swap-rate').innerText = this.t('currentRate') + this.ftaPriceUsd.toFixed(4) + " USDT";
             
             const fromBal = this.swapDirection === 'USDT_TO_FTA' ? usdtBal : ftaBal;
             const toBal = this.swapDirection === 'USDT_TO_FTA' ? ftaBal : usdtBal;
@@ -264,58 +223,32 @@ class Application {
         } catch (e) { console.error("Refresh Error", e); }
     }
 
-    startMiningCounter() {
-        if (this.miningTimer) return;
-        this.miningTimer = setInterval(() => {
-            if (this.currentRealPower > 0) {
-                this.pendingBalance += this.currentRealPower;
-                document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5);
-                document.getElementById('val-pending').style.color = 'var(--primary)';
-                setTimeout(() => document.getElementById('val-pending').style.color = 'var(--text)', 500);
-            }
-        }, 1000);
-    }
+    startMiningCounter() { if (this.miningTimer) return; this.miningTimer = setInterval(() => { if (this.currentRealPower > 0) { this.pendingBalance += this.currentRealPower; document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5); document.getElementById('val-pending').style.color = 'var(--primary)'; setTimeout(() => document.getElementById('val-pending').style.color = 'var(--text)', 500); } }, 1000); }
     stopMiningCounter() { if (this.miningTimer) { clearInterval(this.miningTimer); this.miningTimer = null; } }
 
-    async bindReferrer() {
-        const addr = document.getElementById('ref-address-input').value;
-        if (!ethers.isAddress(addr)) return this.showToast(this.t('invalidAddr'), true);
-        this.setLoader(true, this.t('linking'));
-        try { await (await this.contracts.mining.setReferrer(addr)).wait(); this.showToast(this.t('refLinked')); document.getElementById('ref-address-input').value = ''; } catch(e) { this.showError(e); }
-        this.setLoader(false);
-    }
-
+    async bindReferrer() { const addr = document.getElementById('ref-address-input').value; if (!ethers.isAddress(addr)) return this.showToast(this.t('invalidAddr'), true); this.setLoader(true, this.t('linking')); try { await (await this.contracts.mining.setReferrer(addr)).wait(); this.showToast(this.t('refLinked')); document.getElementById('ref-address-input').value = ''; } catch(e) { this.showError(e); } this.setLoader(false); }
     setPayMode(mode) { this.payMode = mode; document.getElementById('btn-pay-usdt').classList.toggle('active', mode === 'USDT'); document.getElementById('btn-pay-fta').classList.toggle('active', mode === 'FTA'); this.renderShop(); }
 
     async renderShop() { if (this.isLoadingShop) return; const c = document.getElementById('shop-list'); if (this.shopViewMode === 'machines') { if (this.shopMachinesData.length === 0) await this.fetchMachines(); this._renderShopMachinesHTML(c); } else { if (this.shopBatteriesData.length === 0) await this.fetchBatteries(); this._renderShopBatteriesHTML(c); } }
-
     async fetchMachines() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getMachineCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.machineTypes(i)); const results = await Promise.all(promises); this.shopMachinesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const powerBN = (BigInt(data.power.toString()) * this.currentMultiplier) / BigInt(10**18); const power = parseFloat(ethers.formatUnits(powerBN, this.ftaDecimals)); this.shopMachinesData.push({ price: priceUsdt, power: power, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
-
     async fetchBatteries() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getBatteryCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.batteryTypes(i)); const results = await Promise.all(promises); this.shopBatteriesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const days = Number(data.duration) / 86400; this.shopBatteriesData.push({ price: priceUsdt, days: days, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
 
     _renderShopMachinesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr'; const icons = ["💻", "🖥️", "⛏️", "🏭"]; for(let i=0; i<this.shopMachinesData.length; i++) { const d = this.shopMachinesData[i]; const div = document.createElement('div'); div.className = 'rig-item'; div.innerHTML = `<div><span class="shop-icon">${icons[i%4]}</span><span class="rig-name">${this.t('rig')} ${i+1}</span><span class="rig-power">${d.power.toFixed(5)} FTA/s</span></div><div><span class="rig-price">${d.price.toFixed(2)} $</span><button class="btn-primary" style="padding:8px; font-size:0.8rem" onclick="App.buyMachine(${i})">${this.t('buy')} (${this.payMode})</button></div>`; c.appendChild(div); } }
-    
     _renderShopBatteriesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr 1fr'; const icons = ["🔋", "⚡", "🔌", "💫"]; for(let i=0; i<this.shopBatteriesData.length; i++) { const d = this.shopBatteriesData[i]; const div = document.createElement('div'); div.className = 'battery-shop-item'; div.innerHTML = `<span class="shop-icon" style="font-size: 2rem;">${icons[i%4]}</span><div class="battery-name">${d.days} ${this.t('days')}</div><div class="battery-price">${d.price.toFixed(2)} $</div><button class="btn-primary" style="padding:6px; font-size:0.75rem" onclick="App.buyBattery(${i})">${this.t('buy')} (${this.payMode})</button>`; c.appendChild(div); } }
 
     async buyMachine(id) { if (!this.user) return this.connect(); this.setLoader(true, `${this.t('buyingMachine')} (${this.payMode})...`); try { const m = this.shopMachinesData[id]; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < m.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, m.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyMachine(id)).wait(); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(m.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyMachineWithFTA(id)).wait(); } this.showToast(this.t('machineBought')); this.shopMachinesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
-
     async buyBattery(id) { if (!this.user) return this.connect(); this.setLoader(true, `${this.t('buyingBattery')} (${this.payMode})...`); try { const b = this.shopBatteriesData[id]; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < b.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, b.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyBattery(id)).wait(); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(b.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyBatteryWithFTA(id)).wait(); } this.showToast(this.t('batteryBought')); this.shopBatteriesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
 
     async plugInMachine() { const mId = document.getElementById('plug-machine-id').value; const bType = document.getElementById('plug-battery-type').value; if (mId === "" || mId < 0) return this.showToast(this.t('invalidId'), true); this.setLoader(true, this.t('pluggingIn')); try { await (await this.contracts.mining.plugInMachine(mId, bType)).wait(); this.showToast(this.t('pluggedIn')); this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
-
     toggleSwap() { this.swapDirection = this.swapDirection === 'USDT_TO_FTA' ? 'FTA_TO_USDT' : 'USDT_TO_FTA'; document.getElementById('token-from-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'USDT' : 'FTA'; document.getElementById('token-to-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'FTA' : 'USDT'; document.getElementById('swap-to-in').value = ''; this.updateData(); }
-
     async calcSwap() { const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return document.getElementById('swap-to-in').value = ''; try { const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); let output; if (isUsdtTo) { output = await this.contracts.mining.getFtaOutForUsdtBuy(amount); document.getElementById('swap-to-in').value = parseFloat(ethers.formatUnits(output, this.ftaDecimals)).toFixed(5); } else { output = await this.contracts.mining.getUsdtOutForFtaSell(amount); document.getElementById('swap-to-in').value = parseFloat(ethers.formatUnits(output, this.usdtDecimals)).toFixed(5); } } catch(e) { document.getElementById('swap-to-in').value = this.t('error'); } }
-
     async executeSwap() { const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return this.showToast(this.t('invalidAmount'), true); this.setLoader(true, this.t('swapping')); const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); try { const tokenContract = isUsdtTo ? this.contracts.usdt : this.contracts.fta; const allowance = await tokenContract.allowance(this.user, CONFIG.MINING); if (allowance < amount) { this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); } this.setLoader(true, this.t('confirming')); const tx = isUsdtTo ? await this.contracts.mining.swapUsdtForFta(amount) : await this.contracts.mining.swapFtaForUsdt(amount); await tx.wait(); this.showToast(this.t('swapSuccess')); document.getElementById('swap-from-in').value = ''; document.getElementById('swap-to-in').value = ''; this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
-
     async claim() { if (!this.user) return; this.stopMiningCounter(); this.setLoader(true, this.t('claiming')); try { await (await this.contracts.mining.claimRewards()).wait(); this.pendingBalance = 0; localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); this.showToast(this.t('claimed')); this.updateData(); if (this.currentRealPower > 0) this.startMiningCounter(); } catch(e) { this.showError(e); this.startMiningCounter(); } this.setLoader(false); }
 
     openSend(tokenSymbol) { this.sendTokenSymbol = tokenSymbol; document.getElementById('send-token-name').innerText = tokenSymbol; document.getElementById('send-to-address').value = ''; document.getElementById('send-amount').value = ''; let balId = 'bal-pol-2'; if(tokenSymbol === 'USDT') balId = 'bal-usdt-2'; if(tokenSymbol === 'FTA') balId = 'bal-fta-2'; document.getElementById('send-bal').innerText = document.getElementById(balId).innerText; document.getElementById('modal-send').classList.add('active'); }
     openReceive() { if(!this.user) return this.showToast(this.t('connFirst'), true); document.getElementById('receive-addr-display').innerText = this.user; document.getElementById('modal-receive').classList.add('active'); }
     closeModals() { document.getElementById('modal-send').classList.remove('active'); document.getElementById('modal-receive').classList.remove('active'); }
     copyReceiveAddress() { navigator.clipboard.writeText(this.user); this.showToast(this.t('addrCopied')); }
-
     async executeSend() { const toAddress = document.getElementById('send-to-address').value; const amountStr = document.getElementById('send-amount').value; if (!ethers.isAddress(toAddress)) return this.showToast(this.t('invalidAddr'), true); if (!amountStr || Number(amountStr) <= 0) return this.showToast(this.t('invalidAmount'), true); this.setLoader(true, this.t('sending')); try { let tx; if (this.sendTokenSymbol === 'POL') { tx = await this.signer.sendTransaction({ to: toAddress, value: ethers.parseEther(amountStr) }); } else { let contract, decimals; if (this.sendTokenSymbol === 'USDT') { contract = this.contracts.usdt; decimals = this.usdtDecimals; } if (this.sendTokenSymbol === 'FTA') { contract = this.contracts.fta; decimals = this.ftaDecimals; } tx = await contract.transfer(toAddress, ethers.parseUnits(amountStr, decimals)); } await tx.wait(); this.showToast(this.t('sentSuccess')); this.closeModals(); this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
 
     nav(viewId) { document.querySelectorAll('.view').forEach(el => { el.classList.remove('active'); el.style.display = 'none'; }); const activeView = document.getElementById('view-' + viewId); if(activeView) { activeView.classList.add('active'); activeView.style.display = 'block'; } document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); if(event && event.currentTarget) event.currentTarget.classList.add('active'); }

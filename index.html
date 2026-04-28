@@ -7,7 +7,6 @@
     <meta name="theme-color" content="#0f172a">
     <title>FITIA PRO MINER</title>
     
-    <!-- Sécurité CSP pour autoriser WalletConnect et les images -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src * ws://* wss://*; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://relay.walletconnect.com; img-src 'self' data: https://* http://*;">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,9 +15,7 @@
     
     <link rel="stylesheet" href="style.css">
     
-    <!-- Ethers.js v6 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <!-- WalletConnect SDK v2 -->
     <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
 </head>
 <body>
@@ -59,7 +56,13 @@
             <!-- DASHBOARD -->
             <div id="view-dashboard" class="view active">
                
-                <!-- SOLDES EN HAUT -->
+                <!-- TOTAL BALANCE EN USD -->
+                <div class="card total-balance-card">
+                    <small>Total Balance</small>
+                    <div class="total-val" id="val-total-usd">$0.00</div>
+                </div>
+
+                <!-- SOLDES PAR TOKEN -->
                 <div class="card balances-card">
                     <div class="row-between" style="align-items: center;">
                         <span style="display:flex; align-items:center; gap:8px;">
@@ -104,7 +107,7 @@
                     CLAIM
                 </button>
 
-                <!-- PARRAINAGE EN BAS -->
+                <!-- PARRAINAGE -->
                 <div class="card referral-card" style="margin-top: 15px;">
                     <h3>👥 Referral System</h3>
                     <p class="small-text">Enter your referrer's address to link.</p>
@@ -124,68 +127,45 @@
                         <button id="btn-pay-fta" class="toggle-btn" onclick="App.setPayMode('FTA')">FTA</button>
                     </div>
                 </div>
-                
                 <div class="shop-tabs">
                     <button class="shop-tab active" onclick="App.setShopView('machines')">Machines</button>
                     <button class="shop-tab" onclick="App.setShopView('batteries')">Batteries</button>
                 </div>
-
                 <div id="shop-list" class="grid-list"></div>
             </div>
 
             <!-- WALLET & ASSETS -->
             <div id="view-my-rigs" class="view">
                 <h2 class="view-title">⚙️ Wallet & Assets</h2>
-                
-                <!-- WALLET TOKENS LIST -->
                 <div class="card" style="margin-bottom: 15px;">
                     <h3 style="margin:0 0 15px 0; font-size:1rem;">💰 Balances</h3>
-                    
                     <div class="wallet-token-row">
                         <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png" class="token-img-lg">
-                        <div class="token-info">
-                            <span class="token-name">POL</span>
-                            <span class="token-bal" id="bal-pol-2">0.00</span>
-                        </div>
+                        <div class="token-info"><span class="token-name">POL</span><span class="token-bal" id="bal-pol-2">0.00</span></div>
                         <button class="btn-wallet" onclick="App.openSend('POL')">Send</button>
                         <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
                     </div>
-
                     <div class="wallet-token-row">
                         <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" class="token-img-lg">
-                        <div class="token-info">
-                            <span class="token-name">USDT</span>
-                            <span class="token-bal" id="bal-usdt-2">0.00</span>
-                        </div>
+                        <div class="token-info"><span class="token-name">USDT</span><span class="token-bal" id="bal-usdt-2">0.00</span></div>
                         <button class="btn-wallet" onclick="App.openSend('USDT')">Send</button>
                         <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
                     </div>
-
                     <div class="wallet-token-row">
                         <img src="https://ui-avatars.com/api/?name=FTA&background=F0B90B&color=000&size=128&bold=true" class="token-img-lg">
-                        <div class="token-info">
-                            <span class="token-name">FTA</span>
-                            <span class="token-bal" id="bal-fta-2">0.00</span>
-                        </div>
+                        <div class="token-info"><span class="token-name">FTA</span><span class="token-bal" id="bal-fta-2">0.00</span></div>
                         <button class="btn-wallet" onclick="App.openSend('FTA')">Send</button>
                         <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
                     </div>
                 </div>
-
-                <!-- Plug Machine -->
                 <div class="card" style="margin-bottom: 15px; border-color: rgba(59, 130, 246, 0.3);">
                     <h3 style="margin:0 0 10px 0; font-size:1rem;">🔌 Plug in a machine</h3>
                     <p class="small-text">Enter your offline machine ID and choose a battery.</p>
                     <div class="plug-grid">
                         <input type="number" id="plug-machine-id" class="game-input" placeholder="Machine ID (0, 1...)" min="0">
                         <select id="plug-battery-type" class="game-input" style="padding: 10px;">
-                            <option value="0">7 Days</option>
-                            <option value="1">15 Days</option>
-                            <option value="2">30 Days</option>
-                            <option value="3">90 Days</option>
-                            <option value="4">180 Days</option>
-                            <option value="5">270 Days</option>
-                            <option value="6">365 Days</option>
+                            <option value="0">7 Days</option><option value="1">15 Days</option><option value="2">30 Days</option>
+                            <option value="3">90 Days</option><option value="4">180 Days</option><option value="5">270 Days</option><option value="6">365 Days</option>
                         </select>
                     </div>
                     <button class="btn-primary" style="margin-top:10px;" onclick="App.plugInMachine()">PLUG IN ⚡</button>
@@ -196,21 +176,13 @@
             <div id="view-swap" class="view">
                 <h2 class="view-title">💱 Swap (AMM)</h2>
                 <div class="card swap-interface">
-                    <div class="swap-header">
-                        <span>You pay</span>
-                        <span>Balance: <span id="swap-bal-from">0</span></span>
-                    </div>
+                    <div class="swap-header"><span>You pay</span><span>Balance: <span id="swap-bal-from">0</span></span></div>
                     <div class="input-wrap">
                         <input type="number" id="swap-from-in" placeholder="0.0" oninput="App.calcSwap()">
                         <div class="token-select" onclick="App.toggleSwap()" id="token-from-display">USDT</div>
                     </div>
-                    <div class="swap-arrow-wrap">
-                        <div class="swap-arrow" onclick="App.toggleSwap()">⇅</div>
-                    </div>
-                    <div class="swap-header">
-                        <span>You receive</span>
-                        <span>Balance: <span id="swap-bal-to">0</span></span>
-                    </div>
+                    <div class="swap-arrow-wrap"><div class="swap-arrow" onclick="App.toggleSwap()">⇅</div></div>
+                    <div class="swap-header"><span>You receive</span><span>Balance: <span id="swap-bal-to">0</span></span></div>
                     <div class="input-wrap">
                         <input type="number" id="swap-to-in" placeholder="0.0" readonly>
                         <div class="token-select" style="background:#333; cursor:default;" id="token-to-display">FTA</div>
@@ -222,35 +194,17 @@
 
         </main>
 
-        <!-- NAVIGATION -->
         <nav class="bottom-nav">
-            <button class="nav-item active" onclick="App.nav('dashboard')">
-                <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-                <span>Home</span>
-            </button>
-            <button class="nav-item" onclick="App.nav('shop')">
-                <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11z"/></svg>
-                <span>Shop</span>
-            </button>
-            <button class="nav-item" onclick="App.nav('my-rigs')">
-                <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
-                <span>Wallet</span>
-            </button>
-            <button class="nav-item" onclick="App.nav('swap')">
-                <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
-                <span>Swap</span>
-            </button>
+            <button class="nav-item active" onclick="App.nav('dashboard')"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span>Home</span></button>
+            <button class="nav-item" onclick="App.nav('shop')"><svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11z"/></svg><span>Shop</span></button>
+            <button class="nav-item" onclick="App.nav('my-rigs')"><svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg><span>Wallet</span></button>
+            <button class="nav-item" onclick="App.nav('swap')"><svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg><span>Swap</span></button>
         </nav>
-
     </div>
 
-    <!-- MODAL SEND -->
     <div id="modal-send" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Send <span id="send-token-name">TOKEN</span></h3>
-                <button class="modal-close" onclick="App.closeModals()">✕</button>
-            </div>
+            <div class="modal-header"><h3>Send <span id="send-token-name">TOKEN</span></h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
             <p class="small-text">Balance: <span id="send-bal">0</span></p>
             <input type="text" id="send-to-address" class="game-input" placeholder="Recipient address (0x...)">
             <input type="number" id="send-amount" class="game-input" placeholder="Amount" step="0.01">
@@ -258,18 +212,11 @@
         </div>
     </div>
 
-    <!-- MODAL RECEIVE -->
     <div id="modal-receive" class="modal">
         <div class="modal-content" style="text-align: center;">
-            <div class="modal-header">
-                <h3>Receive Funds</h3>
-                <button class="modal-close" onclick="App.closeModals()">✕</button>
-            </div>
-            <p class="small-text" style="margin-bottom: 15px;">Send only POL, USDT or FTA to this address on the Polygon network.</p>
-            <div class="receive-addr-box" onclick="App.copyReceiveAddress()">
-                <span id="receive-addr-display">0x...</span>
-                <span class="copy-icon">📋</span>
-            </div>
+            <div class="modal-header"><h3>Receive Funds</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
+            <p class="small-text" style="margin-bottom: 15px;">Send only POL, USDT or FTA to this address on Polygon.</p>
+            <div class="receive-addr-box" onclick="App.copyReceiveAddress()"><span id="receive-addr-display">0x...</span><span class="copy-icon">📋</span></div>
             <p class="small-text" style="margin-top: 10px; color: var(--primary);">Tap to copy</p>
         </div>
     </div>
