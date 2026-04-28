@@ -6,7 +6,6 @@ const CONFIG = {
     WC_PROJECT_ID: "2c10ee910a836551fbabbf7c8cc4542a" // OBLIGATOIRE POUR WALLETCONNECT
 };
 
-// --- MULTI-LANGUAGE DICTIONARY ---
 const i18n = {
     en: {
         connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND",
@@ -18,7 +17,8 @@ const i18n = {
         swapTitle: "💱 Swap (AMM)", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP",
         loading: "Loading...", currentRate: "Current price: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap",
         connWallet: "Connecting...", installWallet: "Install Wallet", errConn: "Connection Error", linking: "Linking...",
-        refLinked: "Referrer linked successfully!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)",
+        wcIdMissing: "WalletConnect ID missing in code!", refLinked: "Referrer linked successfully!", connFirst: "Connect first",
+        enterRefAddr: "Referrer address (0x...)",
         buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...",
         confirming: "Confirming...", calcFta: "Calculating FTA price...", machineBought: "Machine purchased!",
         buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID",
@@ -39,7 +39,8 @@ const i18n = {
         swapTitle: "💱 Échange (AMM)", youPay: "Vous payez", balance: "Solde:", youReceive: "Vous recevez", swap: "ÉCHANGER",
         loading: "Chargement...", currentRate: "Prix actuel: 1 FTA = ", home: "Accueil", shop: "Boutique", assets: "Wallet", swapNav: "Swap",
         connWallet: "Connexion...", installWallet: "Installez un Wallet", errConn: "Erreur connexion", linking: "Liaison...",
-        refLinked: "Parrain lié avec succès !", connFirst: "Connectez-vous d'abord", enterRefAddr: "Adresse du parrain (0x...)",
+        wcIdMissing: "ID WalletConnect manquant dans le code !", refLinked: "Parrain lié avec succès !", connFirst: "Connectez-vous d'abord",
+        enterRefAddr: "Adresse du parrain (0x...)",
         buyingMachine: "Achat Machine", approveUsdt: "Approbation USDT...", approveFta: "Approbation FTA...",
         confirming: "Confirmation...", calcFta: "Calcul du prix FTA...", machineBought: "Machine achetée !",
         buyingBattery: "Achat Batterie", batteryBought: "Batterie achetée !", invalidId: "ID Machine invalide",
@@ -51,7 +52,7 @@ const i18n = {
         sending: "Envoi...", sentSuccess: "Envoi réussi !", addrCopied: "Adresse copiée !", invalidAddr: "Adresse invalide", sendFirst: "Envoyez des fonds à cette adresse"
     },
     de: {
-        connect: "Verbinden", refTitle: "👥 Empfehlungssystem", refDesc: "Geben Sie die Adresse Ihres Empfehlers ein, um ihn zu verknüpfen.", bindRef: "BINDEN",
+        connect: "Verbinden", refTitle: "👥 Empfehlungssystem", refDesc: "Geben Sie die Adresse Ihres Empfehlers ein.", bindRef: "BINDEN",
         power: "LEISTUNG", ftaSec: "FTA / sek", pending: "AUSSTEHEND", fta: "FTA",
         miningActive: "MINING AKTIV", noMachine: "KEINE MASCHINE", claim: "EINFORDERN", shopTitle: "⛏️ Shop",
         machines: "Maschinen", batteries: "Batterien", buy: "KAUFEN", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Guthaben",
@@ -60,7 +61,8 @@ const i18n = {
         swapTitle: "💱 Tausch (AMM)", youPay: "Sie zahlen", balance: "Guthaben:", youReceive: "Sie erhalten", swap: "TAUSCHEN",
         loading: "Laden...", currentRate: "Aktueller Preis: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap",
         connWallet: "Verbindung...", installWallet: "Wallet installieren", errConn: "Verbindungsfehler", linking: "Verknüpfung...",
-        refLinked: "Empfehler erfolgreich verknüpft!", connFirst: "Zuerst verbinden", enterRefAddr: "Empfehler-Adresse (0x...)",
+        wcIdMissing: "WalletConnect-ID fehlt im Code!", refLinked: "Empfehler erfolgreich verknüpft!", connFirst: "Zuerst verbinden",
+        enterRefAddr: "Empfehler-Adresse (0x...)",
         buyingMachine: "Kaufe Maschine", approveUsdt: "USDT genehmigen...", approveFta: "FTA genehmigen...",
         confirming: "Bestätigung...", calcFta: "FTA-Preis berechnen...", machineBought: "Maschine gekauft!",
         buyingBattery: "Kaufe Batterie", batteryBought: "Batterie gekauft!", invalidId: "Ungültige Maschinen-ID",
@@ -81,7 +83,8 @@ const i18n = {
         swapTitle: "💱 兑换 (AMM)", youPay: "您支付", balance: "余额:", youReceive: "您收到", swap: "兑换",
         loading: "加载中...", currentRate: "当前价格: 1 FTA = ", home: "首页", shop: "商店", assets: "钱包", swapNav: "兑换",
         connWallet: "连接中...", installWallet: "请安装钱包", errConn: "连接错误", linking: "绑定中...",
-        refLinked: "推荐人绑定成功！", connFirst: "请先连接", enterRefAddr: "推荐人地址 (0x...)",
+        wcIdMissing: "代码中缺少 WalletConnect ID！", refLinked: "推荐人绑定成功！", connFirst: "请先连接",
+        enterRefAddr: "推荐人地址 (0x...)",
         buyingMachine: "购买机器", approveUsdt: "授权 USDT...", approveFta: "授权 FTA...",
         confirming: "确认中...", calcFta: "计算 FTA 价格...", machineBought: "机器购买成功！",
         buyingBattery: "购买电池", batteryBought: "电池购买成功！", invalidId: "无效机器ID",
@@ -102,7 +105,8 @@ const i18n = {
         swapTitle: "💱 Swap (AMM)", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP",
         loading: "Loading...", currentRate: "Current price: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap",
         connWallet: "Connecting...", installWallet: "Install Wallet", errConn: "Connection Error", linking: "Linking...",
-        refLinked: "Referrer linked successfully!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)",
+        wcIdMissing: "WalletConnect ID missing in code!", refLinked: "Referrer linked successfully!", connFirst: "Connect first",
+        enterRefAddr: "Referrer address (0x...)",
         buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...",
         confirming: "Confirming...", calcFta: "Calculating FTA price...", machineBought: "Machine purchased!",
         buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID",
@@ -225,32 +229,17 @@ class Application {
 
     async init() {
         this.setLanguage(this.currentLang);
-        if (typeof window.EthereumProvider !== 'undefined') {} 
-        else if (window.ethereum) {
-            this.provider = new ethers.BrowserProvider(window.ethereum);
-            window.ethereum.on('accountsChanged', () => window.location.reload());
-            window.ethereum.on('chainChanged', () => window.location.reload());
-        } else { this.showToast(this.t('installWallet'), true); }
     }
 
     async connect() {
-        if (typeof EthereumProvider !== 'undefined') {
-            this.setLoader(true, this.t('connWallet'));
-            try {
-                const wcProvider = await EthereumProvider.init({
-                    projectId: CONFIG.WC_PROJECT_ID, chains: [CONFIG.CHAIN_ID], showQrModal: true,
-                    methods: ['eth_sendTransaction', 'eth_signTransaction', 'personal_sign'],
-                    metadata: { name: 'FITIA PRO MINER', description: 'Mining DApp', url: window.location.origin, icons: [window.location.origin + '/logo.png'] }
-                });
-                await wcProvider.enable();
-                this.provider = new ethers.BrowserProvider(wcProvider);
-                this.signer = await this.provider.getSigner();
-                this.user = await this.signer.getAddress();
-                this.initContracts();
-                wcProvider.on("disconnect", () => window.location.reload());
-            } catch (e) { this.showToast(this.t('errConn'), true); }
-            this.setLoader(false);
-        } else if (window.ethereum) {
+        // Sécurité : Vérifier si le Project ID est renseigné
+        if (!CONFIG.WC_PROJECT_ID || CONFIG.WC_PROJECT_ID === "VOTRE_PROJECT_ID_WALLETCONNECT") {
+            this.showToast(this.t('wcIdMissing'), true);
+            return;
+        }
+
+        // Si l'utilisateur est déjà dans le navigateur MetaMask/TrustWallet (injected provider)
+        if (window.ethereum) {
             this.setLoader(true, this.t('connWallet'));
             try {
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -260,9 +249,49 @@ class Application {
                 const network = await this.provider.getNetwork();
                 if (Number(network.chainId) !== CONFIG.CHAIN_ID) await this.switchNetwork();
                 this.initContracts();
-            } catch (e) { this.showToast(this.t('errConn'), true); }
+                window.ethereum.on('accountsChanged', () => window.location.reload());
+                window.ethereum.on('chainChanged', () => window.location.reload());
+            } catch (e) { this.showToast(this.t('errConn'), true); console.error(e); }
             this.setLoader(false);
-        } else { this.showToast(this.t('installWallet'), true); }
+        } 
+        // Sinon, utiliser WalletConnect (Naviguateur Chrome/Safari classique ou APK Cordova)
+        else if (typeof EthereumProvider !== 'undefined') {
+            this.setLoader(true, this.t('connWallet'));
+            try {
+                const wcProvider = await EthereumProvider.init({
+                    projectId: CONFIG.WC_PROJECT_ID,
+                    chains: [CONFIG.CHAIN_ID],
+                    showQrModal: true, // Affiche le QR sur PC, ouvre MetaMask sur mobile
+                    methods: ['eth_sendTransaction', 'eth_signTransaction', 'personal_sign'],
+                    metadata: {
+                        name: 'FITIA PRO MINER',
+                        description: 'Mining DApp',
+                        url: window.location.origin,
+                        icons: [window.location.origin + '/logo.png']
+                    }
+                });
+
+                await wcProvider.enable(); // Déclenche l'ouverture de MetaMask sur le téléphone
+                
+                this.provider = new ethers.BrowserProvider(wcProvider);
+                this.signer = await this.provider.getSigner();
+                this.user = await this.signer.getAddress();
+                
+                this.initContracts();
+                
+                wcProvider.on("disconnect", () => {
+                    this.showToast("Wallet disconnected", true);
+                    window.location.reload();
+                });
+            } catch (e) { 
+                console.error(e);
+                this.showToast(this.t('errConn'), true); 
+            }
+            this.setLoader(false);
+        } 
+        else {
+            this.showToast(this.t('installWallet'), true);
+        }
     }
 
     async initContracts() {
