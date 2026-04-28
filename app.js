@@ -60,11 +60,7 @@ class Application {
     }
 
     t(key) { return i18n[this.currentLang][key] || i18n['en'][key] || key; }
-
-    // Fonction utilitaire pour forcer l'affichage avec un point (.) au lieu de virgule (,) sur tous les téléphones
-    formatUsd(value) {
-        return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
+    formatUsd(value) { return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
     setLanguage(lang) {
         if(!i18n[lang]) return;
@@ -106,12 +102,22 @@ class Application {
 
     async init() { this.setLanguage(this.currentLang); }
 
+    // UTILISATION DE L'API BINANCE POUR LE VRAI PRIX DU MARCHE
     async fetchPolPrice() {
         try {
-            const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
+            const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=MATICUSDT');
             const data = await response.json();
-            this.polPriceUsd = data['matic-network']?.usd || 0.5;
-        } catch (e) { this.polPriceUsd = 0.5; }
+            this.polPriceUsd = parseFloat(data.price) || 0;
+        } catch (e) { 
+            console.error("Binance API failed, trying CoinGecko", e);
+            try {
+                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
+                const data = await response.json();
+                this.polPriceUsd = data['matic-network']?.usd || 0;
+            } catch (e2) {
+                this.polPriceUsd = 0;
+            }
+        }
     }
 
     async connect() {
@@ -199,17 +205,25 @@ class Application {
             document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); 
             document.getElementById('bal-fta-2').innerText = fB.toFixed(4);
 
+            // PRIX DES TOKENS (Reel pour POL/USDT, Contrat pour FTA)
             const rate = await this.contracts.mining.getCurrentRate();
             this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
             
             const polUsdVal = pB * this.polPriceUsd;
-            const usdtUsdVal = uB * 1; 
+            const usdtUsdVal = uB * 1.00; // 1 USDT = 1 USD (Cours réel)
             const ftaUsdVal = fB * this.ftaPriceUsd;
             
+            // Mise à jour des prix à l'unité dans le Wallet
+            document.getElementById('price-pol').innerText = this.formatUsd(this.polPriceUsd);
+            document.getElementById('price-usdt').innerText = this.formatUsd(1.00);
+            document.getElementById('price-fta').innerText = this.formatUsd(this.ftaPriceUsd);
+
+            // Mise à jour des valeurs totales dans le Wallet
             document.getElementById('bal-pol-2-usd').innerText = '≈ ' + this.formatUsd(polUsdVal);
             document.getElementById('bal-usdt-2-usd').innerText = '≈ ' + this.formatUsd(usdtUsdVal);
             document.getElementById('bal-fta-2-usd').innerText = '≈ ' + this.formatUsd(ftaUsdVal);
 
+            // Solde Total en Home
             const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
             document.getElementById('val-total-usd').innerText = this.formatUsd(totalUsdVal);
 
