@@ -6,9 +6,17 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
     <title>FITIA PRO MINER</title>
+    
+    <!-- SÉCURITÉ CSP MISE À JOUR POUR AUTORISER WALLETCONNECT ET LES CDN -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src * ws://* wss://*; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://wccdn.coinbase.com https://relay.walletconnect.com; img-src 'self' data: https://* http://*;">
+    
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Ethers.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.9.0/dist/index.umd.js"></script>
+    
+    <!-- WalletConnect SDK (Version 2.11) -->
+    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
 </head>
 <body>
 
@@ -24,6 +32,7 @@
                 <div class="brand-text">FITIA <span class="pro-badge">PRO</span></div>
             </div>
             
+            <!-- LANGUAGE SELECTOR -->
             <div id="lang-selector" class="lang-dropdown">
                 <button class="lang-btn" id="lang-btn-display">🇬🇧 EN</button>
                 <div class="lang-content">
