@@ -62,7 +62,6 @@ class Application {
     t(key) { return i18n[this.currentLang][key] || i18n['en'][key] || key; }
     formatUsd(value) { return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-    // ✅ NOUVELLE MÉTHODE : Formate la puissance en unités lisibles (H/s, KH/s, MH/s, GH/s, TH/s, PH/s, EH/s)
     formatHashrate(hashesPerSec) {
         if (hashesPerSec <= 0) return '0 H/s';
         const units = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s'];
@@ -72,7 +71,6 @@ class Application {
             value /= 1000;
             unitIndex++;
         }
-        // Afficher 2 décimales sauf si c'est H/s pur
         const decimals = unitIndex === 0 ? 0 : 2;
         return value.toFixed(decimals) + ' ' + units[unitIndex];
     }
@@ -122,9 +120,7 @@ class Application {
         try {
             const response = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0');
             const data = await response.json();
-            if (data.pairs && data.pairs.length > 0) {
-                this.polPriceUsd = parseFloat(data.pairs[0].priceUsd) || 0;
-            }
+            if (data.pairs && data.pairs.length > 0) this.polPriceUsd = parseFloat(data.pairs[0].priceUsd) || 0;
         } catch (e) { console.warn("DexScreener fetch failed", e); }
 
         if (!this.polPriceUsd || this.polPriceUsd === 0) {
@@ -134,7 +130,6 @@ class Application {
                 this.polPriceUsd = data['matic-network']?.usd || 0;
             } catch (e2) { console.warn("CoinGecko fetch failed", e2); }
         }
-        
         if (!this.polPriceUsd) this.polPriceUsd = 0.70;
     }
 
@@ -171,7 +166,11 @@ class Application {
         this.contracts.usdt = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
         this.contracts.fta = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
         this.contracts.mining = new ethers.Contract(CONFIG.MINING, MINING_ABI, this.signer);
+        
+        // Récupération dynamique des décimales pour éviter tout problème d'arrondi
         try { this.ftaDecimals = await this.contracts.fta.decimals(); } catch(e) { this.ftaDecimals = 18; }
+        try { this.usdtDecimals = await this.contracts.usdt.decimals(); } catch(e) { this.usdtDecimals = 6; }
+
         document.getElementById('btn-connect').classList.add('hidden');
         document.getElementById('wallet-status').classList.remove('hidden');
         document.getElementById('addr-display').innerText = this.user.slice(0,6) + "..." + this.user.slice(38);
@@ -209,7 +208,6 @@ class Application {
                 document.getElementById('viz-status').innerText = this.t('noMachine'); document.getElementById('viz-status').style.color = "#666";
                 this.pendingBalance = 0; document.getElementById('val-pending').innerText = "0.00000";
             }
-            // ✅ MODIFICATION : Utilisation de formatHashrate au lieu de toFixed
             document.getElementById('val-power').innerText = this.formatHashrate(this.currentRealPower);
 
             const polBal = await this.provider.getBalance(this.user);
@@ -242,7 +240,7 @@ class Application {
             const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
             document.getElementById('val-total-usd').innerText = this.formatUsd(totalUsdVal);
 
-            document.getElementById('swap-rate').innerText = this.t('currentRate') + this.ftaPriceUsd.toFixed(4) + " USDT";
+            document.getElementById('swap-rate').innerText = this.t('currentRate') + this.ftaPriceUsd.toFixed(6) + " USDT";
             
             const fromBal = this.swapDirection === 'USDT_TO_FTA' ? usdtBal : ftaBal;
             const toBal = this.swapDirection === 'USDT_TO_FTA' ? ftaBal : usdtBal;
@@ -263,7 +261,6 @@ class Application {
     async fetchMachines() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getMachineCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.machineTypes(i)); const results = await Promise.all(promises); this.shopMachinesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const powerBN = (BigInt(data.power.toString()) * this.currentMultiplier) / BigInt(10**18); const power = parseFloat(ethers.formatUnits(powerBN, this.ftaDecimals)); this.shopMachinesData.push({ price: priceUsdt, power: power, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
     async fetchBatteries() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getBatteryCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.batteryTypes(i)); const results = await Promise.all(promises); this.shopBatteriesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const days = Number(data.duration) / 86400; this.shopBatteriesData.push({ price: priceUsdt, days: days, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
 
-    // ✅ MODIFICATION : Utilisation de formatHashrate dans le shop machines
     _renderShopMachinesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr'; const icons = ["💻", "🖥️", "⛏️", "🏭"]; for(let i=0; i<this.shopMachinesData.length; i++) { const d = this.shopMachinesData[i]; const div = document.createElement('div'); div.className = 'rig-item'; div.innerHTML = `<div><span class="shop-icon">${icons[i%4]}</span><span class="rig-name">${this.t('rig')} ${i+1}</span><span class="rig-power">${this.formatHashrate(d.power)}</span></div><div><span class="rig-price">${d.price.toFixed(2)} $</span><button class="btn-primary" style="padding:8px; font-size:0.8rem" onclick="App.buyMachine(${i})">${this.t('buy')} (${this.payMode})</button></div>`; c.appendChild(div); } }
     _renderShopBatteriesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr 3fr'; const icons = ["🔋", "⚡", "🔌", "💫"]; for(let i=0; i<this.shopBatteriesData.length; i++) { const d = this.shopBatteriesData[i]; const div = document.createElement('div'); div.className = 'battery-shop-item'; div.innerHTML = `<span class="shop-icon" style="font-size: 2rem;">${icons[i%4]}</span><div class="battery-name">${d.days} ${this.t('days')}</div><div class="battery-price">${d.price.toFixed(2)} $</div><button class="btn-primary" style="padding:6px; font-size:0.75rem" onclick="App.buyBattery(${i})">${this.t('buy')} (${this.payMode})</button>`; c.appendChild(div); } }
 
@@ -271,8 +268,50 @@ class Application {
     async buyBattery(id) { if (!this.user) return this.connect(); this.setLoader(true, `${this.t('buyingBattery')} (${this.payMode})...`); try { const b = this.shopBatteriesData[id]; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < b.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, b.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyBattery(id)).wait(); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(b.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyBatteryWithFTA(id)).wait(); } this.showToast(this.t('batteryBought')); this.shopBatteriesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
 
     async plugInMachine() { const mId = document.getElementById('plug-machine-id').value; const bType = document.getElementById('plug-battery-type').value; if (mId === "" || mId < 0) return this.showToast(this.t('invalidId'), true); this.setLoader(true, this.t('pluggingIn')); try { await (await this.contracts.mining.plugInMachine(mId, bType)).wait(); this.showToast(this.t('pluggedIn')); this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
+    
     toggleSwap() { this.swapDirection = this.swapDirection === 'USDT_TO_FTA' ? 'FTA_TO_USDT' : 'USDT_TO_FTA'; document.getElementById('token-from-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'USDT' : 'FTA'; document.getElementById('token-to-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'FTA' : 'USDT'; document.getElementById('swap-to-in').value = ''; this.updateData(); }
-    async calcSwap() { const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return document.getElementById('swap-to-in').value = ''; try { const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); let output; if (isUsdtTo) { output = await this.contracts.mining.getFtaOutForUsdtBuy(amount); document.getElementById('swap-to-in').value = parseFloat(ethers.formatUnits(output, this.ftaDecimals)).toFixed(5); } else { output = await this.contracts.mining.getUsdtOutForFtaSell(amount); document.getElementById('swap-to-in').value = parseFloat(ethers.formatUnits(output, this.usdtDecimals)).toFixed(5); } } catch(e) { document.getElementById('swap-to-in').value = this.t('error'); } }
+    
+    // ✅ NOUVELLE MÉTHODE CALCUL SWAP ULTRA ROBUSTE
+    async calcSwap() { 
+        const val = document.getElementById('swap-from-in').value; 
+        if (!val || val <= 0) return document.getElementById('swap-to-in').value = ''; 
+        
+        const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; 
+        const amountNum = parseFloat(val);
+        let estimatedOutput = 0;
+
+        try { 
+            const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; 
+            const amount = ethers.parseUnits(val, decimals); 
+            let output; 
+            
+            if (isUsdtTo) { 
+                output = await this.contracts.mining.getFtaOutForUsdtBuy(amount); 
+                estimatedOutput = parseFloat(ethers.formatUnits(output, this.ftaDecimals));
+                // Sécurité si le contrat renvoie un nombre avec des décimales différentes
+                if (estimatedOutput < 0.00001 && output > 0) estimatedOutput = parseFloat(ethers.formatUnits(output, this.usdtDecimals));
+                // Fallback : calcul local à partir du prix si le contrat renvoie 0
+                if (estimatedOutput <= 0 && amountNum > 0 && this.ftaPriceUsd > 0) estimatedOutput = amountNum / this.ftaPriceUsd;
+            } else { 
+                output = await this.contracts.mining.getUsdtOutForFtaSell(amount); 
+                estimatedOutput = parseFloat(ethers.formatUnits(output, this.usdtDecimals));
+                // Sécurité si le contrat renvoie un nombre avec 18 décimales au lieu de 6
+                if (estimatedOutput < 0.00001 && output > 0) estimatedOutput = parseFloat(ethers.formatUnits(output, this.ftaDecimals));
+                // Fallback : calcul local à partir du prix si le contrat renvoie 0
+                if (estimatedOutput <= 0 && amountNum > 0) estimatedOutput = amountNum * this.ftaPriceUsd;
+            } 
+        } catch(e) { 
+            // Fallback : calcul local à partir du prix en cas d'erreur RPC
+            if (isUsdtTo) {
+                estimatedOutput = this.ftaPriceUsd > 0 ? amountNum / this.ftaPriceUsd : 0;
+            } else {
+                estimatedOutput = amountNum * this.ftaPriceUsd;
+            }
+        } 
+
+        document.getElementById('swap-to-in').value = estimatedOutput > 0 ? estimatedOutput.toFixed(5) : '0';
+    }
+
     async executeSwap() { const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return this.showToast(this.t('invalidAmount'), true); this.setLoader(true, this.t('swapping')); const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); try { const tokenContract = isUsdtTo ? this.contracts.usdt : this.contracts.fta; const allowance = await tokenContract.allowance(this.user, CONFIG.MINING); if (allowance < amount) { this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); } this.setLoader(true, this.t('confirming')); const tx = isUsdtTo ? await this.contracts.mining.swapUsdtForFta(amount) : await this.contracts.mining.swapFtaForUsdt(amount); await tx.wait(); this.showToast(this.t('swapSuccess')); document.getElementById('swap-from-in').value = ''; document.getElementById('swap-to-in').value = ''; this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
     async claim() { if (!this.user) return; this.stopMiningCounter(); this.setLoader(true, this.t('claiming')); try { await (await this.contracts.mining.claimRewards()).wait(); this.pendingBalance = 0; localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); this.showToast(this.t('claimed')); this.updateData(); if (this.currentRealPower > 0) this.startMiningCounter(); } catch(e) { this.showError(e); this.startMiningCounter(); } this.setLoader(false); }
 
