@@ -102,22 +102,31 @@ class Application {
 
     async init() { this.setLanguage(this.currentLang); }
 
-    // UTILISATION DE L'API BINANCE POUR LE VRAI PRIX DU MARCHE
-    async fetchPolPrice() {
+    // NOUVELLE METHODE : Récupération du VRAI prix du marché via DexScreener (Polygon DEX)
+    async fetchMarketPrices() {
+        this.polPriceUsd = 0;
+        // 1. Essayer DexScreener (Le plus fiable pour les tokens DEX, évite les bloqueurs de pubs)
         try {
-            const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=MATICUSDT');
+            // Adresse du token POL (MATIC) sur Polygon : 0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0
+            const response = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0');
             const data = await response.json();
-            this.polPriceUsd = parseFloat(data.price) || 0;
-        } catch (e) { 
-            console.error("Binance API failed, trying CoinGecko", e);
+            if (data.pairs && data.pairs.length > 0) {
+                // Prendre le prix du premier pair (généralement le plus liquide, ex: QuickSwap)
+                this.polPriceUsd = parseFloat(data.pairs[0].priceUsd) || 0;
+            }
+        } catch (e) { console.warn("DexScreener fetch failed", e); }
+
+        // 2. Fallback CoinGecko si DexScreener échoue
+        if (!this.polPriceUsd || this.polPriceUsd === 0) {
             try {
                 const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
                 const data = await response.json();
                 this.polPriceUsd = data['matic-network']?.usd || 0;
-            } catch (e2) {
-                this.polPriceUsd = 0;
-            }
+            } catch (e2) { console.warn("CoinGecko fetch failed", e2); }
         }
+        
+        // Sécurité si tout échoue
+        if (!this.polPriceUsd) this.polPriceUsd = 0.70; // Prix de secours approximatif
     }
 
     async connect() {
@@ -159,7 +168,7 @@ class Application {
         document.getElementById('addr-display').innerText = this.user.slice(0,6) + "..." + this.user.slice(38);
         if (!localStorage.getItem(this.storageKey)) { localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); }
         
-        await this.fetchPolPrice(); 
+        await this.fetchMarketPrices(); // Récupère les vrais prix au démarrage
         await this.updateData();
         setInterval(() => this.updateData(), 15000);
         this.initVisualizer();
@@ -205,25 +214,23 @@ class Application {
             document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); 
             document.getElementById('bal-fta-2').innerText = fB.toFixed(4);
 
-            // PRIX DES TOKENS (Reel pour POL/USDT, Contrat pour FTA)
+            // PRIX DES TOKENS
             const rate = await this.contracts.mining.getCurrentRate();
             this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
             
             const polUsdVal = pB * this.polPriceUsd;
-            const usdtUsdVal = uB * 1.00; // 1 USDT = 1 USD (Cours réel)
+            const usdtUsdVal = uB * 1.00; // USDT est un stablecoin, 1 USDT = 1 USD
             const ftaUsdVal = fB * this.ftaPriceUsd;
             
-            // Mise à jour des prix à l'unité dans le Wallet
+            // Mise à jour des prix à l'unité
             document.getElementById('price-pol').innerText = this.formatUsd(this.polPriceUsd);
-            document.getElementById('price-usdt').innerText = this.formatUsd(1.00);
-            document.getElementById('price-fta').innerText = this.formatUsd(this.ftaPriceUsd);
+            document.getElementById('price-usdt').innerText = this.formatUsd(1.00); // Fixé à 1$             document.getElementById('price-fta').innerText = this.formatUsd(this.ftaPriceUsd);
 
-            // Mise à jour des valeurs totales dans le Wallet
+            // Mise à jour des valeurs totales
             document.getElementById('bal-pol-2-usd').innerText = '≈ ' + this.formatUsd(polUsdVal);
             document.getElementById('bal-usdt-2-usd').innerText = '≈ ' + this.formatUsd(usdtUsdVal);
             document.getElementById('bal-fta-2-usd').innerText = '≈ ' + this.formatUsd(ftaUsdVal);
 
-            // Solde Total en Home
             const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
             document.getElementById('val-total-usd').innerText = this.formatUsd(totalUsdVal);
 
