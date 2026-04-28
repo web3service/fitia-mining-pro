@@ -7,15 +7,18 @@
     <meta name="theme-color" content="#0f172a">
     <title>FITIA PRO MINER</title>
     
-    <!-- SÉCURITÉ CSP MISE À JOUR POUR AUTORISER WALLETCONNECT ET LES CDN -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src * ws://* wss://*; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://wccdn.coinbase.com https://relay.walletconnect.com; img-src 'self' data: https://* http://*;">
+    <!-- Sécurité CSP pour autoriser WalletConnect et les images -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src * ws://* wss://*; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://relay.walletconnect.com; img-src 'self' data: https://* http://*;">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
     
-    <!-- Ethers.js -->
+    <!-- Ethers.js v6 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    
-    <!-- WalletConnect SDK (Version 2.11) -->
+    <!-- WalletConnect SDK v2 -->
     <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
 </head>
 <body>
@@ -32,7 +35,6 @@
                 <div class="brand-text">FITIA <span class="pro-badge">PRO</span></div>
             </div>
             
-            <!-- LANGUAGE SELECTOR -->
             <div id="lang-selector" class="lang-dropdown">
                 <button class="lang-btn" id="lang-btn-display">🇬🇧 EN</button>
                 <div class="lang-content">
@@ -67,13 +69,13 @@
                     </div>
                     <div class="row-between" style="margin-top:12px; align-items: center;">
                         <span style="display:flex; align-items:center; gap:8px;">
-                            <img src="https://i.ibb.co/BRGx1GN/IMG-20260228-134642-512-x-512-pixel.webp" class="token-img"> USDT
+                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" class="token-img"> USDT
                         </span>
                         <span class="balance" id="bal-usdt">0.00</span>
                     </div>
                     <div class="row-between" style="margin-top:12px; align-items: center;">
                         <span style="display:flex; align-items:center; gap:8px;">
-                            <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" class="token-img"> FTA
+                            <img src="https://ui-avatars.com/api/?name=FTA&background=F0B90B&color=000&size=128&bold=true" class="token-img"> FTA
                         </span>
                         <span class="balance" id="bal-fta">0.00</span>
                     </div>
@@ -150,7 +152,7 @@
                     </div>
 
                     <div class="wallet-token-row">
-                        <img src="https://i.ibb.co/BRGx1GN/IMG-20260228-134642-512-x-512-pixel.webp" class="token-img-lg">
+                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" class="token-img-lg">
                         <div class="token-info">
                             <span class="token-name">USDT</span>
                             <span class="token-bal" id="bal-usdt-2">0.00</span>
@@ -160,7 +162,7 @@
                     </div>
 
                     <div class="wallet-token-row">
-                        <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" class="token-img-lg">
+                        <img src="https://ui-avatars.com/api/?name=FTA&background=F0B90B&color=000&size=128&bold=true" class="token-img-lg">
                         <div class="token-info">
                             <span class="token-name">FTA</span>
                             <span class="token-bal" id="bal-fta-2">0.00</span>
@@ -170,18 +172,12 @@
                     </div>
                 </div>
 
-                <!-- Inventaire Batteries -->
-                <div class="card" style="margin-bottom: 15px;">
-                    <h3 style="margin:0 0 10px 0; font-size:1rem;">🔋 My Batteries</h3>
-                    <div id="battery-inventory" class="battery-grid"></div>
-                </div>
-
-                <!-- Brancher une machine -->
+                <!-- Plug Machine -->
                 <div class="card" style="margin-bottom: 15px; border-color: rgba(59, 130, 246, 0.3);">
                     <h3 style="margin:0 0 10px 0; font-size:1rem;">🔌 Plug in a machine</h3>
                     <p class="small-text">Enter your offline machine ID and choose a battery.</p>
                     <div class="plug-grid">
-                        <input type="number" id="plug-machine-id" class="game-input" placeholder="Machine ID (e.g., 0)" min="0">
+                        <input type="number" id="plug-machine-id" class="game-input" placeholder="Machine ID (0, 1...)" min="0">
                         <select id="plug-battery-type" class="game-input" style="padding: 10px;">
                             <option value="0">7 Days</option>
                             <option value="1">15 Days</option>
@@ -193,11 +189,6 @@
                         </select>
                     </div>
                     <button class="btn-primary" style="margin-top:10px;" onclick="App.plugInMachine()">PLUG IN ⚡</button>
-                </div>
-
-                <div id="my-rigs-list" class="rigs-list-container"></div>
-                <div id="no-rigs" class="card" style="text-align:center; display:none;">
-                    <p>You don't have any machines yet.</p>
                 </div>
             </div>
 
