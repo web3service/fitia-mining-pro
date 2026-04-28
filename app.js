@@ -1,9 +1,9 @@
 const CONFIG = {
-    MINING: "0x.......................................",
+    MINING: "0xa70147A41F10e84D25A97997d7e2507096F86BAD",
     USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-    FTA: "0x........................................",
+    FTA: "0x5c418b12c7e9c2A8e9A71A68c6d9b319E7B1d1fd",
     CHAIN_ID: 137,
-    WC_PROJECT_ID: "VOTRE_PROJECT_ID_WALLETCONNECT" // OBLIGATOIRE
+    WC_PROJECT_ID: "2c10ee910a836551fbabbf7c8cc4542a" 
 };
 
 const i18n = {
@@ -60,6 +60,11 @@ class Application {
     }
 
     t(key) { return i18n[this.currentLang][key] || i18n['en'][key] || key; }
+
+    // Fonction utilitaire pour forcer l'affichage avec un point (.) au lieu de virgule (,) sur tous les téléphones
+    formatUsd(value) {
+        return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 
     setLanguage(lang) {
         if(!i18n[lang]) return;
@@ -190,10 +195,9 @@ class Application {
             const uB = parseFloat(ethers.formatUnits(usdtBal, this.usdtDecimals));
             const fB = parseFloat(ethers.formatUnits(ftaBal, this.ftaDecimals));
 
-            // Mise à jour Wallet avec Montant + Valeur USD (Style Binance)
-            document.getElementById('bal-pol-2').innerText = pB.toFixed(2); 
+            document.getElementById('bal-pol-2').innerText = pB.toFixed(4); 
             document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); 
-            document.getElementById('bal-fta-2').innerText = fB.toFixed(2);
+            document.getElementById('bal-fta-2').innerText = fB.toFixed(4);
 
             const rate = await this.contracts.mining.getCurrentRate();
             this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
@@ -202,12 +206,12 @@ class Application {
             const usdtUsdVal = uB * 1; 
             const ftaUsdVal = fB * this.ftaPriceUsd;
             
-            document.getElementById('bal-pol-2-usd').innerText = '≈ $' + polUsdVal.toFixed(2);
-            document.getElementById('bal-usdt-2-usd').innerText = '≈ $' + usdtUsdVal.toFixed(2);
-            document.getElementById('bal-fta-2-usd').innerText = '≈ $' + ftaUsdVal.toFixed(2);
+            document.getElementById('bal-pol-2-usd').innerText = '≈ ' + this.formatUsd(polUsdVal);
+            document.getElementById('bal-usdt-2-usd').innerText = '≈ ' + this.formatUsd(usdtUsdVal);
+            document.getElementById('bal-fta-2-usd').innerText = '≈ ' + this.formatUsd(ftaUsdVal);
 
             const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
-            document.getElementById('val-total-usd').innerText = '$' + totalUsdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('val-total-usd').innerText = this.formatUsd(totalUsdVal);
 
             document.getElementById('swap-rate').innerText = this.t('currentRate') + this.ftaPriceUsd.toFixed(4) + " USDT";
             

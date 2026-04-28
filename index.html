@@ -56,7 +56,6 @@
             <!-- DASHBOARD -->
             <div id="view-dashboard" class="view active">
                
-                <!-- TOTAL BALANCE EN USD SEULEMENT -->
                 <div class="card total-balance-card">
                     <small>Total Balance</small>
                     <div class="total-val" id="val-total-usd">$0.00</div>
@@ -85,7 +84,6 @@
                     CLAIM
                 </button>
 
-                <!-- PARRAINAGE -->
                 <div class="card referral-card" style="margin-top: 15px;">
                     <h3>👥 Referral System</h3>
                     <p class="small-text">Enter your referrer's address to link.</p>
@@ -116,7 +114,6 @@
             <div id="view-my-rigs" class="view">
                 <h2 class="view-title">⚙️ Wallet & Assets</h2>
                 
-                <!-- WALLET TOKENS LIST (STYLE BINANCE) -->
                 <div class="card" style="margin-bottom: 15px;">
                     <h3 style="margin:0 0 15px 0; font-size:1rem;">💰 Balances</h3>
                     
@@ -127,8 +124,10 @@
                             <span class="token-bal" id="bal-pol-2">0.00</span>
                             <span class="token-bal-usd" id="bal-pol-2-usd">≈ $0.00</span>
                         </div>
-                        <button class="btn-wallet" onclick="App.openSend('POL')">Send</button>
-                        <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
+                        <div class="wallet-actions">
+                            <button class="btn-wallet" onclick="App.openSend('POL')">Send</button>
+                            <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
+                        </div>
                     </div>
 
                     <div class="wallet-token-row">
@@ -138,8 +137,10 @@
                             <span class="token-bal" id="bal-usdt-2">0.00</span>
                             <span class="token-bal-usd" id="bal-usdt-2-usd">≈ $0.00</span>
                         </div>
-                        <button class="btn-wallet" onclick="App.openSend('USDT')">Send</button>
-                        <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
+                        <div class="wallet-actions">
+                            <button class="btn-wallet" onclick="App.openSend('USDT')">Send</button>
+                            <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
+                        </div>
                     </div>
 
                     <div class="wallet-token-row">
@@ -149,8 +150,10 @@
                             <span class="token-bal" id="bal-fta-2">0.00</span>
                             <span class="token-bal-usd" id="bal-fta-2-usd">≈ $0.00</span>
                         </div>
-                        <button class="btn-wallet" onclick="App.openSend('FTA')">Send</button>
-                        <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
+                        <div class="wallet-actions">
+                            <button class="btn-wallet" onclick="App.openSend('FTA')">Send</button>
+                            <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
+                        </div>
                     </div>
                 </div>
 
