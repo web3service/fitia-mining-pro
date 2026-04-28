@@ -130,7 +130,7 @@ class Application {
     }
 
     async connect() {
-        if (!CONFIG.WC_PROJECT_ID || CONFIG.WC_PROJECT_ID === "2c10ee910a836551fbabbf7c8cc4542a") { this.showToast(this.t('wcIdMissing'), true); return; }
+        if (!CONFIG.WC_PROJECT_ID || CONFIG.WC_PROJECT_ID === "VOTRE_PROJECT_ID_WALLETCONNECT") { this.showToast(this.t('wcIdMissing'), true); return; }
         if (window.ethereum) {
             this.setLoader(true, this.t('connWallet'));
             try {
