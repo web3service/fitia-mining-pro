@@ -56,32 +56,10 @@
             <!-- DASHBOARD -->
             <div id="view-dashboard" class="view active">
                
-                <!-- TOTAL BALANCE EN USD -->
+                <!-- TOTAL BALANCE EN USD SEULEMENT -->
                 <div class="card total-balance-card">
                     <small>Total Balance</small>
                     <div class="total-val" id="val-total-usd">$0.00</div>
-                </div>
-
-                <!-- SOLDES PAR TOKEN -->
-                <div class="card balances-card">
-                    <div class="row-between" style="align-items: center;">
-                        <span style="display:flex; align-items:center; gap:8px;">
-                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png" class="token-img"> POL
-                        </span>
-                        <span class="balance" id="bal-pol">0.00</span>
-                    </div>
-                    <div class="row-between" style="margin-top:12px; align-items: center;">
-                        <span style="display:flex; align-items:center; gap:8px;">
-                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" class="token-img"> USDT
-                        </span>
-                        <span class="balance" id="bal-usdt">0.00</span>
-                    </div>
-                    <div class="row-between" style="margin-top:12px; align-items: center;">
-                        <span style="display:flex; align-items:center; gap:8px;">
-                            <img src="https://ui-avatars.com/api/?name=FTA&background=F0B90B&color=000&size=128&bold=true" class="token-img"> FTA
-                        </span>
-                        <span class="balance" id="bal-fta">0.00</span>
-                    </div>
                 </div>
 
                 <div class="stats-grid">
@@ -137,27 +115,45 @@
             <!-- WALLET & ASSETS -->
             <div id="view-my-rigs" class="view">
                 <h2 class="view-title">⚙️ Wallet & Assets</h2>
+                
+                <!-- WALLET TOKENS LIST (STYLE BINANCE) -->
                 <div class="card" style="margin-bottom: 15px;">
                     <h3 style="margin:0 0 15px 0; font-size:1rem;">💰 Balances</h3>
+                    
                     <div class="wallet-token-row">
                         <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png" class="token-img-lg">
-                        <div class="token-info"><span class="token-name">POL</span><span class="token-bal" id="bal-pol-2">0.00</span></div>
+                        <div class="token-info">
+                            <span class="token-name">POL</span>
+                            <span class="token-bal" id="bal-pol-2">0.00</span>
+                            <span class="token-bal-usd" id="bal-pol-2-usd">≈ $0.00</span>
+                        </div>
                         <button class="btn-wallet" onclick="App.openSend('POL')">Send</button>
                         <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
                     </div>
+
                     <div class="wallet-token-row">
                         <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" class="token-img-lg">
-                        <div class="token-info"><span class="token-name">USDT</span><span class="token-bal" id="bal-usdt-2">0.00</span></div>
+                        <div class="token-info">
+                            <span class="token-name">USDT</span>
+                            <span class="token-bal" id="bal-usdt-2">0.00</span>
+                            <span class="token-bal-usd" id="bal-usdt-2-usd">≈ $0.00</span>
+                        </div>
                         <button class="btn-wallet" onclick="App.openSend('USDT')">Send</button>
                         <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
                     </div>
+
                     <div class="wallet-token-row">
                         <img src="https://ui-avatars.com/api/?name=FTA&background=F0B90B&color=000&size=128&bold=true" class="token-img-lg">
-                        <div class="token-info"><span class="token-name">FTA</span><span class="token-bal" id="bal-fta-2">0.00</span></div>
+                        <div class="token-info">
+                            <span class="token-name">FTA</span>
+                            <span class="token-bal" id="bal-fta-2">0.00</span>
+                            <span class="token-bal-usd" id="bal-fta-2-usd">≈ $0.00</span>
+                        </div>
                         <button class="btn-wallet" onclick="App.openSend('FTA')">Send</button>
                         <button class="btn-wallet receive-btn" onclick="App.openReceive()">Receive</button>
                     </div>
                 </div>
+
                 <div class="card" style="margin-bottom: 15px; border-color: rgba(59, 130, 246, 0.3);">
                     <h3 style="margin:0 0 10px 0; font-size:1rem;">🔌 Plug in a machine</h3>
                     <p class="small-text">Enter your offline machine ID and choose a battery.</p>

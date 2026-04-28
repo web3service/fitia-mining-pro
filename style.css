@@ -42,7 +42,6 @@ main::-webkit-scrollbar { display: none; }
 
 .card { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 
-/* TOTAL BALANCE CARD */
 .total-balance-card { text-align: center; background: linear-gradient(145deg, #252525, #1a1a1a); border: 1px solid rgba(240, 185, 11, 0.3); box-shadow: 0 10px 30px rgba(240, 185, 11, 0.1); }
 .total-balance-card small { color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
 .total-val { font-size: 2.5rem; font-weight: 800; color: var(--primary); font-family: 'JetBrains Mono', monospace; margin-top: 5px; text-shadow: 0 0 20px rgba(240, 185, 11, 0.3); }
@@ -56,11 +55,14 @@ main::-webkit-scrollbar { display: none; }
 
 .token-img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; vertical-align: middle; }
 .token-img-lg { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-.wallet-token-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+.wallet-token-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .wallet-token-row:last-child { border-bottom: none; }
-.token-info { flex: 1; display: flex; flex-direction: column; }
+.token-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .token-name { font-weight: bold; font-size: 1rem; }
-.token-bal { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--text-muted); }
+.token-bal { font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: var(--text); font-weight: bold; }
+.token-bal-usd { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); } /* Style Binance */
+
 .btn-wallet { padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text); font-weight: bold; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
 .btn-wallet:active { background: var(--primary); color: #000; }
 .receive-btn { border-color: var(--primary); color: var(--primary); }

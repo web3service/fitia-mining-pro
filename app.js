@@ -1,9 +1,9 @@
 const CONFIG = {
-    MINING: "0xa70147A41F10e84D25A97997d7e2507096F86BAD", 
-    USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", 
-    FTA: "0x5c418b12c7e9c2A8e9A71A68c6d9b319E7B1d1fd", 
+    MINING: "0x.......................................",
+    USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    FTA: "0x........................................",
     CHAIN_ID: 137,
-    WC_PROJECT_ID: "2c10ee910a836551fbabbf7c8cc4542a" 
+    WC_PROJECT_ID: "VOTRE_PROJECT_ID_WALLETCONNECT" // OBLIGATOIRE
 };
 
 const i18n = {
@@ -54,11 +54,7 @@ class Application {
         this.isLoadingShop = false; 
         this.vizContext = null; this.vizBars = [];
         this.sendTokenSymbol = 'POL';
-        
-        // Prix pour le calcul du Total Balance
-        this.polPriceUsd = 0; 
-        this.ftaPriceUsd = 0; 
-        
+        this.polPriceUsd = 0; this.ftaPriceUsd = 0; 
         const savedLang = localStorage.getItem('fitia_lang');
         this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'en';
     }
@@ -105,16 +101,12 @@ class Application {
 
     async init() { this.setLanguage(this.currentLang); }
 
-    // Récupérer le prix du POL via CoinGecko
     async fetchPolPrice() {
         try {
             const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
             const data = await response.json();
-            this.polPriceUsd = data['matic-network']?.usd || 0.5; // 0.5 comme fallback
-        } catch (e) {
-            console.error("POL Price fetch failed", e);
-            this.polPriceUsd = 0.5; // Fallback en cas d'erreur API
-        }
+            this.polPriceUsd = data['matic-network']?.usd || 0.5;
+        } catch (e) { this.polPriceUsd = 0.5; }
     }
 
     async connect() {
@@ -156,7 +148,7 @@ class Application {
         document.getElementById('addr-display').innerText = this.user.slice(0,6) + "..." + this.user.slice(38);
         if (!localStorage.getItem(this.storageKey)) { localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); }
         
-        await this.fetchPolPrice(); // Récupère le prix POL une fois connecté
+        await this.fetchPolPrice(); 
         await this.updateData();
         setInterval(() => this.updateData(), 15000);
         this.initVisualizer();
@@ -198,18 +190,23 @@ class Application {
             const uB = parseFloat(ethers.formatUnits(usdtBal, this.usdtDecimals));
             const fB = parseFloat(ethers.formatUnits(ftaBal, this.ftaDecimals));
 
-            document.getElementById('bal-pol').innerText = pB.toFixed(2); document.getElementById('bal-usdt').innerText = uB.toFixed(2); document.getElementById('bal-fta').innerText = fB.toFixed(2);
-            document.getElementById('bal-pol-2').innerText = pB.toFixed(2); document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); document.getElementById('bal-fta-2').innerText = fB.toFixed(2);
+            // Mise à jour Wallet avec Montant + Valeur USD (Style Binance)
+            document.getElementById('bal-pol-2').innerText = pB.toFixed(2); 
+            document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); 
+            document.getElementById('bal-fta-2').innerText = fB.toFixed(2);
 
-            // Calcul du Total Balance en USD
             const rate = await this.contracts.mining.getCurrentRate();
             this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
             
             const polUsdVal = pB * this.polPriceUsd;
-            const usdtUsdVal = uB * 1; // 1 USDT = 1 USD
+            const usdtUsdVal = uB * 1; 
             const ftaUsdVal = fB * this.ftaPriceUsd;
-            const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
+            
+            document.getElementById('bal-pol-2-usd').innerText = '≈ $' + polUsdVal.toFixed(2);
+            document.getElementById('bal-usdt-2-usd').innerText = '≈ $' + usdtUsdVal.toFixed(2);
+            document.getElementById('bal-fta-2-usd').innerText = '≈ $' + ftaUsdVal.toFixed(2);
 
+            const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
             document.getElementById('val-total-usd').innerText = '$' + totalUsdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             document.getElementById('swap-rate').innerText = this.t('currentRate') + this.ftaPriceUsd.toFixed(4) + " USDT";
@@ -234,7 +231,7 @@ class Application {
     async fetchBatteries() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getBatteryCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.batteryTypes(i)); const results = await Promise.all(promises); this.shopBatteriesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const days = Number(data.duration) / 86400; this.shopBatteriesData.push({ price: priceUsdt, days: days, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
 
     _renderShopMachinesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr'; const icons = ["💻", "🖥️", "⛏️", "🏭"]; for(let i=0; i<this.shopMachinesData.length; i++) { const d = this.shopMachinesData[i]; const div = document.createElement('div'); div.className = 'rig-item'; div.innerHTML = `<div><span class="shop-icon">${icons[i%4]}</span><span class="rig-name">${this.t('rig')} ${i+1}</span><span class="rig-power">${d.power.toFixed(5)} FTA/s</span></div><div><span class="rig-price">${d.price.toFixed(2)} $</span><button class="btn-primary" style="padding:8px; font-size:0.8rem" onclick="App.buyMachine(${i})">${this.t('buy')} (${this.payMode})</button></div>`; c.appendChild(div); } }
-    _renderShopBatteriesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr 1fr'; const icons = ["🔋", "⚡", "🔌", "💫"]; for(let i=0; i<this.shopBatteriesData.length; i++) { const d = this.shopBatteriesData[i]; const div = document.createElement('div'); div.className = 'battery-shop-item'; div.innerHTML = `<span class="shop-icon" style="font-size: 2rem;">${icons[i%4]}</span><div class="battery-name">${d.days} ${this.t('days')}</div><div class="battery-price">${d.price.toFixed(2)} $</div><button class="btn-primary" style="padding:6px; font-size:0.75rem" onclick="App.buyBattery(${i})">${this.t('buy')} (${this.payMode})</button>`; c.appendChild(div); } }
+    _renderShopBatteriesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr 3fr'; const icons = ["🔋", "⚡", "🔌", "💫"]; for(let i=0; i<this.shopBatteriesData.length; i++) { const d = this.shopBatteriesData[i]; const div = document.createElement('div'); div.className = 'battery-shop-item'; div.innerHTML = `<span class="shop-icon" style="font-size: 2rem;">${icons[i%4]}</span><div class="battery-name">${d.days} ${this.t('days')}</div><div class="battery-price">${d.price.toFixed(2)} $</div><button class="btn-primary" style="padding:6px; font-size:0.75rem" onclick="App.buyBattery(${i})">${this.t('buy')} (${this.payMode})</button>`; c.appendChild(div); } }
 
     async buyMachine(id) { if (!this.user) return this.connect(); this.setLoader(true, `${this.t('buyingMachine')} (${this.payMode})...`); try { const m = this.shopMachinesData[id]; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < m.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, m.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyMachine(id)).wait(); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(m.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyMachineWithFTA(id)).wait(); } this.showToast(this.t('machineBought')); this.shopMachinesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
     async buyBattery(id) { if (!this.user) return this.connect(); this.setLoader(true, `${this.t('buyingBattery')} (${this.payMode})...`); try { const b = this.shopBatteriesData[id]; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < b.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, b.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyBattery(id)).wait(); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(b.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); await (await this.contracts.mining.buyBatteryWithFTA(id)).wait(); } this.showToast(this.t('batteryBought')); this.shopBatteriesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
