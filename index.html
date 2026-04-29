@@ -1,24 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f172a">
-    <title>FITIA PRO MINER</title>
-    
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src * ws://* wss://*; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://relay.walletconnect.com; img-src 'self' data: https://* http://*;">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="style.css">
-    
-    <!-- Utilisation de crossorigin pour la sécurité SRI (Subresource Integrity) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js" crossorigin="anonymous"></script>
-</head>
+        <header>
+            <div class="brand">
+                <div class="logo-icon">⚡</div>
+                <div class="brand-text">FITIA <span class="pro-badge">PRO</span></div>
+            </div>
+            
+            <div id="lang-selector" class="lang-dropdown">
+                <button class="lang-btn" id="lang-btn-display">🇬🇧 EN</button>
+                <div class="lang-content">
+                    <a href="#" onclick="App.setLanguage('en')">🇬🇧 English</a>
+                    <a href="#" onclick="App.setLanguage('fr')">🇫🇷 Français</a>
+                    <a href="#" onclick="App.setLanguage('de')">🇩🇪 Deutsch</a>
+                    <a href="#" onclick="App.setLanguage('zh')">🇨🇳 中文</a>
+                    <a href="#" onclick="App.setLanguage('sg')">🇸🇬 English (SG)</a>
+                </div>
+            </div>
+
+            <button id="btn-connect" class="btn-connect" onclick="App.connect()">Connect</button>
+            
+            <!-- Nouveau Header Wallet avec Dropdown -->
+            <div id="wallet-status" class="wallet-status hidden" onclick="App.toggleWalletMenu()">
+                <span id="addr-display">0x...</span>
+                <span class="status-dot"></span>
+                
+                <div id="wallet-dropdown" class="wallet-dropdown">
+                    <div class="dropdown-item" onclick="event.stopPropagation(); App.copyAddr()">
+                        📋 Copy Address
+                    </div>
+                    <div class="dropdown-item disconnect" onclick="event.stopPropagation(); App.logout()">
+                        🔌 Disconnect
+                    </div>
+                </div>
+            </div>
+        </header>
 <body>
 
     <div class="bg-glow"></div>

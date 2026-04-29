@@ -84,7 +84,6 @@ class Application {
         const pass = document.getElementById('reg-password').value;
         const passConfirm = document.getElementById('reg-password-confirm').value;
         
-        // Sécurité : Vérification de la force du mot de passe
         if (pass.length < 8) return this.showToast("Min 8 characters!", true);
         if (!/[A-Z]/.test(pass)) return this.showToast("Needs 1 uppercase letter!", true);
         if (!/[0-9]/.test(pass)) return this.showToast("Needs 1 number!", true);
@@ -102,28 +101,26 @@ class Application {
             
             document.getElementById('seed-phrase-display').innerText = mnemonic;
             this.showAuthView('backup');
-            
             this.showToast(this.t('walletCreated'));
-        } catch(e) {
-            this.showError(e);
-        }
+        } catch(e) { this.showError(e); }
         this.setLoader(false);
     }
 
-    confirmBackup() {
-        this.loginWithSavedWallet();
-    }
+    confirmBackup() { this.loginWithSavedWallet(); }
 
     async login() {
         const pass = document.getElementById('login-password').value;
         if (!pass) return this.showToast(this.t('passRequired'), true);
-        this.setLoader(true, "Decrypting...");
+        this.setLoader(true, "Decrypting & Connecting to Polygon...");
         try {
             const encryptedJson = localStorage.getItem('fitia_enc_wallet');
             if (!encryptedJson) throw new Error("No wallet found");
             
             const wallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, pass);
-            this.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+            
+            // CORRECTION RÉSEAU POLYGON : On force le Chain ID 137 avec staticNetwork
+            const polygonNetwork = ethers.Network.from("polygon");
+            this.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL, polygonNetwork, { staticNetwork: polygonNetwork });
             this.signer = wallet.connect(this.provider);
             this.user = wallet.address;
             this.isInternalWallet = true;
@@ -150,6 +147,19 @@ class Application {
         this.stopMiningCounter();
         document.getElementById('auth-container').style.display = 'flex';
         document.getElementById('app-shell').style.display = 'none';
+        document.getElementById('wallet-status').classList.remove('open');
+    }
+
+    // --- DROPDOWN WALLET MENU ---
+    toggleWalletMenu() {
+        document.getElementById('wallet-status').classList.toggle('open');
+    }
+
+    copyAddr() {
+        if(!this.user) return;
+        navigator.clipboard.writeText(this.user);
+        this.showToast(this.t('addrCopied'));
+        document.getElementById('wallet-status').classList.remove('open');
     }
 
     // --- EXTERNAL WALLET (METAMASK / WC) ---
@@ -190,11 +200,14 @@ class Application {
     async init() { 
         this.setLanguage(this.currentLang); 
         const hasWallet = localStorage.getItem('fitia_enc_wallet');
-        if (hasWallet) {
-            this.showAuthView('login');
-        } else {
-            this.showAuthView('register');
-        }
+        if (hasWallet) { this.showAuthView('login'); } else { this.showAuthView('register'); }
+        
+        // Fermer le dropdown si on clique ailleurs
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#wallet-status')) {
+                document.getElementById('wallet-status')?.classList.remove('open');
+            }
+        });
     }
 
     async initAppAfterAuth() {
@@ -215,11 +228,9 @@ class Application {
         if(this.isInternalWallet) {
             document.querySelector('.status-dot').style.background = 'var(--primary)';
             document.querySelector('.status-dot').style.boxShadow = '0 0 10px var(--primary)';
-            document.getElementById('wallet-status').onclick = () => { if(confirm('Log out?')) this.logout(); };
         } else {
             document.querySelector('.status-dot').style.background = '#10b981';
             document.querySelector('.status-dot').style.boxShadow = '0 0 10px #10b981';
-            document.getElementById('wallet-status').onclick = null;
         }
 
         if (!localStorage.getItem(this.storageKey)) { localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); }
