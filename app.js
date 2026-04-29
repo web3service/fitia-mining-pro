@@ -102,7 +102,10 @@ class Application {
             document.getElementById('seed-phrase-display').innerText = mnemonic;
             this.showAuthView('backup');
             this.showToast(this.t('walletCreated'));
-        } catch(e) { this.showError(e); }
+        } catch(e) { 
+            console.error("Wallet Creation Error:", e);
+            this.showError(e); 
+        }
         this.setLoader(false);
     }
 
@@ -118,8 +121,8 @@ class Application {
             
             const wallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, pass);
             
-            // CORRECTION RÉSEAU POLYGON : On force le Chain ID 137 avec staticNetwork
-            const polygonNetwork = ethers.Network.from("polygon");
+            // CORRECTION RÉSEAU POLYGON : Utilisation du Chain ID 137 (et non le mot "polygon")
+            const polygonNetwork = ethers.Network.from(137);
             this.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL, polygonNetwork, { staticNetwork: polygonNetwork });
             this.signer = wallet.connect(this.provider);
             this.user = wallet.address;
@@ -128,6 +131,7 @@ class Application {
             this.initAppAfterAuth();
             this.showToast(this.t('loginSuccess'));
         } catch(e) {
+            console.error("Login Error:", e);
             this.showToast(this.t('invalidPass'), true);
         }
         this.setLoader(false);
@@ -202,7 +206,6 @@ class Application {
         const hasWallet = localStorage.getItem('fitia_enc_wallet');
         if (hasWallet) { this.showAuthView('login'); } else { this.showAuthView('register'); }
         
-        // Fermer le dropdown si on clique ailleurs
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#wallet-status')) {
                 document.getElementById('wallet-status')?.classList.remove('open');
