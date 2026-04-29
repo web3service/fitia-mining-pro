@@ -24,8 +24,15 @@ header { padding: 15px; display: flex; justify-content: space-between; align-ite
 .pro-badge { background: var(--primary); color: #000; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-weight: 700; }
 
 .btn-connect { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
-.wallet-status { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; cursor: pointer; }
+.wallet-status { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; cursor: pointer; position: relative; }
 .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 10px #10b981; }
+
+/* WALLET DROPDOWN MENU */
+.wallet-dropdown { display: none; position: absolute; top: 45px; right: 0; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; min-width: 180px; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.wallet-status.open .wallet-dropdown { display: block; }
+.dropdown-item { padding: 12px 15px; color: var(--text); cursor: pointer; font-size: 0.9rem; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+.dropdown-item:hover { background: rgba(255,255,255,0.05); }
+.dropdown-item.disconnect { color: var(--danger); border-top: 1px solid rgba(255,255,255,0.1); }
 
 .lang-dropdown { position: relative; display: inline-block; }
 .lang-btn { background: rgba(255,255,255,0.1); border: none; color: var(--text); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
@@ -153,11 +160,3 @@ main::-webkit-scrollbar { display: none; }
 .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
 .auth-divider span { padding: 0 10px; }
 .seed-box { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); font-family: 'JetBrains Mono', monospace; font-size: 1rem; line-height: 1.8; word-spacing: 8px; color: var(--primary); user-select: all; }
-
-/* WALLET DROPDOWN MENU */
-.wallet-status { position: relative; }
-.wallet-dropdown { display: none; position: absolute; top: 45px; right: 0; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; min-width: 180px; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.wallet-status.open .wallet-dropdown { display: block; }
-.dropdown-item { padding: 12px 15px; color: var(--text); cursor: pointer; font-size: 0.9rem; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
-.dropdown-item:hover { background: rgba(255,255,255,0.05); }
-.dropdown-item.disconnect { color: var(--danger); border-top: 1px solid rgba(255,255,255,0.1); }
