@@ -24,7 +24,7 @@ header { padding: 15px; display: flex; justify-content: space-between; align-ite
 .pro-badge { background: var(--primary); color: #000; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-weight: 700; }
 
 .btn-connect { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
-.wallet-status { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+.wallet-status { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; cursor: pointer; }
 .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 10px #10b981; }
 
 .lang-dropdown { position: relative; display: inline-block; }
@@ -54,7 +54,6 @@ main::-webkit-scrollbar { display: none; }
 .ref-input-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .ref-input-group .game-input { margin-bottom: 0; font-size: 0.85rem; text-align: left; }
 
-.token-img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; vertical-align: middle; }
 .token-img-lg { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 10px rgba(0,0,0,0.5); flex-shrink: 0; }
 
 .wallet-token-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -86,9 +85,6 @@ main::-webkit-scrollbar { display: none; }
 .stat-card.accent { border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.1); }
 .stat-val { font-size: clamp(1.2rem, 5vw, 1.6rem); font-weight: 700; color: var(--text); font-family: 'JetBrains Mono', monospace; margin: 4px 0; word-break: break-all; }
 .stat-card small { color: var(--text-muted); text-transform: uppercase; font-size: 0.7rem; }
-
-.row-between { display: flex; justify-content: space-between; font-size: 0.9rem; }
-.balance { font-family: 'JetBrains Mono', monospace; font-weight: bold; }
 
 .btn-mega { width: 100%; background: linear-gradient(135deg, var(--primary), #FFD43B); border: none; padding: 20px; border-radius: 16px; color: #000; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 10px 25px rgba(240, 185, 11, 0.4); position: relative; overflow: hidden; }
 .pulse-ring { position: absolute; top:-50%; left:-50%; width:200%; height:200%; background: rgba(255,255,255,0.2); border-radius: 40%; animation: pulse 3s infinite; }
@@ -148,3 +144,12 @@ main::-webkit-scrollbar { display: none; }
 #toast-container { position: fixed; top: max(15px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 3000; width: 90%; pointer-events: none; }
 .toast { background: #1e293b; color: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; text-align: center; border-left: 4px solid var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 0.9rem; }
 .hidden { display: none !important; }
+
+/* AUTH STYLES */
+.auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; justify-content: center; align-items: center; padding: 20px; }
+.auth-box { width: 100%; max-width: 400px; text-align: center; background: var(--card-bg); padding: 30px 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.auth-box .game-input { text-align: left; }
+.auth-divider { display: flex; align-items: center; margin: 20px 0; color: var(--text-muted); font-size: 0.8rem; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
+.auth-divider span { padding: 0 10px; }
+.seed-box { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); font-family: 'JetBrains Mono', monospace; font-size: 1rem; line-height: 1.8; word-spacing: 8px; color: var(--primary); user-select: all; }
