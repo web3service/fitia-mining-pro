@@ -39,8 +39,16 @@
 
         <div id="auth-register" class="auth-box" style="display:none;">
             <h2 style="margin:0 0 5px 0;">Create Wallet</h2>
-            <p class="small-text" style="margin-bottom: 25px; color: var(--danger);">Choose a strong password. It encrypts your private key.</p>
-            <input type="password" id="reg-password" class="game-input" placeholder="New Password (Min 8 chars)">
+            <p class="small-text" style="margin-bottom: 10px; color: var(--danger);">Choose a strong password. It encrypts your private key.</p>
+            
+            <div style="text-align: left; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                Password must contain:<br>
+                ✅ Minimum 8 characters<br>
+                ✅ At least 1 Uppercase letter<br>
+                ✅ At least 1 Number
+            </div>
+            
+            <input type="password" id="reg-password" class="game-input" placeholder="New Password">
             <input type="password" id="reg-password-confirm" class="game-input" placeholder="Confirm Password">
             <button class="btn-primary" style="margin-top:10px;" onclick="App.register()">CREATE & ENCRYPT</button>
             <button class="btn-sm btn-full" style="background:transparent; color:var(--text-muted); margin-top:15px;" onclick="App.showAuthView('login')">Already have a wallet?</button>

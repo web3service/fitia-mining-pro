@@ -84,29 +84,34 @@ class Application {
         const pass = document.getElementById('reg-password').value;
         const passConfirm = document.getElementById('reg-password-confirm').value;
         
-        if (pass.length < 8) return this.showToast("Min 8 characters!", true);
-        if (!/[A-Z]/.test(pass)) return this.showToast("Needs 1 uppercase letter!", true);
-        if (!/[0-9]/.test(pass)) return this.showToast("Needs 1 number!", true);
-        if (pass !== passConfirm) return this.showToast(this.t('passMatch'), true);
+        if (pass.length < 8) return this.showToast("❌ Password must be at least 8 characters!", true);
+        if (!/[A-Z]/.test(pass)) return this.showToast("❌ Password needs at least 1 uppercase letter!", true);
+        if (!/[0-9]/.test(pass)) return this.showToast("❌ Password needs at least 1 number!", true);
+        if (pass !== passConfirm) return this.showToast("❌ Passwords do not match!", true);
         
-        this.setLoader(true, "Generating Wallet...");
-        try {
-            const wallet = ethers.Wallet.createRandom();
-            const mnemonic = wallet.mnemonic.phrase;
-            const address = wallet.address;
-            
-            const encryptedJson = await wallet.encrypt(pass);
-            localStorage.setItem('fitia_enc_wallet', encryptedJson);
-            localStorage.setItem('fitia_wallet_addr', address);
-            
-            document.getElementById('seed-phrase-display').innerText = mnemonic;
-            this.showAuthView('backup');
-            this.showToast(this.t('walletCreated'));
-        } catch(e) { 
-            console.error("Wallet Creation Error:", e);
-            this.showError(e); 
-        }
-        this.setLoader(false);
+        this.setLoader(true, "Generating & Encrypting... (Can take a few seconds)");
+        
+        // Utilisation de setTimeout pour laisser le temps au Loader d'apparaître avant le calcul lourd
+        setTimeout(async () => {
+            try {
+                const wallet = ethers.Wallet.createRandom();
+                const mnemonic = wallet.mnemonic.phrase;
+                const address = wallet.address;
+                
+                const encryptedJson = await wallet.encrypt(pass);
+                localStorage.setItem('fitia_enc_wallet', encryptedJson);
+                localStorage.setItem('fitia_wallet_addr', address);
+                
+                document.getElementById('seed-phrase-display').innerText = mnemonic;
+                this.setLoader(false);
+                this.showAuthView('backup');
+                this.showToast(this.t('walletCreated'));
+            } catch(e) { 
+                console.error("Wallet Creation Error:", e);
+                this.setLoader(false);
+                this.showError(e); 
+            }
+        }, 50);
     }
 
     confirmBackup() { this.loginWithSavedWallet(); }
@@ -121,7 +126,7 @@ class Application {
             
             const wallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, pass);
             
-            // CORRECTION RÉSEAU : Utilisation simple et robuste pour Polygon
+            // Connexion robuste au réseau Polygon (Chain ID 137)
             this.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL, 137);
             this.signer = wallet.connect(this.provider);
             this.user = wallet.address;
@@ -131,7 +136,6 @@ class Application {
             this.showToast(this.t('loginSuccess'));
         } catch(e) {
             console.error("Login Error:", e);
-            // Affiche "Invalid Password" SEULEMENT si c'est une erreur de décryptage
             if(e.message && e.message.includes("invalid password")) {
                 this.showToast(this.t('invalidPass'), true);
             } else {
@@ -221,7 +225,7 @@ class Application {
         document.getElementById('auth-container').style.display = 'none';
         document.getElementById('app-shell').style.display = 'flex';
         
-        // PROTECTION : Vérifie si les adresses de contrat sont valides avant de les instancier
+        // Vérifie si les adresses de contrat sont valides avant de les instancier
         try {
             if(ethers.isAddress(CONFIG.USDT)) this.contracts.usdt = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
             if(ethers.isAddress(CONFIG.FTA)) this.contracts.fta = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
