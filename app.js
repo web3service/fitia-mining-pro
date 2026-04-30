@@ -7,6 +7,9 @@ const CONFIG = {
     RPC_URL: "https://polygon-rpc.com/"
 };
 
+// Vérifie automatiquement si les contrats ont été configurés
+const CONTRACTS_CONFIGURED = typeof ethers !== 'undefined' && ethers.isAddress(CONFIG.MINING) && ethers.isAddress(CONFIG.FTA);
+
 const i18n = {
     en: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "Hashrate", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap (AMM)", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "Current price: 1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", wcIdMissing: "WalletConnect ID missing!", refLinked: "Referrer linked successfully!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating FTA price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in successfully! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address", totalBal: "Total Balance", loginSuccess: "Wallet Decrypted!", invalidPass: "Invalid Password", passMatch: "Passwords do not match", passRequired: "Password required (min 8 chars, 1 uppercase, 1 number)", walletCreated: "Wallet Created & Encrypted!" },
     fr: { connect: "Connecter", refTitle: "👥 Système de Parrainage", refDesc: "Entrez l'adresse de votre parrain pour le lier.", bindRef: "LIER", power: "PUISSANCE", ftaSec: "Hashrate", pending: "EN ATTENTE", fta: "FTA", miningActive: "MINAGE ACTIF", noMachine: "AUCUNE MACHINE", claim: "RÉCLAMER", shopTitle: "⛏️ Boutique", machines: "Machines", batteries: "Batteries", buy: "ACHETER", myAssets: "⚙️ Wallet & Actifs", walletBal: "💰 Soldes", plugMachine: "🔌 Brancher une machine", plugDesc: "Entrez l'ID de votre machine éteinte et choisissez une batterie.", machineId: "ID Machine (0, 1...)", plug: "BRANCHER ⚡", swapTitle: "💱 Échange (AMM)", youPay: "Vous payez", balance: "Solde:", youReceive: "Vous recevez", swap: "ÉCHANGER", loading: "Chargement...", currentRate: "Prix actuel: 1 FTA = ", home: "Accueil", shop: "Boutique", assets: "Wallet", swapNav: "Swap", connWallet: "Connexion...", errConn: "Erreur connexion", linking: "Liaison...", wcIdMissing: "ID WalletConnect manquant !", refLinked: "Parrain lié avec succès !", connFirst: "Connectez-vous d'abord", enterRefAddr: "Adresse du parrain (0x...)", buyingMachine: "Achat Machine", approveUsdt: "Approbation USDT...", approveFta: "Approbation FTA...", confirming: "Confirmation...", calcFta: "Calcul du prix FTA...", machineBought: "Machine achetée !", buyingBattery: "Achat Batterie", batteryBought: "Batterie achetée !", invalidId: "ID Machine invalide", pluggingIn: "Branchement...", pluggedIn: "Machine branchée ! ⚡", invalidAmount: "Montant invalide", swapping: "Swap...", swapSuccess: "Échange réussi !", claiming: "Claim...", claimed: "Gains réclamés !", error: "Erreur", days: "Jours", rig: "RIG", send: "Envoyer", receive: "Recevoir", recipientAddr: "Adresse du destinataire (0x...)", amount: "Montant", confirmSend: "CONFIRMER ENVOI", sending: "Envoi...", sentSuccess: "Envoi réussi !", addrCopied: "Adresse copiée !", invalidAddr: "Adresse invalide", totalBal: "Solde Total", loginSuccess: "Portefeuille Décrypté !", invalidPass: "Mot de passe invalide", passMatch: "Les mots de passe ne correspondent pas", passRequired: "Mot de passe requis (min 8 car, 1 maj, 1 chiffre)", walletCreated: "Portefeuille Créé & Chiffré !" },
@@ -73,7 +76,6 @@ class Application {
         return value.toFixed(decimals) + ' ' + units[unitIndex];
     }
 
-    // --- AUTH SYSTEM ---
     showAuthView(view) {
         document.getElementById('auth-login').style.display = view === 'login' ? 'block' : 'none';
         document.getElementById('auth-register').style.display = view === 'register' ? 'block' : 'none';
@@ -83,34 +85,22 @@ class Application {
     async register() {
         const pass = document.getElementById('reg-password').value;
         const passConfirm = document.getElementById('reg-password-confirm').value;
-        
         if (pass.length < 8) return this.showToast("❌ Password must be at least 8 characters!", true);
         if (!/[A-Z]/.test(pass)) return this.showToast("❌ Password needs at least 1 uppercase letter!", true);
         if (!/[0-9]/.test(pass)) return this.showToast("❌ Password needs at least 1 number!", true);
         if (pass !== passConfirm) return this.showToast("❌ Passwords do not match!", true);
-        
-        this.setLoader(true, "Generating & Encrypting... (Can take a few seconds)");
-        
-        // Utilisation de setTimeout pour laisser le temps au Loader d'apparaître avant le calcul lourd
+        this.setLoader(true, "Generating & Encrypting...");
         setTimeout(async () => {
             try {
                 const wallet = ethers.Wallet.createRandom();
                 const mnemonic = wallet.mnemonic.phrase;
                 const address = wallet.address;
-                
                 const encryptedJson = await wallet.encrypt(pass);
                 localStorage.setItem('fitia_enc_wallet', encryptedJson);
                 localStorage.setItem('fitia_wallet_addr', address);
-                
                 document.getElementById('seed-phrase-display').innerText = mnemonic;
-                this.setLoader(false);
-                this.showAuthView('backup');
-                this.showToast(this.t('walletCreated'));
-            } catch(e) { 
-                console.error("Wallet Creation Error:", e);
-                this.setLoader(false);
-                this.showError(e); 
-            }
+                this.setLoader(false); this.showAuthView('backup'); this.showToast(this.t('walletCreated'));
+            } catch(e) { console.error("Wallet Creation Error:", e); this.setLoader(false); this.showError(e); }
         }, 50);
     }
 
@@ -123,24 +113,17 @@ class Application {
         try {
             const encryptedJson = localStorage.getItem('fitia_enc_wallet');
             if (!encryptedJson) throw new Error("No wallet found");
-            
             const wallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, pass);
-            
-            // Connexion robuste au réseau Polygon (Chain ID 137)
             this.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL, 137);
             this.signer = wallet.connect(this.provider);
             this.user = wallet.address;
             this.isInternalWallet = true;
-
             this.initAppAfterAuth();
             this.showToast(this.t('loginSuccess'));
         } catch(e) {
             console.error("Login Error:", e);
-            if(e.message && e.message.includes("invalid password")) {
-                this.showToast(this.t('invalidPass'), true);
-            } else {
-                this.showToast("Error: " + e.message, true);
-            }
+            if(e.message && e.message.includes("invalid password")) { this.showToast(this.t('invalidPass'), true); } 
+            else { this.showToast("Error: " + e.message, true); }
         }
         this.setLoader(false);
     }
@@ -148,35 +131,15 @@ class Application {
     loginWithSavedWallet() {
         const address = localStorage.getItem('fitia_wallet_addr');
         const encryptedJson = localStorage.getItem('fitia_enc_wallet');
-        if (address && encryptedJson) {
-            document.getElementById('login-password').value = document.getElementById('reg-password').value;
-            this.login();
-        }
+        if (address && encryptedJson) { document.getElementById('login-password').value = document.getElementById('reg-password').value; this.login(); }
     }
 
-    logout() {
-        this.user = null; this.signer = null; this.provider = null;
-        this.stopMiningCounter();
-        document.getElementById('auth-container').style.display = 'flex';
-        document.getElementById('app-shell').style.display = 'none';
-        document.getElementById('wallet-status').classList.remove('open');
-    }
+    logout() { this.user = null; this.signer = null; this.provider = null; this.stopMiningCounter(); document.getElementById('auth-container').style.display = 'flex'; document.getElementById('app-shell').style.display = 'none'; document.getElementById('wallet-status').classList.remove('open'); }
+    toggleWalletMenu() { document.getElementById('wallet-status').classList.toggle('open'); }
+    copyAddr() { if(!this.user) return; navigator.clipboard.writeText(this.user); this.showToast(this.t('addrCopied')); document.getElementById('wallet-status').classList.remove('open'); }
 
-    // --- DROPDOWN WALLET MENU ---
-    toggleWalletMenu() {
-        document.getElementById('wallet-status').classList.toggle('open');
-    }
-
-    copyAddr() {
-        if(!this.user) return;
-        navigator.clipboard.writeText(this.user);
-        this.showToast(this.t('addrCopied'));
-        document.getElementById('wallet-status').classList.remove('open');
-    }
-
-    // --- EXTERNAL WALLET (METAMASK / WC) ---
     async connect() {
-        if (!CONFIG.WC_PROJECT_ID || CONFIG.WC_PROJECT_ID === "VOTRE_PROJECT_ID_WALLETCONNECT") { this.showToast(this.t('wcIdMissing'), true); return; }
+        if (!CONFIG.WC_PROJECT_ID || CONFIG.WC_PROJECT_ID === "...........................") { this.showToast(this.t('wcIdMissing'), true); return; }
         if (window.ethereum) {
             this.setLoader(true, this.t('connWallet'));
             try {
@@ -208,47 +171,36 @@ class Application {
 
     async switchNetwork() { try { await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x89' }] }); } catch (e) { if (e.code === 4902) { await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x89', chainName: 'Polygon', nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 }, rpcUrls: ['https://polygon-rpc.com/'], blockExplorerUrls: ['https://polygonscan.com/'] }] }); } } }
 
-    // --- APP INIT ---
     async init() { 
         this.setLanguage(this.currentLang); 
         const hasWallet = localStorage.getItem('fitia_enc_wallet');
         if (hasWallet) { this.showAuthView('login'); } else { this.showAuthView('register'); }
-        
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#wallet-status')) {
-                document.getElementById('wallet-status')?.classList.remove('open');
-            }
-        });
+        document.addEventListener('click', (e) => { if (!e.target.closest('#wallet-status')) { document.getElementById('wallet-status')?.classList.remove('open'); } });
     }
 
     async initAppAfterAuth() {
         document.getElementById('auth-container').style.display = 'none';
         document.getElementById('app-shell').style.display = 'flex';
         
-        // Vérifie si les adresses de contrat sont valides avant de les instancier
+        // Initialisation des contrats avec vérification de validité
         try {
             if(ethers.isAddress(CONFIG.USDT)) this.contracts.usdt = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
             if(ethers.isAddress(CONFIG.FTA)) this.contracts.fta = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
             if(ethers.isAddress(CONFIG.MINING)) this.contracts.mining = new ethers.Contract(CONFIG.MINING, MINING_ABI, this.signer);
-        } catch(e) {
-            console.error("Contract Init Error:", e);
-            this.showToast("Invalid Contract Addresses in Config!", true);
+        } catch(e) { console.error("Contract Init Error:", e); }
+
+        if(!CONTRACTS_CONFIGURED) {
+            this.showToast("⚠️ FTA & Mining contracts not configured in code!", true);
         }
 
         document.getElementById('btn-connect').classList.add('hidden');
         document.getElementById('wallet-status').classList.remove('hidden');
         document.getElementById('addr-display').innerText = this.user.slice(0,6) + "..." + this.user.slice(38);
         
-        if(this.isInternalWallet) {
-            document.querySelector('.status-dot').style.background = 'var(--primary)';
-            document.querySelector('.status-dot').style.boxShadow = '0 0 10px var(--primary)';
-        } else {
-            document.querySelector('.status-dot').style.background = '#10b981';
-            document.querySelector('.status-dot').style.boxShadow = '0 0 10px #10b981';
-        }
+        if(this.isInternalWallet) { document.querySelector('.status-dot').style.background = 'var(--primary)'; document.querySelector('.status-dot').style.boxShadow = '0 0 10px var(--primary)'; } 
+        else { document.querySelector('.status-dot').style.background = '#10b981'; document.querySelector('.status-dot').style.boxShadow = '0 0 10px #10b981'; }
 
         if (!localStorage.getItem(this.storageKey)) { localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); }
-        
         await this.fetchMarketPrices();
         await this.updateData();
         setInterval(() => this.updateData(), 15000);
@@ -258,30 +210,12 @@ class Application {
 
     async fetchMarketPrices() {
         this.polPriceUsd = 0;
-        try {
-            const response = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0');
-            const data = await response.json();
-            if (data.pairs && data.pairs.length > 0) this.polPriceUsd = parseFloat(data.pairs[0].priceUsd) || 0;
-        } catch (e) { console.warn("DexScreener fetch failed", e); }
-        if (!this.polPriceUsd || this.polPriceUsd === 0) {
-            try {
-                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
-                const data = await response.json();
-                this.polPriceUsd = data['matic-network']?.usd || 0;
-            } catch (e2) { console.warn("CoinGecko fetch failed", e2); }
-        }
+        try { const response = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0'); const data = await response.json(); if (data.pairs && data.pairs.length > 0) this.polPriceUsd = parseFloat(data.pairs[0].priceUsd) || 0; } catch (e) {}
+        if (!this.polPriceUsd || this.polPriceUsd === 0) { try { const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd'); const data = await response.json(); this.polPriceUsd = data['matic-network']?.usd || 0; } catch (e2) {} }
         if (!this.polPriceUsd) this.polPriceUsd = 0.70;
     }
 
-    setLanguage(lang) {
-        if(!i18n[lang]) return;
-        this.currentLang = lang;
-        localStorage.setItem('fitia_lang', lang);
-        const flags = { en: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', zh: '🇨🇳', sg: '🇸🇬' };
-        document.getElementById('lang-btn-display').innerText = `${flags[lang]} ${lang.toUpperCase()}`;
-        this.applyTranslations();
-        this.renderShop(); 
-    }
+    setLanguage(lang) { if(!i18n[lang]) return; this.currentLang = lang; localStorage.setItem('fitia_lang', lang); const flags = { en: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', zh: '🇨🇳', sg: '🇸🇬' }; document.getElementById('lang-btn-display').innerText = `${flags[lang]} ${lang.toUpperCase()}`; this.applyTranslations(); this.renderShop(); }
 
     applyTranslations() {
         document.getElementById('btn-connect').innerText = this.t('connect');
@@ -314,28 +248,33 @@ class Application {
     setShopView(view) { this.shopViewMode = view; document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active')); event.currentTarget.classList.add('active'); this.renderShop(); }
 
     async updateData() {
-        if (!this.user || !this.contracts.mining) return;
+        if (!this.user) return;
         try {
-            const rawPower = await this.contracts.mining.getActivePower(this.user);
-            try { this.currentMultiplier = await this.contracts.mining.difficultyMultiplier(); } catch(e) {}
-            const realPowerBN = (rawPower * this.currentMultiplier) / BigInt(10**18); 
-            this.currentRealPower = parseFloat(ethers.formatUnits(realPowerBN, this.ftaDecimals)); 
+            // MINING CONTRACT DATA (Seulement si le contrat est configuré)
+            if (this.contracts.mining) {
+                const rawPower = await this.contracts.mining.getActivePower(this.user);
+                try { this.currentMultiplier = await this.contracts.mining.difficultyMultiplier(); } catch(e) {}
+                const realPowerBN = (rawPower * this.currentMultiplier) / BigInt(10**18); 
+                this.currentRealPower = parseFloat(ethers.formatUnits(realPowerBN, this.ftaDecimals)); 
+                const lastClaim = parseInt(localStorage.getItem(this.storageKey));
+                const timePassed = Math.floor(Date.now() / 1000) - lastClaim;
+                if (this.currentRealPower > 0) {
+                    if (!this.miningTimer) { this.pendingBalance = this.currentRealPower * timePassed; document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5); }
+                    document.getElementById('viz-status').innerText = this.t('miningActive'); document.getElementById('viz-status').style.color = "var(--primary)";
+                    this.updateVisualizerIntensity(this.currentRealPower);
+                    if (!this.miningTimer) this.startMiningCounter();
+                } else { this.stopMiningCounter(); document.getElementById('viz-status').innerText = this.t('noMachine'); document.getElementById('viz-status').style.color = "#666"; this.pendingBalance = 0; document.getElementById('val-pending').innerText = "0.00000"; }
+                document.getElementById('val-power').innerText = this.formatHashrate(this.currentRealPower);
 
-            const lastClaim = parseInt(localStorage.getItem(this.storageKey));
-            const timePassed = Math.floor(Date.now() / 1000) - lastClaim;
-            
-            if (this.currentRealPower > 0) {
-                if (!this.miningTimer) { this.pendingBalance = this.currentRealPower * timePassed; document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5); }
-                document.getElementById('viz-status').innerText = this.t('miningActive'); document.getElementById('viz-status').style.color = "var(--primary)";
-                this.updateVisualizerIntensity(this.currentRealPower);
-                if (!this.miningTimer) this.startMiningCounter();
+                const rate = await this.contracts.mining.getCurrentRate();
+                this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
             } else {
-                this.stopMiningCounter();
-                document.getElementById('viz-status').innerText = this.t('noMachine'); document.getElementById('viz-status').style.color = "#666";
-                this.pendingBalance = 0; document.getElementById('val-pending').innerText = "0.00000";
+                document.getElementById('val-power').innerText = 'N/A';
+                document.getElementById('val-pending').innerText = 'N/A';
+                document.getElementById('viz-status').innerText = 'NO CONTRACT'; document.getElementById('viz-status').style.color = "var(--danger)";
             }
-            document.getElementById('val-power').innerText = this.formatHashrate(this.currentRealPower);
 
+            // WALLET BALANCES (Fonctionne toujours si connecté au réseau Polygon)
             const polBal = await this.provider.getBalance(this.user);
             const usdtBal = this.contracts.usdt ? await this.contracts.usdt.balanceOf(this.user) : 0n;
             const ftaBal = this.contracts.fta ? await this.contracts.fta.balanceOf(this.user) : 0n;
@@ -348,11 +287,6 @@ class Application {
             document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); 
             document.getElementById('bal-fta-2').innerText = fB.toFixed(4);
 
-            if(this.contracts.mining) {
-                const rate = await this.contracts.mining.getCurrentRate();
-                this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
-            }
-
             const polUsdVal = pB * this.polPriceUsd;
             const usdtUsdVal = uB * 1.00;
             const ftaUsdVal = fB * this.ftaPriceUsd;
@@ -360,7 +294,6 @@ class Application {
             document.getElementById('price-pol').innerText = this.formatUsd(this.polPriceUsd);
             document.getElementById('price-usdt').innerText = this.formatUsd(1.00);
             document.getElementById('price-fta').innerText = this.formatUsd(this.ftaPriceUsd);
-
             document.getElementById('bal-pol-2-usd').innerText = '≈ ' + this.formatUsd(polUsdVal);
             document.getElementById('bal-usdt-2-usd').innerText = '≈ ' + this.formatUsd(usdtUsdVal);
             document.getElementById('bal-fta-2-usd').innerText = '≈ ' + this.formatUsd(ftaUsdVal);
@@ -368,7 +301,7 @@ class Application {
             const totalUsdVal = polUsdVal + usdtUsdVal + ftaUsdVal;
             document.getElementById('val-total-usd').innerText = this.formatUsd(totalUsdVal);
 
-            document.getElementById('swap-rate').innerText = this.t('currentRate') + this.ftaPriceUsd.toFixed(6) + " USDT";
+            document.getElementById('swap-rate').innerText = this.t('currentRate') + (this.ftaPriceUsd > 0 ? this.ftaPriceUsd.toFixed(6) + " USDT" : "N/A");
             
             const fromBal = this.swapDirection === 'USDT_TO_FTA' ? usdtBal : ftaBal;
             const toBal = this.swapDirection === 'USDT_TO_FTA' ? ftaBal : usdtBal;
@@ -382,10 +315,18 @@ class Application {
     startMiningCounter() { if (this.miningTimer) return; this.miningTimer = setInterval(() => { if (this.currentRealPower > 0) { this.pendingBalance += this.currentRealPower; document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5); document.getElementById('val-pending').style.color = 'var(--primary)'; setTimeout(() => document.getElementById('val-pending').style.color = 'var(--text)', 500); } }, 1000); }
     stopMiningCounter() { if (this.miningTimer) { clearInterval(this.miningTimer); this.miningTimer = null; } }
 
-    async bindReferrer() { if(!this.contracts.mining) return; const addr = document.getElementById('ref-address-input').value; if (!ethers.isAddress(addr)) return this.showToast(this.t('invalidAddr'), true); this.setLoader(true, this.t('linking')); try { await (await this.contracts.mining.setReferrer(addr)).wait(); this.showToast(this.t('refLinked')); document.getElementById('ref-address-input').value = ''; } catch(e) { this.showError(e); } this.setLoader(false); }
+    async bindReferrer() { if(!this.contracts.mining) return this.showToast("Contract not configured", true); const addr = document.getElementById('ref-address-input').value; if (!ethers.isAddress(addr)) return this.showToast(this.t('invalidAddr'), true); this.setLoader(true, this.t('linking')); try { await (await this.contracts.mining.setReferrer(addr)).wait(); this.showToast(this.t('refLinked')); document.getElementById('ref-address-input').value = ''; } catch(e) { this.showError(e); } this.setLoader(false); }
     setPayMode(mode) { this.payMode = mode; document.getElementById('btn-pay-usdt').classList.toggle('active', mode === 'USDT'); document.getElementById('btn-pay-fta').classList.toggle('active', mode === 'FTA'); this.renderShop(); }
 
-    async renderShop() { if (this.isLoadingShop || !this.contracts.mining) return; const c = document.getElementById('shop-list'); if (this.shopViewMode === 'machines') { if (this.shopMachinesData.length === 0) await this.fetchMachines(); this._renderShopMachinesHTML(c); } else { if (this.shopBatteriesData.length === 0) await this.fetchBatteries(); this._renderShopBatteriesHTML(c); } }
+    async renderShop() { 
+        const c = document.getElementById('shop-list');
+        if (!CONTRACTS_CONFIGURED) {
+            c.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--danger); padding:40px 10px; font-size:0.9rem; line-height:1.6;">⚠️ Smart Contracts not configured.<br><br>Please replace the placeholder addresses (<i>0x......</i>) with your real deployed contract addresses in the <b>app.js</b> file to load the shop.</div>';
+            return;
+        }
+        if (this.isLoadingShop || !this.contracts.mining) return; 
+        if (this.shopViewMode === 'machines') { if (this.shopMachinesData.length === 0) await this.fetchMachines(); this._renderShopMachinesHTML(c); } else { if (this.shopBatteriesData.length === 0) await this.fetchBatteries(); this._renderShopBatteriesHTML(c); } 
+    }
     async fetchMachines() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getMachineCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.machineTypes(i)); const results = await Promise.all(promises); this.shopMachinesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const powerBN = (BigInt(data.power.toString()) * this.currentMultiplier) / BigInt(10**18); const power = parseFloat(ethers.formatUnits(powerBN, this.ftaDecimals)); this.shopMachinesData.push({ price: priceUsdt, power: power, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
     async fetchBatteries() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getBatteryCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.batteryTypes(i)); const results = await Promise.all(promises); this.shopBatteriesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const days = Number(data.duration) / 86400; this.shopBatteriesData.push({ price: priceUsdt, days: days, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
 
@@ -395,12 +336,12 @@ class Application {
     async buyMachine(id) { if (!this.user) return this.connect(); if(!this.contracts.mining) return; this.setLoader(true, `${this.t('buyingMachine')} (${this.payMode})...`); try { const m = this.shopMachinesData[id]; let tx; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < m.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, m.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyMachine(id); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(m.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyMachineWithFTA(id); } await tx.wait(); this.showToast(this.t('machineBought')); this.shopMachinesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
     async buyBattery(id) { if (!this.user) return this.connect(); if(!this.contracts.mining) return; this.setLoader(true, `${this.t('buyingBattery')} (${this.payMode})...`); try { const b = this.shopBatteriesData[id]; let tx; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < b.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, b.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyBattery(id); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(b.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyBatteryWithFTA(id); } await tx.wait(); this.showToast(this.t('batteryBought')); this.shopBatteriesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
 
-    async plugInMachine() { if(!this.contracts.mining) return; const mId = document.getElementById('plug-machine-id').value; const bType = document.getElementById('plug-battery-type').value; if (mId === "" || mId < 0) return this.showToast(this.t('invalidId'), true); this.setLoader(true, this.t('pluggingIn')); try { await (await this.contracts.mining.plugInMachine(mId, bType)).wait(); this.showToast(this.t('pluggedIn')); this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
+    async plugInMachine() { if(!this.contracts.mining) return this.showToast("Contract not configured", true); const mId = document.getElementById('plug-machine-id').value; const bType = document.getElementById('plug-battery-type').value; if (mId === "" || mId < 0) return this.showToast(this.t('invalidId'), true); this.setLoader(true, this.t('pluggingIn')); try { await (await this.contracts.mining.plugInMachine(mId, bType)).wait(); this.showToast(this.t('pluggedIn')); this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
     
     toggleSwap() { this.swapDirection = this.swapDirection === 'USDT_TO_FTA' ? 'FTA_TO_USDT' : 'USDT_TO_FTA'; document.getElementById('token-from-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'USDT' : 'FTA'; document.getElementById('token-to-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'FTA' : 'USDT'; document.getElementById('swap-to-in').value = ''; this.updateData(); }
     
     async calcSwap() { 
-        if(!this.contracts.mining) return;
+        if(!this.contracts.mining) return document.getElementById('swap-to-in').value = 'N/A';
         const val = document.getElementById('swap-from-in').value; 
         if (!val || val <= 0) return document.getElementById('swap-to-in').value = ''; 
         const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; 
@@ -428,7 +369,7 @@ class Application {
         document.getElementById('swap-to-in').value = estimatedOutput > 0 ? estimatedOutput.toFixed(5) : '0';
     }
 
-    async executeSwap() { if(!this.contracts.mining) return; const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return this.showToast(this.t('invalidAmount'), true); this.setLoader(true, this.t('swapping')); const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); try { const tokenContract = isUsdtTo ? this.contracts.usdt : this.contracts.fta; const allowance = await tokenContract.allowance(this.user, CONFIG.MINING); if (allowance < amount) { this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); } this.setLoader(true, this.t('confirming')); const tx = isUsdtTo ? await this.contracts.mining.swapUsdtForFta(amount) : await this.contracts.mining.swapFtaForUsdt(amount); await tx.wait(); this.showToast(this.t('swapSuccess')); document.getElementById('swap-from-in').value = ''; document.getElementById('swap-to-in').value = ''; this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
+    async executeSwap() { if(!this.contracts.mining) return this.showToast("Contract not configured", true); const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return this.showToast(this.t('invalidAmount'), true); this.setLoader(true, this.t('swapping')); const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); try { const tokenContract = isUsdtTo ? this.contracts.usdt : this.contracts.fta; const allowance = await tokenContract.allowance(this.user, CONFIG.MINING); if (allowance < amount) { this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); } this.setLoader(true, this.t('confirming')); const tx = isUsdtTo ? await this.contracts.mining.swapUsdtForFta(amount) : await this.contracts.mining.swapFtaForUsdt(amount); await tx.wait(); this.showToast(this.t('swapSuccess')); document.getElementById('swap-from-in').value = ''; document.getElementById('swap-to-in').value = ''; this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
     
     async claim() { if (!this.user || !this.contracts.mining) return; this.stopMiningCounter(); this.setLoader(true, this.t('claiming')); try { await (await this.contracts.mining.claimRewards()).wait(); this.pendingBalance = 0; localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); this.showToast(this.t('claimed')); this.updateData(); if (this.currentRealPower > 0) this.startMiningCounter(); } catch(e) { this.showError(e); this.startMiningCounter(); } this.setLoader(false); }
 
