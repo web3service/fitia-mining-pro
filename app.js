@@ -121,9 +121,8 @@ class Application {
             
             const wallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, pass);
             
-            // CORRECTION RÉSEAU POLYGON : Utilisation du Chain ID 137 (et non le mot "polygon")
-            const polygonNetwork = ethers.Network.from(137);
-            this.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL, polygonNetwork, { staticNetwork: polygonNetwork });
+            // CORRECTION RÉSEAU : Utilisation simple et robuste pour Polygon
+            this.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL, 137);
             this.signer = wallet.connect(this.provider);
             this.user = wallet.address;
             this.isInternalWallet = true;
@@ -132,7 +131,12 @@ class Application {
             this.showToast(this.t('loginSuccess'));
         } catch(e) {
             console.error("Login Error:", e);
-            this.showToast(this.t('invalidPass'), true);
+            // Affiche "Invalid Password" SEULEMENT si c'est une erreur de décryptage
+            if(e.message && e.message.includes("invalid password")) {
+                this.showToast(this.t('invalidPass'), true);
+            } else {
+                this.showToast("Error: " + e.message, true);
+            }
         }
         this.setLoader(false);
     }
@@ -217,12 +221,15 @@ class Application {
         document.getElementById('auth-container').style.display = 'none';
         document.getElementById('app-shell').style.display = 'flex';
         
-        this.contracts.usdt = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
-        this.contracts.fta = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
-        this.contracts.mining = new ethers.Contract(CONFIG.MINING, MINING_ABI, this.signer);
-        
-        try { this.ftaDecimals = await this.contracts.fta.decimals(); } catch(e) { this.ftaDecimals = 18; }
-        try { this.usdtDecimals = await this.contracts.usdt.decimals(); } catch(e) { this.usdtDecimals = 6; }
+        // PROTECTION : Vérifie si les adresses de contrat sont valides avant de les instancier
+        try {
+            if(ethers.isAddress(CONFIG.USDT)) this.contracts.usdt = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
+            if(ethers.isAddress(CONFIG.FTA)) this.contracts.fta = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
+            if(ethers.isAddress(CONFIG.MINING)) this.contracts.mining = new ethers.Contract(CONFIG.MINING, MINING_ABI, this.signer);
+        } catch(e) {
+            console.error("Contract Init Error:", e);
+            this.showToast("Invalid Contract Addresses in Config!", true);
+        }
 
         document.getElementById('btn-connect').classList.add('hidden');
         document.getElementById('wallet-status').classList.remove('hidden');
@@ -303,7 +310,7 @@ class Application {
     setShopView(view) { this.shopViewMode = view; document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active')); event.currentTarget.classList.add('active'); this.renderShop(); }
 
     async updateData() {
-        if (!this.user) return;
+        if (!this.user || !this.contracts.mining) return;
         try {
             const rawPower = await this.contracts.mining.getActivePower(this.user);
             try { this.currentMultiplier = await this.contracts.mining.difficultyMultiplier(); } catch(e) {}
@@ -326,8 +333,8 @@ class Application {
             document.getElementById('val-power').innerText = this.formatHashrate(this.currentRealPower);
 
             const polBal = await this.provider.getBalance(this.user);
-            const usdtBal = await this.contracts.usdt.balanceOf(this.user);
-            const ftaBal = await this.contracts.fta.balanceOf(this.user);
+            const usdtBal = this.contracts.usdt ? await this.contracts.usdt.balanceOf(this.user) : 0n;
+            const ftaBal = this.contracts.fta ? await this.contracts.fta.balanceOf(this.user) : 0n;
             
             const pB = parseFloat(ethers.formatUnits(polBal, 18));
             const uB = parseFloat(ethers.formatUnits(usdtBal, this.usdtDecimals));
@@ -337,9 +344,11 @@ class Application {
             document.getElementById('bal-usdt-2').innerText = uB.toFixed(2); 
             document.getElementById('bal-fta-2').innerText = fB.toFixed(4);
 
-            const rate = await this.contracts.mining.getCurrentRate();
-            this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
-            
+            if(this.contracts.mining) {
+                const rate = await this.contracts.mining.getCurrentRate();
+                this.ftaPriceUsd = parseFloat(ethers.formatUnits(rate, this.ftaDecimals)); 
+            }
+
             const polUsdVal = pB * this.polPriceUsd;
             const usdtUsdVal = uB * 1.00;
             const ftaUsdVal = fB * this.ftaPriceUsd;
@@ -369,24 +378,25 @@ class Application {
     startMiningCounter() { if (this.miningTimer) return; this.miningTimer = setInterval(() => { if (this.currentRealPower > 0) { this.pendingBalance += this.currentRealPower; document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5); document.getElementById('val-pending').style.color = 'var(--primary)'; setTimeout(() => document.getElementById('val-pending').style.color = 'var(--text)', 500); } }, 1000); }
     stopMiningCounter() { if (this.miningTimer) { clearInterval(this.miningTimer); this.miningTimer = null; } }
 
-    async bindReferrer() { const addr = document.getElementById('ref-address-input').value; if (!ethers.isAddress(addr)) return this.showToast(this.t('invalidAddr'), true); this.setLoader(true, this.t('linking')); try { await (await this.contracts.mining.setReferrer(addr)).wait(); this.showToast(this.t('refLinked')); document.getElementById('ref-address-input').value = ''; } catch(e) { this.showError(e); } this.setLoader(false); }
+    async bindReferrer() { if(!this.contracts.mining) return; const addr = document.getElementById('ref-address-input').value; if (!ethers.isAddress(addr)) return this.showToast(this.t('invalidAddr'), true); this.setLoader(true, this.t('linking')); try { await (await this.contracts.mining.setReferrer(addr)).wait(); this.showToast(this.t('refLinked')); document.getElementById('ref-address-input').value = ''; } catch(e) { this.showError(e); } this.setLoader(false); }
     setPayMode(mode) { this.payMode = mode; document.getElementById('btn-pay-usdt').classList.toggle('active', mode === 'USDT'); document.getElementById('btn-pay-fta').classList.toggle('active', mode === 'FTA'); this.renderShop(); }
 
-    async renderShop() { if (this.isLoadingShop) return; const c = document.getElementById('shop-list'); if (this.shopViewMode === 'machines') { if (this.shopMachinesData.length === 0) await this.fetchMachines(); this._renderShopMachinesHTML(c); } else { if (this.shopBatteriesData.length === 0) await this.fetchBatteries(); this._renderShopBatteriesHTML(c); } }
+    async renderShop() { if (this.isLoadingShop || !this.contracts.mining) return; const c = document.getElementById('shop-list'); if (this.shopViewMode === 'machines') { if (this.shopMachinesData.length === 0) await this.fetchMachines(); this._renderShopMachinesHTML(c); } else { if (this.shopBatteriesData.length === 0) await this.fetchBatteries(); this._renderShopBatteriesHTML(c); } }
     async fetchMachines() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getMachineCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.machineTypes(i)); const results = await Promise.all(promises); this.shopMachinesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const powerBN = (BigInt(data.power.toString()) * this.currentMultiplier) / BigInt(10**18); const power = parseFloat(ethers.formatUnits(powerBN, this.ftaDecimals)); this.shopMachinesData.push({ price: priceUsdt, power: power, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
     async fetchBatteries() { this.isLoadingShop = true; try { const count = await this.contracts.mining.getBatteryCount(); const promises = []; for(let i=0; i<count; i++) promises.push(this.contracts.mining.batteryTypes(i)); const results = await Promise.all(promises); this.shopBatteriesData = []; for(let i=0; i<count; i++) { const data = results[i]; const priceUsdt = parseFloat(ethers.formatUnits(data.price, this.usdtDecimals)); const days = Number(data.duration) / 86400; this.shopBatteriesData.push({ price: priceUsdt, days: days, priceRaw: data.price }); } } catch(e) {} this.isLoadingShop = false; }
 
     _renderShopMachinesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr'; const icons = ["💻", "🖥️", "⛏️", "🏭"]; for(let i=0; i<this.shopMachinesData.length; i++) { const d = this.shopMachinesData[i]; const div = document.createElement('div'); div.className = 'rig-item'; div.innerHTML = `<div><span class="shop-icon">${icons[i%4]}</span><span class="rig-name">${this.t('rig')} ${i+1}</span><span class="rig-power">${this.formatHashrate(d.power)}</span></div><div><span class="rig-price">${d.price.toFixed(2)} $</span><button class="btn-primary" style="padding:8px; font-size:0.8rem" onclick="App.buyMachine(${i})">${this.t('buy')} (${this.payMode})</button></div>`; c.appendChild(div); } }
     _renderShopBatteriesHTML(c) { c.innerHTML = ''; c.style.gridTemplateColumns = '1fr 1fr 3fr'; const icons = ["🔋", "⚡", "🔌", "💫"]; for(let i=0; i<this.shopBatteriesData.length; i++) { const d = this.shopBatteriesData[i]; const div = document.createElement('div'); div.className = 'battery-shop-item'; div.innerHTML = `<span class="shop-icon" style="font-size: 2rem;">${icons[i%4]}</span><div class="battery-name">${d.days} ${this.t('days')}</div><div class="battery-price">${d.price.toFixed(2)} $</div><button class="btn-primary" style="padding:6px; font-size:0.75rem" onclick="App.buyBattery(${i})">${this.t('buy')} (${this.payMode})</button>`; c.appendChild(div); } }
 
-    async buyMachine(id) { if (!this.user) return this.connect(); this.setLoader(true, `${this.t('buyingMachine')} (${this.payMode})...`); try { const m = this.shopMachinesData[id]; let tx; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < m.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, m.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyMachine(id); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(m.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyMachineWithFTA(id); } await tx.wait(); this.showToast(this.t('machineBought')); this.shopMachinesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
-    async buyBattery(id) { if (!this.user) return this.connect(); this.setLoader(true, `${this.t('buyingBattery')} (${this.payMode})...`); try { const b = this.shopBatteriesData[id]; let tx; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < b.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, b.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyBattery(id); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(b.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyBatteryWithFTA(id); } await tx.wait(); this.showToast(this.t('batteryBought')); this.shopBatteriesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
+    async buyMachine(id) { if (!this.user) return this.connect(); if(!this.contracts.mining) return; this.setLoader(true, `${this.t('buyingMachine')} (${this.payMode})...`); try { const m = this.shopMachinesData[id]; let tx; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < m.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, m.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyMachine(id); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(m.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyMachineWithFTA(id); } await tx.wait(); this.showToast(this.t('machineBought')); this.shopMachinesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
+    async buyBattery(id) { if (!this.user) return this.connect(); if(!this.contracts.mining) return; this.setLoader(true, `${this.t('buyingBattery')} (${this.payMode})...`); try { const b = this.shopBatteriesData[id]; let tx; if (this.payMode === 'USDT') { const allow = await this.contracts.usdt.allowance(this.user, CONFIG.MINING); if (allow < b.priceRaw) { this.setLoader(true, this.t('approveUsdt')); await (await this.contracts.usdt.approve(CONFIG.MINING, b.priceRaw)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyBattery(id); } else { this.setLoader(true, this.t('calcFta')); const ftaCost = await this.contracts.mining.getFtaCostForUsdtSell(b.priceRaw); const ftaTotal = ftaCost + (ftaCost / 10n); const allow = await this.contracts.fta.allowance(this.user, CONFIG.MINING); if (allow < ftaTotal) { this.setLoader(true, this.t('approveFta')); await (await this.contracts.fta.approve(CONFIG.MINING, ftaTotal)).wait(); } this.setLoader(true, this.t('confirming')); tx = await this.contracts.mining.buyBatteryWithFTA(id); } await tx.wait(); this.showToast(this.t('batteryBought')); this.shopBatteriesData = []; this.updateData(); } catch (e) { this.showError(e); } this.setLoader(false); }
 
-    async plugInMachine() { const mId = document.getElementById('plug-machine-id').value; const bType = document.getElementById('plug-battery-type').value; if (mId === "" || mId < 0) return this.showToast(this.t('invalidId'), true); this.setLoader(true, this.t('pluggingIn')); try { await (await this.contracts.mining.plugInMachine(mId, bType)).wait(); this.showToast(this.t('pluggedIn')); this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
+    async plugInMachine() { if(!this.contracts.mining) return; const mId = document.getElementById('plug-machine-id').value; const bType = document.getElementById('plug-battery-type').value; if (mId === "" || mId < 0) return this.showToast(this.t('invalidId'), true); this.setLoader(true, this.t('pluggingIn')); try { await (await this.contracts.mining.plugInMachine(mId, bType)).wait(); this.showToast(this.t('pluggedIn')); this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
     
     toggleSwap() { this.swapDirection = this.swapDirection === 'USDT_TO_FTA' ? 'FTA_TO_USDT' : 'USDT_TO_FTA'; document.getElementById('token-from-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'USDT' : 'FTA'; document.getElementById('token-to-display').innerText = this.swapDirection === 'USDT_TO_FTA' ? 'FTA' : 'USDT'; document.getElementById('swap-to-in').value = ''; this.updateData(); }
     
     async calcSwap() { 
+        if(!this.contracts.mining) return;
         const val = document.getElementById('swap-from-in').value; 
         if (!val || val <= 0) return document.getElementById('swap-to-in').value = ''; 
         const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; 
@@ -414,9 +424,9 @@ class Application {
         document.getElementById('swap-to-in').value = estimatedOutput > 0 ? estimatedOutput.toFixed(5) : '0';
     }
 
-    async executeSwap() { const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return this.showToast(this.t('invalidAmount'), true); this.setLoader(true, this.t('swapping')); const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); try { const tokenContract = isUsdtTo ? this.contracts.usdt : this.contracts.fta; const allowance = await tokenContract.allowance(this.user, CONFIG.MINING); if (allowance < amount) { this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); } this.setLoader(true, this.t('confirming')); const tx = isUsdtTo ? await this.contracts.mining.swapUsdtForFta(amount) : await this.contracts.mining.swapFtaForUsdt(amount); await tx.wait(); this.showToast(this.t('swapSuccess')); document.getElementById('swap-from-in').value = ''; document.getElementById('swap-to-in').value = ''; this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
+    async executeSwap() { if(!this.contracts.mining) return; const val = document.getElementById('swap-from-in').value; if (!val || val <= 0) return this.showToast(this.t('invalidAmount'), true); this.setLoader(true, this.t('swapping')); const isUsdtTo = this.swapDirection === 'USDT_TO_FTA'; const decimals = isUsdtTo ? this.usdtDecimals : this.ftaDecimals; const amount = ethers.parseUnits(val, decimals); try { const tokenContract = isUsdtTo ? this.contracts.usdt : this.contracts.fta; const allowance = await tokenContract.allowance(this.user, CONFIG.MINING); if (allowance < amount) { this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); } this.setLoader(true, this.t('confirming')); const tx = isUsdtTo ? await this.contracts.mining.swapUsdtForFta(amount) : await this.contracts.mining.swapFtaForUsdt(amount); await tx.wait(); this.showToast(this.t('swapSuccess')); document.getElementById('swap-from-in').value = ''; document.getElementById('swap-to-in').value = ''; this.updateData(); } catch(e) { this.showError(e); } this.setLoader(false); }
     
-    async claim() { if (!this.user) return; this.stopMiningCounter(); this.setLoader(true, this.t('claiming')); try { await (await this.contracts.mining.claimRewards()).wait(); this.pendingBalance = 0; localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); this.showToast(this.t('claimed')); this.updateData(); if (this.currentRealPower > 0) this.startMiningCounter(); } catch(e) { this.showError(e); this.startMiningCounter(); } this.setLoader(false); }
+    async claim() { if (!this.user || !this.contracts.mining) return; this.stopMiningCounter(); this.setLoader(true, this.t('claiming')); try { await (await this.contracts.mining.claimRewards()).wait(); this.pendingBalance = 0; localStorage.setItem(this.storageKey, Math.floor(Date.now() / 1000)); this.showToast(this.t('claimed')); this.updateData(); if (this.currentRealPower > 0) this.startMiningCounter(); } catch(e) { this.showError(e); this.startMiningCounter(); } this.setLoader(false); }
 
     openSend(tokenSymbol) { this.sendTokenSymbol = tokenSymbol; document.getElementById('send-token-name').innerText = tokenSymbol; document.getElementById('send-to-address').value = ''; document.getElementById('send-amount').value = ''; let balId = 'bal-pol-2'; if(tokenSymbol === 'USDT') balId = 'bal-usdt-2'; if(tokenSymbol === 'FTA') balId = 'bal-fta-2'; document.getElementById('send-bal').innerText = document.getElementById(balId).innerText; document.getElementById('modal-send').classList.add('active'); }
     openReceive() { if(!this.user) return this.showToast(this.t('connFirst'), true); document.getElementById('receive-addr-display').innerText = this.user; document.getElementById('modal-receive').classList.add('active'); }
@@ -438,6 +448,7 @@ class Application {
                 let contract, decimals; 
                 if (this.sendTokenSymbol === 'USDT') { contract = this.contracts.usdt; decimals = this.usdtDecimals; } 
                 if (this.sendTokenSymbol === 'FTA') { contract = this.contracts.fta; decimals = this.ftaDecimals; } 
+                if(!contract) return this.showToast("Contract not configured", true);
                 tx = await contract.transfer(toAddress, ethers.parseUnits(amountStr, decimals)); 
                 await tx.wait();
             } 
