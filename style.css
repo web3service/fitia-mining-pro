@@ -149,7 +149,7 @@ main::-webkit-scrollbar { display: none; }
 .toast { background: #1e293b; color: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; text-align: center; border-left: 4px solid var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 0.9rem; }
 .hidden { display: none !important; }
 
-/* ---------- INTERNAL WALLET SPECIFIC ---------- */
+/* ---------- INTERNAL WALLET ---------- */
 .internal-wallet-card { border: 1px solid var(--primary); margin-bottom: 20px; }
 .internal-wallet-card h3 { margin-top: 0; font-size: 1rem; }
 .internal-wallet-ui { font-size: 0.9rem; }

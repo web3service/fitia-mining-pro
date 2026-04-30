@@ -25,7 +25,6 @@
 
     <div class="app-shell">
        
-        <!-- HEADER -->
         <header>
             <div class="brand">
                 <div class="logo-icon">⚡</div>
@@ -50,10 +49,8 @@
             </div>
         </header>
 
-        <!-- MAIN CONTENT -->
         <main id="main-view">
            
-            <!-- DASHBOARD -->
             <div id="view-dashboard" class="view active">
                
                 <div class="card total-balance-card">
@@ -94,7 +91,6 @@
                 </div>
             </div>
 
-            <!-- SHOP -->
             <div id="view-shop" class="view">
                 <div class="shop-header">
                     <h2 class="view-title">⛏️ Shop</h2>
@@ -110,16 +106,13 @@
                 <div id="shop-list" class="grid-list"></div>
             </div>
 
-            <!-- WALLET & ASSETS -->
             <div id="view-my-rigs" class="view">
                 <h2 class="view-title">⚙️ Wallet & Assets</h2>
                 
                 <!-- INTERNAL WALLET CARD -->
                 <div class="card internal-wallet-card" id="internal-wallet-section">
                     <h3>🔐 Internal Wallet</h3>
-                    <div id="internal-wallet-ui">
-                        <!-- filled by JS -->
-                    </div>
+                    <div id="internal-wallet-ui"></div>
                 </div>
 
                 <div class="card" style="margin-bottom: 15px;">
@@ -185,7 +178,6 @@
                 </div>
             </div>
 
-            <!-- SWAP -->
             <div id="view-swap" class="view">
                 <h2 class="view-title">💱 Swap </h2>
                 <div class="card swap-interface">
@@ -215,7 +207,6 @@
         </nav>
     </div>
 
-    <!-- MODALS -->
     <div id="modal-send" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3>Send <span id="send-token-name">TOKEN</span></h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
@@ -235,13 +226,10 @@
         </div>
     </div>
 
-    <!-- MODAL FOR INTERNAL WALLET ACTIONS -->
     <div id="modal-internal-wallet" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3 id="modal-internal-title">Internal Wallet</h3><button class="modal-close" onclick="App.closeInternalModal()">✕</button></div>
-            <div id="modal-internal-content">
-                <!-- filled dynamically -->
-            </div>
+            <div id="modal-internal-content"></div>
         </div>
     </div>
 

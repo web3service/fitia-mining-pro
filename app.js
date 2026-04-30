@@ -25,7 +25,6 @@ const i18n = {
         send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount",
         confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!",
         invalidAddr: "Invalid address", totalBal: "Total Balance",
-        // Internal wallet
         createWallet: "Create New Wallet", importWallet: "Import Wallet", unlockWallet: "Unlock Wallet",
         lockWallet: "Lock Wallet", walletLocked: "Wallet locked", walletUnlocked: "Wallet ready",
         setPassword: "Set a password", confirmPassword: "Confirm password", enterPassword: "Enter password",
