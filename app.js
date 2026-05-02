@@ -5,8 +5,8 @@ const CONFIG = {
     CHAIN_ID: 137,
     WC_PROJECT_ID: "2c10ee910a836551fbabbf7c8cc4542a",
     OPENAI_API_KEY: "",
-    WHATSAPP_GROUP: "https://chat.whatsapp.com/VOTRE_LIEN_GROUPE",
-    WHATSAPP_CHANNEL: "https://whatsapp.com/channel/VOTRE_LIEN_CHAINE"
+    WHATSAPP_GROUP: "https://chat.whatsapp.com/BDsvPCB6xp8H8X0YaRmPFP",
+    WHATSAPP_CHANNEL: "https://whatsapp.com/channel/0029VbCQhI38PgsPLbBJdV1e"
 };
 
 const i18n = {
