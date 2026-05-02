@@ -77,7 +77,6 @@
                     <div class="viz-label" id="viz-status">WAITING</div>
                 </div>
 
-                <!-- ACTIVE MACHINES SECTION -->
                 <div id="active-machines-section" class="card" style="margin-bottom:15px;">
                     <h3 class="section-title">⛏️ Active Machines</h3>
                     <div id="active-machines-list">
@@ -163,7 +162,6 @@
                     </div>
                 </div>
 
-                <!-- MY MACHINES -->
                 <div class="card" style="margin-bottom: 15px; border-color: rgba(16, 185, 129, 0.2);">
                     <h3 class="section-title">⛏️ My Machines</h3>
                     <div id="my-machines-list">
@@ -171,7 +169,6 @@
                     </div>
                 </div>
 
-                <!-- MY BATTERIES -->
                 <div class="card" style="margin-bottom: 15px; border-color: rgba(139, 92, 246, 0.2);">
                     <h3 class="section-title">🔋 My Batteries</h3>
                     <div id="my-batteries-list">
@@ -214,6 +211,35 @@
                         <input type="number" id="swap-to-in" placeholder="0.0" step="any" readonly>
                         <div class="token-select" style="background:#333; cursor:default;" id="token-to-display">FTA</div>
                     </div>
+                    
+                    <!-- SWAP DETAILS -->
+                    <div id="swap-details" class="swap-details hidden">
+                        <div class="swap-detail-row">
+                            <span class="swap-detail-label">Exchange Rate</span>
+                            <span class="swap-detail-value" id="swap-detail-rate">—</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="swap-detail-label">Price Impact</span>
+                            <span class="swap-detail-value" id="swap-detail-impact">&lt; 0.5%</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="swap-detail-label">Swap Fee (0.3%)</span>
+                            <span class="swap-detail-value" id="swap-detail-fee">—</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="swap-detail-label">Minimum Received</span>
+                            <span class="swap-detail-value" id="swap-detail-min">—</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="swap-detail-label">Slippage Tolerance</span>
+                            <span class="swap-detail-value swap-slippage">0.5%</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="swap-detail-label">Network Fee</span>
+                            <span class="swap-detail-value" id="swap-detail-network">≈ 0.01 POL</span>
+                        </div>
+                    </div>
+                    
                     <div class="rate-info" id="swap-rate">Loading...</div>
                     <button class="btn-primary" onclick="App.executeSwap()">SWAP</button>
                 </div>
@@ -248,9 +274,14 @@
         </div>
     </div>
 
+    <!-- FTA LOADER -->
     <div id="loader" class="loader hidden">
-        <div class="spinner-ring"></div>
-        <p id="loader-text">Processing...</p>
+        <div class="fta-loader-wrap">
+            <div class="fta-loader-ring"></div>
+            <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" class="fta-loader-logo" alt="FTA">
+            <div class="fta-loader-pulse"></div>
+        </div>
+        <p id="loader-text" class="loader-text">Processing...</p>
     </div>
 
     <script src="app.js"></script>
