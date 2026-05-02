@@ -275,10 +275,15 @@
     </div>
 
     <!-- CHAT ASSISTANT -->
-    <button class="chat-fab" onclick="App.toggleChat()">🤖</button>
+    <button class="chat-fab" onclick="App.toggleChat()">
+        <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" class="chat-fab-logo" alt="FTA">
+    </button>
     <div id="chat-panel" class="chat-panel">
         <div class="chat-header">
-            <span>🤖 Fitia Assistant</span>
+            <div class="chat-header-brand">
+                <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" class="chat-header-logo" alt="FTA">
+                <span>Fitia Assistant</span>
+            </div>
             <button class="chat-close" onclick="App.toggleChat()">✕</button>
         </div>
         <div id="chat-messages" class="chat-messages"></div>
