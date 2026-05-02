@@ -56,7 +56,7 @@ class Application {
         this.payMode = 'USDT'; this.shopViewMode = 'machines';
         this.swapDirection = 'USDT_TO_FTA';
         this.ftaDecimals = 18; this.usdtDecimals = 6;
-        this.currentMultiplier = 2000000000000n; 
+        this.currentMultiplier = 1n;
         this.currentRealPower = 0; this.pendingBalance = 0;    
         this.miningTimer = null; this.storageKey = "fitia_last_claim_time_v3"; 
         this.shopMachinesData = []; this.shopBatteriesData = [];
@@ -75,10 +75,13 @@ class Application {
 
     formatHashrate(h) {
         if (h <= 0) return '0 H/s';
-        const u = ['H/s','KH/s','MH/s','GH/s','TH/s','PH/s','EH/s'];
-        let v = h, i = 0;
-        while (v >= 1000 && i < u.length - 1) { v /= 1000; i++; }
-        return v.toFixed(i === 0 ? 0 : 2) + ' ' + u[i];
+        const units = ['nH/s', 'µH/s', 'mH/s', 'H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s'];
+        const baseIndex = 3;
+        let value = h;
+        let unitIndex = baseIndex;
+        while (value < 1 && unitIndex > 0) { value *= 1000; unitIndex--; }
+        while (value >= 1000 && unitIndex < units.length - 1) { value /= 1000; unitIndex++; }
+        return value.toFixed(2) + ' ' + units[unitIndex];
     }
 
     formatTimeRemaining(s) {
@@ -256,8 +259,17 @@ class Application {
         try {
             const rawPower = await this.contracts.mining.getActivePower(this.user);
             try { this.currentMultiplier = await this.contracts.mining.difficultyMultiplier(); } catch(e){}
-            const rpBN = (rawPower * this.currentMultiplier) / BigInt(10**18);
-            this.currentRealPower = parseFloat(ethers.formatUnits(rpBN, this.ftaDecimals));
+            
+            let realPower;
+            const rpRaw = BigInt(rawPower.toString());
+            if (this.currentMultiplier > 1n) {
+                const rpBN = (rpRaw * this.currentMultiplier) / BigInt(10**18);
+                realPower = parseFloat(ethers.formatUnits(rpBN, this.ftaDecimals));
+            } else {
+                realPower = parseFloat(ethers.formatUnits(rpRaw, this.ftaDecimals));
+            }
+            this.currentRealPower = realPower;
+            
             const lc = parseInt(localStorage.getItem(this.storageKey)), tp = Math.floor(Date.now()/1000) - lc;
             if (this.currentRealPower > 0) {
                 if (!this.miningTimer) { this.pendingBalance = this.currentRealPower * tp; document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5); }
@@ -290,7 +302,36 @@ class Application {
     setPayMode(m) { this.payMode = m; document.getElementById('btn-pay-usdt').classList.toggle('active',m==='USDT'); document.getElementById('btn-pay-fta').classList.toggle('active',m==='FTA'); this.renderShop(); }
 
     async renderShop() { if(this.isLoadingShop) return; const c = document.getElementById('shop-list'); if(this.shopViewMode==='machines') { if(!this.shopMachinesData.length) await this.fetchMachines(); this._renderShopMachinesHTML(c); } else { if(!this.shopBatteriesData.length) await this.fetchBatteries(); this._renderShopBatteriesHTML(c); } }
-    async fetchMachines() { this.isLoadingShop=true; try { const c=await this.contracts.mining.getMachineCount(), p=[]; for(let i=0;i<c;i++) p.push(this.contracts.mining.machineTypes(i)); const r=await Promise.all(p); this.shopMachinesData=[]; for(let i=0;i<c;i++) { const d=r[i], pu=parseFloat(ethers.formatUnits(d.price,this.usdtDecimals)), pbn=(BigInt(d.power.toString())*this.currentMultiplier)/BigInt(10**18), pw=parseFloat(ethers.formatUnits(pbn,this.ftaDecimals)); this.shopMachinesData.push({price:pu,power:pw,priceRaw:d.price}); } } catch(e){} this.isLoadingShop=false; }
+    
+    async fetchMachines() { 
+        this.isLoadingShop=true; 
+        try { 
+            try { this.currentMultiplier = await this.contracts.mining.difficultyMultiplier(); } catch(e){}
+            const c=await this.contracts.mining.getMachineCount(), p=[]; 
+            for(let i=0;i<c;i++) p.push(this.contracts.mining.machineTypes(i)); 
+            const r=await Promise.all(p); 
+            this.shopMachinesData=[]; 
+            for(let i=0;i<c;i++) { 
+                const d=r[i]; 
+                const priceUsdt = parseFloat(ethers.formatUnits(d.price, this.usdtDecimals));
+                const rawPower = BigInt(d.power.toString());
+                let power;
+                if (this.currentMultiplier > 1n) {
+                    const powerBN = (rawPower * this.currentMultiplier) / BigInt(10**18);
+                    power = parseFloat(ethers.formatUnits(powerBN, this.ftaDecimals));
+                } else {
+                    power = parseFloat(ethers.formatUnits(rawPower, this.ftaDecimals));
+                }
+                if (power === 0) {
+                    const estimatedPowers = [1, 5, 20, 100, 500, 2000, 10000, 50000];
+                    power = estimatedPowers[i % estimatedPowers.length] || 1;
+                }
+                this.shopMachinesData.push({price: priceUsdt, power: power, priceRaw: d.price}); 
+            } 
+        } catch(e){ console.error("fetchMachines error", e); } 
+        this.isLoadingShop=false; 
+    }
+    
     async fetchBatteries() { this.isLoadingShop=true; try { const c=await this.contracts.mining.getBatteryCount(), p=[]; for(let i=0;i<c;i++) p.push(this.contracts.mining.batteryTypes(i)); const r=await Promise.all(p); this.shopBatteriesData=[]; for(let i=0;i<c;i++) { const d=r[i], pu=parseFloat(ethers.formatUnits(d.price,this.usdtDecimals)), dy=Number(d.duration)/86400; this.shopBatteriesData.push({price:pu,days:dy,priceRaw:d.price}); } } catch(e){} this.isLoadingShop=false; }
 
     getMachineSVG(tier) {
@@ -336,15 +377,12 @@ class Application {
         const fee = inputVal * SWAP_FEE_RATE;
         const netInput = inputVal - fee;
         let netOutput = 0;
-        if (this.ftaPriceUsd > 0) {
-            netOutput = isUsdtTo ? (netInput / this.ftaPriceUsd) : (netInput * this.ftaPriceUsd);
-        }
+        if (this.ftaPriceUsd > 0) { netOutput = isUsdtTo ? (netInput / this.ftaPriceUsd) : (netInput * this.ftaPriceUsd); }
         const minReceived = netOutput * (1 - SLIPPAGE);
         document.getElementById('swap-to-in').value = netOutput > 0 ? netOutput.toFixed(6) : '';
         const detailsEl = document.getElementById('swap-details');
         detailsEl.classList.remove('hidden');
-        const fromToken = isUsdtTo ? 'USDT' : 'FTA';
-        const toToken = isUsdtTo ? 'FTA' : 'USDT';
+        const fromToken = isUsdtTo ? 'USDT' : 'FTA', toToken = isUsdtTo ? 'FTA' : 'USDT';
         document.getElementById('swap-detail-rate').innerText = isUsdtTo ? `1 USDT = ${(1 / this.ftaPriceUsd).toFixed(2)} FTA` : `1 FTA = ${this.ftaPriceUsd.toFixed(6)} USDT`;
         document.getElementById('swap-detail-fee').innerText = `${fee.toFixed(6)} ${fromToken}`;
         document.getElementById('swap-detail-min').innerText = `${minReceived.toFixed(6)} ${toToken}`;
@@ -362,17 +400,12 @@ class Application {
         try { 
             const tokenContract = isUsdtTo ? this.contracts.usdt : this.contracts.fta; 
             const allowance = await tokenContract.allowance(this.user, CONFIG.MINING); 
-            if (allowance < amount) { 
-                this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); 
-                await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); 
-            } 
+            if (allowance < amount) { this.setLoader(true, this.t(isUsdtTo ? 'approveUsdt' : 'approveFta')); await (await tokenContract.approve(CONFIG.MINING, amount)).wait(); } 
             this.setLoader(true, this.t('confirming')); 
             const tx = isUsdtTo ? await this.contracts.mining.swapUsdtForFta(amount) : await this.contracts.mining.swapFtaForUsdt(amount); 
             await tx.wait(); 
             this.showToast(this.t('swapSuccess')); 
-            document.getElementById('swap-from-in').value = ''; 
-            document.getElementById('swap-to-in').value = ''; 
-            document.getElementById('swap-details').classList.add('hidden');
+            document.getElementById('swap-from-in').value = ''; document.getElementById('swap-to-in').value = ''; document.getElementById('swap-details').classList.add('hidden');
             this.updateData(); 
         } catch(e) { this.showError(e); } this.setLoader(false); 
     }
@@ -395,99 +428,20 @@ class Application {
     setLoader(show, msg="Processing...") { 
         const l = document.getElementById('loader'); 
         document.getElementById('loader-text').innerText = msg; 
-        if (show) { l.classList.remove('hidden'); } 
-        else { l.classList.add('hidden'); }
+        if (show) { l.classList.remove('hidden'); } else { l.classList.add('hidden'); }
     }
 
-    // ========================================
-    // PROFESSIONAL ERROR HANDLING
-    // ========================================
     getErrorMessage(e) {
-        // Convert error to searchable string
         const errStr = (e?.message || '').toLowerCase() + ' ' + (e?.code || '').toLowerCase() + ' ' + (e?.reason || '').toLowerCase() + ' ' + (e?.shortMessage || '').toLowerCase();
         const infoErr = (e?.info?.error?.message || '').toLowerCase();
         const combined = errStr + ' ' + infoErr;
-
-        // User rejected / cancelled
-        if (
-            combined.includes('user rejected') ||
-            combined.includes('user denied') ||
-            combined.includes('cancelled by user') ||
-            combined.includes('action_rejected') ||
-            combined.includes('transaction was rejected') ||
-            e?.code === 'ACTION_REJECTED' ||
-            e?.code === 4001 ||
-            e?.code === -32000 ||
-            (e?.info?.error?.code === 4001) ||
-            combined.includes('user cancel')
-        ) {
-            return this.t('errRejected');
-        }
-
-        // Insufficient funds
-        if (
-            combined.includes('insufficient funds') ||
-            combined.includes('insufficient balance') ||
-            combined.includes('not enough') ||
-            combined.includes('underpriced') ||
-            combined.includes('exceeds allowance') ||
-            combined.includes('erc20: insufficient') ||
-            combined.includes('transfer amount exceeds')
-        ) {
-            return this.t('errInsufficientFunds');
-        }
-
-        // Nonce error
-        if (
-            combined.includes('nonce') ||
-            combined.includes('already known') ||
-            combined.includes('replacement fee too low')
-        ) {
-            return this.t('errNonce');
-        }
-
-        // Pending transaction
-        if (
-            combined.includes('already pending') ||
-            combined.includes('pending transaction')
-        ) {
-            return this.t('errAlreadyPending');
-        }
-
-        // Timeout
-        if (
-            combined.includes('timeout') ||
-            combined.includes('timed out') ||
-            combined.includes('deadline')
-        ) {
-            return this.t('errTimeout');
-        }
-
-        // Network error
-        if (
-            combined.includes('network') ||
-            combined.includes('fetch') ||
-            combined.includes('failed to fetch') ||
-            combined.includes('connection') ||
-            combined.includes('could not decode') ||
-            combined.includes('missing revert data') ||
-            combined.includes('call revert exception')
-        ) {
-            return this.t('errNetwork');
-        }
-
-        // Contract execution error
-        if (
-            combined.includes('revert') ||
-            combined.includes('execution reverted') ||
-            combined.includes('vm execution error') ||
-            combined.includes('gas required exceeds allowance') ||
-            combined.includes('transaction failed')
-        ) {
-            return this.t('errContract');
-        }
-
-        // Default
+        if (combined.includes('user rejected') || combined.includes('user denied') || combined.includes('cancelled by user') || combined.includes('action_rejected') || combined.includes('transaction was rejected') || e?.code === 'ACTION_REJECTED' || e?.code === 4001 || e?.code === -32000 || (e?.info?.error?.code === 4001) || combined.includes('user cancel')) return this.t('errRejected');
+        if (combined.includes('insufficient funds') || combined.includes('insufficient balance') || combined.includes('not enough') || combined.includes('underpriced') || combined.includes('exceeds allowance') || combined.includes('erc20: insufficient') || combined.includes('transfer amount exceeds')) return this.t('errInsufficientFunds');
+        if (combined.includes('nonce') || combined.includes('already known') || combined.includes('replacement fee too low')) return this.t('errNonce');
+        if (combined.includes('already pending') || combined.includes('pending transaction')) return this.t('errAlreadyPending');
+        if (combined.includes('timeout') || combined.includes('timed out') || combined.includes('deadline')) return this.t('errTimeout');
+        if (combined.includes('network') || combined.includes('fetch') || combined.includes('failed to fetch') || combined.includes('connection') || combined.includes('could not decode') || combined.includes('missing revert data') || combined.includes('call revert exception')) return this.t('errNetwork');
+        if (combined.includes('revert') || combined.includes('execution reverted') || combined.includes('vm execution error') || combined.includes('gas required exceeds allowance') || combined.includes('transaction failed')) return this.t('errContract');
         return this.t('errGeneric');
     }
 
