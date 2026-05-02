@@ -25,7 +25,6 @@
 
     <div class="app-shell">
        
-        <!-- HEADER -->
         <header>
             <div class="brand">
                 <div class="logo-icon">⚡</div>
@@ -50,7 +49,6 @@
             </div>
         </header>
 
-        <!-- MAIN CONTENT -->
         <main id="main-view">
            
             <!-- DASHBOARD -->
@@ -77,6 +75,14 @@
                 <div class="visualizer-wrap">
                     <canvas id="mining-canvas"></canvas>
                     <div class="viz-label" id="viz-status">WAITING</div>
+                </div>
+
+                <!-- ACTIVE MACHINES SECTION -->
+                <div id="active-machines-section" class="card" style="margin-bottom:15px;">
+                    <h3 class="section-title">⛏️ Active Machines</h3>
+                    <div id="active-machines-list">
+                        <p class="small-text" style="text-align:center;">No active machines</p>
+                    </div>
                 </div>
 
                 <button class="btn-mega" onclick="App.claim()">
@@ -157,6 +163,22 @@
                     </div>
                 </div>
 
+                <!-- MY MACHINES -->
+                <div class="card" style="margin-bottom: 15px; border-color: rgba(16, 185, 129, 0.2);">
+                    <h3 class="section-title">⛏️ My Machines</h3>
+                    <div id="my-machines-list">
+                        <p class="small-text" style="text-align:center;">No machines yet</p>
+                    </div>
+                </div>
+
+                <!-- MY BATTERIES -->
+                <div class="card" style="margin-bottom: 15px; border-color: rgba(139, 92, 246, 0.2);">
+                    <h3 class="section-title">🔋 My Batteries</h3>
+                    <div id="my-batteries-list">
+                        <p class="small-text" style="text-align:center;">No batteries yet</p>
+                    </div>
+                </div>
+
                 <div class="card" style="margin-bottom: 15px; border-color: rgba(59, 130, 246, 0.3);">
                     <h3 style="margin:0 0 10px 0; font-size:1rem;">🔌 Plug in a machine</h3>
                     <p class="small-text">Enter your offline machine ID and choose a battery.</p>
@@ -179,7 +201,7 @@
 
             <!-- SWAP -->
             <div id="view-swap" class="view">
-                <h2 class="view-title">💱 Swap </h2>
+                <h2 class="view-title">💱 Swap</h2>
                 <div class="card swap-interface">
                     <div class="swap-header"><span>You pay</span><span>Balance: <span id="swap-bal-from">0</span></span></div>
                     <div class="input-wrap">
