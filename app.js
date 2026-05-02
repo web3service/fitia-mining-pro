@@ -3,7 +3,8 @@ const CONFIG = {
     USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
     FTA: "0x5c418b12c7e9c2A8e9A71A68c6d9b319E7B1d1fd",
     CHAIN_ID: 137,
-    WC_PROJECT_ID: "2c10ee910a836551fbabbf7c8cc4542a"
+    WC_PROJECT_ID: "2c10ee910a836551fbabbf7c8cc4542a",
+    OPENAI_API_KEY: ""
 };
 
 const i18n = {
@@ -12,6 +13,29 @@ const i18n = {
     de: { connect: "Verbinden", refTitle: "👥 Empfehlung", refDesc: "Empfehler-Adresse eingeben.", bindRef: "BINDEN", power: "LEISTUNG", ftaSec: "Hashrate", pending: "AUSSTEHEND", fta: "FTA", miningActive: "MINING AKTIV", noMachine: "KEINE MASCHINE", claim: "EINFORDERN", shopTitle: "⛏️ Shop", machines: "Maschinen", batteries: "Batterien", buy: "KAUFEN", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Guthaben", plugMachine: "🔌 Maschine anschließen", plugDesc: "Offline-Maschine ID eingeben.", machineId: "Maschinen-ID (0, 1...)", plug: "ANSCHLIESSEN ⚡", swapTitle: "💱 Tausch", youPay: "Sie zahlen", balance: "Guthaben:", youReceive: "Sie erhalten", swap: "TAUSCHEN", loading: "Laden...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Verbindung...", errConn: "Verbindungsfehler", linking: "Verknüpfung...", wcIdMissing: "WalletConnect-ID fehlt!", refLinked: "Empfehler verknüpft!", connFirst: "Zuerst verbinden", enterRefAddr: "Empfehler-Adresse (0x...)", buyingMachine: "Kaufe Maschine", approveUsdt: "USDT genehmigen...", approveFta: "FTA genehmigen...", confirming: "Bestätigung...", calcFta: "Preis berechnen...", machineBought: "Maschine gekauft!", buyingBattery: "Kaufe Batterie", batteryBought: "Batterie gekauft!", invalidId: "Ungültige ID", pluggingIn: "Anschließen...", pluggedIn: "Maschine angeschlossen! ⚡", invalidAmount: "Ungültiger Betrag", swapping: "Tauschen...", swapSuccess: "Tausch erfolgreich!", claiming: "Einforderung...", claimed: "Eingefordert!", error: "Fehler", days: "Tage", rig: "RIG", send: "Senden", receive: "Empfangen", recipientAddr: "Empfängeradresse (0x...)", amount: "Betrag", confirmSend: "SENDUNG BESTÄTIGEN", sending: "Senden...", sentSuccess: "Gesendet!", addrCopied: "Kopiert!", invalidAddr: "Ungültige Adresse", totalBal: "Gesamtguthaben", activeMachines: "⛏️ Aktive Maschinen", myMachines: "⛏️ Meine Maschinen", myBatteries: "🔋 Meine Batterien", active: "Aktiv", expired: "Abgelaufen", inactive: "Inaktiv", available: "Verfügbar", plugged: "Angeschlossen", notPlugged: "Nicht angeschlossen", timeRemaining: "Verbleibend", noMachines: "Keine Maschinen", noBatteries: "Keine Batterien", batteryLabel: "Batterie", usdtPerFta: " USDT", noActiveMachines: "Keine aktive Maschinen", exchangeRate: "Wechselkurs", priceImpact: "Preisauswirkung", swapFee: "Swapgebühr (0.3%)", minimumReceived: "Mindestbetrag", slippageTolerance: "Slippage-Toleranz", networkFee: "Netzwerkgebühr", errRejected: "Transaktion abgebrochen", errInsufficientFunds: "Unzureichendes Guthaben", errNetwork: "Netzwerkfehler. Bitte versuchen Sie es erneut.", errTimeout: "Zeitüberschreitung. Bitte versuchen Sie es erneut.", errContract: "Transaktion fehlgeschlagen. Bitte versuchen Sie es erneut.", errGeneric: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.", errAlreadyPending: "Eine Transaktion ist bereits ausstehend. Bitte warten Sie.", errNonce: "Nonce-Fehler. Bitte starten Sie die App neu." },
     zh: { connect: "连接", refTitle: "👥 推荐系统", refDesc: "输入推荐人地址进行绑定。", bindRef: "绑定", power: "算力", ftaSec: "Hashrate", pending: "待领取", fta: "FTA", miningActive: "挖矿中", noMachine: "无机器", claim: "领取", shopTitle: "⛏️ 商店", machines: "矿机", batteries: "电池", buy: "购买", myAssets: "⚙️ 钱包与资产", walletBal: "💰 余额", plugMachine: "🔌 插入机器", plugDesc: "输入离线机器ID并选择电池。", machineId: "机器ID (0, 1...)", plug: "插入 ⚡", swapTitle: "💱 兑换", youPay: "您支付", balance: "余额:", youReceive: "您收到", swap: "兑换", loading: "加载中...", currentRate: "1 FTA = ", home: "首页", shop: "商店", assets: "钱包", swapNav: "兑换", connWallet: "连接中...", errConn: "连接错误", linking: "绑定中...", wcIdMissing: "缺少 WalletConnect ID！", refLinked: "推荐人绑定成功！", connFirst: "请先连接", enterRefAddr: "推荐人地址 (0x...)", buyingMachine: "购买机器", approveUsdt: "授权 USDT...", approveFta: "授权 FTA...", confirming: "确认中...", calcFta: "计算价格...", machineBought: "机器购买成功！", buyingBattery: "购买电池", batteryBought: "电池购买成功！", invalidId: "无效ID", pluggingIn: "插入中...", pluggedIn: "机器插入成功！ ⚡", invalidAmount: "无效金额", swapping: "兑换中...", swapSuccess: "兑换成功！", claiming: "领取中...", claimed: "奖励已领取！", error: "错误", days: "天", rig: "矿机", send: "发送", receive: "接收", recipientAddr: "接收方地址 (0x...)", amount: "金额", confirmSend: "确认发送", sending: "发送中...", sentSuccess: "发送成功！", addrCopied: "地址已复制！", invalidAddr: "无效地址", totalBal: "总余额", activeMachines: "⛏️ 运行中矿机", myMachines: "⛏️ 我的矿机", myBatteries: "🔋 我的电池", active: "运行中", expired: "已过期", inactive: "未激活", available: "可用", plugged: "已插入", notPlugged: "未插入", timeRemaining: "剩余", noMachines: "暂无矿机", noBatteries: "暂无电池", batteryLabel: "电池", usdtPerFta: " USDT", noActiveMachines: "无运行中矿机", exchangeRate: "汇率", priceImpact: "价格影响", swapFee: "手续费 (0.3%)", minimumReceived: "最低收到", slippageTolerance: "滑点容忍度", networkFee: "网络费", errRejected: "交易已取消", errInsufficientFunds: "余额不足", errNetwork: "网络错误，请重试。", errTimeout: "交易超时，请重试。", errContract: "交易失败，请重试。", errGeneric: "发生错误，请重试。", errAlreadyPending: "已有交易待处理，请稍候。", errNonce: "Nonce错误，请重启应用。" },
     sg: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "Hashrate", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", wcIdMissing: "WalletConnect ID missing!", refLinked: "Referrer linked!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address", totalBal: "Total Balance", activeMachines: "⛏️ Active Machines", myMachines: "⛏️ My Machines", myBatteries: "🔋 My Batteries", active: "Active", expired: "Expired", inactive: "Inactive", available: "Available", plugged: "Plugged", notPlugged: "Not Plugged", timeRemaining: "Remaining", noMachines: "No machines yet", noBatteries: "No batteries yet", batteryLabel: "Battery", usdtPerFta: " USDT", noActiveMachines: "No active machines", exchangeRate: "Exchange Rate", priceImpact: "Price Impact", swapFee: "Swap Fee (0.3%)", minimumReceived: "Minimum Received", slippageTolerance: "Slippage Tolerance", networkFee: "Network Fee", errRejected: "Transaction cancelled", errInsufficientFunds: "Insufficient balance", errNetwork: "Network error. Please try again.", errTimeout: "Transaction timed out. Please try again.", errContract: "Transaction failed. Please try again.", errGeneric: "An error occurred. Please try again.", errAlreadyPending: "A transaction is already pending. Please wait.", errNonce: "Transaction nonce error. Please restart the app." }
+};
+
+const CHAT_INTENTS = {
+    greeting: { weight: 2, keywords: { all:['hello','hi','hey','hola'], en:['good morning','good evening','howdy','greetings','sup','whats up'], fr:['bonjour','salut','coucou','bonsoir','yo'], de:['hallo','guten tag','moin','servus'], zh:['你好','您好','嗨','早上好','晚上好'] } },
+    goodbye: { weight: 2, keywords: { all:['bye','goodbye','see you'], fr:['au revoir','à bientôt','adieu'], de:['tschüss','auf wiedersehen'], zh:['再见','拜拜'] } },
+    thanks: { weight: 2, keywords: { all:['thanks','thank you','thx','ty','merci','danke','谢谢'] } },
+    help: { weight: 3, keywords: { all:['help','aide','hilfe','帮助','guide','how to use','what can you do'], en:['assist','support','lost','confused'], fr:['aider','perdu','confus'], de:['anleitung','verloren'], zh:['帮忙','指导','不懂'] } },
+    mining: { weight: 2, keywords: { all:['mining','mine','miner','minage','挖矿','hashrate','power','算力'], en:['how to mine','start mining','mining reward'], fr:['comment miner','démarrer minage'], de:['mining starten','mining belohnung'], zh:['如何挖矿','开始挖矿'] } },
+    buy_machine: { weight: 3, keywords: { all:['buy machine','acheter machine','kaufen maschine','购买矿机','shop machine','rig'], en:['buy rig','get machine','machine price','best machine'], fr:['quelle machine','prix machine'], de:['maschine kaufen','maschinenpreis'], zh:['买矿机','矿机价格'] } },
+    buy_battery: { weight: 3, keywords: { all:['battery','batterie','电池'], en:['buy battery','battery price','battery duration'], fr:['acheter batterie','durée batterie'], de:['batterie kaufen','batteriedauer'], zh:['买电池','电池价格'] } },
+    plug_in: { weight: 3, keywords: { all:['plug','activate','brancher','anschließen','插入','connect machine','start machine'], en:['plug in','activate machine','how to start mining'], fr:['brancher machine','activer machine'], de:['maschine aktivieren'], zh:['插入机器','激活矿机'] } },
+    claim: { weight: 3, keywords: { all:['claim','reward','réclamer','领取','harvest','withdraw reward'], en:['claim rewards','pending rewards','collect'], fr:['récompenses en attente'], de:['belohnung beanspruchen'], zh:['领取奖励','待领取'] } },
+    swap: { weight: 3, keywords: { all:['swap','exchange','échange','tausch','兑换','trade','convert'], en:['swap tokens','exchange rate','swap usdt'], fr:['échanger tokens','taux de change'], de:['token tauschen','wechselkurs'], zh:['兑换代币','汇率'] } },
+    wallet: { weight: 2, keywords: { all:['wallet','balance','solde','guthaben','钱包','余额','send','receive'], en:['my balance','send tokens','withdraw'], fr:['mon solde','envoyer tokens'], de:['mein guthaben','tokens senden'], zh:['我的余额','转账'] } },
+    referral: { weight: 2, keywords: { all:['referral','parrain','empfehlung','推荐','invite','referrer'], en:['how to refer','referral bonus'], fr:['comment parrainer'], de:['wie empfehlen'], zh:['如何推荐','邀请'] } },
+    connect: { weight: 3, keywords: { all:['connect','connexion','verbinden','连接','metamask','walletconnect','login'], en:['connect wallet','link wallet'], fr:['connecter wallet'], de:['wallet verbinden'], zh:['连接钱包'] } },
+    what_is_fta: { weight: 2, keywords: { all:['what is fta','was ist fta','fta是什么','about fta','fta token'], en:['explain fta','fta coin'], fr:['c\'est quoi fta'], de:['erkläre fta'], zh:['解释FTA'] } },
+    how_it_works: { weight: 2, keywords: { all:['how it works','comment ça marche','wie funktioniert','怎么运作','getting started','beginner'], en:['how does mining work','explain the app','overview'], fr:['guide débutant'], de:['anfängerleitfaden'], zh:['新手指南','如何开始'] } },
+    earn_more: { weight: 2, keywords: { all:['earn more','gagner plus','mehr verdienen','赚更多','profit','strategy','passive income'], en:['increase earnings','best strategy','maximize'], fr:['augmenter gains'], de:['einnahmen steigern'], zh:['增加收益','策略'] } },
+    price: { weight: 2, keywords: { all:['price','prix','preis','价格','rate','cost'], en:['fta price','machine price','current rate'], fr:['prix fta','combien coûte'], de:['fta preis','aktueller kurs'], zh:['价格','汇率'] } },
+    error: { weight: 3, keywords: { all:['error','erreur','fehler','错误','problem','issue','not working','failed'], en:['transaction failed','can\'t buy','can\'t claim','stuck'], fr:['problème','ne marche pas'], de:['problem','funktioniert nicht'], zh:['出错了','不能用','卡住了'] } },
+    status: { weight: 2, keywords: { all:['status','état','状态','my mining','current power','my progress'], en:['mining status','am i mining','my hashrate'], fr:['statut minage','mon hashrate'], de:['mining status','mein hashrate'], zh:['挖矿状态','当前算力'] } },
+    network: { weight: 2, keywords: { all:['polygon','matic','pol','network','chain','réseau','netzwerk','网络','gas fee'], en:['which network','gas fees'], fr:['quel réseau','frais de gas'], de:['welches netzwerk','gasgebühren'], zh:['哪个网络','矿工费'] } }
 };
 
 const MINING_ABI = [
@@ -68,6 +92,8 @@ class Application {
         this.batteryTypeDurations = {};
         const savedLang = localStorage.getItem('fitia_lang');
         this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'en';
+        this.chatInitialized = false;
+        this.chatHistory = [];
     }
 
     t(key) { return i18n[this.currentLang][key] || i18n['en'][key] || key; }
@@ -77,8 +103,7 @@ class Application {
         if (h <= 0) return '0 H/s';
         const units = ['nH/s', 'µH/s', 'mH/s', 'H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s'];
         const baseIndex = 3;
-        let value = h;
-        let unitIndex = baseIndex;
+        let value = h; let unitIndex = baseIndex;
         while (value < 1 && unitIndex > 0) { value *= 1000; unitIndex--; }
         while (value >= 1000 && unitIndex < units.length - 1) { value /= 1000; unitIndex++; }
         return value.toFixed(2) + ' ' + units[unitIndex];
@@ -259,7 +284,6 @@ class Application {
         try {
             const rawPower = await this.contracts.mining.getActivePower(this.user);
             try { this.currentMultiplier = await this.contracts.mining.difficultyMultiplier(); } catch(e){}
-            
             let realPower;
             const rpRaw = BigInt(rawPower.toString());
             if (this.currentMultiplier > 1n) {
@@ -322,10 +346,7 @@ class Application {
                 } else {
                     power = parseFloat(ethers.formatUnits(rawPower, this.ftaDecimals));
                 }
-                if (power === 0) {
-                    const estimatedPowers = [1, 5, 20, 100, 500, 2000, 10000, 50000];
-                    power = estimatedPowers[i % estimatedPowers.length] || 1;
-                }
+                if (power === 0) { const ep = [1, 5, 20, 100, 500, 2000, 10000, 50000]; power = ep[i % ep.length] || 1; }
                 this.shopMachinesData.push({price: priceUsdt, power: power, priceRaw: d.price}); 
             } 
         } catch(e){ console.error("fetchMachines error", e); } 
@@ -335,7 +356,7 @@ class Application {
     async fetchBatteries() { this.isLoadingShop=true; try { const c=await this.contracts.mining.getBatteryCount(), p=[]; for(let i=0;i<c;i++) p.push(this.contracts.mining.batteryTypes(i)); const r=await Promise.all(p); this.shopBatteriesData=[]; for(let i=0;i<c;i++) { const d=r[i], pu=parseFloat(ethers.formatUnits(d.price,this.usdtDecimals)), dy=Number(d.duration)/86400; this.shopBatteriesData.push({price:pu,days:dy,priceRaw:d.price}); } } catch(e){} this.isLoadingShop=false; }
 
     getMachineSVG(tier) {
-        const tiers=[{name:'MK-I',gpus:1,color:'#64748b',accent:'#94a3b8',fans:1,badge:'STARTER'},{name:'MK-II',gpus:2,color:'#3b82f6',accent:'#60a5fa',fans:1,badge:'STANDARD'},{name:'MK-III',gpus:3,color:'#8b5cf6',accent:'#a78bfa',fans:2,badge:'ADVANCED'},{name:'MK-IV',gpus:4,color:'#F0B90B',accent:'#FFD43B',fans:2,badge:'PRO'},{name:'MK-V',gpus:5,color:'#f97316',accent:'#fb923c',fans:2,badge:'ELITE'},{name:'MK-VI',gpus:6,color:'#ef4444',accent:'#f87171',fans:3,badge:'ULTRA'},{name:'MK-VII',gpus:8,color:'#06b6d4',accent:'#22d3ee',fans:3,badge:'SUPREME'},{name:'MK-VIII',gpus:8,color:'#eab308',accent:'#facc15',fans:4,badge:'LEGEND'}];
+        const tiers=[{name:'MK-I',gpus:1,color:'#64748b',accent:'#94a3b8',fans:1},{name:'MK-II',gpus:2,color:'#3b82f6',accent:'#60a5fa',fans:1},{name:'MK-III',gpus:3,color:'#8b5cf6',accent:'#a78bfa',fans:2},{name:'MK-IV',gpus:4,color:'#F0B90B',accent:'#FFD43B',fans:2},{name:'MK-V',gpus:5,color:'#f97316',accent:'#fb923c',fans:2},{name:'MK-VI',gpus:6,color:'#ef4444',accent:'#f87171',fans:3},{name:'MK-VII',gpus:8,color:'#06b6d4',accent:'#22d3ee',fans:3},{name:'MK-VIII',gpus:8,color:'#eab308',accent:'#facc15',fans:4}];
         const t=tiers[tier%tiers.length],W=260,H=170;let gpuH='',fanH='',ledH='',ventH='';
         const gpuW=24,gpuH2=48,gG=3,mGW=W-40;let eGW=gpuW,eG=gG,tGW=t.gpus*eGW+(t.gpus-1)*eG;if(tGW>mGW){eGW=Math.floor((mGW-(t.gpus-1)*eG)/t.gpus);tGW=t.gpus*eGW+(t.gpus-1)*eG;}
         const gSX=(W-tGW)/2,gY=22;
@@ -457,6 +478,160 @@ class Application {
         div.innerText = msg; 
         document.getElementById('toast-container').appendChild(div); 
         setTimeout(() => div.remove(), 4000); 
+    }
+
+    // ===== CHAT ASSISTANT =====
+    toggleChat() {
+        const panel = document.getElementById('chat-panel');
+        const isActive = panel.classList.toggle('active');
+        if (isActive && !this.chatInitialized) {
+            this.chatInitialized = true;
+            setTimeout(() => this.addChatBubble('assistant', this.getWelcomeMessage()), 400);
+        }
+        if (isActive) setTimeout(() => document.getElementById('chat-input').focus(), 350);
+    }
+
+    sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        this.addChatBubble('user', msg);
+        this.chatHistory.push({ role: 'user', text: msg });
+        const typingId = this.showTyping();
+        const delay = 400 + Math.min(msg.length * 25, 1200) + Math.random() * 400;
+        setTimeout(() => {
+            this.removeTyping(typingId);
+            const response = this.generateLocalResponse(msg);
+            this.addChatBubble('assistant', response);
+            this.chatHistory.push({ role: 'assistant', text: response });
+        }, delay);
+    }
+
+    addChatBubble(role, text) {
+        const container = document.getElementById('chat-messages');
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${role}`;
+        bubble.textContent = text;
+        container.appendChild(bubble);
+        requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
+    }
+
+    showTyping() {
+        const container = document.getElementById('chat-messages');
+        const typing = document.createElement('div');
+        const id = 'typing-' + Date.now();
+        typing.id = id;
+        typing.className = 'chat-bubble assistant';
+        typing.innerHTML = '<span style="letter-spacing:3px;animation:loaderTextPulse 1s infinite">● ● ●</span>';
+        container.appendChild(typing);
+        container.scrollTop = container.scrollHeight;
+        return id;
+    }
+
+    removeTyping(id) { const el = document.getElementById(id); if (el) el.remove(); }
+
+    getWelcomeMessage() {
+        const m = {
+            en: "👋 Hey! I'm your FITIA PRO assistant. I can help you with mining, buying machines & batteries, swapping tokens, wallet operations, and more.\n\nTry asking me:\n• How does mining work?\n• Which machine should I buy?\n• How to plug in a machine?\n• How to swap FTA/USDT?",
+            fr: "👋 Salut ! Je suis votre assistant FITIA PRO. Je peux vous aider avec le minage, l'achat de machines et batteries, l'échange de tokens, et plus encore.\n\nEssayez de me demander :\n• Comment fonctionne le minage ?\n• Quelle machine acheter ?\n• Comment brancher une machine ?\n• Comment échanger FTA/USDT ?",
+            de: "👋 Hallo! Ich bin dein FITIA PRO Assistent. Ich helfe dir bei Mining, Maschinen- & Batteriekauf, Token-Tausch und mehr.\n\nFrag mich ruhig:\n• Wie funktioniert Mining?\n• Welche Maschine kaufen?\n• Maschine anschließen?\n• FTA/USDT tauschen?",
+            zh: "👋 你好！我是你的FITIA PRO助手。我可以帮你了解挖矿、购买矿机和电池、代币兑换等。\n\n试试问我：\n• 挖矿怎么运作？\n• 买哪个矿机好？\n• 如何插入机器？\n• 如何兑换FTA/USDT？",
+            sg: "👋 Hey! I'm your FITIA PRO assistant. I can help you with mining, buying machines & batteries, swapping tokens, and more.\n\nTry asking me:\n• How does mining work?\n• Which machine should I buy?\n• How to plug in a machine?\n• How to swap FTA/USDT?"
+        };
+        return m[this.currentLang] || m.en;
+    }
+
+    generateLocalResponse(msg) {
+        const m = msg.toLowerCase().replace(/[?!.,;:'"]/g, '').trim();
+        const intents = this.detectIntents(m);
+        const topIntent = intents.length > 0 ? intents[0].intent : 'unknown';
+        return this.craftResponse(topIntent, m);
+    }
+
+    detectIntents(m) {
+        const scored = [];
+        const words = m.split(/\s+/);
+        for (const [intent, data] of Object.entries(CHAT_INTENTS)) {
+            let score = 0;
+            const langKeys = ['all', this.currentLang, 'en'];
+            for (const lk of langKeys) {
+                if (!data.keywords[lk]) continue;
+                for (const kw of data.keywords[lk]) {
+                    if (m.includes(kw)) score += (data.weight || 1);
+                    else {
+                        const kwWords = kw.split(/\s+/);
+                        if (kwWords.length > 1) {
+                            let partial = 0;
+                            for (const w of kwWords) { if (words.includes(w)) partial++; }
+                            if (partial > 0) score += (partial / kwWords.length) * (data.weight || 1) * 0.5;
+                        }
+                    }
+                }
+            }
+            if (score > 0) scored.push({ intent, score });
+        }
+        scored.sort((a, b) => b.score - a.score);
+        return scored;
+    }
+
+    craftResponse(intent, userMsg) {
+        const L = this.currentLang;
+        const conn = !!this.user;
+        const machines = this.userMachines || [];
+        const batteries = this.userBatteries || [];
+        const power = this.currentRealPower || 0;
+        const pending = this.pendingBalance || 0;
+        const ftaP = this.ftaPriceUsd || 0;
+        const activeMachines = machines.filter(m => m.isPlugged && m.batteryEndTime > Math.floor(Date.now()/1000));
+        const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+        const R = {
+            greeting: {
+                en: conn ? [`👋 Hey! Your mining power is at ${this.formatHashrate(power)} with ${activeMachines.length} active machine(s). How can I help?`, `Hello! You have ${pending.toFixed(4)} FTA pending. Anything you'd like to know?`] : [`👋 Welcome! First step: connect your wallet to get started. Need help with anything?`],
+                fr: conn ? [`👋 Salut ! Puissance de minage : ${this.formatHashrate(power)}. Comment puis-je aider ?`] : [`👋 Bienvenue ! Connectez votre wallet pour commencer.`],
+                de: conn ? [`👋 Hey! Mining-Leistung: ${this.formatHashrate(power)}. Wie kann ich helfen?`] : [`👋 Willkommen! Verbinde zuerst dein Wallet.`],
+                zh: conn ? [`👋 你好！算力：${this.formatHashrate(power)}。有什么可以帮你的？`] : [`👋 欢迎！连接钱包开始挖矿。`],
+                sg: conn ? [`👋 Hey! Mining power: ${this.formatHashrate(power)}. How can I help?`] : [`👋 Welcome! Connect your wallet to get started.`]
+            },
+            goodbye: { en: ["👋 See you later! Happy mining!"], fr: ["👋 À bientôt ! Bon minage !"], de: ["👋 Bis bald! Happy Mining!"], zh: ["👋 再见！祝你挖矿愉快！"], sg: ["👋 See you later! Happy mining!"] },
+            thanks: { en: ["You're welcome! 😊 Let me know if you need anything else."], fr: ["De rien ! 😊 N'hésitez pas si vous avez d'autres questions."], de: ["Gerne! 😊"], zh: ["不客气！😊 还有其他问题随时问我。"], sg: ["You're welcome! 😊"] },
+            help: {
+                en: ["🛠️ Here's what I can help with:\n\n⛏️ Mining — How mining works, your hashrate, rewards\n🛒 Shop — Buying machines & batteries\n🔌 Plug In — Activating your machines\n💱 Swap — Exchanging USDT ↔ FTA\n💰 Wallet — Balances, sending, receiving\n👥 Referral — Earning with referrals\n🔧 Troubleshooting — Fixing errors\n\nJust ask me about any of these topics!"],
+                fr: ["🛠️ Voici ce dont je peux vous aider :\n\n⛏️ Minage\n🛒 Boutique\n🔌 Branchement\n💱 Échange\n💰 Wallet\n👥 Parrainage\n🔧 Dépannage"],
+                de: ["🛠️ Hier ist womit ich helfen kann:\n\n⛏️ Mining\n🛒 Shop\n🔌 Anschließen\n💱 Tausch\n💰 Wallet\n👥 Empfehlung\n🔧 Fehlerbehebung"],
+                zh: ["🛠️ 我可以帮助你：\n\n⛏️ 挖矿\n🛒 商店\n🔌 插入\n💱 兑换\n💰 钱包\n👥 推荐\n🔧 故障排除"],
+                sg: ["🛠️ I can help with: Mining, Shop, Plug In, Swap, Wallet, Referral, Troubleshooting. Just ask!"]
+            },
+            mining: {
+                en: conn ? [`⛏️ Mining on FITIA PRO:\n\n1️⃣ Buy a machine from the Shop\n2️⃣ Buy a battery (3 to 365 days)\n3️⃣ Plug in your machine with the battery\n4️⃣ Machine mines FTA automatically\n5️⃣ Claim your pending rewards anytime\n\nYour stats:\n• Power: ${this.formatHashrate(power)}\n• Active: ${activeMachines.length}\n• Pending: ${pending.toFixed(5)} FTA`] : [`⛏️ Mining on FITIA PRO:\n\n1️⃣ Connect wallet\n2️⃣ Buy a machine\n3️⃣ Buy a battery\n4️⃣ Plug in\n5️⃣ Mine & Claim FTA`],
+                fr: conn ? [`⛏️ Minage FITIA PRO :\n\n1️⃣ Achetez une machine\n2️⃣ Achetez une batterie\n3️⃣ Branchez la machine\n4️⃣ Minage automatique de FTA\n5️⃣ Réclamez vos récompenses\n\nPuissance : ${this.formatHashrate(power)}`] : [`⛏️ Connectez votre wallet pour commencer à miner !`],
+                de: conn ? [`⛏️ Mining:\n\n1️⃣ Maschine kaufen\n2️⃣ Batterie kaufen\n3️⃣ Anschließen\n4️⃣ Automatisches Mining\n5️⃣ Belohnungen abholen\n\nLeistung: ${this.formatHashrate(power)}`] : [`⛏️ Verbinde dein Wallet!`],
+                zh: conn ? [`⛏️ 挖矿：\n\n1️⃣ 购买矿机\n2️⃣ 购买电池\n3️⃣ 插入矿机\n4️⃣ 自动挖矿\n5️⃣ 领取奖励\n\n算力：${this.formatHashrate(power)}`] : [`⛏️ 请先连接钱包！`],
+                sg: conn ? [`⛏️ Mining: Buy machine → Buy battery → Plug in → Mine FTA → Claim rewards.\n\nYour power: ${this.formatHashrate(power)}`] : [`⛏️ Connect wallet to start mining!`]
+            },
+            buy_machine: { en: conn ? [`🛒 To buy a machine:\n\n1️⃣ Go to Shop tab\n2️⃣ Choose USDT or FTA payment\n3️⃣ Click BUY\n\nHigher tiers = more FTA/sec!`] : [`🛒 Connect your wallet first!`], fr: conn ? [`🛒 Pour acheter : Boutique → Choisir paiement → ACHETER`] : [`🛒 Connectez votre wallet !`], de: conn ? [`🛒 Maschine kaufen: Shop → Zahlung wählen → KAUFEN`] : [`🛒 Verbinde Wallet!`], zh: conn ? [`🛒 购买矿机：商店 → 选择支付 → 购买`] : [`🛒 连接钱包！`], sg: conn ? [`🛒 Buy: Shop tab → Choose payment → BUY`] : [`🛒 Connect wallet!`] },
+            buy_battery: { en: conn ? [`🔋 Batteries power your machines for a set duration (3-365 days).\n\n1️⃣ Shop → Batteries tab\n2️⃣ Choose USDT or FTA\n3️⃣ Click BUY\n\n💡 Longer batteries = better value per day!`] : [`🔋 Connect wallet to buy batteries!`], fr: conn ? [`🔋 Batteries : Boutique → Onglet Batteries → ACHETER\nPlus long = meilleur rapport qualité/prix !`] : [`🔋 Connectez-vous !`], de: conn ? [`🔋 Batterien: Shop → Batterien → KAUFEN`] : [`🔋 Verbinde Wallet!`], zh: conn ? [`🔋 电池：商店 → 电池 → 购买\n时间越长越划算！`] : [`🔋 连接钱包！`], sg: conn ? [`🔋 Buy: Shop → Batteries → BUY. Longer = better value!`] : [`🔋 Connect wallet!`] },
+            plug_in: { en: conn ? [`🔌 To plug in:\n\n1️⃣ Wallet & Assets tab\n2️⃣ "Plug in a machine" section\n3️⃣ Enter Machine ID (0, 1...)\n4️⃣ Select battery type\n5️⃣ Click PLUG IN ⚡\n\nUnplugged: ${machines.filter(m=>!m.isPlugged).length} | Unused batteries: ${batteries.filter(b=>!b.isUsed).length}`] : [`🔌 Connect wallet first!`], fr: conn ? [`🔌 Brancher : Wallet → Section Brancher → ID machine → Batterie → BRANCHER`] : [`🔌 Connectez-vous !`], de: conn ? [`🔌 Anschließen: Wallet → "Maschine anschließen" → ID → Batterie → ANSCHLIESSEN`] : [`🔌 Verbinde Wallet!`], zh: conn ? [`🔌 插入：钱包 → 插入机器 → 输入ID → 选电池 → 插入⚡`] : [`🔌 连接钱包！`], sg: conn ? [`🔌 Plug in: Wallet tab → Enter ID → Select battery → PLUG IN`] : [`🔌 Connect wallet!`] },
+            claim: { en: conn ? [`🎁 Claim rewards:\n\n1️⃣ Check pending FTA on Home\n2️⃣ Click CLAIM\n3️⃣ Confirm transaction\n\nPending: ${pending.toFixed(5)} FTA`] : [`🎁 Connect wallet to claim!`], fr: conn ? [`🎁 Réclamer : Accueil → RÉCLAMER → Confirmer\nEn attente : ${pending.toFixed(5)} FTA`] : [`🎁 Connectez-vous !`], de: conn ? [`🎁 Abholen: Startseite → EINFORDERN → Bestätigen`] : [`🎁 Verbinde Wallet!`], zh: conn ? [`🎁 领取：首页 → 领取 → 确认\n待领取：${pending.toFixed(5)} FTA`] : [`🎁 连接钱包！`], sg: conn ? [`🎁 Claim: Home → CLAIM → Confirm\nPending: ${pending.toFixed(5)} FTA`] : [`🎁 Connect wallet!`] },
+            swap: { en: [`💱 Swap on FITIA PRO:\n\n1️⃣ Go to Swap tab\n2️⃣ Choose direction: USDT ↔ FTA\n3️⃣ Enter amount\n4️⃣ Check rate & details\n5️⃣ Click SWAP\n\nRate: 1 FTA = ${ftaP > 0 ? ftaP.toFixed(6) : '...'} USDT | Fee: 0.3%`], fr: [`💱 Échange : Onglet Swap → Direction → Montant → ÉCHANGER\nTaux : 1 FTA = ${ftaP > 0 ? ftaP.toFixed(6) : '...'} USDT`], de: [`💱 Tausch: Swap-Tab → Richtung → Betrag → TAUSCHEN`], zh: [`💱 兑换：兑换页 → 方向 → 金额 → 兑换\n汇率：1 FTA = ${ftaP > 0 ? ftaP.toFixed(6) : '...'} USDT`], sg: [`💱 Swap: Swap tab → Direction → Amount → SWAP\nRate: 1 FTA = ${ftaP > 0 ? ftaP.toFixed(6) : '...'} USDT`] },
+            wallet: { en: conn ? [`💰 Wallet overview:\n\nAddress: ${this.user?.slice(0,6)}...${this.user?.slice(-4)}\n\nCheck balances in Wallet tab.\nSend/Receive from there.\n\n⚠️ Polygon network only!`] : [`💰 Connect wallet to view balances!`], fr: conn ? [`💰 Adresse : ${this.user?.slice(0,6)}...${this.user?.slice(-4)}\n⚠️ Réseau Polygon uniquement !`] : [`💰 Connectez-vous !`], de: conn ? [`💰 Adresse: ${this.user?.slice(0,6)}...${this.user?.slice(-4)}`] : [`💰 Verbinde Wallet!`], zh: conn ? [`💰 地址：${this.user?.slice(0,6)}...${this.user?.slice(-4)}\n⚠️ 仅限Polygon！`] : [`💰 连接钱包！`], sg: conn ? [`💰 Address: ${this.user?.slice(0,6)}...${this.user?.slice(-4)}\n⚠️ Polygon only!`] : [`💰 Connect wallet!`] },
+            referral: { en: [`👥 Referral System:\n\n1️⃣ Your wallet address = your referral code\n2️⃣ Share it with friends\n3️⃣ They enter it in Referral section\n4️⃣ Click BIND\n\nBoth earn bonus rewards!\n\nYour code: ${conn ? this.user : 'Connect wallet first'}`], fr: [`👥 Votre adresse = code de parrainage. Partagez-la !`], de: [`👥 Deine Adresse = Empfehlungscode. Teile sie!`], zh: [`👥 你的地址 = 推荐码。分享给朋友！`], sg: [`👥 Your address = referral code. Share it!`] },
+            connect: { en: conn ? [`✅ Wallet already connected! ${this.user?.slice(0,6)}...${this.user?.slice(-4)}`] : [`🔗 Click "Connect" → Choose MetaMask/WalletConnect → Approve → Ensure Polygon network`], fr: conn ? [`✅ Wallet connecté !`] : [`🔗 Cliquez "Connecter" → Approuvez → Réseau Polygon`], de: conn ? [`✅ Wallet verbunden!`] : [`🔗 "Verbinden" → Genehmigen → Polygon`], zh: conn ? [`✅ 钱包已连接！`] : [`🔗 点击"连接" → 批准 → Polygon网络`], sg: conn ? [`✅ Connected!`] : [`🔗 Click "Connect" → Approve → Polygon`] },
+            what_is_fta: { en: [`🪙 FTA is the native mining reward token.\n\n🔹 Earned by mining\n🔹 Swappable to USDT\n🔹 Used to buy machines & batteries\n\nPrice: ${ftaP > 0 ? '$' + ftaP.toFixed(6) : 'Loading...'}`], fr: [`🪙 FTA est le jeton de récompense de minage. Prix : ${ftaP > 0 ? ftaP.toFixed(6) + ' USDT' : 'Chargement...'}`], de: [`🪙 FTA ist der Mining-Belohnungstoken.`], zh: [`🪙 FTA是挖矿奖励代币。价格：${ftaP > 0 ? ftaP.toFixed(6) + ' USDT' : '加载中...'}`], sg: [`🪙 FTA is the mining reward token. Price: ${ftaP > 0 ? '$' + ftaP.toFixed(6) : 'Loading...'}`] },
+            how_it_works: { en: [`📖 How FITIA PRO works:\n\n1️⃣ CONNECT wallet\n2️⃣ BUY machines & batteries\n3️⃣ PLUG IN machines\n4️⃣ MINE FTA automatically\n5️⃣ CLAIM rewards\n6️⃣ SWAP or REINVEST`], fr: [`📖 Comment ça marche : Connecter → Acheter → Brancher → Miner → Réclamer → Échanger`], de: [`📖 So funktioniert's: Verbinden → Kaufen → Anschließen → Minen → Abholen → Tauschen`], zh: [`📖 运作方式：连接 → 购买 → 插入 → 挖矿 → 领取 → 兑换`], sg: [`📖 How it works: Connect → Buy → Plug in → Mine → Claim → Swap`] },
+            earn_more: { en: conn ? [`📈 Earn more:\n\n1️⃣ Upgrade machines\n2️⃣ Run multiple machines\n3️⃣ Use longer batteries\n4️⃣ Claim & reinvest regularly\n5️⃣ Use referrals\n\nYour power: ${this.formatHashrate(power)}`] : [`📈 Connect wallet to start earning!`], fr: conn ? [`📈 Gagnez plus : Machines supérieures → Plusieurs machines → Réinvestir`] : [`📈 Connectez-vous !`], de: conn ? [`📈 Mehr verdienen: Höhere Maschinen → Reinvestieren`] : [`📈 Verbinde Wallet!`], zh: conn ? [`📈 赚更多：升级矿机 → 多台运行 → 再投资`] : [`📈 连接钱包！`], sg: conn ? [`📈 Earn more: Upgrade → Multiple machines → Reinvest\nPower: ${this.formatHashrate(power)}`] : [`📈 Connect wallet!`] },
+            price: { en: conn ? [`📊 Prices:\n\n🪙 FTA: ${ftaP > 0 ? '$' + ftaP.toFixed(6) : 'Loading...'}\n💵 USDT: $1.00\n💎 POL: ${this.polPriceUsd > 0 ? '$' + this.polPriceUsd.toFixed(4) : 'Loading...'}`] : [`📊 Connect wallet for prices!`], fr: conn ? [`📊 FTA: ${ftaP > 0 ? ftaP.toFixed(6) + ' USDT' : '...'} | POL: ${this.polPriceUsd > 0 ? this.polPriceUsd.toFixed(4) + ' $' : '...'}`] : [`📊 Connectez-vous !`], de: conn ? [`📊 FTA: ${ftaP > 0 ? '$' + ftaP.toFixed(6) : '...'} | POL: ${this.polPriceUsd > 0 ? '$' + this.polPriceUsd.toFixed(4) : '...'}`] : [`📊 Verbinde Wallet!`], zh: conn ? [`📊 FTA：${ftaP > 0 ? '$' + ftaP.toFixed(6) : '...'} | POL：${this.polPriceUsd > 0 ? '$' + this.polPriceUsd.toFixed(4) : '...'}`] : [`📊 连接钱包！`], sg: conn ? [`📊 FTA: ${ftaP > 0 ? '$' + ftaP.toFixed(6) : '...'} | POL: ${this.polPriceUsd > 0 ? '$' + this.polPriceUsd.toFixed(4) : '...'}`] : [`📊 Connect wallet!`] },
+            error: { en: [`🔧 Common errors:\n\n❌ "Cancelled" → You rejected in wallet\n❌ "Insufficient" → Not enough tokens/gas\n❌ "Network error" → Check Polygon connection\n❌ "Failed" → Contract rejected (expired battery?)\n\n💡 Ensure Polygon network + enough POL for gas!`], fr: [`🔧 Erreurs courantes : Annulée → Insuffisant → Réseau → Échouée. Vérifiez Polygon et le gas !`], de: [`🔧 Häufige Fehler: Abgebrochen → Unzureichend → Netzwerk → Fehlgeschlagen. Polygon + Gas prüfen!`], zh: [`🔧 常见错误：取消 → 余额不足 → 网络 → 失败。确保Polygon和足够的POL！`], sg: [`🔧 Errors: Cancelled → Insufficient → Network → Failed. Ensure Polygon + POL for gas!`] },
+            status: { en: conn ? [`📊 Status:\n\n⚡ Power: ${this.formatHashrate(power)}\n⛏️ Active: ${activeMachines.length}/${machines.length}\n🎁 Pending: ${pending.toFixed(5)} FTA`] : [`📊 Connect wallet to see status!`], fr: conn ? [`📊 Statut : ${this.formatHashrate(power)} | ${activeMachines.length} actives | ${pending.toFixed(5)} FTA`] : [`📊 Connectez-vous !`], de: conn ? [`📊 Status: ${this.formatHashrate(power)} | ${activeMachines.length} aktiv`] : [`📊 Verbinde Wallet!`], zh: conn ? [`📊 状态：${this.formatHashrate(power)} | ${activeMachines.length}运行中 | ${pending.toFixed(5)} FTA`] : [`📊 连接钱包！`], sg: conn ? [`📊 Status: ${this.formatHashrate(power)} | Active: ${activeMachines.length} | Pending: ${pending.toFixed(5)} FTA`] : [`📊 Connect wallet!`] },
+            network: { en: [`🌐 FITIA PRO runs on Polygon:\n\n🔹 Chain ID: 137\n🔹 Currency: POL (MATIC)\n🔹 Very low gas fees (< $0.01)\n\n⚠️ Ensure your wallet is on Polygon!`], fr: [`🌐 Réseau Polygon (Chain ID: 137). Gas très bas. ⚠️ Vérifiez le réseau !`], de: [`🌐 Polygon Netzwerk (Chain ID: 137). Niedrige Gasgebühren. ⚠️ Netzwerk prüfen!`], zh: [`🌐 Polygon网络 (Chain ID: 137)。Gas费极低。⚠️ 确保在Polygon！`], sg: [`🌐 Polygon network (Chain ID: 137). Low gas. ⚠️ Ensure Polygon!`] },
+            unknown: { en: [`🤔 I didn't understand. Try:\n• "How does mining work?"\n• "Buy machine"\n• "My status"\n• "Help"`], fr: [`🤔 Je n'ai pas compris. Essayez : "Minage", "Acheter", "Aide"`], de: [`🤔 Nicht verstanden. Frag: "Mining", "Kaufen", "Hilfe"`], zh: [`🤔 不太理解。试试："挖矿"，"购买"，"帮助"`], sg: [`🤔 I didn't understand. Try: "mining", "buy", "status", "help"`] }
+        };
+
+        const responses = R[intent] || R.unknown;
+        const langResponses = responses[L] || responses.en || responses;
+        if (Array.isArray(langResponses)) return pick(langResponses);
+        return langResponses;
     }
 }
 

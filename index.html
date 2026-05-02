@@ -274,6 +274,20 @@
         </div>
     </div>
 
+    <!-- CHAT ASSISTANT -->
+    <button class="chat-fab" onclick="App.toggleChat()">🤖</button>
+    <div id="chat-panel" class="chat-panel">
+        <div class="chat-header">
+            <span>🤖 Fitia Assistant</span>
+            <button class="chat-close" onclick="App.toggleChat()">✕</button>
+        </div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask me anything..." onkeydown="if(event.key==='Enter')App.sendChatMessage()">
+            <button class="chat-send-btn" onclick="App.sendChatMessage()">➤</button>
+        </div>
+    </div>
+
     <!-- FTA LOADER -->
     <div id="loader" class="loader hidden">
         <div class="fta-loader-wrap">
