@@ -3,17 +3,18 @@ const CONFIG = {
   USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
   FTA: "0x5c418b12c7e9c2A8e9A71A68c6d9b319E7B1d1fd",
   CHAIN_ID: 137,
+  WC_PROJECT_ID: "2c10ee910a836551fbabbf7c8cc4542a",
   OPENAI_API_KEY: "",
   WHATSAPP_GROUP: "https://chat.whatsapp.com/BDsvPCB6xp8H8X0YaRmPFP",
   WHATSAPP_CHANNEL: "https://whatsapp.com/channel/0029VbCQhI38PgsPLbBJdV1e"
 };
 
 const i18n = {
-  en: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "Hashrate", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", refLinked: "Referrer linked!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address", totalBal: "Total Balance", activeMachines: "⛏️ Active Machines", myMachines: "⛏️ My Machines", myBatteries: "🔋 My Batteries", active: "Active", expired: "Expired", inactive: "Inactive", available: "Available", plugged: "Plugged", notPlugged: "Not Plugged", timeRemaining: "Remaining", noMachines: "No machines yet", noBatteries: "No batteries yet", batteryLabel: "Battery", usdtPerFta: " USDT", noActiveMachines: "No active machines", exchangeRate: "Exchange Rate", priceImpact: "Price Impact", swapFee: "Swap Fee (0.3%)", minimumReceived: "Minimum Received", slippageTolerance: "Slippage Tolerance", networkFee: "Network Fee", errRejected: "Transaction cancelled", errInsufficientFunds: "Insufficient balance", errNetwork: "Network error. Please try again.", errTimeout: "Transaction timed out.", errContract: "Transaction failed.", errGeneric: "An error occurred.", errAlreadyPending: "A transaction is already pending.", errNonce: "Nonce error. Restart app." },
-  fr: { connect: "Connecter", refTitle: "👥 Parrainage", refDesc: "Entrez l'adresse de votre parrain.", bindRef: "LIER", power: "PUISSANCE", ftaSec: "Hashrate", pending: "EN ATTENTE", fta: "FTA", miningActive: "MINAGE ACTIF", noMachine: "AUCUNE MACHINE", claim: "RÉCLAMER", shopTitle: "⛏️ Boutique", machines: "Machines", batteries: "Batteries", buy: "ACHETER", myAssets: "⚙️ Wallet & Actifs", walletBal: "💰 Soldes", plugMachine: "🔌 Brancher une machine", plugDesc: "Entrez l'ID de votre machine.", machineId: "ID Machine (0, 1...)", plug: "BRANCHER ⚡", swapTitle: "💱 Échange", youPay: "Vous payez", balance: "Solde:", youReceive: "Vous recevez", swap: "ÉCHANGER", loading: "Chargement...", currentRate: "1 FTA = ", home: "Accueil", shop: "Boutique", assets: "Wallet", swapNav: "Swap", connWallet: "Connexion...", errConn: "Erreur connexion", linking: "Liaison...", refLinked: "Parrain lié!", connFirst: "Connectez-vous d'abord", enterRefAddr: "Adresse parrain (0x...)", buyingMachine: "Achat Machine", approveUsdt: "Approbation USDT...", approveFta: "Approbation FTA...", confirming: "Confirmation...", calcFta: "Calcul prix...", machineBought: "Machine achetée!", buyingBattery: "Achat Batterie", batteryBought: "Batterie achetée!", invalidId: "ID Machine invalide", pluggingIn: "Branchement...", pluggedIn: "Machine branchée! ⚡", invalidAmount: "Montant invalide", swapping: "Swap...", swapSuccess: "Échange réussi!", claiming: "Claim...", claimed: "Gains réclamés!", error: "Erreur", days: "Jours", rig: "RIG", send: "Envoyer", receive: "Recevoir", recipientAddr: "Adresse destinataire (0x...)", amount: "Montant", confirmSend: "CONFIRMER ENVOI", sending: "Envoi...", sentSuccess: "Envoi réussi!", addrCopied: "Adresse copiée!", invalidAddr: "Adresse invalide", totalBal: "Solde Total", activeMachines: "⛏️ Machines Actives", myMachines: "⛏️ Mes Machines", myBatteries: "🔋 Mes Batteries", active: "Actif", expired: "Expiré", inactive: "Inactif", available: "Disponible", plugged: "Branché", notPlugged: "Non branché", timeRemaining: "Restant", noMachines: "Aucune machine", noBatteries: "Aucune batterie", batteryLabel: "Batterie", usdtPerFta: " USDT", noActiveMachines: "Aucune machine active", exchangeRate: "Taux de change", priceImpact: "Impact prix", swapFee: "Frais swap (0.3%)", minimumReceived: "Minimum reçu", slippageTolerance: "Tolérance slippage", networkFee: "Frais réseau", errRejected: "Transaction annulée", errInsufficientFunds: "Solde insuffisant", errNetwork: "Erreur réseau. Veuillez réessayer.", errTimeout: "Délai expiré.", errContract: "Transaction échouée.", errGeneric: "Une erreur est survenue.", errAlreadyPending: "Une transaction est en cours.", errNonce: "Erreur de nonce. Redémarrez." },
-  de: { connect: "Verbinden", refTitle: "👥 Empfehlung", refDesc: "Empfehler-Adresse eingeben.", bindRef: "BINDEN", power: "LEISTUNG", ftaSec: "Hashrate", pending: "AUSSTEHEND", fta: "FTA", miningActive: "MINING AKTIV", noMachine: "KEINE MASCHINE", claim: "EINFORDERN", shopTitle: "⛏️ Shop", machines: "Maschinen", batteries: "Batterien", buy: "KAUFEN", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Guthaben", plugMachine: "🔌 Maschine anschließen", plugDesc: "Offline-Maschine ID eingeben.", machineId: "Maschinen-ID (0, 1...)", plug: "ANSCHLIESSEN ⚡", swapTitle: "💱 Tausch", youPay: "Sie zahlen", balance: "Guthaben:", youReceive: "Sie erhalten", swap: "TAUSCHEN", loading: "Laden...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Verbindung...", errConn: "Verbindungsfehler", linking: "Verknüpfung...", refLinked: "Empfehler verknüpft!", connFirst: "Zuerst verbinden", enterRefAddr: "Empfehler-Adresse (0x...)", buyingMachine: "Kaufe Maschine", approveUsdt: "USDT genehmigen...", approveFta: "FTA genehmigen...", confirming: "Bestätigung...", calcFta: "Preis berechnen...", machineBought: "Maschine gekauft!", buyingBattery: "Kaufe Batterie", batteryBought: "Batterie gekauft!", invalidId: "Ungültige ID", pluggingIn: "Anschließen...", pluggedIn: "Maschine angeschlossen! ⚡", invalidAmount: "Ungültiger Betrag", swapping: "Tauschen...", swapSuccess: "Tausch erfolgreich!", claiming: "Einforderung...", claimed: "Eingefordert!", error: "Fehler", days: "Tage", rig: "RIG", send: "Senden", receive: "Empfangen", recipientAddr: "Empfängeradresse (0x...)", amount: "Betrag", confirmSend: "SENDUNG BESTÄTIGEN", sending: "Senden...", sentSuccess: "Gesendet!", addrCopied: "Kopiert!", invalidAddr: "Ungültige Adresse", totalBal: "Gesamtguthaben", activeMachines: "⛏️ Aktive Maschinen", myMachines: "⛏️ Meine Maschinen", myBatteries: "🔋 Meine Batterien", active: "Aktiv", expired: "Abgelaufen", inactive: "Inaktiv", available: "Verfügbar", plugged: "Angeschlossen", notPlugged: "Nicht angeschlossen", timeRemaining: "Verbleibend", noMachines: "Keine Maschinen", noBatteries: "Keine Batterien", batteryLabel: "Batterie", usdtPerFta: " USDT", noActiveMachines: "Keine aktive Maschinen", exchangeRate: "Wechselkurs", priceImpact: "Preisauswirkung", swapFee: "Swapgebühr (0.3%)", minimumReceived: "Mindestbetrag", slippageTolerance: "Slippage-Toleranz", networkFee: "Netzwerkgebühr", errRejected: "Transaktion abgebrochen", errInsufficientFunds: "Unzureichendes Guthaben", errNetwork: "Netzwerkfehler.", errTimeout: "Zeitüberschreitung.", errContract: "Transaktion fehlgeschlagen.", errGeneric: "Ein Fehler ist aufgetreten.", errAlreadyPending: "Transaktion ausstehend.", errNonce: "Nonce-Fehler." },
-  zh: { connect: "连接", refTitle: "👥 推荐系统", refDesc: "输入推荐人地址进行绑定。", bindRef: "绑定", power: "算力", ftaSec: "Hashrate", pending: "待领取", fta: "FTA", miningActive: "挖矿中", noMachine: "无机器", claim: "领取", shopTitle: "⛏️ 商店", machines: "矿机", batteries: "电池", buy: "购买", myAssets: "⚙️ 钱包与资产", walletBal: "💰 余额", plugMachine: "🔌 插入机器", plugDesc: "输入离线机器ID并选择电池。", machineId: "机器ID (0, 1...)", plug: "插入 ⚡", swapTitle: "💱 兑换", youPay: "您支付", balance: "余额:", youReceive: "您收到", swap: "兑换", loading: "加载中...", currentRate: "1 FTA = ", home: "首页", shop: "商店", assets: "钱包", swapNav: "兑换", connWallet: "连接中...", errConn: "连接错误", linking: "绑定中...", refLinked: "推荐人绑定成功！", connFirst: "请先连接", enterRefAddr: "推荐人地址 (0x...)", buyingMachine: "购买机器", approveUsdt: "授权 USDT...", approveFta: "授权 FTA...", confirming: "确认中...", calcFta: "计算价格...", machineBought: "机器购买成功！", buyingBattery: "购买电池", batteryBought: "电池购买成功！", invalidId: "无效ID", pluggingIn: "插入中...", pluggedIn: "机器插入成功！ ⚡", invalidAmount: "无效金额", swapping: "兑换中...", swapSuccess: "兑换成功！", claiming: "领取中...", claimed: "奖励已领取！", error: "错误", days: "天", rig: "矿机", send: "发送", receive: "接收", recipientAddr: "接收方地址 (0x...)", amount: "金额", confirmSend: "确认发送", sending: "发送中...", sentSuccess: "发送成功！", addrCopied: "地址已复制！", invalidAddr: "无效地址", totalBal: "总余额", activeMachines: "⛏️ 运行中矿机", myMachines: "⛏️ 我的矿机", myBatteries: "🔋 我的电池", active: "运行中", expired: "已过期", inactive: "未激活", available: "可用", plugged: "已插入", notPlugged: "未插入", timeRemaining: "剩余", noMachines: "暂无矿机", noBatteries: "暂无电池", batteryLabel: "电池", usdtPerFta: " USDT", noActiveMachines: "无运行中矿机", exchangeRate: "汇率", priceImpact: "价格影响", swapFee: "手续费 (0.3%)", minimumReceived: "最低收到", slippageTolerance: "滑点容忍度", networkFee: "网络费", errRejected: "交易已取消", errInsufficientFunds: "余额不足", errNetwork: "网络错误，请重试。", errTimeout: "交易超时。", errContract: "交易失败。", errGeneric: "发生错误。", errAlreadyPending: "已有交易待处理。", errNonce: "Nonce错误，请重启。" },
-  sg: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter referrer address.", bindRef: "BIND", power: "POWER", ftaSec: "Hashrate", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in", plugDesc: "Enter machine ID.", machineId: "ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap", youPay: "You pay", balance: "Bal:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Error", linking: "Linking...", refLinked: "Linked!", connFirst: "Connect first", enterRefAddr: "Referrer (0x...)", buyingMachine: "Buying", approveUsdt: "Approving USDT", approveFta: "Approving FTA", confirming: "Confirming", calcFta: "Calculating", machineBought: "Bought!", buyingBattery: "Buying Battery", batteryBought: "Battery bought", invalidId: "Invalid ID", pluggingIn: "Plugging", pluggedIn: "Plugged! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping", swapSuccess: "Swapped!", claiming: "Claiming", claimed: "Claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "To address (0x...)", amount: "Amount", confirmSend: "CONFIRM", sending: "Sending...", sentSuccess: "Sent!", addrCopied: "Copied!", invalidAddr: "Invalid address", totalBal: "Total", activeMachines: "⛏️ Active", myMachines: "⛏️ My Machines", myBatteries: "🔋 My Batteries", active: "Active", expired: "Expired", inactive: "Inactive", available: "Available", plugged: "Plugged", notPlugged: "Unplugged", timeRemaining: "Remaining", noMachines: "None yet", noBatteries: "None yet", batteryLabel: "Battery", usdtPerFta: " USDT", noActiveMachines: "None active", exchangeRate: "Rate", priceImpact: "Impact", swapFee: "Fee (0.3%)", minimumReceived: "Min received", slippageTolerance: "Slippage", networkFee: "Gas", errRejected: "Cancelled", errInsufficientFunds: "No balance", errNetwork: "Network error", errTimeout: "Timeout", errContract: "Failed", errGeneric: "Error", errAlreadyPending: "Pending", errNonce: "Nonce error" }
+  en: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "Hashrate", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", wcIdMissing: "WalletConnect ID missing!", refLinked: "Referrer linked!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address", totalBal: "Total Balance", activeMachines: "⛏️ Active Machines", myMachines: "⛏️ My Machines", myBatteries: "🔋 My Batteries", active: "Active", expired: "Expired", inactive: "Inactive", available: "Available", plugged: "Plugged", notPlugged: "Not Plugged", timeRemaining: "Remaining", noMachines: "No machines yet", noBatteries: "No batteries yet", batteryLabel: "Battery", usdtPerFta: " USDT", noActiveMachines: "No active machines", exchangeRate: "Exchange Rate", priceImpact: "Price Impact", swapFee: "Swap Fee (0.3%)", minimumReceived: "Minimum Received", slippageTolerance: "Slippage Tolerance", networkFee: "Network Fee", errRejected: "Transaction cancelled", errInsufficientFunds: "Insufficient balance", errNetwork: "Network error. Please try again.", errTimeout: "Transaction timed out. Please try again.", errContract: "Transaction failed. Please try again.", errGeneric: "An error occurred. Please try again.", errAlreadyPending: "A transaction is already pending. Please wait.", errNonce: "Transaction nonce error. Please restart the app." },
+  fr: { connect: "Connecter", refTitle: "👥 Parrainage", refDesc: "Entrez l'adresse de votre parrain.", bindRef: "LIER", power: "PUISSANCE", ftaSec: "Hashrate", pending: "EN ATTENTE", fta: "FTA", miningActive: "MINAGE ACTIF", noMachine: "AUCUNE MACHINE", claim: "RÉCLAMER", shopTitle: "⛏️ Boutique", machines: "Machines", batteries: "Batteries", buy: "ACHETER", myAssets: "⚙️ Wallet & Actifs", walletBal: "💰 Soldes", plugMachine: "🔌 Brancher une machine", plugDesc: "Entrez l'ID de votre machine.", machineId: "ID Machine (0, 1...)", plug: "BRANCHER ⚡", swapTitle: "💱 Échange", youPay: "Vous payez", balance: "Solde:", youReceive: "Vous recevez", swap: "ÉCHANGER", loading: "Chargement...", currentRate: "1 FTA = ", home: "Accueil", shop: "Boutique", assets: "Wallet", swapNav: "Swap", connWallet: "Connexion...", errConn: "Erreur connexion", linking: "Liaison...", wcIdMissing: "ID WalletConnect manquant!", refLinked: "Parrain lié!", connFirst: "Connectez-vous d'abord", enterRefAddr: "Adresse parrain (0x...)", buyingMachine: "Achat Machine", approveUsdt: "Approbation USDT...", approveFta: "Approbation FTA...", confirming: "Confirmation...", calcFta: "Calcul prix...", machineBought: "Machine achetée!", buyingBattery: "Achat Batterie", batteryBought: "Batterie achetée!", invalidId: "ID Machine invalide", pluggingIn: "Branchement...", pluggedIn: "Machine branchée! ⚡", invalidAmount: "Montant invalide", swapping: "Swap...", swapSuccess: "Échange réussi!", claiming: "Claim...", claimed: "Gains réclamés!", error: "Erreur", days: "Jours", rig: "RIG", send: "Envoyer", receive: "Recevoir", recipientAddr: "Adresse destinataire (0x...)", amount: "Montant", confirmSend: "CONFIRMER ENVOI", sending: "Envoi...", sentSuccess: "Envoi réussi!", addrCopied: "Adresse copiée!", invalidAddr: "Adresse invalide", totalBal: "Solde Total", activeMachines: "⛏️ Machines Actives", myMachines: "⛏️ Mes Machines", myBatteries: "🔋 Mes Batteries", active: "Actif", expired: "Expiré", inactive: "Inactif", available: "Disponible", plugged: "Branché", notPlugged: "Non branché", timeRemaining: "Restant", noMachines: "Aucune machine", noBatteries: "Aucune batterie", batteryLabel: "Batterie", usdtPerFta: " USDT", noActiveMachines: "Aucune machine active", exchangeRate: "Taux de change", priceImpact: "Impact prix", swapFee: "Frais swap (0.3%)", minimumReceived: "Minimum reçu", slippageTolerance: "Tolérance slippage", networkFee: "Frais réseau", errRejected: "Transaction annulée", errInsufficientFunds: "Solde insuffisant", errNetwork: "Erreur réseau. Veuillez réessayer.", errTimeout: "Délai expiré. Veuillez réessayer.", errContract: "Transaction échouée. Veuillez réessayer.", errGeneric: "Une erreur est survenue. Veuillez réessayer.", errAlreadyPending: "Une transaction est en cours. Veuillez patienter.", errNonce: "Erreur de nonce. Veuillez redémarrer l'application." },
+  de: { connect: "Verbinden", refTitle: "👥 Empfehlung", refDesc: "Empfehler-Adresse eingeben.", bindRef: "BINDEN", power: "LEISTUNG", ftaSec: "Hashrate", pending: "AUSSTEHEND", fta: "FTA", miningActive: "MINING AKTIV", noMachine: "KEINE MASCHINE", claim: "EINFORDERN", shopTitle: "⛏️ Shop", machines: "Maschinen", batteries: "Batterien", buy: "KAUFEN", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Guthaben", plugMachine: "🔌 Maschine anschließen", plugDesc: "Offline-Maschine ID eingeben.", machineId: "Maschinen-ID (0, 1...)", plug: "ANSCHLIESSEN ⚡", swapTitle: "💱 Tausch", youPay: "Sie zahlen", balance: "Guthaben:", youReceive: "Sie erhalten", swap: "TAUSCHEN", loading: "Laden...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Verbindung...", errConn: "Verbindungsfehler", linking: "Verknüpfung...", wcIdMissing: "WalletConnect-ID fehlt!", refLinked: "Empfehler verknüpft!", connFirst: "Zuerst verbinden", enterRefAddr: "Empfehler-Adresse (0x...)", buyingMachine: "Kaufe Maschine", approveUsdt: "USDT genehmigen...", approveFta: "FTA genehmigen...", confirming: "Bestätigung...", calcFta: "Preis berechnen...", machineBought: "Maschine gekauft!", buyingBattery: "Kaufe Batterie", batteryBought: "Batterie gekauft!", invalidId: "Ungültige ID", pluggingIn: "Anschließen...", pluggedIn: "Maschine angeschlossen! ⚡", invalidAmount: "Ungültiger Betrag", swapping: "Tauschen...", swapSuccess: "Tausch erfolgreich!", claiming: "Einforderung...", claimed: "Eingefordert!", error: "Fehler", days: "Tage", rig: "RIG", send: "Senden", receive: "Empfangen", recipientAddr: "Empfängeradresse (0x...)", amount: "Betrag", confirmSend: "SENDUNG BESTÄTIGEN", sending: "Senden...", sentSuccess: "Gesendet!", addrCopied: "Kopiert!", invalidAddr: "Ungültige Adresse", totalBal: "Gesamtguthaben", activeMachines: "⛏️ Aktive Maschinen", myMachines: "⛏️ Meine Maschinen", myBatteries: "🔋 Meine Batterien", active: "Aktiv", expired: "Abgelaufen", inactive: "Inaktiv", available: "Verfügbar", plugged: "Angeschlossen", notPlugged: "Nicht angeschlossen", timeRemaining: "Verbleibend", noMachines: "Keine Maschinen", noBatteries: "Keine Batterien", batteryLabel: "Batterie", usdtPerFta: " USDT", noActiveMachines: "Keine aktive Maschinen", exchangeRate: "Wechselkurs", priceImpact: "Preisauswirkung", swapFee: "Swapgebühr (0.3%)", minimumReceived: "Mindestbetrag", slippageTolerance: "Slippage-Toleranz", networkFee: "Netzwerkgebühr", errRejected: "Transaktion abgebrochen", errInsufficientFunds: "Unzureichendes Guthaben", errNetwork: "Netzwerkfehler. Bitte versuchen Sie es erneut.", errTimeout: "Zeitüberschreitung. Bitte versuchen Sie es erneut.", errContract: "Transaktion fehlgeschlagen. Bitte versuchen Sie es erneut.", errGeneric: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.", errAlreadyPending: "Eine Transaktion ist bereits ausstehend. Bitte warten Sie.", errNonce: "Nonce-Fehler. Bitte starten Sie die App neu." },
+  zh: { connect: "连接", refTitle: "👥 推荐系统", refDesc: "输入推荐人地址进行绑定。", bindRef: "绑定", power: "算力", ftaSec: "Hashrate", pending: "待领取", fta: "FTA", miningActive: "挖矿中", noMachine: "无机器", claim: "领取", shopTitle: "⛏️ 商店", machines: "矿机", batteries: "电池", buy: "购买", myAssets: "⚙️ 钱包与资产", walletBal: "💰 余额", plugMachine: "🔌 插入机器", plugDesc: "输入离线机器ID并选择电池。", machineId: "机器ID (0, 1...)", plug: "插入 ⚡", swapTitle: "💱 兑换", youPay: "您支付", balance: "余额:", youReceive: "您收到", swap: "兑换", loading: "加载中...", currentRate: "1 FTA = ", home: "首页", shop: "商店", assets: "钱包", swapNav: "兑换", connWallet: "连接中...", errConn: "连接错误", linking: "绑定中...", wcIdMissing: "缺少 WalletConnect ID！", refLinked: "推荐人绑定成功！", connFirst: "请先连接", enterRefAddr: "推荐人地址 (0x...)", buyingMachine: "购买机器", approveUsdt: "授权 USDT...", approveFta: "授权 FTA...", confirming: "确认中...", calcFta: "计算价格...", machineBought: "机器购买成功！", buyingBattery: "购买电池", batteryBought: "电池购买成功！", invalidId: "无效ID", pluggingIn: "插入中...", pluggedIn: "机器插入成功！ ⚡", invalidAmount: "无效金额", swapping: "兑换中...", swapSuccess: "兑换成功！", claiming: "领取中...", claimed: "奖励已领取！", error: "错误", days: "天", rig: "矿机", send: "发送", receive: "接收", recipientAddr: "接收方地址 (0x...)", amount: "金额", confirmSend: "确认发送", sending: "发送中...", sentSuccess: "发送成功！", addrCopied: "地址已复制！", invalidAddr: "无效地址", totalBal: "总余额", activeMachines: "⛏️ 运行中矿机", myMachines: "⛏️ 我的矿机", myBatteries: "🔋 我的电池", active: "运行中", expired: "已过期", inactive: "未激活", available: "可用", plugged: "已插入", notPlugged: "未插入", timeRemaining: "剩余", noMachines: "暂无矿机", noBatteries: "暂无电池", batteryLabel: "电池", usdtPerFta: " USDT", noActiveMachines: "无运行中矿机", exchangeRate: "汇率", priceImpact: "价格影响", swapFee: "手续费 (0.3%)", minimumReceived: "最低收到", slippageTolerance: "滑点容忍度", networkFee: "网络费", errRejected: "交易已取消", errInsufficientFunds: "余额不足", errNetwork: "网络错误，请重试。", errTimeout: "交易超时，请重试。", errContract: "交易失败，请重试。", errGeneric: "发生错误，请重试。", errAlreadyPending: "已有交易待处理，请稍候。", errNonce: "Nonce错误，请重启应用。" },
+  sg: { connect: "Connect", refTitle: "👥 Referral System", refDesc: "Enter your referrer's address to link.", bindRef: "BIND", power: "POWER", ftaSec: "Hashrate", pending: "PENDING", fta: "FTA", miningActive: "MINING ACTIVE", noMachine: "NO MACHINE", claim: "CLAIM", shopTitle: "⛏️ Shop", machines: "Machines", batteries: "Batteries", buy: "BUY", myAssets: "⚙️ Wallet & Assets", walletBal: "💰 Balances", plugMachine: "🔌 Plug in a machine", plugDesc: "Enter your offline machine ID and choose a battery.", machineId: "Machine ID (0, 1...)", plug: "PLUG IN ⚡", swapTitle: "💱 Swap", youPay: "You pay", balance: "Balance:", youReceive: "You receive", swap: "SWAP", loading: "Loading...", currentRate: "1 FTA = ", home: "Home", shop: "Shop", assets: "Wallet", swapNav: "Swap", connWallet: "Connecting...", errConn: "Connection Error", linking: "Linking...", wcIdMissing: "WalletConnect ID missing!", refLinked: "Referrer linked!", connFirst: "Connect first", enterRefAddr: "Referrer address (0x...)", buyingMachine: "Buying Machine", approveUsdt: "Approving USDT...", approveFta: "Approving FTA...", confirming: "Confirming...", calcFta: "Calculating price...", machineBought: "Machine purchased!", buyingBattery: "Buying Battery", batteryBought: "Battery purchased!", invalidId: "Invalid Machine ID", pluggingIn: "Plugging in...", pluggedIn: "Machine plugged in! ⚡", invalidAmount: "Invalid amount", swapping: "Swapping...", swapSuccess: "Swap successful!", claiming: "Claiming...", claimed: "Rewards claimed!", error: "Error", days: "Days", rig: "RIG", send: "Send", receive: "Receive", recipientAddr: "Recipient address (0x...)", amount: "Amount", confirmSend: "CONFIRM SEND", sending: "Sending...", sentSuccess: "Sent successfully!", addrCopied: "Address copied!", invalidAddr: "Invalid address", totalBal: "Total Balance", activeMachines: "⛏️ Active Machines", myMachines: "⛏️ My Machines", myBatteries: "🔋 My Batteries", active: "Active", expired: "Expired", inactive: "Inactive", available: "Available", plugged: "Plugged", notPlugged: "Not Plugged", timeRemaining: "Remaining", noMachines: "No machines yet", noBatteries: "No batteries yet", batteryLabel: "Battery", usdtPerFta: " USDT", noActiveMachines: "No active machines", exchangeRate: "Exchange Rate", priceImpact: "Price Impact", swapFee: "Swap Fee (0.3%)", minimumReceived: "Minimum Received", slippageTolerance: "Slippage Tolerance", networkFee: "Network Fee", errRejected: "Transaction cancelled", errInsufficientFunds: "Insufficient balance", errNetwork: "Network error. Please try again.", errTimeout: "Transaction timed out. Please try again.", errContract: "Transaction failed. Please try again.", errGeneric: "An error occurred. Please try again.", errAlreadyPending: "A transaction is already pending. Please wait.", errNonce: "Transaction nonce error. Please restart the app." }
 };
 
 const CHAT_INTENTS = {
@@ -84,7 +85,7 @@ const ERC20_ABI = [
 
 const SWAP_FEE_RATE = 0.003;
 const SLIPPAGE = 0.005;
-const ONE_18 = 10n**18n;
+const ONE_18 = 10n**18n; // ✅ Correction BigInt Ethers v6
 
 class Application {
   constructor() {
@@ -94,7 +95,7 @@ class Application {
     this.ftaDecimals = 18; this.usdtDecimals = 6;
     this.currentMultiplier = 1n;
     this.currentRealPower = 0; this.pendingBalance = 0;
-    this.miningTimer = null; this.storageKey = "fitia_last_claim_time_v4";
+    this.miningTimer = null; this.storageKey = "fitia_last_claim_time_v3";
     this.shopMachinesData = []; this.shopBatteriesData = [];
     this.isLoadingShop = false;
     this.vizContext = null; this.vizBars = [];
@@ -104,12 +105,12 @@ class Application {
     this.batteryTypeDurations = {};
     const savedLang = localStorage.getItem('fitia_lang');
     this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'en';
-    this.chatInitialized = false; this.chatHistory = [];
-    this.updateInterval = null;
+    this.chatInitialized = false;
+    this.chatHistory = [];
   }
 
-  t(key) { return i18n[this.currentLang]?.[key] || i18n['en'][key] || key; }
-  formatUsd(v) { return '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  t(key) { return i18n[this.currentLang][key] || i18n['en'][key] || key; }
+  formatUsd(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   
   formatHashrate(h) {
     if (h <= 0) return '0 H/s';
@@ -141,42 +142,30 @@ class Application {
   }
 
   applyTranslations() {
-    const set = (id, key) => { const el = document.getElementById(id); if(el) el.textContent = this.t(key); };
-    const setAttr = (id, attr, key) => { const el = document.getElementById(id); if(el) el.setAttribute(attr, this.t(key)); };
-    const querySet = (sel, key) => { const el = document.querySelector(sel); if(el) el.textContent = this.t(key); };
-    const queryAttr = (sel, attr, key) => { const el = document.querySelector(sel); if(el) el.setAttribute(attr, this.t(key)); };
-
-    set('btn-connect', 'connect');
-    querySet('.total-balance-card small', 'totalBal');
-    querySet('.referral-card h3', 'refTitle');
-    querySet('.referral-card p.small-text', 'refDesc');
-    queryAttr('#ref-address-input', 'placeholder', 'enterRefAddr');
-    querySet('.referral-card .btn-full', 'bindRef');
+    document.getElementById('btn-connect').innerText = this.t('connect');
+    document.querySelector('.total-balance-card small').innerText = this.t('totalBal');
+    document.querySelector('.referral-card h3').innerText = this.t('refTitle');
+    document.querySelector('.referral-card p.small-text').innerText = this.t('refDesc');
+    document.querySelector('#ref-address-input').placeholder = this.t('enterRefAddr');
+    document.querySelector('.referral-card .btn-full').innerText = this.t('bindRef');
     const stats = document.querySelectorAll('.stat-card');
-    if(stats[0]) { stats[0].querySelector('small:first-child').textContent = this.t('power'); stats[0].querySelector('small:last-child').textContent = this.t('ftaSec'); }
-    if(stats[1]) { stats[1].querySelector('small:first-child').textContent = this.t('pending'); stats[1].querySelector('small:last-child').textContent = this.t('fta'); }
-    querySet('.btn-mega span:last-child', 'claim');
-    querySet('#view-shop .view-title', 'shopTitle');
-    document.querySelectorAll('.shop-tab').forEach((t,i) => t.textContent = this.t(['machines','batteries'][i]));
-    querySet('#view-my-rigs .view-title', 'myAssets');
-    querySet('#view-my-rigs .card:first-child h3', 'walletBal');
-    document.querySelectorAll('.btn-wallet').forEach(b => { 
-      if(b.textContent.toLowerCase().includes('send')) b.textContent = this.t('send'); 
-      if(b.textContent.toLowerCase().includes('receive')) b.textContent = this.t('receive'); 
-    });
-    querySet('#active-machines-section .section-title', 'activeMachines');
+    stats[0].querySelector('small:first-child').innerText = this.t('power'); stats[0].querySelector('small:last-child').innerText = this.t('ftaSec');
+    stats[1].querySelector('small:first-child').innerText = this.t('pending'); stats[1].querySelector('small:last-child').innerText = this.t('fta');
+    document.querySelector('.btn-mega').childNodes[1].textContent = this.t('claim');
+    document.querySelector('#view-shop .view-title').innerText = this.t('shopTitle');
+    document.querySelectorAll('.shop-tab')[0].innerText = this.t('machines'); document.querySelectorAll('.shop-tab')[1].innerText = this.t('batteries');
+    document.querySelector('#view-my-rigs .view-title').innerText = this.t('myAssets');
+    document.querySelector('#view-my-rigs .card:first-child h3').innerText = this.t('walletBal');
+    document.querySelectorAll('.btn-wallet').forEach(b => { if(b.textContent.includes('Send')) b.innerText = this.t('send'); if(b.textContent.includes('Receive')) b.innerText = this.t('receive'); });
+    document.querySelector('#active-machines-section .section-title').innerText = this.t('activeMachines');
     const wc = document.querySelectorAll('#view-my-rigs .card');
-    if(wc[1]) wc[1].querySelector('.section-title').textContent = this.t('myMachines');
-    if(wc[2]) wc[2].querySelector('.section-title').textContent = this.t('myBatteries');
-    querySet('#view-swap .view-title', 'swapTitle');
+    if(wc[1]) wc[1].querySelector('.section-title').innerText = this.t('myMachines');
+    if(wc[2]) wc[2].querySelector('.section-title').innerText = this.t('myBatteries');
+    document.querySelector('#view-swap .view-title').innerText = this.t('swapTitle');
     const sh = document.querySelectorAll('.swap-header span:first-child');
-    if(sh[0]) sh[0].textContent = this.t('youPay'); if(sh[1]) sh[1].textContent = this.t('youReceive');
-    querySet('#view-swap .btn-primary', 'swap');
-    document.querySelectorAll('.nav-item span').forEach((s,i) => s.textContent = this.t(['home','shop','assets','swapNav'][i]));
-    querySet('#send-token-name', 'send');
-    queryAttr('#send-to-address', 'placeholder', 'recipientAddr');
-    queryAttr('#send-amount', 'placeholder', 'amount');
-    querySet('#confirm-send', 'confirmSend'); // Si tu ajoutes un ID
+    sh[0].innerText = this.t('youPay'); sh[1].innerText = this.t('youReceive');
+    document.querySelector('#view-swap .btn-primary').innerText = this.t('swap');
+    document.querySelectorAll('.nav-item span').forEach((s,i) => s.innerText = this.t(['home','shop','assets','swapNav'][i]));
   }
 
   async init() { this.setLanguage(this.currentLang); }
@@ -202,8 +191,14 @@ class Application {
         window.ethereum.on('accountsChanged', () => window.location.reload());
         window.ethereum.on('chainChanged', () => window.location.reload());
       } catch (e) { this.showError(e); } finally { this.setLoader(false); }
+    } else if (typeof EthereumProvider !== 'undefined' && CONFIG.WC_PROJECT_ID && !CONFIG.WC_PROJECT_ID.includes("...")) {
+      this.setLoader(true, this.t('connWallet'));
+      try {
+        const wc = await EthereumProvider.init({ projectId: CONFIG.WC_PROJECT_ID, chains: [CONFIG.CHAIN_ID], showQrModal: true, methods: ['eth_sendTransaction','personal_sign'], metadata: { name: 'FITIA PRO MINER', description: 'Mining DApp', url: window.location.origin, icons: [window.location.origin + '/logo.png'] } });
+        await wc.enable(); this.provider = new ethers.BrowserProvider(wc); this.signer = await this.provider.getSigner(); this.user = await this.signer.getAddress(); this.initContracts(); wc.on("disconnect", () => window.location.reload());
+      } catch (e) { this.showError(e); } finally { this.setLoader(false); }
     } else {
-      this.showToast("Please install MetaMask or use a Web3 browser.", true);
+      this.showToast(CONFIG.WC_PROJECT_ID?.includes("...") ? this.t('wcIdMissing') : "Please install MetaMask or use a Web3 browser.", true);
     }
   }
 
@@ -219,8 +214,7 @@ class Application {
     await this.fetchMarketPrices();
     await this.cacheBatteryDurations();
     await this.updateData();
-    if(this.updateInterval) clearInterval(this.updateInterval);
-    this.updateInterval = setInterval(() => this.updateData(), 15000);
+    setInterval(() => this.updateData(), 15000);
     this.initVisualizer();
     window.addEventListener('resize', () => this.resizeCanvas());
   }
@@ -231,9 +225,7 @@ class Application {
 
   async switchNetwork() { 
     try { await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x89' }] }); } 
-    catch(e) { 
-      if(e.code===4902) await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x89', chainName: 'Polygon', nativeCurrency: {name:'MATIC',symbol:'MATIC',decimals:18}, rpcUrls: ['https://polygon-rpc.com/'], blockExplorerUrls: ['https://polygonscan.com/'] }] }); 
-    } 
+    catch(e) { if(e.code===4902) await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x89', chainName: 'Polygon', nativeCurrency: {name:'MATIC',symbol:'MATIC',decimals:18}, rpcUrls: ['https://polygon-rpc.com/'], blockExplorerUrls: ['https://polygonscan.com/'] }] }); } 
   }
 
   setShopView(v) { this.shopViewMode = v; document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active')); event.currentTarget.classList.add('active'); this.renderShop(); }
@@ -295,15 +287,15 @@ class Application {
       let sc, st;
       if (b.isUsed && b.endTime>now) { sc='active'; st=this.t('plugged'); } else if (b.isUsed && b.endTime<=now) { sc='expired'; st=this.t('expired'); } else { sc='available'; st=this.t('available'); }
       let bh = '';
+      const chargeLevel = b.endTime > 0 ? Math.min(100, Math.max(0, (b.endTime - now) / (dur * 86400) * 100)) : 0;
+      let levelClass = chargeLevel > 60 ? '' : (chargeLevel > 20 ? 'medium' : (chargeLevel > 0 ? 'low' : 'empty'));
+      
       if (b.isUsed && b.endTime>0) {
         const rem=b.endTime-now, tot=dur*86400, el=tot-rem, pr=Math.min(Math.max((el/tot)*100,0),100);
         const bc=rem<=0?'red':(pr<60?'green':(pr<85?'yellow':'red'));
         bh=`<div class="battery-bar-wrap"><div class="battery-bar-header"><span class="battery-bar-label">${this.t('timeRemaining')}</span><span class="battery-bar-time ${bc}">${rem>0?this.formatTimeRemaining(rem):this.t('expired')}</span></div><div class="battery-bar"><div class="battery-bar-fill ${rem<=0?'gray':bc}" style="width:${rem<=0?100:pr.toFixed(1)}%"></div></div></div>`;
       }
-      // ✅ REALISTIC BATTERY VISUAL
-      const chargeLevel = rem<=0 ? 0 : Math.max(0, (rem / tot) * 100);
-      let levelClass = chargeLevel > 60 ? '' : (chargeLevel > 20 ? 'medium' : (chargeLevel > 0 ? 'low' : 'empty'));
-      return `<div class="battery-row-item" style="padding:16px; border-radius:14px;">
+      return `<div class="asset-row">
         <div class="real-battery">
           <div class="battery-cap"></div>
           <div class="battery-body">
@@ -311,8 +303,11 @@ class Application {
             <div class="battery-charge-indicator">${Math.round(chargeLevel)}%</div>
           </div>
         </div>
-        <div class="battery-name">${dur} ${this.t('days')}</div>
-        <div class="asset-info"><div class="asset-name">#${i} <span class="status-pill ${sc}">● ${st}</span></div>${bh}</div>
+        <div class="asset-info">
+          <div class="asset-name">#${i} ${dur} ${this.t('days')} <span class="status-pill ${sc}">● ${st}</span></div>
+          <div class="asset-detail">${b.isUsed?this.t('plugged'):this.t('available')}</div>
+          ${bh}
+        </div>
       </div>`;
     }).join('');
   }
@@ -349,39 +344,11 @@ class Application {
       document.getElementById('swap-rate').innerText = this.t('currentRate') + this.ftaPriceUsd.toFixed(6) + this.t('usdtPerFta');
       document.getElementById('swap-bal-from').innerText = parseFloat(ethers.formatUnits(this.swapDirection==='USDT_TO_FTA'?usdtBal:ftaBal, this.swapDirection==='USDT_TO_FTA'?this.usdtDecimals:this.ftaDecimals)).toFixed(4);
       document.getElementById('swap-bal-to').innerText = parseFloat(ethers.formatUnits(this.swapDirection==='USDT_TO_FTA'?ftaBal:usdtBal, this.swapDirection==='USDT_TO_FTA'?this.ftaDecimals:this.usdtDecimals)).toFixed(4);
-      this.renderWalletBalances();
       await this.renderShop();
       await this.fetchUserAssets();
       this.renderActiveMachines(); this.renderUserMachines(); this.renderUserBatteries();
       if (document.getElementById('swap-from-in').value) this.calcSwap();
     } catch(e) { console.error("Refresh Error", e); }
-  }
-
-  renderWalletBalances() {
-    const container = document.getElementById('wallet-balances-container');
-    if(!container) return;
-    const tokens = [
-      { id: 'bal-pol-2', sym: 'POL', img: 'https://i.ibb.co/NdCLLsck/IMG-20260302-131520-512-x-512-pixel.webp' },
-      { id: 'bal-usdt-2', sym: 'USDT', img: 'https://i.ibb.co/BRGx1GN/IMG-20260228-134642-512-x-512-pixel.webp' },
-      { id: 'bal-fta-2', sym: 'FTA', img: 'https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp' }
-    ];
-    container.innerHTML = tokens.map(t => `
-      <div class="wallet-token-row">
-        <img src="${t.img}" class="token-img-lg">
-        <div class="token-info">
-          <span class="token-name">${t.sym} <small class="token-unit-price" id="price-${t.sym.toLowerCase()}">$${this.formatUsd(t.sym==='POL'?this.polPriceUsd:t.sym==='USDT'?1:this.ftaPriceUsd)}</small></span>
-          <span class="token-bal" id="${t.id}-main">0.00</span>
-          <span class="token-bal-usd" id="${t.id}-usd">≈ $0.00</span>
-        </div>
-        <div class="wallet-actions">
-          <button class="btn-wallet" onclick="App.openSend('${t.sym}')">${this.t('send')}</button>
-          <button class="btn-wallet receive-btn" onclick="App.openReceive()">${this.t('receive')}</button>
-        </div>
-      </div>
-    `).join('');
-    // Sync values
-    const sync = (id, val) => { const el1=document.getElementById(id); const el2=document.getElementById(`${id}-main`); const el3=document.getElementById(`${id}-usd`); if(el2) el2.textContent=val.toFixed(2); if(el3) el3.textContent='≈ $0.00'; };
-    sync('bal-pol-2', 0); sync('bal-usdt-2', 0); sync('bal-fta-2', 0);
   }
 
   startMiningCounter() { if(this.miningTimer) return; this.miningTimer = setInterval(() => { if(this.currentRealPower>0) { this.pendingBalance += this.currentRealPower; document.getElementById('val-pending').innerText = this.pendingBalance.toFixed(5); document.getElementById('val-pending').style.color = 'var(--primary)'; setTimeout(() => document.getElementById('val-pending').style.color = 'var(--text)', 500); } }, 1000); }
@@ -440,19 +407,18 @@ class Application {
   }
 
   _renderShopMachinesHTML(c) {
-    c.innerHTML='';c.style.gridTemplateColumns='repeat(auto-fill, minmax(160px, 1fr))';
+    c.innerHTML='';c.style.gridTemplateColumns='1fr 1fr';
     const bc=['background:#64748b;color:#fff','background:#3b82f6;color:#fff','background:#8b5cf6;color:#fff','background:#F0B90B;color:#000','background:#f97316;color:#fff','background:#ef4444;color:#fff','background:#06b6d4;color:#000','background:#eab308;color:#000'];
     const bn=['STARTER','STANDARD','ADVANCED','PRO','ELITE','ULTRA','SUPREME','LEGEND'];
     for(let i=0;i<this.shopMachinesData.length;i++){const d=this.shopMachinesData[i],div=document.createElement('div');div.className='rig-item';div.innerHTML=`<span class="tier-badge" style="${bc[i%8]}">${bn[i%8]}</span>${this.getMachineSVG(i)}<span class="rig-name" style="font-size:0.85rem;">${this.t('rig')} ${i+1}</span><span class="rig-power" style="font-size:0.75rem;">${this.formatHashrate(d.power)}</span><span class="rig-price" style="font-size:1rem;">${d.price.toFixed(2)} $</span><button class="btn-primary" style="padding:8px;font-size:0.75rem;margin-top:6px;" onclick="App.buyMachine(${i})">${this.t('buy')} (${this.payMode})</button>`;c.appendChild(div);}
   }
 
   _renderShopBatteriesHTML(c) { 
-    c.innerHTML='';c.style.gridTemplateColumns='repeat(auto-fill, minmax(150px, 1fr))';
+    c.innerHTML='';c.style.gridTemplateColumns='1fr 1fr';
     const ic=["🔋","⚡","🔌","💫"];
     for(let i=0;i<this.shopBatteriesData.length;i++){
       const d=this.shopBatteriesData[i],div=document.createElement('div');
       div.className='battery-shop-item';
-      // ✅ REALISTIC BATTERY SHOP ITEM
       const chargeLevel = Math.floor(Math.random()*40)+60;
       div.innerHTML=`
         <div class="real-battery">
@@ -563,7 +529,7 @@ class Application {
     const errStr = (e?.message || '').toLowerCase() + ' ' + (e?.code || '').toLowerCase() + ' ' + (e?.reason || '').toLowerCase() + ' ' + (e?.shortMessage || '').toLowerCase();
     const infoErr = (e?.info?.error?.message || '').toLowerCase();
     const combined = errStr + ' ' + infoErr;
-    if (combined.includes('user rejected') || combined.includes('user denied') || combined.includes('cancelled by user') || combined.includes('action_rejected') || e?.code === 'ACTION_REJECTED' || e?.code === 4001 || e?.code === -32000 || combined.includes('user cancel')) return this.t('errRejected');
+    if (combined.includes('user rejected') || combined.includes('user denied') || combined.includes('cancelled by user') || combined.includes('action_rejected') || combined.includes('transaction was rejected') || e?.code === 'ACTION_REJECTED' || e?.code === 4001 || e?.code === -32000 || (e?.info?.error?.code === 4001) || combined.includes('user cancel')) return this.t('errRejected');
     if (combined.includes('insufficient funds') || combined.includes('insufficient balance') || combined.includes('not enough') || combined.includes('underpriced') || combined.includes('exceeds allowance') || combined.includes('erc20: insufficient') || combined.includes('transfer amount exceeds')) return this.t('errInsufficientFunds');
     if (combined.includes('nonce') || combined.includes('already known') || combined.includes('replacement fee too low')) return this.t('errNonce');
     if (combined.includes('already pending') || combined.includes('pending transaction')) return this.t('errAlreadyPending');
