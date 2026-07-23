@@ -207,3 +207,122 @@ main::-webkit-scrollbar { display: none; }
 .chat-send-btn { width: 42px; height: 42px; border-radius: 50%; background: var(--primary); color: #000; border: none; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; flex-shrink: 0; }
 .chat-send-btn:active { transform: scale(0.9); }
 .hidden { display: none !important; }
+
+/* ─── Boutons dépôt/retrait (Wallet) ─── */
+.btn-wallet-action {
+  flex: 1 1 80px;
+  min-width: 60px;
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-align: center;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-wallet-deposit { background: var(--primary); color: #000; }
+.btn-wallet-deposit:active { background: var(--primary-hover); transform: scale(0.97); }
+.btn-wallet-withdraw { background: rgba(239, 68, 68, 0.12); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+.btn-wallet-withdraw:active { background: rgba(239, 68, 68, 0.25); transform: scale(0.97); }
+
+/* ─── Wallet — carte professionnelle ─── */
+.wallet-main-card { padding: 16px; }
+.wallet-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.wallet-card-header h3 { margin: 0; font-size: 1rem; flex-shrink: 0; }
+.wallet-main-actions { display: flex; gap: 8px; }
+.btn-wallet-main {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-wallet-send { background: var(--primary); color: #000; }
+.btn-wallet-send:active { background: var(--primary-hover); transform: scale(0.97); }
+.btn-wallet-recv { background: var(--accent); color: #fff; }
+.btn-wallet-recv:active { background: #2563eb; transform: scale(0.97); }
+
+/* ─── Lignes token simplifiées ─── */
+.token-price-col {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 65px;
+}
+.token-price-mini, .token-unit-price {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+/* ─── Indicateur de variation en pourcentage ─── */
+.token-change {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.token-change.up {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+.token-change.down {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.token-change.flat {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+}
+.wallet-token-row { align-items: center; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.wallet-token-row:last-of-type { border-bottom: none; padding-bottom: 8px; }
+
+/* ─── Barre dépôt/retrait ─── */
+.wallet-action-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-wrap: wrap;
+}
+.wallet-token-select { flex: 0 0 72px; min-width: 68px; margin-bottom: 0; padding: 10px 8px; font-size: 14px; }
+.wallet-amount-input { flex: 2 1 90px; min-width: 70px; margin-bottom: 0; }
+
+/* ─── Améliorations mobiles ─── */
+@media screen and (max-width: 380px) {
+  .wallet-token-row { flex-wrap: wrap; gap: 6px; }
+  .wallet-actions { flex-direction: row; gap: 4px; }
+  .btn-wallet { padding: 5px 8px; font-size: 0.68rem; }
+  .btn-wallet-action { padding: 8px 4px; font-size: 0.68rem; min-width: 48px; }
+  .btn-wallet-main { padding: 6px 10px; font-size: 0.7rem; }
+  .wallet-card-header { gap: 8px; }
+  .wallet-token-select { flex: 0 0 60px; min-width: 58px; padding: 8px 6px; }
+  .wallet-amount-input { min-width: 60px; }
+  .token-price-mini { font-size: 0.65rem; padding: 3px 8px; min-width: 48px; }
+  .plug-grid { grid-template-columns: 1fr; }
+  .game-input { font-size: 14px; padding: 10px; }
+  header { padding: 10px 8px; }
+  .brand-text { font-size: 0.8rem; }
+  .btn-connect { padding: 6px 10px; font-size: 0.73rem; }
+  .chat-fab { width: 48px; height: 48px; bottom: calc(var(--nav-height) + var(--safe-bottom) + 10px); right: 10px; }
+  .chat-panel { width: calc(100% - 16px); right: 8px; max-width: 100%; }
+}
