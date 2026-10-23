@@ -5,7 +5,6 @@ Pipeline officiel Android : aapt2 -> ecj (javac) -> d8 (dex) -> 4-byte zipalign 
 """
 
 import glob
-import math
 import os
 import shutil
 import subprocess
@@ -29,7 +28,7 @@ def run_cmd(cmd, cwd=None):
 
 
 def generate_android_icons():
-    """Génère les icônes Android multi-résolutions (mdpi..xxxhdpi + adaptive foreground)."""
+    """Génère les icônes FITIA Android multi-résolutions et adaptatives."""
     from PIL import Image, ImageDraw
 
     base_icon_path = os.path.join(ROOT_DIR, "assets", "icon-512.png")
@@ -43,49 +42,33 @@ def generate_android_icons():
         "xxxhdpi": (192, 432),
     }
 
-    # Prépare un visuel foreground adaptatif haute résolution (avec marge de sécurité Android 66%)
-    S = 864
-    fg_master = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(fg_master)
-    cx, cy = S // 2, S // 2
-    hex_r = S * 0.24
-    hex_pts = []
-    for i in range(6):
-        ang = math.radians(-90 + i * 60)
-        hex_pts.append((cx + hex_r * math.cos(ang), cy + hex_r * math.sin(ang)))
-    draw.polygon(hex_pts, outline=(240, 185, 11, 160), width=12)
-
-    bolt = [
-        (S * 0.54, S * 0.27),
-        (S * 0.36, S * 0.52),
-        (S * 0.48, S * 0.52),
-        (S * 0.45, S * 0.73),
-        (S * 0.64, S * 0.47),
-        (S * 0.52, S * 0.47),
-    ]
-    draw.polygon([(x + 8, y + 8) for x, y in bolt], fill=(0, 0, 0, 130))
-    draw.polygon(bolt, fill=(240, 185, 11, 255))
-    draw.polygon([bolt[0], bolt[1], bolt[2], (S * 0.52, S * 0.47)], fill=(255, 222, 89, 255))
+    # Le jeton reste entièrement visible dans la zone sûre circulaire de 66 %
+    # des icônes adaptatives Android, quel que soit le masque du lanceur.
+    master_size = 864
+    logo_size = round(master_size * 0.66)
+    logo = base_img.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+    fg_master = Image.new("RGBA", (master_size, master_size), (0, 0, 0, 0))
+    logo_offset = (master_size - logo_size) // 2
+    fg_master.alpha_composite(logo, (logo_offset, logo_offset))
 
     for dpi, (legacy_px, fg_px) in densities.items():
         mip_dir = os.path.join(ANDROID_SRC, "res", f"mipmap-{dpi}")
         os.makedirs(mip_dir, exist_ok=True)
 
-        # ic_launcher.png
+        # Icône classique : le PNG FITIA conservant sa transparence d'origine.
         ic = base_img.resize((legacy_px, legacy_px), Image.Resampling.LANCZOS)
         ic.save(os.path.join(mip_dir, "ic_launcher.png"))
 
-        # ic_launcher_round.png (masque circulaire)
+        # Icône ronde : applique un masque circulaire aux bords du visuel.
         mask = Image.new("L", (legacy_px * 4, legacy_px * 4), 0)
         mdraw = ImageDraw.Draw(mask)
         mdraw.ellipse([0, 0, legacy_px * 4 - 1, legacy_px * 4 - 1], fill=255)
         mask = mask.resize((legacy_px, legacy_px), Image.Resampling.LANCZOS)
-        round_bg = base_img.resize((legacy_px, legacy_px), Image.Resampling.LANCZOS)
         round_ic = Image.new("RGBA", (legacy_px, legacy_px), (0, 0, 0, 0))
-        round_ic.paste(round_bg, (0, 0), mask)
+        round_ic.paste(ic, (0, 0), mask)
         round_ic.save(os.path.join(mip_dir, "ic_launcher_round.png"))
 
-        # ic_launcher_foreground.png
+        # Premier plan adaptatif, superposé à @color/ic_launcher_background.
         fg = fg_master.resize((fg_px, fg_px), Image.Resampling.LANCZOS)
         fg.save(os.path.join(mip_dir, "ic_launcher_foreground.png"))
 

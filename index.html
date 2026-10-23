@@ -10,8 +10,8 @@
 <title>FITIA PRO MINER</title>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https://app.fitia.pro 'unsafe-inline'; base-uri 'self'; object-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*;">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" href="assets/icon-192.png">
-<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -422,7 +422,7 @@
     <div class="card mining-vault-card">
       <div class="mining-vault-header">
         <h3 data-i18n="miningVaultTitle">⚡ Compte Minage (Contrat FITIA)</h3>
-        <p class="small-text" data-i18n="miningVaultDesc">Solde utilisé pour la boutique, le swap et vos récompenses de minage. Déposez ou retirez vers votre portefeuille à tout moment.</p>
+        <p class="small-text hidden" data-i18n="miningVaultDesc">Solde utilisé pour la boutique, le swap et vos récompenses de minage. Déposez ou retirez vers votre portefeuille à tout moment.</p>
       </div>
 
       <div class="mining-balances-grid">
@@ -657,8 +657,8 @@
       </div>
     </div>
 
-    <div class="sec-section-title" data-i18n="networkNodeTitle">Réseau Polygon RPC</div>
-    <div class="sec-rpc-box">
+    <div class="sec-section-title hidden" data-i18n="networkNodeTitle">Réseau Polygon RPC</div>
+    <div class="sec-rpc-box hidden">
       <select id="select-rpc-node" class="game-input" style="margin-bottom:8px; font-size:0.82rem;" onchange="App.onSelectRpcNode(this.value)"></select>
       <div class="sec-custom-rpc-row">
         <input type="url" id="custom-rpc-input" class="game-input" placeholder="RPC personnalisé (https://...)" style="margin-bottom:0; font-size:0.8rem; text-align:left;">
