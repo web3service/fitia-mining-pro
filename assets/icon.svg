@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="55%" stop-color="#162038"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+    <radialGradient id="goldGlow" cx="50%" cy="42%" r="50%">
+      <stop offset="0%" stop-color="#F0B90B" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#F0B90B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="50%" stop-color="#F0B90B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <circle cx="256" cy="220" r="210" fill="url(#goldGlow)"/>
+  <polygon points="256,64 406,150 406,322 256,408 106,322 106,150" fill="none" stroke="#F0B90B" stroke-width="10" stroke-opacity="0.35"/>
+  <polygon points="282,92 162,258 248,258 222,402 354,224 266,224" fill="url(#boltGrad)"/>
+  <rect x="156" y="426" width="200" height="40" rx="20" fill="#F0B90B"/>
+  <text x="256" y="453" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="24" fill="#090d16" letter-spacing="3">FITIA PRO</text>
+</svg>
