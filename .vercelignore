@@ -5,6 +5,7 @@ server.js
 README.md
 .git/
 app.js
+activity.js
 wallet.js
 style.css
 vendor/

@@ -1507,6 +1507,220 @@ main::-webkit-scrollbar { display: none; }
 .machine-svg-mini { display: block; width: 48px; height: auto; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 .rig-item .tier-badge { position: absolute; top: 8px; right: 8px; padding: 2px 7px; border-radius: 4px; font-size: 0.58rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.8px; z-index: 2; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   HISTORIQUE LOCAL & CENTRE DE NOTIFICATIONS
+   ═══════════════════════════════════════════════════════════════════ */
+.activity-bell { position: relative; flex-shrink: 0; }
+.activity-bell:active { background: rgba(240, 185, 11, 0.2); }
+.activity-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: #fff;
+  border: 2px solid var(--bg);
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.wallet-history-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1px solid rgba(240, 185, 11, 0.2);
+  background: rgba(240, 185, 11, 0.07);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wallet-history-btn:active { background: rgba(240, 185, 11, 0.14); }
+.wallet-pending-count { color: var(--text-muted); font-size: 0.66rem; font-weight: 600; }
+.wallet-pending-count.has-pending { color: var(--primary); }
+
+.activity-modal-content {
+  height: min(82dvh, 700px);
+  max-height: 88dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.activity-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: rgba(9, 14, 26, 0.5);
+  flex-shrink: 0;
+}
+.activity-tab {
+  min-height: 38px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.activity-tab.active { background: var(--card-elevated); color: var(--primary); }
+.activity-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.58rem;
+}
+#activity-history-panel,
+#activity-notifications-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.activity-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-shrink: 0; }
+.activity-count { color: var(--text-muted); font-size: 0.7rem; }
+.activity-filter {
+  max-width: 135px;
+  padding: 7px 26px 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: var(--card-elevated);
+  color: var(--text);
+  font-size: 0.7rem;
+}
+.activity-mark-read {
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.activity-mark-read:disabled { color: var(--text-muted); opacity: 0.45; cursor: default; }
+.activity-list,
+.notification-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+.activity-item {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 9px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 13px;
+  background: rgba(9, 14, 26, 0.34);
+}
+.activity-item.status-pending { border-color: rgba(240, 185, 11, 0.2); }
+.activity-item.status-failed { border-color: rgba(239, 68, 68, 0.2); }
+.activity-type-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 800;
+}
+.activity-type-icon.type-send,
+.activity-type-icon.type-withdraw { color: #60a5fa; background: rgba(59, 130, 246, 0.12); }
+.activity-type-icon.type-deposit,
+.activity-type-icon.type-claim { color: var(--success); background: rgba(16, 185, 129, 0.12); }
+.activity-type-icon.type-purchase,
+.activity-type-icon.type-mining { color: var(--primary); background: rgba(240, 185, 11, 0.12); }
+.activity-type-icon.type-swap { color: #c084fc; background: rgba(168, 85, 247, 0.12); }
+.activity-item-main { min-width: 0; }
+.activity-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.activity-item-title { min-width: 0; font-size: 0.76rem; line-height: 1.35; overflow-wrap: anywhere; }
+.activity-status { flex-shrink: 0; padding-top: 1px; font-size: 0.58rem; font-weight: 700; }
+.activity-status.status-pending { color: var(--primary); }
+.activity-status.status-success { color: var(--success); }
+.activity-status.status-failed { color: var(--danger); }
+.activity-amount { margin-top: 4px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; overflow-wrap: anywhere; }
+.activity-description { margin-top: 4px; color: var(--text-muted); font-size: 0.66rem; line-height: 1.4; overflow-wrap: anywhere; }
+.activity-meta { margin-top: 5px; color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; overflow-wrap: anywhere; }
+.activity-tx-link {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 9px;
+  background: rgba(59, 130, 246, 0.08);
+  color: #60a5fa;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.activity-tx-link:active { background: rgba(59, 130, 246, 0.2); }
+
+.notification-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 13px;
+  background: rgba(9, 14, 26, 0.3);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.notification-item.unread { border-color: rgba(240, 185, 11, 0.25); background: rgba(240, 185, 11, 0.055); }
+.notification-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.notification-icon.status-pending { color: var(--primary); background: rgba(240, 185, 11, 0.12); }
+.notification-icon.status-success { color: var(--success); background: rgba(16, 185, 129, 0.12); }
+.notification-icon.status-failed { color: var(--danger); background: rgba(239, 68, 68, 0.12); }
+.notification-content { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.notification-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.76rem; }
+.notification-unread-dot { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--primary); }
+.notification-message { margin-top: 4px; color: var(--text-muted); font-size: 0.67rem; line-height: 1.45; overflow-wrap: anywhere; }
+.notification-time { margin-top: 5px; color: #64748b; font-size: 0.59rem; }
+.activity-empty { padding: 42px 20px; text-align: center; color: var(--text-muted); }
+.activity-empty-icon { margin-bottom: 10px; color: #64748b; font-size: 2rem; }
+.activity-empty strong { display: block; color: var(--text); font-size: 0.84rem; }
+.activity-empty p { max-width: 290px; margin: 8px auto 12px; font-size: 0.7rem; line-height: 1.5; }
+.activity-explorer-empty { color: #60a5fa; font-size: 0.68rem; text-decoration: none; }
+.activity-footnote { margin: 12px 2px 0; flex-shrink: 0; color: #64748b; font-size: 0.6rem; line-height: 1.45; text-align: center; }
+
 /* Chat Assistant */
 .chat-fab { position: fixed; bottom: calc(var(--nav-height) + var(--safe-bottom) + 14px); right: 14px; width: 52px; height: 52px; border-radius: 50%; background: transparent; color: #000; border: none; cursor: pointer; box-shadow: none; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden; }
 .chat-fab:active { transform: scale(0.9); }
@@ -1529,6 +1743,8 @@ main::-webkit-scrollbar { display: none; }
 @media screen and (max-width: 380px) {
   header { padding: 10px 10px; padding-top: max(10px, var(--safe-top)); }
   .brand-text { font-size: 0.82rem; }
+  .header-right { gap: 4px; }
+  .activity-bell { width: 32px; height: 32px; }
   .wallet-status { padding: 5px 8px; font-size: 0.7rem; }
   .pin-key { height: 52px; font-size: 1.25rem; }
   .seed-grid { grid-template-columns: repeat(2, 1fr); }

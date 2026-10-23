@@ -610,6 +610,7 @@ class Application {
     this.mine = null;
     this.usdtToken = null;
     this.ftaToken = null;
+    this.activity = new FitiaActivityCenter({ explorer: CONFIG.EXPLORER });
 
     this.payMode = 'USDT';
     this.shopViewMode = 'machines';
@@ -772,6 +773,7 @@ class Application {
           this.lockWallet(true);
         } else {
           FitiaSecurity.Native.setScreenSecure(false);
+          this.activity.refreshPending(this.provider);
         }
         this.backgroundedAt = 0;
       }
@@ -1336,6 +1338,171 @@ class Application {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  //  HISTORIQUE & NOTIFICATIONS DES TRANSACTIONS
+  // ═══════════════════════════════════════════════════════════════
+  openActivity(tab = 'history') {
+    if (!this.user) return;
+    this.closeModals();
+    this.activity.setTab(tab);
+    document.getElementById('modal-activity')?.classList.add('active');
+  }
+
+  shortActivityAddress(address) {
+    const value = String(address || '');
+    return value.length === 42 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
+  }
+
+  formatActivityAmount(value, decimals) {
+    const formatted = ethers.formatUnits(value ?? 0, decimals);
+    return formatted.includes('.') ? formatted.replace(/\.?0+$/, '') : formatted;
+  }
+
+  describeActivityTransaction(txRequest = {}) {
+    const to = String(txRequest.to || '').toLowerCase();
+    const data = typeof txRequest.data === 'string' ? txRequest.data : '0x';
+    let hasValue = false;
+    try { hasValue = BigInt(txRequest.value ?? 0) > 0n; } catch (_) { /* Le fallback reste non financier. */ }
+    const fallback = {
+      type: hasValue && (!data || data === '0x') ? 'send' : 'other',
+      title: hasValue && (!data || data === '0x') ? 'Envoi de POL' : 'Interaction Polygon',
+      description: to ? `${hasValue && (!data || data === '0x') ? 'Vers' : 'Contrat'} ${this.shortActivityAddress(to)}` : 'Transaction sur le réseau Polygon',
+      amount: '',
+      token: hasValue && (!data || data === '0x') ? 'POL' : '',
+      to
+    };
+
+    try {
+      if (fallback.type === 'send') {
+        fallback.amount = this.formatActivityAmount(txRequest.value || 0, 18);
+        return fallback;
+      }
+      if (!data || data === '0x') return fallback;
+
+      const candidates = [
+        { address: CONFIG.CORE, contract: this.core, kind: 'core' },
+        { address: CONFIG.MINE, contract: this.mine, kind: 'mine' },
+        { address: CONFIG.USDT, contract: this.usdtToken, kind: 'USDT' },
+        { address: CONFIG.FTA, contract: this.ftaToken, kind: 'FTA' }
+      ];
+      const matched = candidates.find((item) => String(item.address).toLowerCase() === to && item.contract);
+      if (!matched) return fallback;
+      const parsed = matched.contract.interface.parseTransaction({ data, value: txRequest.value || 0 });
+      if (!parsed) return fallback;
+      const args = parsed.args;
+      const result = { ...fallback, title: `Interaction ${parsed.name}` };
+      const tokenDecimals = matched.kind === 'USDT' ? this.usdtDecimals : this.ftaDecimals;
+
+      if (matched.kind === 'USDT' || matched.kind === 'FTA') {
+        result.token = matched.kind;
+        if (parsed.name === 'transfer') {
+          result.type = 'send';
+          result.title = `Envoi de ${matched.kind}`;
+          result.amount = this.formatActivityAmount(args[1], tokenDecimals);
+          result.description = `Vers ${this.shortActivityAddress(args[0])}`;
+        } else if (parsed.name === 'approve') {
+          result.type = 'approval';
+          result.title = `Autorisation ${matched.kind}`;
+          result.amount = this.formatActivityAmount(args[1], tokenDecimals);
+          result.description = `Dépense autorisée à ${this.shortActivityAddress(args[0])}`;
+        }
+        return result;
+      }
+
+      if (matched.kind === 'core') {
+        const coreOperations = {
+          depositUsdt: ['deposit', 'Dépôt USDT', 'USDT', this.usdtDecimals, 'Portefeuille → Compte Minage'],
+          depositFta: ['deposit', 'Dépôt FTA', 'FTA', this.ftaDecimals, 'Portefeuille → Compte Minage'],
+          withdrawUsdt: ['withdraw', 'Retrait USDT', 'USDT', this.usdtDecimals, 'Compte Minage → Portefeuille'],
+          withdrawFta: ['withdraw', 'Retrait FTA', 'FTA', this.ftaDecimals, 'Compte Minage → Portefeuille'],
+          withdrawPol: ['withdraw', 'Retrait POL', 'POL', 18, 'Compte Minage → Portefeuille'],
+          swapUForF: ['swap', 'Swap USDT → FTA', 'USDT', this.usdtDecimals, 'Échange via FITIA Core'],
+          swapFForU: ['swap', 'Swap FTA → USDT', 'FTA', this.ftaDecimals, 'Échange via FITIA Core']
+        };
+        if (coreOperations[parsed.name]) {
+          const [type, title, token, decimals, description] = coreOperations[parsed.name];
+          return { ...result, type, title, token, description, amount: this.formatActivityAmount(args[0], decimals) };
+        }
+        if (parsed.name === 'depositPol') {
+          return { ...result, type: 'deposit', title: 'Dépôt POL', token: 'POL', description: 'Portefeuille → Compte Minage', amount: this.formatActivityAmount(txRequest.value || 0, 18) };
+        }
+        if (parsed.name === 'setReferrer') {
+          return { ...result, type: 'referral', title: 'Parrainage enregistré', description: `Parrain ${this.shortActivityAddress(args[0])}` };
+        }
+        if (parsed.name === 'setReferrerById') {
+          return { ...result, type: 'referral', title: 'Parrainage enregistré', description: `ID parrain #${args[0].toString()}` };
+        }
+        return result;
+      }
+
+      if (matched.kind === 'mine') {
+        if (parsed.name === 'buyMachine' || parsed.name === 'buyMachineFTA') {
+          const token = parsed.name === 'buyMachineFTA' ? 'FTA' : 'USDT';
+          const priceRaw = this.shopMachinesData[Number(args[0])]?.priceRaw;
+          return {
+            ...result,
+            type: 'purchase',
+            title: 'Achat de machine',
+            description: `Machine de type ${Number(args[0]) + 1}`,
+            token,
+            amount: token === 'USDT' && priceRaw != null ? this.formatActivityAmount(priceRaw, this.usdtDecimals) : ''
+          };
+        }
+        if (parsed.name === 'buyBattery' || parsed.name === 'buyBatteryFTA') {
+          const token = parsed.name === 'buyBatteryFTA' ? 'FTA' : 'USDT';
+          const priceRaw = this.shopBatteriesData[Number(args[0])]?.priceRaw;
+          return {
+            ...result,
+            type: 'purchase',
+            title: 'Achat de batterie',
+            description: `Batterie de type ${Number(args[0]) + 1}`,
+            token,
+            amount: token === 'USDT' && priceRaw != null ? this.formatActivityAmount(priceRaw, this.usdtDecimals) : ''
+          };
+        }
+        if (parsed.name === 'plugInMachine') {
+          return {
+            ...result,
+            type: 'mining',
+            title: 'Connexion de machine',
+            description: `Machine #${Number(args[0]) + 1} • Batterie type ${Number(args[1]) + 1}`
+          };
+        }
+        if (parsed.name === 'claimRewards') {
+          return {
+            ...result,
+            type: 'claim',
+            title: 'Réclamation des récompenses',
+            description: 'Récompenses de minage FITIA',
+            token: 'FTA',
+            amount: this.pendingBalance > 0 ? this.pendingBalance.toFixed(this.ftaDecimals) : ''
+          };
+        }
+      }
+      return result;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  installActivityTracking() {
+    const signer = this.signer;
+    if (!signer || signer.__fitiaActivityTracking || typeof signer.sendTransaction !== 'function') return;
+    const originalSendTransaction = signer.sendTransaction;
+    const app = this;
+    Object.defineProperty(signer, '__fitiaActivityTracking', { value: true, configurable: true });
+    signer.sendTransaction = async function (txRequest) {
+      const metadata = app.describeActivityTransaction(txRequest);
+      const tx = await originalSendTransaction.call(this, txRequest);
+      try {
+        app.activity.track(tx, metadata);
+      } catch (error) {
+        console.error('Erreur historique local:', error);
+      }
+      return tx;
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   //  ACTIVATION DE LA SESSION BLOCKCHAIN POLYGON (SANS WALLET EXTERNE)
   // ═══════════════════════════════════════════════════════════════
   async activateUnlockedSession(secret) {
@@ -1345,6 +1512,8 @@ class Application {
 
     this.signer = FitiaSecurity.Rpc.createSigner(secret.privateKey, this.provider);
     this.user = secret.address;
+    this.activity.setAccount(this.user);
+    this.installActivityTracking();
     this.lastUserActivityAt = Date.now();
     // Efface immédiatement la copie de secret passée en paramètre
     secret.privateKey = '';
@@ -1453,6 +1622,7 @@ class Application {
   // ═══════════════════════════════════════════════════════════════
   async updateData() {
     if (!this.user || !this.core || !this.mine) return;
+    if (this.activity.hasPending()) this.activity.refreshPending(this.provider);
     try {
       // Lecture groupée parallèle pour une réactivité maximale sur mobile
       const [
@@ -1608,6 +1778,7 @@ class Application {
       const conn = await FitiaSecurity.Rpc.connectBestProvider();
       this.provider = conn.provider;
       this.signer = this.signer.connect(this.provider);
+      this.installActivityTracking();
       this.core = new ethers.Contract(CONFIG.CORE, CORE_ABI, this.signer);
       this.mine = new ethers.Contract(CONFIG.MINE, MINE_ABI, this.signer);
       this.usdtToken = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
@@ -2653,6 +2824,7 @@ class Application {
       this.provider = res.provider;
       this.lastRpcLatency = res.latencyMs;
       this.signer = this.signer.connect(this.provider);
+      this.installActivityTracking();
       this.core = new ethers.Contract(CONFIG.CORE, CORE_ABI, this.signer);
       this.mine = new ethers.Contract(CONFIG.MINE, MINE_ABI, this.signer);
       this.usdtToken = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
