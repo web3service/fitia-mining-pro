@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.2.1 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.0 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -351,6 +351,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor', 'ethers.umd.min.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor', 'qrcode.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'activity.js'), 'utf8'));
 
   if (mockRpcUrl) {
     win.FitiaSecurity.Rpc.connectBestProvider = async () => {
@@ -386,7 +387,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.2.1\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.0\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -637,6 +638,111 @@ function httpRequest(port, method, reqPath) {
       App.requestPinVerification = origReqPin;
     });
 
+    await runTest('ACTIVITY', 'Suivi central du signer : pending → confirmé, notification persistante et aucun secret stocké', async () => {
+      const hash = `0x${'11'.repeat(32)}`;
+      let confirmTransaction;
+      const confirmation = new Promise((resolve) => { confirmTransaction = resolve; });
+      const originalSigner = App.signer;
+      App.signer = {
+        async sendTransaction() {
+          return { hash, wait: () => confirmation };
+        }
+      };
+      App.installActivityTracking();
+      const data = App.usdtToken.interface.encodeFunctionData('transfer', [
+        '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+        123450000n
+      ]);
+      const sent = await App.signer.sendTransaction({ to: App.usdtToken.target, data });
+      App.signer = originalSigner;
+      assert.strictEqual(sent.hash, hash, 'La réponse du signer original est conservée');
+      assert.strictEqual(App.activity.state.transactions[0].status, 'pending');
+      assert.strictEqual(App.activity.state.transactions[0].type, 'send');
+      assert.strictEqual(App.activity.state.transactions[0].amount, '123.45');
+      assert.strictEqual(App.activity.getUnreadCount(), 1);
+
+      const activityKey = App.activity.storageKey();
+      const serialized = e2eWin.localStorage.getItem(activityKey);
+      assert.ok(serialized.includes(hash), 'Le hash est persisté localement');
+      assert.ok(!serialized.includes('privateKey') && !serialized.includes('mnemonic'), 'Aucune clé ou phrase dans le stockage activité');
+      assert.strictEqual(App.activity.transactionUrl(hash), `https://polygonscan.com/tx/${hash}`);
+      assert.strictEqual(App.activity.transactionUrl('javascript:alert(1)'), null);
+
+      confirmTransaction({ status: 1, blockNumber: 62500001 });
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      assert.strictEqual(App.activity.state.transactions[0].status, 'success');
+      assert.strictEqual(App.activity.state.transactions[0].blockNumber, 62500001);
+      assert.strictEqual(App.activity.getUnreadCount(), 2, 'La confirmation crée une notification non lue');
+      App.openActivity('notifications');
+      assert.ok(e2eWin.document.getElementById('modal-activity').classList.contains('active'));
+      assert.ok(!e2eWin.document.getElementById('activity-notifications-panel').classList.contains('hidden'));
+      App.activity.setTab('history');
+      assert.ok(!e2eWin.document.getElementById('activity-history-panel').classList.contains('hidden'));
+      assert.ok(e2eWin.document.querySelector('#activity-history-list .activity-item'));
+      App.closeModals();
+    });
+
+    await runTest('ACTIVITY', 'Décodage des envois, approbations, dépôts, retraits, achats, minage, claims, parrainages et swaps', async () => {
+      const destination = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+      const cases = [
+        [{ to: destination, data: '0x', value: 1000000000000000000n }, 'send', 'Envoi de POL'],
+        [{ to: App.usdtToken.target, data: App.usdtToken.interface.encodeFunctionData('transfer', [destination, 1000000n]) }, 'send', 'Envoi de USDT'],
+        [{ to: App.ftaToken.target, data: App.ftaToken.interface.encodeFunctionData('approve', [App.core.target, 100000000n]) }, 'approval', 'Autorisation FTA'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositUsdt', [1000000n]) }, 'deposit', 'Dépôt USDT'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositFta', [100000000n]) }, 'deposit', 'Dépôt FTA'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositPol'), value: 1000000000000000000n }, 'deposit', 'Dépôt POL'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('withdrawUsdt', [1000000n]) }, 'withdraw', 'Retrait USDT'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('withdrawFta', [100000000n]) }, 'withdraw', 'Retrait FTA'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('buyMachine', [0n]) }, 'purchase', 'Achat de machine'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('buyBatteryFTA', [1n]) }, 'purchase', 'Achat de batterie'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('plugInMachine', [0n, 1n]) }, 'mining', 'Connexion de machine'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('claimRewards') }, 'claim', 'Réclamation des récompenses'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('setReferrer', [destination]) }, 'referral', 'Parrainage enregistré'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapUForF', [1000000n, 1n, 9999999999n]) }, 'swap', 'Swap USDT → FTA'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapFForU', [100000000n, 1n, 9999999999n]) }, 'swap', 'Swap FTA → USDT']
+      ];
+      cases.forEach(([request, expectedType, expectedTitle]) => {
+        const metadata = App.describeActivityTransaction(request);
+        assert.strictEqual(metadata.type, expectedType, expectedTitle);
+        assert.strictEqual(metadata.title, expectedTitle);
+      });
+    });
+
+    await runTest('ACTIVITY', 'Reprise après redémarrage, succès/échec on-chain et isolation par adresse', async () => {
+      const account = `0x${'33'.repeat(20)}`;
+      const successHash = `0x${'44'.repeat(32)}`;
+      const failedHash = `0x${'55'.repeat(32)}`;
+      const center = new e2eWin.FitiaActivityCenter({ explorer: 'https://polygonscan.com' });
+      center.setAccount(account);
+      const never = () => new Promise(() => {});
+      center.track({ hash: successHash, wait: never }, { title: 'Dépôt USDT', type: 'deposit', amount: '5', token: 'USDT' });
+      center.track({ hash: failedHash, wait: never }, { title: 'Retrait FTA', type: 'withdraw', amount: '2', token: 'FTA' });
+
+      const restored = new e2eWin.FitiaActivityCenter({ explorer: 'https://polygonscan.com' });
+      restored.setAccount(account);
+      assert.strictEqual(restored.state.transactions.length, 2, 'Les transactions en attente sont restaurées');
+      await restored.refreshPending({
+        async getTransactionReceipt(hash) {
+          return { status: hash === failedHash ? 0 : 1, blockNumber: 62500002 };
+        }
+      });
+      assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === successHash).status, 'success');
+      assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === failedHash).status, 'failed');
+      assert.strictEqual(restored.getUnreadCount(), 4, 'Notifications pending et finales conservées après restauration');
+
+      restored.notify('info', '<img src=x onerror=alert(1)>', 'Notification <b>sûre</b>');
+      assert.strictEqual(e2eWin.document.querySelector('#activity-notifications-list img'), null, 'Aucun HTML injecté dans les notifications');
+      restored.markAllNotificationsRead();
+      assert.strictEqual(restored.getUnreadCount(), 0);
+      assert.strictEqual(e2eWin.document.getElementById('activity-unread-badge').classList.contains('hidden'), true);
+
+      restored.setAccount(`0x${'66'.repeat(20)}`);
+      assert.strictEqual(restored.state.transactions.length, 0, 'Une autre adresse ne voit pas cet historique');
+      restored.setAccount(account);
+      assert.strictEqual(restored.state.transactions.length, 2, 'L’historique de la première adresse demeure intact');
+      App.activity.setAccount(App.user);
+    });
+
     await runTest('RAM-WIPE', 'Verrouillage du portefeuille : purge complète des clés en RAM + réactivation FLAG_SECURE', async () => {
       App.revealedSecretText = 'sensitive-secret';
       App.lockWallet(true);
@@ -668,7 +774,7 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(apkGet.statusCode, 503);
       assert.ok(apkGet.body.toString('utf8').includes('temporairement indisponible'));
 
-      for (const forbiddenPath of ['/.git/HEAD', '/server.js', '/scripts/build_apk.py', '/android-src/AndroidManifest.xml', '/android-src/wallet.html', '/contracts/FitiaMiningV3_Mine.sol', '/app.js', '/wallet.js', '/style.css', '/vendor/ethers.umd.min.js']) {
+      for (const forbiddenPath of ['/.git/HEAD', '/server.js', '/scripts/build_apk.py', '/android-src/AndroidManifest.xml', '/android-src/wallet.html', '/contracts/FitiaMiningV3_Mine.sol', '/app.js', '/activity.js', '/wallet.js', '/style.css', '/vendor/ethers.umd.min.js']) {
         const r = await httpRequest(8080, 'GET', forbiddenPath);
         assert.strictEqual(r.statusCode, 403, `Chemin sensible ${forbiddenPath} doit renvoyer 403`);
       }
@@ -683,6 +789,13 @@ function httpRequest(port, method, reqPath) {
       assert.ok(fs.existsSync(apkPath), 'FITIA-PRO-Miner.apk existe');
       const stats = fs.statSync(apkPath);
       assert.ok(stats.size > 400 * 1024, 'Taille APK cohérente (> 400 KB)');
+      const packagedFiles = execFileSync('python3', ['-c', [
+        'import zipfile, sys',
+        'print("\\n".join(zipfile.ZipFile(sys.argv[1]).namelist()))'
+      ].join(';'), apkPath], { encoding: 'utf8' });
+      assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
+      assert.ok(!packagedFiles.includes('assets/www/index.html'), 'La vitrine publique n’est pas embarquée dans l’APK');
 
       const aapt2 = '/tmp/android-toolchain/aapt2';
       const java = '/tmp/android-toolchain/jdk/bin/java';
@@ -690,8 +803,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=305'), 'versionCode=305 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.2.1"'), 'versionName=3.2.1 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=306'), 'versionCode=306 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.0"'), 'versionName=3.3.0 présent');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');

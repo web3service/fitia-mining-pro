@@ -257,6 +257,10 @@
         <a href="#" onclick="App.setLanguage('sg'); return false;">🇸🇬 English (SG)</a>
       </div>
     </div>
+    <button id="btn-activity" class="btn-icon-header activity-bell" onclick="App.openActivity('notifications')" title="Notifications" aria-label="Ouvrir les notifications" aria-controls="modal-activity">
+      <span aria-hidden="true">🔔</span>
+      <span id="activity-unread-badge" class="activity-badge hidden" aria-label="Notifications non lues">0</span>
+    </button>
     <button id="wallet-status" class="wallet-status" onclick="App.openSecurityModal()" title="Portefeuille & Sécurité">
       <span class="status-dot"></span>
       <span id="addr-display">0x...</span>
@@ -369,6 +373,11 @@
           <button class="btn-wallet-main btn-wallet-sec" onclick="App.openSecurityModal()" title="Sécurité">🛡️</button>
         </div>
       </div>
+
+      <button class="wallet-history-btn" onclick="App.openActivity('history')">
+        <span>🕘 Historique &amp; activité</span>
+        <span id="wallet-pending-count" class="wallet-pending-count">À jour</span>
+      </button>
 
       <div id="gas-warning-banner" class="gas-warning-banner hidden" onclick="App.openReceive()">
         <span>⛽</span>
@@ -729,6 +738,46 @@
   </div>
 </div>
 
+<!-- ═══ HISTORIQUE & NOTIFICATIONS ═══ -->
+<div id="modal-activity" class="modal" role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
+  <div class="modal-content modal-scrollable activity-modal-content">
+    <div class="modal-header">
+      <h3 id="activity-modal-title">Centre d’activité</h3>
+      <button class="modal-close" onclick="App.closeModals()" aria-label="Fermer">✕</button>
+    </div>
+
+    <div class="activity-tabs" role="tablist" aria-label="Historique et notifications">
+      <button id="activity-tab-history" class="activity-tab active" role="tab" aria-selected="true" aria-controls="activity-history-panel" onclick="App.activity.setTab('history')">Historique</button>
+      <button id="activity-tab-notifications" class="activity-tab" role="tab" aria-selected="false" aria-controls="activity-notifications-panel" onclick="App.activity.setTab('notifications')">
+        Notifications <span id="activity-tab-badge" class="activity-tab-badge hidden">0</span>
+      </button>
+    </div>
+
+    <section id="activity-history-panel" role="tabpanel" aria-labelledby="activity-tab-history">
+      <div class="activity-toolbar">
+        <span id="activity-history-count" class="activity-count">0 opération</span>
+        <select id="activity-status-filter" class="activity-filter" onchange="App.activity.setFilter(this.value)" aria-label="Filtrer les transactions">
+          <option value="all">Toutes</option>
+          <option value="pending">En attente</option>
+          <option value="success">Confirmées</option>
+          <option value="failed">Échouées</option>
+        </select>
+      </div>
+      <div id="activity-history-list" class="activity-list" aria-live="polite"></div>
+    </section>
+
+    <section id="activity-notifications-panel" class="hidden" role="tabpanel" aria-labelledby="activity-tab-notifications">
+      <div class="activity-toolbar">
+        <span class="activity-count">Alertes du portefeuille</span>
+        <button id="activity-mark-all-read" class="activity-mark-read" onclick="App.activity.markAllNotificationsRead()" disabled>Tout marquer comme lu</button>
+      </div>
+      <div id="activity-notifications-list" class="notification-list" aria-live="polite"></div>
+    </section>
+
+    <p class="activity-footnote">Historique local des opérations initiées dans l’application. Pour les opérations plus anciennes ou externes, consultez votre adresse sur PolygonScan.</p>
+  </div>
+</div>
+
 <!-- ═══ CHAT ASSISTANT ═══ -->
 <button id="chat-fab-btn" class="chat-fab hidden" onclick="App.toggleChat()">
   <img src="assets/icon-192.png" class="chat-fab-logo" alt="FITIA">
@@ -756,6 +805,7 @@
   </div>
 </div>
 
+<script src="activity.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
