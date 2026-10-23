@@ -1515,12 +1515,6 @@ class Application {
         corePol: cPol
       };
 
-      // Alerte gaz si l'utilisateur a des fonds mais presque pas de POL
-      const gasBanner = document.getElementById('gas-warning-banner');
-      if (gasBanner) {
-        gasBanner.classList.toggle('hidden', nPol >= 0.01);
-      }
-
       // Affichage Carte 1 : Portefeuille Polygon On-Chain
       document.getElementById('bal-pol').textContent = (nPol + cPol).toFixed(4);
       document.getElementById('bal-wallet-usdt').textContent = wUsdt.toFixed(2);
