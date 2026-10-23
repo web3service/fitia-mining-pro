@@ -50,7 +50,7 @@ import javax.crypto.spec.GCMParameterSpec;
 public class MainActivity extends Activity {
 
     private static final String APP_HOST = "app.fitia.pro";
-    private static final String START_URL = "https://app.fitia.pro/index.html";
+    private static final String START_URL = "https://app.fitia.pro/wallet.html";
     private static final String KEYSTORE_ALIAS = "fitia_pro_hw_vault_v1";
     private static final String PREFS_NAME = "fitia_sec_prefs";
 
@@ -120,7 +120,7 @@ public class MainActivity extends Activity {
                 if ("https".equalsIgnoreCase(uri.getScheme()) && APP_HOST.equalsIgnoreCase(uri.getHost())) {
                     String path = uri.getPath();
                     if (path == null || path.isEmpty() || "/".equals(path)) {
-                        path = "/index.html";
+                        path = "/wallet.html";
                     }
                     if (path.contains("..")) {
                         return createNotFoundResponse();

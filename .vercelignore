@@ -4,3 +4,8 @@ contracts/
 server.js
 README.md
 .git/
+app.js
+wallet.js
+style.css
+vendor/
+manifest.json

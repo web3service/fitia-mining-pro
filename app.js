@@ -2757,9 +2757,9 @@ class Application {
     if (viewId === 'dashboard') setTimeout(() => this.resizeCanvas(), 50);
   }
 
-  setLoader(show, msg = "Traitement...") {
+  setLoader(show) {
+    // L'animation reste visible, sans afficher de message pendant le chargement.
     const loader = document.getElementById('loader');
-    document.getElementById('loader-text').textContent = msg;
     loader.classList.toggle('hidden', !show);
   }
 

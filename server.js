@@ -11,14 +11,11 @@ const ROOT = __dirname;
 
 const ALLOWED_ROOT_FILES = new Set([
   '/index.html',
-  '/style.css',
-  '/app.js',
-  '/wallet.js',
-  '/manifest.json',
+  '/landing.css',
   '/FITIA-PRO-Miner.apk'
 ]);
 
-const ALLOWED_DIRS = ['/vendor/', '/assets/'];
+const ALLOWED_DIRS = ['/assets/'];
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
