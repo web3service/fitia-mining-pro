@@ -657,12 +657,16 @@ function httpRequest(port, method, reqPath) {
       assert.ok(!htmlStr.includes('unsafe-eval'), 'unsafe-eval supprimé de la CSP');
       assert.ok(!htmlStr.includes('http://*'), 'Trafic HTTP non chiffré banni de la CSP');
       assert.ok(htmlStr.includes('id="projet"'), 'La page publique présente le projet');
-      assert.ok(htmlStr.includes('download="FITIA-PRO-Miner.apk"'), 'Le téléchargement APK est proposé');
+      assert.ok(htmlStr.includes('Mise à jour en cours'), 'Le mode maintenance est visible sur la vitrine');
+      assert.ok(!htmlStr.includes('href="FITIA-PRO-Miner.apk"'), 'Aucun lien APK actif pendant la maintenance');
       assert.ok(!htmlStr.includes('id="auth-screen"'), 'Le wallet n’est plus exposé sur la page publique');
 
       const apkHead = await httpRequest(8080, 'HEAD', '/FITIA-PRO-Miner.apk');
-      assert.strictEqual(apkHead.statusCode, 200);
-      assert.strictEqual(apkHead.headers['content-type'], 'application/vnd.android.package-archive');
+      assert.strictEqual(apkHead.statusCode, 503);
+      assert.strictEqual(apkHead.headers['retry-after'], '3600');
+      const apkGet = await httpRequest(8080, 'GET', '/FITIA-PRO-Miner.apk');
+      assert.strictEqual(apkGet.statusCode, 503);
+      assert.ok(apkGet.body.toString('utf8').includes('temporairement indisponible'));
 
       for (const forbiddenPath of ['/.git/HEAD', '/server.js', '/scripts/build_apk.py', '/android-src/AndroidManifest.xml', '/android-src/wallet.html', '/contracts/FitiaMiningV3_Mine.sol', '/app.js', '/wallet.js', '/style.css', '/vendor/ethers.umd.min.js']) {
         const r = await httpRequest(8080, 'GET', forbiddenPath);

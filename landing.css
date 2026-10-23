@@ -114,6 +114,30 @@ h1 span, .security-copy h2 span { color: var(--gold); }
 .button-primary:hover { background: linear-gradient(135deg, #ffe47a, var(--gold)); }
 .button-secondary { color: #d7dfeb; border-color: var(--line); background: rgba(255,255,255,.025); }
 .button-secondary:hover { border-color: rgba(245,200,66,.35); background: rgba(255,255,255,.05); }
+.button-primary.button-disabled {
+  color: #b5bdcb;
+  border-color: var(--line);
+  background: rgba(255,255,255,.055);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.button-primary.button-disabled:hover { transform: none; background: rgba(255,255,255,.055); }
+.maintenance-notice {
+  max-width: 570px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: -8px 0 24px;
+  padding: 12px 14px;
+  border: 1px solid rgba(245,200,66,.24);
+  border-radius: 10px;
+  background: rgba(245,200,66,.07);
+  color: #d7deea;
+  font-size: .76rem;
+  line-height: 1.6;
+}
+.maintenance-notice strong { color: var(--gold); margin-right: 4px; }
+.maintenance-notice > span { flex-shrink: 0; }
 .hero-meta { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 24px; color: var(--muted); font-size: .73rem; }
 .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
 .hero-meta i { color: var(--green); font-style: normal; font-weight: 900; }
