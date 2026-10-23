@@ -1,763 +1,166 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0f172a">
-<title>FITIA PRO MINER</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https://app.fitia.pro 'unsafe-inline'; base-uri 'self'; object-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*;">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<script src="vendor/ethers.umd.min.js"></script>
-<script src="vendor/qrcode.js"></script>
-<script src="wallet.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080d18">
+  <meta name="description" content="FITIA PRO MINER : l'application Android autonome pour gérer votre portefeuille Polygon, vos machines de minage et vos actifs FTA.">
+  <title>FITIA PRO MINER — Application Android</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'none'; connect-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'none'">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="landing.css">
 </head>
 <body>
-<div class="bg-glow"></div>
-<div id="toast-container"></div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     ÉCRAN DE SÉCURITÉ & PORTEFEUILLE INTÉGRÉ (ONBOARDING / VERROUILLAGE)
-     ═══════════════════════════════════════════════════════════════════ -->
-<div id="auth-screen" class="auth-screen">
-  <div class="auth-container">
-
-    <!-- 1. ACCUEIL PREMIÈRE OUVERTURE -->
-    <div id="auth-step-welcome" class="auth-step hidden">
-      <div class="auth-hero">
-        <div class="auth-logo-ring">
-          <img src="assets/icon-192.png" alt="FITIA PRO" class="auth-logo-img">
-        </div>
-        <div class="auth-badge-pill" data-i18n="standaloneBadge">PORTEFEUILLE AUTONOME • POLYGON</div>
-        <h1 class="auth-title">FITIA <span class="pro-badge-lg">PRO</span></h1>
-        <p class="auth-subtitle" data-i18n="welcomeDesc">Portefeuille crypto non-custodial intégré et minage intelligent. Aucun wallet externe requis.</p>
-      </div>
-
-      <div class="auth-features">
-        <div class="auth-feature-item">
-          <span class="auth-feature-icon">🔐</span>
-          <div>
-            <strong data-i18n="featEncTitle">Chiffrement</strong>
-            <small data-i18n="featEncDesc">Protégé sur votre téléphone par code PIN à 6 chiffres</small>
-          </div>
-        </div>
-        <div class="auth-feature-item">
-          <span class="auth-feature-icon">🔑</span>
-          <div>
-            <strong data-i18n="featKeyTitle">100% Non-Custodial</strong>
-            <small data-i18n="featKeyDesc">Vos 12 mots secrets restent uniquement sur votre appareil</small>
-          </div>
-        </div>
-        <div class="auth-feature-item">
-          <span class="auth-feature-icon">⚡</span>
-          <div>
-            <strong data-i18n="featNetTitle">Connexion Directe Polygon</strong>
-            <small data-i18n="featNetDesc">Transactions instantanées sans MetaMask ni WalletConnect</small>
-          </div>
-        </div>
-      </div>
-
-      <div class="auth-actions">
-        <button class="btn-mega auth-btn-create" onclick="App.startCreateWallet()">
-          <span class="pulse-ring"></span>
-          <span data-i18n="createNewWallet">✨ CRÉER UN PORTEFEUILLE</span>
-        </button>
-        <button class="btn-secondary-outline" onclick="App.startImportWallet()" data-i18n="importExistingWallet">
-           J'ai déjà un portefeuille (12 mots / Clé)
-        </button>
-        <a id="welcome-apk-download" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk" class="apk-download-banner">
-          <span>🤖</span>
-          <div>
-            <strong data-i18n="downloadApkTitle">Télécharger l'application Android (.APK)</strong>
-            <small data-i18n="downloadApkSub">Installation directe sur votre téléphone</small>
-          </div>
-          <span>⬇</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- 2. SAUVEGARDE DE LA PHRASE DE 12 MOTS -->
-    <div id="auth-step-backup" class="auth-step hidden">
-      <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.showAuthStep('welcome')">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator">1 / 3</span>
-      </div>
-      <h2 class="auth-step-title" data-i18n="backupSeedTitle">Phrase de récupération (12 mots)</h2>
-      <div class="security-warning-box">
-        <span>⚠️</span>
-        <p data-i18n="backupSeedWarn">Notez ces 12 mots dans l'ordre exact et gardez-les en lieu sûr. Ne les partagez jamais : quiconque possède ces mots contrôle vos fonds.</p>
-      </div>
-
-      <div class="seed-addr-preview">
-        <span data-i18n="yourPolygonAddr">Adresse Polygon :</span>
-        <strong id="create-addr-preview">0x...</strong>
-      </div>
-
-      <div id="seed-words-grid" class="seed-grid blurred"></div>
-
-      <div class="seed-tools-row">
-        <button class="btn-chip" onclick="App.toggleSeedBlur()" id="btn-toggle-seed">👁️ <span data-i18n="revealWords">Afficher</span></button>
-        <button class="btn-chip accent" onclick="App.copyCreatedSeed()">📋 <span data-i18n="copyWords">Copier les 12 mots</span></button>
-      </div>
-
-      <label class="seed-confirm-check">
-        <input type="checkbox" id="seed-saved-checkbox" onchange="App.onSeedCheckboxChange()">
-        <span data-i18n="confirmSavedSeed">J'ai noté et sauvegardé mes 12 mots dans un endroit sûr.</span>
-      </label>
-
-      <button id="btn-continue-verify" class="btn-primary" disabled onclick="App.goToSeedVerify()" data-i18n="continueBtn">CONTINUER →</button>
-    </div>
-
-    <!-- 3. VÉRIFICATION DES 12 MOTS -->
-    <div id="auth-step-verify" class="auth-step hidden">
-      <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.showAuthStep('backup')">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator">2 / 3</span>
-      </div>
-      <h2 class="auth-step-title" data-i18n="verifySeedTitle">Vérifiez votre sauvegarde</h2>
-      <p class="small-text" style="margin-bottom: 14px;" data-i18n="verifySeedDesc">Sélectionnez les bons mots correspondant aux numéros demandés.</p>
-
-      <div id="seed-quiz-container" class="seed-quiz-container"></div>
-
-      <button id="btn-verify-next" class="btn-primary" style="margin-top: 16px;" onclick="App.completeSeedVerify()" data-i18n="validateAndSetPin">VALIDER & CRÉER MON PIN →</button>
-    </div>
-
-    <!-- 4. IMPORTATION DE PORTEFEUILLE (12/24 MOTS OU CLÉ PRIVÉE) -->
-    <div id="auth-step-import" class="auth-step hidden">
-      <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.cancelImportFlow()">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator" data-i18n="importBadge">IMPORT</span>
-      </div>
-      <h2 class="auth-step-title" data-i18n="importTitle">Importer un portefeuille</h2>
-
-      <div class="shop-tabs" style="margin-bottom: 12px;">
-        <button id="tab-import-seed" class="shop-tab active" onclick="App.setImportMode('seed')" data-i18n="seedPhraseTab">Phrase (12/24 mots)</button>
-        <button id="tab-import-pk" class="shop-tab" onclick="App.setImportMode('pk')" data-i18n="privateKeyTab">Clé privée (0x...)</button>
-      </div>
-
-      <p id="import-hint-text" class="small-text" style="margin-bottom: 10px;" data-i18n="importSeedHint">Entrez vos 12 ou 24 mots séparés par un espace.</p>
-
-      <div class="import-textarea-wrap">
-        <textarea id="import-secret-input" class="game-input import-textarea" rows="4" placeholder="mot1 mot2 mot3 ..." oninput="App.onImportInputChange()" autocomplete="off" autocapitalize="none" spellcheck="false"></textarea>
-        <button class="btn-paste-inline" onclick="App.pasteIntoImport()">📋 <span data-i18n="paste">Coller</span></button>
-      </div>
-
-      <div id="import-detected-box" class="import-detected-box hidden">
-        <span>✓</span>
-        <div>
-          <small data-i18n="detectedWallet">Portefeuille Polygon détecté :</small>
-          <strong id="import-detected-addr">0x...</strong>
-        </div>
-      </div>
-
-      <button id="btn-import-continue" class="btn-primary" style="margin-top: 14px;" disabled onclick="App.submitImportSecret()" data-i18n="continueToPin">CHOISIR MON CODE PINE→</button>
-    </div>
-
-    <!-- 5. CRÉATION / CONFIRMATION DU CODE PIN À 6 CHIFFRES -->
-    <div id="auth-step-setpin" class="auth-step hidden">
-      <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.backFromSetPin()">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator">3 / 3</span>
-      </div>
-      <div class="pin-header-box">
-        <div class="pin-shield-icon">🛡️</div>
-        <h2 id="setpin-title" class="auth-step-title" data-i18n="createPinTitle">Créez votre code PIN</h2>
-        <p id="setpin-subtitle" class="small-text" data-i18n="createPinDesc">Choisissez un code à 6 chiffres pour chiffrer votre portefeuille.</p>
-      </div>
-
-      <div id="setpin-dots" class="pin-dots">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-      </div>
-      <p id="setpin-error" class="pin-error-msg"></p>
-
-      <div class="pin-keypad">
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('1')">1</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('2')">2</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('3')">3</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('4')">4</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('5')">5</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('6')">6</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('7')">7</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('8')">8</button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('9')">9</button>
-        <button type="button" class="pin-key pin-key-empty" disabled></button>
-        <button type="button" class="pin-key" onclick="App.onSetPinDigit('0')">0</button>
-        <button type="button" class="pin-key pin-key-action" onclick="App.onSetPinBackspace()">⌫</button>
-      </div>
-    </div>
-
-    <!-- 6. ÉCRAN DE DÉVERROUILLAGE PAR CODE PIN / BIOMÉTRIE -->
-    <div id="auth-step-unlock" class="auth-step hidden">
-      <div class="pin-header-box" style="margin-top: 8px;">
-        <div class="auth-logo-ring sm">
-          <img src="assets/icon-192.png" alt="FITIA PRO" class="auth-logo-img">
-        </div>
-        <div class="unlock-wallet-chip">
-          <span class="status-dot"></span>
-          <span id="unlock-addr-badge">0x...</span>
-        </div>
-        <h2 class="auth-step-title" style="margin-top:10px;" data-i18n="unlockTitle">Déverrouiller FITIA PRO</h2>
-        <p class="small-text" data-i18n="unlockDesc">Entrez votre code PIN à 6 chiffres</p>
-      </div>
-
-      <div id="unlock-dots" class="pin-dots">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-      </div>
-      <p id="unlock-error-msg" class="pin-error-msg"></p>
-
-      <div class="pin-keypad">
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('1')">1</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('2')">2</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('3')">3</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('4')">4</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('5')">5</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('6')">6</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('7')">7</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('8')">8</button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('9')">9</button>
-        <button type="button" id="btn-unlock-bio" class="pin-key pin-key-action hidden" onclick="App.triggerBiometricUnlock()" title="Biométrie">🫆</button>
-        <button type="button" id="btn-unlock-spacer" class="pin-key pin-key-empty" disabled></button>
-        <button type="button" class="pin-key" onclick="App.onUnlockDigit('0')">0</button>
-        <button type="button" class="pin-key pin-key-action" onclick="App.onUnlockBackspace()">⌫</button>
-      </div>
-
-      <button type="button" class="auth-link-btn" onclick="App.promptRestoreFromLock()" data-i18n="forgotPinLink">
-        Code PIN oublié ? Restaurer avec mes 12 mots / clé
-      </button>
-    </div>
-
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     COQUILLE PRINCIPALE DE L'APPLICATION (DÉVERROUILLÉE)
-     ═══════════════════════════════════════════════════════════════════ -->
-<div id="app-shell" class="app-shell hidden">
-<header>
-  <div class="brand">
-    <div class="logo-icon">⚡</div>
-    <div class="brand-text">FITIA <span class="pro-badge">PRO</span></div>
-  </div>
-  <div class="header-right">
-    <div id="lang-selector" class="lang-dropdown">
-      <button class="lang-btn" id="lang-btn-display" onclick="App.toggleLangMenu(event)">🇫🇷 FR</button>
-      <div class="lang-content" id="lang-menu-content">
-        <a href="#" onclick="App.setLanguage('fr'); return false;">🇫🇷 Français</a>
-        <a href="#" onclick="App.setLanguage('en'); return false;">🇬🇧 English</a>
-        <a href="#" onclick="App.setLanguage('de'); return false;">🇩🇪 Deutsch</a>
-        <a href="#" onclick="App.setLanguage('zh'); return false;">🇨🇳 中文</a>
-        <a href="#" onclick="App.setLanguage('sg'); return false;">🇸🇬 English (SG)</a>
-      </div>
-    </div>
-    <button id="wallet-status" class="wallet-status" onclick="App.openSecurityModal()" title="Portefeuille & Sécurité">
-      <span class="status-dot"></span>
-      <span id="addr-display">0x...</span>
-      <span class="shield-mini">🛡️</span>
-    </button>
-    <button id="btn-lock-app" class="btn-icon-header" onclick="App.lockWallet()" title="Verrouiller">🔒</button>
-  </div>
-</header>
-
-<main id="main-view">
-  <!-- ═══ DASHBOARD ═══ -->
-  <div id="view-dashboard" class="view active">
-    <div class="card total-balance-card">
-      <small data-i18n="totalBal">Solde Total Estimé</small>
-      <div class="total-val" id="val-total-usd">$0.00</div>
-      <div class="total-breakdown">
-        <span><span data-i18n="walletShort">Portefeuille</span>: <strong id="val-wallet-sub-usd">$0.00</strong></span>
-        <span>•</span>
-        <span><span data-i18n="miningShort">Minage</span>: <strong id="val-mining-sub-usd">$0.00</strong></span>
-      </div>
-    </div>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <small data-i18n="power">PUISSANCE</small>
-        <div class="stat-val" id="val-power">0 H/s</div>
-        <small data-i18n="ftaSec">Hashrate</small>
-      </div>
-      <div class="stat-card accent">
-        <small data-i18n="pending">EN ATTENTE</small>
-        <div class="stat-val" id="val-pending">0.00000000</div>
-        <small>FTA</small>
-      </div>
-    </div>
-
-    <div class="visualizer-wrap">
-      <canvas id="mining-canvas"></canvas>
-      <div class="viz-label" id="viz-status">ATTENTE</div>
-    </div>
-
-    <div id="active-machines-section" class="card" style="margin-bottom:15px;">
-      <h3 class="section-title" data-i18n="activeMachines">⛏️ Machines Actives</h3>
-      <div id="active-machines-list">
-        <p class="small-text" style="text-align:center;" data-i18n="noActiveMachines">Aucune machine active</p>
-      </div>
-    </div>
-
-    <button class="btn-mega" onclick="App.claim()">
-      <span class="pulse-ring"></span>
-      <span data-i18n="claim">RÉCLAMER</span>
-    </button>
-
-    <div class="card referral-card" style="margin-top: 15px;">
-      <div class="ref-header-row">
-        <h3 data-i18n="refTitle">👥 Parrainage</h3>
-        <button class="btn-chip sm" onclick="App.shareMyReferral()">📤 <span data-i18n="shareRef">Mon Code</span>: <strong id="my-ref-id-label">—</strong></button>
-      </div>
-      <p id="current-referrer-status" class="small-text" data-i18n="refDesc">Entrez l'adresse ou l'ID de votre parrain.</p>
-      <div id="ref-form-wrap" class="ref-input-group">
-        <input type="text" id="ref-address-input" class="game-input" placeholder="0x... ou ID" data-i18n-placeholder="enterRefAddr">
-        <button class="btn-sm btn-full" onclick="App.bindReferrer()" data-i18n="bindRef">LIER</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ SHOP ═══ -->
-  <div id="view-shop" class="view">
-    <div class="shop-header">
-      <h2 class="view-title" style="margin-bottom:0;" data-i18n="shopTitle">⛏️ Boutique</h2>
-      <div class="toggle-pay">
-        <button id="btn-pay-usdt" class="toggle-btn active" onclick="App.setPayMode('USDT')">USDT</button>
-        <button id="btn-pay-fta" class="toggle-btn" onclick="App.setPayMode('FTA')">FTA</button>
-      </div>
-    </div>
-    <div class="shop-balance-strip">
-      <span><span data-i18n="availUsdt">Dispo USDT</span>: <strong id="shop-avail-usdt">0.00</strong></span>
-      <span>•</span>
-      <span><span data-i18n="availFta">Dispo FTA</span>: <strong id="shop-avail-fta">0.0000</strong></span>
-    </div>
-    <div class="shop-tabs">
-      <button class="shop-tab active" onclick="App.setShopView('machines', this)" data-i18n="machines">Machines</button>
-      <button class="shop-tab" onclick="App.setShopView('batteries', this)" data-i18n="batteries">Batteries</button>
-    </div>
-    <div id="shop-list" class="grid-list"></div>
-  </div>
-
-  <!-- ═══ WALLET & ASSETS ═══ -->
-  <div id="view-my-rigs" class="view">
-    <h2 class="view-title" data-i18n="myAssets">⚙️ Portefeuille & Actifs</h2>
-
-    <!-- CARTE 1 : PORTEFEUILLE POLYGON ON-CHAIN -->
-    <div class="card wallet-main-card">
-      <div class="wallet-card-header">
-        <div>
-          <h3 data-i18n="onchainWalletTitle">🔐 Mon Portefeuille Polygon</h3>
-          <div class="wallet-addr-inline" onclick="App.copyReceiveAddress()">
-            <span id="wallet-card-addr">0x...</span>
-            <span>📋</span>
-          </div>
-        </div>
-        <div class="wallet-main-actions">
-          <button class="btn-wallet-main btn-wallet-send" onclick="App.openSend()">
-            <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            <span data-i18n="send">Envoyer</span>
-          </button>
-          <button class="btn-wallet-main btn-wallet-recv" onclick="App.openReceive()">
-            <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" transform="rotate(180 12 12)"/></svg>
-            <span data-i18n="receive">Recevoir</span>
-          </button>
-          <button class="btn-wallet-main btn-wallet-sec" onclick="App.openSecurityModal()" title="Sécurité">🛡️</button>
-        </div>
-      </div>
-
-      <div id="gas-warning-banner" class="gas-warning-banner hidden" onclick="App.openReceive()">
-        <span>⛽</span>
-        <span data-i18n="lowPolGasWarn">Ajoutez un peu de POL (~0.05 POL) à votre adresse pour payer les frais réseau Polygon.</span>
-      </div>
-
-      <!-- POL -->
-      <div class="wallet-token-row">
-        <img src="https://i.ibb.co/NdCLLsck/IMG-20260302-131520-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/pol.svg'" class="token-img-lg" alt="POL">
-        <div class="token-info">
-          <span class="token-name">POL <small class="token-tag">Polygon Gas</small></span>
-          <span class="token-bal" id="bal-pol">0.0000</span>
-          <span class="token-bal-usd" id="bal-pol-usd">≈ $0.00</span>
-        </div>
-        <div class="token-price-col">
-          <span class="token-unit-price" id="price-pol">$0.00</span>
-          <span class="token-change flat" id="change-pol">0.00%</span>
-        </div>
-      </div>
-
-      <!-- USDT (On-Chain Wallet) -->
-      <div class="wallet-token-row">
-        <img src="https://i.ibb.co/BRGx1GN/IMG-20260228-134642-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/usdt.svg'" class="token-img-lg" alt="USDT">
-        <div class="token-info">
-          <span class="token-name">USDT <small class="token-tag">ERC-20</small></span>
-          <span class="token-bal" id="bal-wallet-usdt">0.00</span>
-          <span class="token-bal-usd" id="bal-wallet-usdt-usd">≈ $0.00</span>
-        </div>
-        <div class="token-price-col">
-          <span class="token-unit-price" id="price-usdt">$1.00</span>
-          <span class="token-change flat" id="change-usdt">0.00%</span>
-        </div>
-      </div>
-
-      <!-- FTA (On-Chain Wallet) -->
-      <div class="wallet-token-row">
-        <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/fta.svg'" class="token-img-lg" alt="FTA">
-        <div class="token-info">
-          <span class="token-name">FTA <small class="token-tag">Fitia</small></span>
-          <span class="token-bal" id="bal-wallet-fta">0.0000</span>
-          <span class="token-bal-usd" id="bal-wallet-fta-usd">≈ $0.00</span>
-        </div>
-        <div class="token-price-col">
-          <span class="token-unit-price" id="price-fta">$0.00</span>
-          <span class="token-change flat" id="change-fta">0.00%</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- CARTE 2 : COMPTE MINAGE INTERNE (CONTRAT FITIA CORE) -->
-    <div class="card mining-vault-card">
-      <div class="mining-vault-header">
-        <h3 data-i18n="miningVaultTitle">⚡ Compte Minage (Contrat FITIA)</h3>
-        <p class="small-text hidden" data-i18n="miningVaultDesc">Solde utilisé pour la boutique, le swap et vos récompenses de minage. Déposez ou retirez vers votre portefeuille à tout moment.</p>
-      </div>
-
-      <div class="mining-balances-grid">
-        <div class="mining-bal-box">
-          <small>USDT Minage</small>
-          <strong id="bal-usdt">0.00</strong>
-          <span id="bal-usdt-usd">≈ $0.00</span>
-        </div>
-        <div class="mining-bal-box">
-          <small>FTA Minage</small>
-          <strong id="bal-fta">0.0000</strong>
-          <span id="bal-fta-usd">≈ $0.00</span>
-        </div>
-      </div>
-
-      <!-- Dépôt / Retrait entre Portefeuille Polygon et Contrat Core -->
-      <div class="wallet-action-bar">
-        <select id="deposit-token-select" class="game-input wallet-token-select" onchange="App.onTransferTokenChange()">
-          <option value="USDT">USDT</option>
-          <option value="FTA">FTA</option>
-        </select>
-        <div class="amount-max-wrap">
-          <input type="number" id="deposit-amount" class="game-input wallet-amount-input" placeholder="Montant" step="any" data-i18n-placeholder="amount">
-          <button type="button" class="btn-max-inline" onclick="App.fillMaxDeposit()">MAX</button>
-        </div>
-        <button class="btn-wallet-action btn-wallet-deposit" onclick="App.deposit()" data-i18n="depositBtn">DÉPOSER ↓</button>
-        <button class="btn-wallet-action btn-wallet-withdraw" onclick="App.withdraw()" data-i18n="withdrawBtn">RETIRER ↑</button>
-      </div>
-    </div>
-
-    <!-- Mes Machines -->
-    <div class="card" style="margin-bottom: 15px; border-color: rgba(16, 185, 129, 0.2);">
-      <h3 class="section-title" id="title-my-machines" data-i18n="myMachines">⛏️ Mes Machines</h3>
-      <div id="my-machines-list"><p class="small-text" style="text-align:center;" data-i18n="noMachines">Aucune machine</p></div>
-    </div>
-
-    <!-- Mes Batteries -->
-    <div class="card" style="margin-bottom: 15px; border-color: rgba(139, 92, 246, 0.2);">
-      <h3 class="section-title" id="title-my-batteries" data-i18n="myBatteries">🔋 Mes Batteries</h3>
-      <div id="my-batteries-list"><p class="small-text" style="text-align:center;" data-i18n="noBatteries">Aucune batterie</p></div>
-    </div>
-
-    <!-- Brancher une machine -->
-    <div id="plug-machine-card" class="card" style="margin-bottom: 15px; border-color: rgba(59, 130, 246, 0.3);">
-      <h3 style="margin:0 0 10px 0; font-size:1rem;" data-i18n="plugMachine">🔌 Brancher une machine</h3>
-      <p class="small-text" data-i18n="plugDesc">Choisissez l'index d'une machine et le type de batterie.</p>
-      <div class="plug-grid" style="margin-top:10px;">
-        <input type="number" id="plug-machine-id" class="game-input" placeholder="Index (0, 1...)" min="0" data-i18n-placeholder="machineId">
-        <select id="plug-battery-type" class="game-input" style="padding: 10px;">
-          <option value="0">3 Jours</option><option value="1">7 Jours</option><option value="2">15 Jours</option><option value="3">30 Jours</option>
-          <option value="4">90 Jours</option><option value="5">180 Jours</option><option value="6">270 Jours</option><option value="7">365 Jours</option>
-        </select>
-      </div>
-      <button class="btn-primary" style="margin-top:6px;" onclick="App.plugInMachine()" data-i18n="plug">BRANCHER ⚡</button>
-    </div>
-  </div>
-
-  <!-- ═══ SWAP ═══ -->
-  <div id="view-swap" class="view">
-    <h2 class="view-title" data-i18n="swapTitle">💱 Échange</h2>
-    <div class="card swap-interface">
-      <div class="swap-header">
-        <span data-i18n="youPay">Vous payez</span>
-        <span class="swap-bal-clickable" onclick="App.fillMaxSwap()"><span data-i18n="balance">Solde:</span> <strong id="swap-bal-from">0</strong> <span class="max-pill">MAX</span></span>
-      </div>
-      <div class="input-wrap">
-        <input type="number" id="swap-from-in" placeholder="0.0" step="any" oninput="App.calcSwap()">
-        <div class="token-select" onclick="App.toggleSwap()" id="token-from-display">USDT</div>
-      </div>
-      <div class="swap-arrow-wrap"><div class="swap-arrow" onclick="App.toggleSwap()">⇅</div></div>
-      <div class="swap-header"><span data-i18n="youReceive">Vous recevez</span><span><span data-i18n="balance">Solde:</span> <span id="swap-bal-to">0</span></span></div>
-      <div class="input-wrap">
-        <input type="number" id="swap-to-in" placeholder="0.0" step="any" readonly>
-        <div class="token-select" style="background:#333; cursor:default;" id="token-to-display">FTA</div>
-      </div>
-      <div id="swap-details" class="swap-details hidden">
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="exchangeRate">Taux de change</span><span class="swap-detail-value" id="swap-detail-rate">—</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="priceImpact">Impact prix</span><span class="swap-detail-value" id="swap-detail-impact">&lt; 2%</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="swapFee">Frais swap (4%)</span><span class="swap-detail-value" id="swap-detail-fee">—</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="minimumReceived">Minimum reçu</span><span class="swap-detail-value" id="swap-detail-min">—</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="slippageTolerance">Tolérance slippage</span><span class="swap-detail-value swap-slippage">0.5%</span></div>
-      </div>
-      <div class="rate-info" id="swap-rate" data-i18n="loading">Chargement...</div>
-      <button class="btn-primary" style="margin-top:12px;" onclick="App.executeSwap()" data-i18n="swap">ÉCHANGER</button>
-    </div>
-  </div>
-</main>
-
-<!-- ═══ NAVIGATION BASSE ═══ -->
-<nav class="bottom-nav">
-  <button class="nav-item active" data-nav="dashboard" onclick="App.nav('dashboard', this)"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span data-i18n="home">Accueil</span></button>
-  <button class="nav-item" data-nav="shop" onclick="App.nav('shop', this)"><svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11z"/></svg><span data-i18n="shop">Boutique</span></button>
-  <button class="nav-item" data-nav="my-rigs" onclick="App.nav('my-rigs', this)"><svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg><span data-i18n="assets">Wallet</span></button>
-  <button class="nav-item" data-nav="swap" onclick="App.nav('swap', this)"><svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg><span data-i18n="swapNav">Swap</span></button>
-</nav>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODALES
-     ═══════════════════════════════════════════════════════════════════ -->
-
-<!-- Envoyer -->
-<div id="modal-send" class="modal">
-  <div class="modal-content">
-    <div class="modal-header"><h3 data-i18n="send">Envoyer</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
-    <select id="send-token-select" class="game-input" style="margin-bottom: 10px;" onchange="App.updateSendBalance()">
-      <option value="POL">POL (Polygon)</option>
-      <option value="USDT">USDT (Polygon ERC-20)</option>
-      <option value="FTA">FTA (Fitia ERC-20)</option>
-    </select>
-    <div class="send-bal-row">
-      <span class="small-text"><span data-i18n="availWalletBal">Disponible portefeuille :</span> <strong id="send-bal">0</strong></span>
-      <button type="button" class="btn-chip sm" onclick="App.fillMaxSend()">MAX</button>
-    </div>
-    <div class="send-addr-wrap">
-      <input type="text" id="send-to-address" class="game-input" placeholder="Adresse destinataire (0x...)" data-i18n-placeholder="recipientAddr" style="text-align:left; padding-right: 74px;">
-      <button type="button" class="btn-paste-inline" onclick="App.pasteRecipientAddr()">📋 <span data-i18n="paste">Coller</span></button>
-    </div>
-    <input type="number" id="send-amount" class="game-input" placeholder="Montant" step="any" data-i18n-placeholder="amount">
-    <div class="send-fee-hint">
-      <span data-i18n="networkFee">Frais réseau estimés</span>
-      <span>~0.002 POL (Polygon)</span>
-    </div>
-    <button class="btn-primary" style="margin-top:10px;" onclick="App.executeSend()" data-i18n="confirmSend">CONFIRMER L'ENVOI 🔒</button>
-  </div>
-</div>
-
-<!-- Recevoir (avec QR Code intégré hors-ligne) -->
-<div id="modal-receive" class="modal">
-  <div class="modal-content" style="text-align: center;">
-    <div class="modal-header"><h3 data-i18n="receive">Recevoir</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
-    <div class="network-pill-badge">🟣 Polygon Mainnet (ERC-20 / POL)</div>
-    <p class="small-text" style="margin-bottom: 12px;" data-i18n="receiveDesc">Scannez ce QR Code ou copiez l'adresse pour recevoir POL, USDT ou FTA sur Polygon.</p>
-    <div id="receive-qr-box" class="receive-qr-box"></div>
-    <div class="receive-addr-box" onclick="App.copyReceiveAddress()">
-      <span id="receive-addr-display">0x...</span>
-      <span class="copy-icon">📋</span>
-    </div>
-    <div class="receive-actions-row">
-      <button class="btn-primary" onclick="App.copyReceiveAddress()">📋 <span data-i18n="copyAddrBtn">Copier l'adresse</span></button>
-      <button class="btn-secondary-outline" style="margin-top:0;" onclick="App.shareReceiveAddress()">📤 <span data-i18n="shareBtn">Partager</span></button>
-    </div>
-  </div>
-</div>
-
-<!-- Centre de Sécurité & Paramètres du Portefeuille -->
-<div id="modal-security" class="modal">
-  <div class="modal-content modal-scrollable">
-    <div class="modal-header">
-      <h3 data-i18n="securityCenterTitle">🛡️ Portefeuille & Sécurité</h3>
-      <button class="modal-close" onclick="App.closeModals()">✕</button>
-    </div>
-
-    <div class="sec-wallet-summary">
-      <div class="sec-wallet-top">
-        <span class="status-pill active">● Polygon (137)</span>
-        <span id="sec-rpc-latency" class="rpc-latency-badge">RPC OK</span>
-      </div>
-      <div class="sec-addr-full" id="sec-full-address">0x...</div>
-      <div class="sec-wallet-btns">
-        <button class="btn-chip" onclick="App.copyReceiveAddress()">📋 <span data-i18n="copyAddrShort">Copier</span></button>
-        <button class="btn-chip" onclick="App.openPolygonScan()">🔍 PolygonScan</button>
-        <button class="btn-chip" onclick="App.lockWallet()">🔒 <span data-i18n="lockNow">Verrouiller</span></button>
-      </div>
-    </div>
-
-    <div class="sec-section-title" data-i18n="backupAndKeys">Sauvegarde & Clés Secrètes</div>
-    <div class="sec-menu-list">
-      <button id="btn-export-seed" class="sec-menu-item" onclick="App.exportRecoveryPhrase()">
-        <div class="sec-menu-left">
-          <span class="sec-icon">📝</span>
-          <div>
-            <strong data-i18n="viewSeedPhrase">Phrase de récupération (12 mots)</strong>
-            <small data-i18n="reqPinHint">Protégé par code PIN</small>
-          </div>
-        </div>
-        <span>›</span>
-      </button>
-      <button class="sec-menu-item" onclick="App.exportPrivateKey()">
-        <div class="sec-menu-left">
-          <span class="sec-icon">🗝️</span>
-          <div>
-            <strong data-i18n="exportPrivKey">Exporter la clé privée</strong>
-            <small data-i18n="reqPinHint">Protégé par code PIN</small>
-          </div>
-        </div>
-        <span>›</span>
-      </button>
-    </div>
-
-    <div class="sec-section-title" data-i18n="accessProtection">Protection d'accès</div>
-    <div class="sec-menu-list">
-      <button class="sec-menu-item" onclick="App.startChangePin()">
-        <div class="sec-menu-left">
-          <span class="sec-icon">🔢</span>
-          <div>
-            <strong data-i18n="changePinTitle">Modifier le code PIN à 6 chiffres</strong>
-            <small data-i18n="changePinSub">Rechiffrer le coffre-fort AES-256</small>
-          </div>
-        </div>
-        <span>›</span>
-      </button>
-
-      <div id="sec-bio-row" class="sec-menu-item no-tap hidden">
-        <div class="sec-menu-left">
-          <span class="sec-icon">🫆</span>
-          <div>
-            <strong data-i18n="biometricUnlock">Déverrouillage biométrique</strong>
-            <small data-i18n="biometricSub">Empreinte digitale / Reconnaissance faciale</small>
-          </div>
-        </div>
-        <label class="switch-toggle">
-          <input type="checkbox" id="toggle-biometric" onchange="App.onToggleBiometric(this)">
-          <span class="switch-slider"></span>
-        </label>
-      </div>
-
-      <div class="sec-menu-item no-tap">
-        <div class="sec-menu-left">
-          <span class="sec-icon">⏱️</span>
-          <div>
-            <strong data-i18n="autoLockLabel">Verrouillage automatique</strong>
-            <small data-i18n="autoLockSub">Après inactivité en arrière-plan</small>
-          </div>
-        </div>
-        <select id="select-autolock" class="sec-inline-select" onchange="App.onChangeAutoLock(this.value)">
-          <option value="1">1 min</option>
-          <option value="5">5 min</option>
-          <option value="15">15 min</option>
-          <option value="0" data-i18n="never">Jamais</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="sec-section-title hidden" data-i18n="networkNodeTitle">Réseau Polygon RPC</div>
-    <div class="sec-rpc-box hidden">
-      <select id="select-rpc-node" class="game-input" style="margin-bottom:8px; font-size:0.82rem;" onchange="App.onSelectRpcNode(this.value)"></select>
-      <div class="sec-custom-rpc-row">
-        <input type="url" id="custom-rpc-input" class="game-input" placeholder="RPC personnalisé (https://...)" style="margin-bottom:0; font-size:0.8rem; text-align:left;">
-        <button class="btn-chip accent" onclick="App.saveCustomRpc()">OK</button>
-      </div>
-    </div>
-
-    <a id="sec-apk-download-btn" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk" class="apk-download-banner" style="margin-top:14px;">
-      <span>📲</span>
-      <div>
-        <strong data-i18n="downloadApkTitle">Télécharger l'APK Android</strong>
-        <small data-i18n="downloadApkSub">Installer FITIA PRO sur téléphone Android</small>
-      </div>
-      <span>⬇</span>
+  <div class="page-glow" aria-hidden="true"></div>
+  <header class="site-header container">
+    <a class="brand" href="#" aria-label="FITIA PRO MINER — Accueil">
+      <img src="assets/icon-192.png" alt="" width="48" height="48">
+      <span class="brand-name">FITIA <strong>PRO</strong><small>MINER</small></span>
     </a>
+    <span class="platform-pill">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8.25 8.6 5.5l-1-.6a.35.35 0 0 1 .13-.48.35.35 0 0 1 .48.13l1.03 1.68a8.6 8.6 0 0 1 5.52 0l1.03-1.68a.35.35 0 0 1 .48-.13.35.35 0 0 1 .13.48l-1 .6L17 8.25c1.8 1.2 3 2.9 3 4.75H4c0-1.85 1.2-3.55 3-4.75ZM3 14h18v2.5c0 1.38-1.12 2.5-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5V14Zm3-4.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm12 0a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM2 9.5c.55 0 1 .45 1 1V16a1 1 0 1 1-2 0v-5.5c0-.55.45-1 1-1Zm20 0c.55 0 1 .45 1 1V16a1 1 0 1 1-2 0v-5.5c0-.55.45-1 1-1ZM8 20h3v2a1 1 0 1 1-2 0v-2H8Zm5 0h3v2a1 1 0 1 1-2 0v-2h-1Z"/></svg>
+      Application Android
+    </span>
+  </header>
 
-    <button class="btn-danger-outline" style="margin-top: 16px;" onclick="App.promptResetWallet()" data-i18n="switchOrResetWallet">
-      🔄 Changer ou réinitialiser ce portefeuille
-    </button>
-  </div>
-</div>
+  <main>
+    <section class="hero container">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> L’ÉCOSYSTÈME FITIA SUR POLYGON</div>
+        <h1>Le minage FITIA.<br><span>Votre mobile.</span></h1>
+        <p class="hero-lead">Pilotez vos machines, gérez vos actifs FTA et accédez à votre portefeuille Polygon dans une application Android autonome et sécurisée.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+            <span>Télécharger l’APK<small>Version 3.2.1 · Environ 1,1 Mo</small></span>
+          </a>
+          <a class="button button-secondary" href="#projet">Découvrir le projet <span aria-hidden="true">↓</span></a>
+        </div>
+        <div class="hero-meta" aria-label="Informations de compatibilité">
+          <span><i>✓</i> Android 7.0 et supérieur</span>
+          <span><i>✓</i> Aucun wallet externe</span>
+        </div>
+      </div>
 
-<!-- Modale d'Affichage de Secret (12 mots / Clé Privée) -->
-<div id="modal-secret-reveal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="reveal-modal-title">Secret</h3>
-      <button class="modal-close" onclick="App.closeRevealModal()">✕</button>
-    </div>
-    <div class="security-warning-box" style="margin-bottom: 12px;">
-      <span>🚨</span>
-      <p data-i18n="neverShareSecretWarn">Ne donnez JAMAIS ces informations à personne, même au support. Quiconque les voit peut voler tous vos fonds.</p>
-    </div>
-    <div id="reveal-seed-grid" class="seed-grid hidden"></div>
-    <div id="reveal-pk-box" class="receive-addr-box hidden" style="margin-bottom: 12px;">
-      <span id="reveal-pk-text">0x...</span>
-    </div>
-    <button class="btn-primary" onclick="App.copyRevealedSecret()">📋 <span data-i18n="copySecretBtn">Copier dans le presse-papiers</span></button>
-  </div>
-</div>
+      <div class="hero-visual" aria-label="Aperçu stylisé de l’application FITIA PRO">
+        <div class="visual-ring ring-one" aria-hidden="true"></div>
+        <div class="visual-ring ring-two" aria-hidden="true"></div>
+        <div class="phone">
+          <div class="phone-speaker" aria-hidden="true"></div>
+          <div class="phone-screen">
+            <div class="phone-header">
+              <div class="phone-brand"><img src="assets/icon-192.png" alt="" width="34" height="34"><strong>FITIA <span>PRO</span></strong></div>
+              <span class="live-dot"></span>
+            </div>
+            <div class="phone-network"><span></span> POLYGON · 137</div>
+            <div class="balance-label">SOLDE TOTAL ESTIMÉ</div>
+            <div class="balance-value">$0.00</div>
+            <div class="balance-split"><span>Portefeuille <strong>$0.00</strong></span><span>Minage <strong>$0.00</strong></span></div>
+            <div class="phone-card">
+              <div><span class="mini-icon">⚡</span><span>Puissance active<small>En attente de machine</small></span></div>
+              <strong>0 H/s</strong>
+            </div>
+            <div class="phone-card">
+              <div><span class="mini-icon purple">⛏</span><span>Récompenses FTA<small>Prêtes à réclamer</small></span></div>
+              <strong>0.0000</strong>
+            </div>
+            <div class="phone-nav" aria-hidden="true"><span>▦<small>Accueil</small></span><span>▲<small>Boutique</small></span><span class="active">▣<small>Wallet</small></span><span>⇄<small>Swap</small></span></div>
+          </div>
+        </div>
+        <div class="floating-badge badge-security"><span>🛡</span><div>Coffre chiffré<small>AES-256-GCM</small></div></div>
+        <div class="floating-badge badge-local"><span>✓</span><div>100 % local<small>Clés sur votre appareil</small></div></div>
+      </div>
+    </section>
 
-<!-- Modale de Confirmation par Code PIN (pour Envoi / Export Clés / Changement PIN) -->
-<div id="modal-pin-confirm" class="modal modal-high-z">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="pin-confirm-title" data-i18n="confirmWithPin">Confirmation Sécurité</h3>
-      <button class="modal-close" onclick="App.cancelPinVerification()">✕</button>
-    </div>
-    <p id="pin-confirm-subtitle" class="small-text" style="text-align:center; margin-bottom:10px;" data-i18n="enterPinToContinue">Entrez votre code PIN à 6 chiffres pour autoriser cette opération.</p>
-    <div id="confirm-pin-dots" class="pin-dots">
-      <span></span><span></span><span></span><span></span><span></span><span></span>
-    </div>
-    <p id="confirm-pin-error" class="pin-error-msg"></p>
-    <div class="pin-keypad compact">
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('1')">1</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('2')">2</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('3')">3</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('4')">4</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('5')">5</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('6')">6</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('7')">7</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('8')">8</button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('9')">9</button>
-      <button type="button" class="pin-key pin-key-empty" disabled></button>
-      <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('0')">0</button>
-      <button type="button" class="pin-key pin-key-action" onclick="App.onConfirmPinBackspace()">⌫</button>
-    </div>
-  </div>
-</div>
+    <section class="trust-strip">
+      <div class="container trust-items">
+        <span><strong>Non-custodial</strong> Vous gardez le contrôle</span>
+        <span><strong>Polygon</strong> Réseau rapide et économe</span>
+        <span><strong>Android</strong> Conçu pour votre mobile</span>
+      </div>
+    </section>
 
-<!-- ═══ CHAT ASSISTANT ═══ -->
-<button id="chat-fab-btn" class="chat-fab hidden" onclick="App.toggleChat()">
-  <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/fta.svg'" class="chat-fab-logo" alt="FTA">
-</button>
-<div id="chat-panel" class="chat-panel">
-  <div class="chat-header">
-    <div class="chat-header-brand">
-      <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/fta.svg'" class="chat-header-logo" alt="FTA">
-      <span>Fitia Assistant</span>
-    </div>
-    <button class="chat-close" onclick="App.toggleChat()">✕</button>
-  </div>
-  <div id="chat-messages" class="chat-messages"></div>
-  <div class="chat-input-area">
-    <input type="text" id="chat-input" class="chat-input" placeholder="Posez votre question..." onkeydown="if(event.key==='Enter')App.sendChatMessage()">
-    <button class="chat-send-btn" onclick="App.sendChatMessage()">➤</button>
-  </div>
-</div>
+    <section class="section container" id="projet">
+      <div class="section-heading">
+        <div class="eyebrow">UNE APPLICATION. TOUT L’ÉCOSYSTÈME.</div>
+        <h2>Vos outils FITIA,<br>sans dispersion.</h2>
+        <p>Retrouvez les fonctions essentielles dans une interface mobile claire, sans dépendre de MetaMask ou d’un autre portefeuille externe.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon">⛏</div>
+          <span class="feature-number">01</span>
+          <h3>Minage & machines</h3>
+          <p>Achetez vos machines et batteries, branchez votre matériel et suivez vos récompenses FTA depuis un tableau de bord dédié.</p>
+          <div class="feature-tags"><span>Boutique</span><span>Récompenses</span></div>
+        </article>
+        <article class="feature-card featured">
+          <div class="feature-icon">◈</div>
+          <span class="feature-number">02</span>
+          <h3>Portefeuille Polygon</h3>
+          <p>Créez ou importez votre portefeuille, recevez et envoyez POL, USDT et FTA, puis accédez au swap intégré.</p>
+          <div class="feature-tags"><span>USDT</span><span>FTA</span><span>Swap</span></div>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🛡</div>
+          <span class="feature-number">03</span>
+          <h3>Sécurité sur l’appareil</h3>
+          <p>Votre coffre est protégé par code PIN, chiffrement AES-256-GCM et les mécanismes de sécurité d’Android.</p>
+          <div class="feature-tags"><span>PIN</span><span>Android Keystore</span></div>
+        </article>
+      </div>
+    </section>
 
-<!-- ═══ LOADER ═══ -->
-<div id="loader" class="loader hidden">
-  <div class="fta-loader-wrap">
-    <div class="fta-loader-ring"></div>
-    <img src="https://i.ibb.co/CKc7wbNr/IMG-20260226-152843-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/fta.svg'" class="fta-loader-logo" alt="FTA">
-    <div class="fta-loader-pulse"></div>
-  </div>
-  <p id="loader-text" class="loader-text">Traitement...</p>
-</div>
+    <section class="section container security-section">
+      <div class="security-visual">
+        <div class="shield-shape">🛡</div>
+        <div class="security-orbit" aria-hidden="true"></div>
+        <span class="security-chip chip-one">PIN à 6 chiffres</span>
+        <span class="security-chip chip-two">AES-256-GCM</span>
+        <span class="security-chip chip-three">Clés non exportables</span>
+      </div>
+      <div class="security-copy">
+        <div class="eyebrow">LA SÉCURITÉ AVANT TOUT</div>
+        <h2>Vos clés restent<br><span>entre vos mains.</span></h2>
+        <p>FITIA PRO est non-custodial : vos secrets ne sont pas confiés à un serveur. Le portefeuille est chiffré sur votre téléphone et les transactions sont signées depuis l’application.</p>
+        <ul>
+          <li><span>✓</span><div><strong>Phrase de récupération personnelle</strong><small>Sauvegardez vos 12 mots hors ligne et ne les partagez jamais.</small></div></li>
+          <li><span>✓</span><div><strong>Verrouillage automatique</strong><small>Une protection supplémentaire en cas d’inactivité.</small></div></li>
+          <li><span>✓</span><div><strong>Protection Android native</strong><small>Android Keystore et blocage des captures sur les écrans sensibles.</small></div></li>
+        </ul>
+      </div>
+    </section>
 
-<script src="app.js"></script>
+    <section class="section container steps-section">
+      <div class="section-heading compact">
+        <div class="eyebrow">PRISE EN MAIN</div>
+        <h2>Prêt en quelques minutes.</h2>
+      </div>
+      <ol class="steps-grid">
+        <li><span>1</span><h3>Téléchargez</h3><p>Récupérez le fichier APK officiel depuis cette page.</p></li>
+        <li><span>2</span><h3>Installez</h3><p>Autorisez l’installation pour votre navigateur si Android le demande, puis ouvrez le fichier.</p></li>
+        <li><span>3</span><h3>Configurez</h3><p>Créez ou importez votre portefeuille et conservez précieusement votre phrase de récupération.</p></li>
+      </ol>
+    </section>
+
+    <section class="container download-section" id="telecharger">
+      <div class="download-copy">
+        <img src="assets/icon-192.png" alt="Logo FITIA" width="72" height="72">
+        <div><div class="eyebrow">FITIA PRO MINER POUR ANDROID</div><h2>Votre écosystème vous suit partout.</h2><p>Téléchargez l’application officielle et retrouvez votre portefeuille, votre minage et vos actifs au même endroit.</p></div>
+      </div>
+      <a class="button button-primary" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+        <span>Télécharger l’application<small>APK · Version 3.2.1 · Android 7.0+</small></span>
+      </a>
+    </section>
+    <p class="install-note container">Avant toute désinstallation ou tout changement de téléphone, assurez-vous d’avoir sauvegardé votre phrase de récupération de 12 mots.</p>
+  </main>
+
+  <footer class="site-footer container">
+    <div class="brand footer-brand"><img src="assets/icon-192.png" alt="" width="34" height="34"><span class="brand-name">FITIA <strong>PRO</strong><small>MINER</small></span></div>
+    <p>Application Android autonome sur le réseau Polygon.</p>
+    <span>© 2026 FITIA PRO</span>
+  </footer>
 </body>
 </html>

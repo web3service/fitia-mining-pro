@@ -124,9 +124,14 @@ def write_4byte_aligned_apk(base_apk_path, dex_path, web_files, out_aligned_path
 
 
 def collect_web_files():
-    """Liste tous les fichiers web autonomes à embarquer dans assets/www/ de l'APK."""
+    """Embarque uniquement le wallet Android, jamais la page vitrine publique."""
     files = []
-    top_files = ["index.html", "style.css", "app.js", "wallet.js", "manifest.json"]
+    wallet_html = os.path.join(ANDROID_SRC, "wallet.html")
+    if not os.path.isfile(wallet_html):
+        raise FileNotFoundError(f"Interface Android manquante : {wallet_html}")
+    files.append(("wallet.html", wallet_html))
+
+    top_files = ["style.css", "app.js", "wallet.js", "manifest.json"]
     for tf in top_files:
         p = os.path.join(ROOT_DIR, tf)
         if os.path.isfile(p):

@@ -2,7 +2,7 @@
   "name": "FITIA PRO MINER",
   "short_name": "FITIA PRO",
   "description": "Application mobile autonome FITIA PRO MINER avec portefeuille Polygon chiffré intégré.",
-  "start_url": "./index.html",
+  "start_url": "./wallet.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f172a",

@@ -92,7 +92,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 1200;
-  background: radial-gradient(circle at 50% -10%, rgba(240, 185, 11, 0.16), transparent 55%), var(--bg-deep);
+  background: var(--bg-deep);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: max(20px, var(--safe-top)) 18px calc(24px + var(--safe-bottom));
@@ -123,22 +123,22 @@ body {
   width: 84px;
   height: 84px;
   margin: 0 auto 14px;
-  border-radius: 24px;
-  padding: 3px;
-  background: linear-gradient(135deg, var(--primary), rgba(240, 185, 11, 0.2));
-  box-shadow: 0 10px 30px rgba(240, 185, 11, 0.25);
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .auth-logo-ring.sm {
   width: 66px;
   height: 66px;
-  border-radius: 20px;
+  border-radius: 50%;
   margin-bottom: 10px;
 }
 .auth-logo-img {
   width: 100%;
   height: 100%;
-  border-radius: 21px;
-  object-fit: cover;
+  border-radius: 50%;
+  object-fit: contain;
   display: block;
 }
 
@@ -1503,17 +1503,14 @@ main::-webkit-scrollbar { display: none; }
 @keyframes ftaLogoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .fta-loader-ring { position: absolute; top: 0; left: 0; width: 90px; height: 90px; border: 3px solid rgba(240, 185, 11, 0.15); border-top-color: var(--primary); border-right-color: var(--primary); border-radius: 50%; animation: ftaRingSpin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite; z-index: 1; }
 @keyframes ftaRingSpin { to { transform: rotate(360deg); } }
-.fta-loader-pulse { position: absolute; top: 50%; left: 50%; width: 52px; height: 52px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--primary); opacity: 0; z-index: 0; animation: ftaPulse 2s ease-out infinite; }
-@keyframes ftaPulse { 0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.4; } 100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; } }
-.loader-text { margin-top: 20px; font-size: 0.88rem; color: var(--text); font-weight: 600; text-align: center; padding: 0 24px; }
 
 .machine-svg-mini { display: block; width: 48px; height: auto; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 .rig-item .tier-badge { position: absolute; top: 8px; right: 8px; padding: 2px 7px; border-radius: 4px; font-size: 0.58rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.8px; z-index: 2; }
 
 /* Chat Assistant */
-.chat-fab { position: fixed; bottom: calc(var(--nav-height) + var(--safe-bottom) + 14px); right: 14px; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #FFD43B); color: #000; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(240, 185, 11, 0.5); z-index: 90; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden; }
+.chat-fab { position: fixed; bottom: calc(var(--nav-height) + var(--safe-bottom) + 14px); right: 14px; width: 52px; height: 52px; border-radius: 50%; background: transparent; color: #000; border: none; cursor: pointer; box-shadow: none; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden; }
 .chat-fab:active { transform: scale(0.9); }
-.chat-fab-logo { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; pointer-events: none; }
+.chat-fab-logo { width: 48px; height: 48px; border-radius: 50%; object-fit: contain; pointer-events: none; }
 .chat-panel { position: fixed; bottom: calc(var(--nav-height) + var(--safe-bottom) + 76px); right: 14px; width: calc(100% - 28px); max-width: 380px; height: 55vh; max-height: 480px; background: var(--card-bg); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 15px 50px rgba(0,0,0,0.7); z-index: 95; display: flex; flex-direction: column; transform: scale(0.5) translateY(20px); opacity: 0; pointer-events: none; transform-origin: bottom right; transition: all 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; }
 .chat-panel.active { transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
 .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: linear-gradient(135deg, #1a1a2e, #162032); border-bottom: 1px solid rgba(255,255,255,0.08); font-weight: 700; font-size: 0.95rem; }

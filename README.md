@@ -4,6 +4,13 @@ Application mobile **100% indépendante** pour l'écosystème **FITIA PRO** sur 
 
 Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) n'est requise.
 
+## 🌐 Vitrine Web & Application Android Uniquement
+
+- **`index.html` + `landing.css`** : page publique de présentation du projet et de téléchargement de l'APK. Elle ne contient ni le wallet ni ses scripts.
+- **`android-src/wallet.html`** : interface du portefeuille réservée à l'APK et embarquée sous `assets/www/wallet.html`.
+- **Chargement local sécurisé** : Android ouvre `https://app.fitia.pro/wallet.html`, dont le contenu est intercepté et servi depuis les assets locaux. L'origine est conservée pour préserver le coffre chiffré et les données existantes.
+- **Chargement silencieux** : seule l'animation est affichée, sans messages de progression.
+
 ---
 
 ## 🛡️ Architecture Sécurité Durcie (V3.2.1)

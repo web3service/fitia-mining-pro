@@ -306,11 +306,11 @@ async function startMockPolygonRpc(ethersLib) {
 }
 
 async function bootAppEnvironment(mockRpcUrl) {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'), 'utf8')
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
 
   const dom = new JSDOM(html, {
-    url: 'https://app.fitia.pro/index.html',
+    url: 'https://app.fitia.pro/wallet.html',
     runScripts: 'dangerously',
     pretendToBeVisual: true
   });
@@ -551,6 +551,10 @@ function httpRequest(port, method, reqPath) {
     await runTest('UI-E2E', 'Création complète wallet -> Quiz 12 mots -> Rejet PIN faible UI -> Session Polygon active', async () => {
       assert.strictEqual(e2eWin.ethereum, undefined, 'Aucun wallet externe injecté requis');
       assert.strictEqual(e2eWin.FitiaNative._state.screenSecure, true, 'FLAG_SECURE actif sur écran accueil');
+      assert.strictEqual(e2eWin.document.getElementById('loader-text'), null, 'Aucun texte de chargement dans le wallet Android');
+      App.setLoader(true, 'Connexion directe à Polygon...');
+      assert.strictEqual(e2eWin.document.getElementById('loader').textContent.trim(), '', 'Le loader reste silencieux');
+      App.setLoader(false);
 
       App.startCreateWallet();
       assert.ok(App.pendingWalletSecret?.mnemonic);
@@ -652,12 +656,15 @@ function httpRequest(port, method, reqPath) {
       assert.ok(htmlStr.includes("object-src 'none'"), 'CSP object-src none présent');
       assert.ok(!htmlStr.includes('unsafe-eval'), 'unsafe-eval supprimé de la CSP');
       assert.ok(!htmlStr.includes('http://*'), 'Trafic HTTP non chiffré banni de la CSP');
+      assert.ok(htmlStr.includes('id="projet"'), 'La page publique présente le projet');
+      assert.ok(htmlStr.includes('download="FITIA-PRO-Miner.apk"'), 'Le téléchargement APK est proposé');
+      assert.ok(!htmlStr.includes('id="auth-screen"'), 'Le wallet n’est plus exposé sur la page publique');
 
       const apkHead = await httpRequest(8080, 'HEAD', '/FITIA-PRO-Miner.apk');
       assert.strictEqual(apkHead.statusCode, 200);
       assert.strictEqual(apkHead.headers['content-type'], 'application/vnd.android.package-archive');
 
-      for (const forbiddenPath of ['/.git/HEAD', '/server.js', '/scripts/build_apk.py', '/android-src/AndroidManifest.xml', '/contracts/FitiaMiningV3_Mine.sol']) {
+      for (const forbiddenPath of ['/.git/HEAD', '/server.js', '/scripts/build_apk.py', '/android-src/AndroidManifest.xml', '/android-src/wallet.html', '/contracts/FitiaMiningV3_Mine.sol', '/app.js', '/wallet.js', '/style.css', '/vendor/ethers.umd.min.js']) {
         const r = await httpRequest(8080, 'GET', forbiddenPath);
         assert.strictEqual(r.statusCode, 403, `Chemin sensible ${forbiddenPath} doit renvoyer 403`);
       }
@@ -679,7 +686,7 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=304'), 'versionCode=304 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=305'), 'versionCode=305 présent');
         assert.ok(manifestTree.includes('versionName(0x0101021c)="3.2.1"'), 'versionName=3.2.1 présent');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
