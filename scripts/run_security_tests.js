@@ -679,7 +679,7 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=303'), 'versionCode=303 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=304'), 'versionCode=304 présent');
         assert.ok(manifestTree.includes('versionName(0x0101021c)="3.2.1"'), 'versionName=3.2.1 présent');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
