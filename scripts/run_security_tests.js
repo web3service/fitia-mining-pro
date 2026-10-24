@@ -763,7 +763,10 @@ function httpRequest(port, method, reqPath) {
       assert.ok(!htmlStr.includes('unsafe-eval'), 'unsafe-eval supprimé de la CSP');
       assert.ok(!htmlStr.includes('http://*'), 'Trafic HTTP non chiffré banni de la CSP');
       assert.ok(htmlStr.includes('id="projet"'), 'La page publique présente le projet');
-      assert.ok(htmlStr.includes('Mise à jour en cours'), 'Le mode maintenance est visible sur la vitrine');
+      assert.ok(htmlStr.includes('<html lang="en">'), 'La page publique est déclarée en anglais');
+      assert.ok(htmlStr.includes('Explore the project'), 'Le contenu de présentation est traduit en anglais');
+      assert.ok(htmlStr.includes('Update in progress'), 'Le mode maintenance est visible en anglais sur la vitrine');
+      assert.ok(!htmlStr.includes('Mise à jour en cours'), 'Ancien libellé français de maintenance supprimé');
       assert.ok(!htmlStr.includes('href="FITIA-PRO-Miner.apk"'), 'Aucun lien APK actif pendant la maintenance');
       assert.ok(!htmlStr.includes('id="auth-screen"'), 'Le wallet n’est plus exposé sur la page publique');
 
