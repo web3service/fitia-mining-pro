@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.1 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.2 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -387,7 +387,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.1\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.2\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -681,6 +681,8 @@ function httpRequest(port, method, reqPath) {
       await new Promise((resolve) => setTimeout(resolve, 30));
       assert.strictEqual(App.activity.state.transactions[0].status, 'success');
       assert.strictEqual(App.activity.state.transactions[0].blockNumber, 62500001);
+      assert.strictEqual(App.activity.state.transactions[0].contractMessage, 'Réponse on-chain : succès (statut 1).');
+      assert.ok(App.activity.state.notifications[0].message.includes('statut 1'), 'La notification reprend la réponse on-chain');
       assert.strictEqual(App.activity.getUnreadCount(), 2, 'La confirmation crée une notification non lue');
       App.openActivity('notifications');
       assert.ok(e2eWin.document.getElementById('modal-activity').classList.contains('active'));
@@ -737,6 +739,13 @@ function httpRequest(port, method, reqPath) {
       });
       assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === successHash).status, 'success');
       assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === failedHash).status, 'failed');
+      assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === successHash).contractMessage, 'Réponse on-chain : succès (statut 1).');
+      assert.strictEqual(
+        restored.state.transactions.find((tx) => tx.hash === failedHash).contractMessage,
+        'Réponse on-chain : échec (statut 0). Motif du contrat indisponible dans le reçu.',
+        'Un reçu sans motif ne fabrique aucune réponse du contrat'
+      );
+      assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === failedHash).blockNumber, 62500002);
       assert.strictEqual(restored.getUnreadCount(), 4, 'Notifications pending et finales conservées après restauration');
 
       restored.notify('info', '<img src=x onerror=alert(1)>', 'Notification <b>sûre</b>');
@@ -749,6 +758,67 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(restored.state.transactions.length, 0, 'Une autre adresse ne voit pas cet historique');
       restored.setAccount(account);
       assert.strictEqual(restored.state.transactions.length, 2, 'L’historique de la première adresse demeure intact');
+      App.activity.setAccount(App.user);
+    });
+
+    await runTest('ACTIVITY', 'Erreur personnalisée du contrat, transaction remplacée et migration des anciennes entrées', async () => {
+      const account = `0x${'77'.repeat(20)}`;
+      const revertHash = `0x${'88'.repeat(32)}`;
+      const replacedHash = `0x${'99'.repeat(32)}`;
+      const center = new e2eWin.FitiaActivityCenter({
+        explorer: 'https://polygonscan.com',
+        formatError: (error) => error?.revert?.name === 'NoM' ? 'Aucune machine disponible.' : 'Transaction refusée.'
+      });
+      center.setAccount(account);
+      const revertError = {
+        code: 'CALL_EXCEPTION',
+        revert: { name: 'NoM', args: [] },
+        shortMessage: 'execution reverted with custom error "NoM()"',
+        message: 'Réponse RPC sensible à ne jamais stocker',
+        receipt: { status: 0, blockNumber: 62500003 }
+      };
+      center.track({ hash: revertHash, wait: async () => { throw revertError; } }, { title: 'Connexion de machine', type: 'mining' });
+      center.track({
+        hash: replacedHash,
+        wait: async () => { throw { code: 'TRANSACTION_REPLACED', reason: 'cancelled', message: 'Détail RPC sensible' }; }
+      }, { title: 'Envoi de POL', type: 'send' });
+      await new Promise((resolve) => setTimeout(resolve, 40));
+
+      const reverted = center.state.transactions.find((tx) => tx.hash === revertHash);
+      const replaced = center.state.transactions.find((tx) => tx.hash === replacedHash);
+      assert.strictEqual(reverted.status, 'failed');
+      assert.ok(reverted.contractMessage.includes('échec (statut 0)'));
+      assert.ok(reverted.contractMessage.includes('Contrat : NoM.'), 'Le nom exact du custom error est affiché');
+      assert.ok(reverted.contractMessage.includes('Aucune machine disponible.'), 'La traduction existante accompagne la réponse brute');
+      assert.ok(replaced.contractMessage.includes('transaction non confirmée'));
+      assert.ok(replaced.contractMessage.includes('Transaction remplacée ou annulée avant confirmation.'));
+      assert.ok(!replaced.contractMessage.includes('statut 0'), 'Aucun statut de reçu inventé pour une transaction remplacée');
+      const serialized = e2eWin.localStorage.getItem(center.storageKey());
+      assert.ok(serialized.includes('NoM'));
+      assert.ok(!serialized.includes('RPC sensible') && !serialized.includes('Détail RPC'), 'Les détails RPC sensibles ne sont pas persistés');
+
+      center.setTab('history');
+      const rendered = e2eWin.document.getElementById('activity-history-list').textContent;
+      assert.ok(rendered.includes('Contrat : NoM.'));
+      assert.ok(rendered.includes('Bloc #62500003'));
+      assert.strictEqual(e2eWin.document.querySelector('#activity-history-list img'), null, 'Les réponses du contrat restent du texte sûr');
+      center.track({ hash: revertHash, wait: async () => { throw revertError; } }, { title: 'Connexion de machine', type: 'mining' });
+      assert.strictEqual(
+        center.state.transactions.find((tx) => tx.hash === revertHash).contractMessage,
+        reverted.contractMessage,
+        'Un doublon ne remplace pas une réponse finale par un message en attente'
+      );
+
+      const legacy = center.normalizeTransaction({
+        hash: `0x${'aa'.repeat(32)}`,
+        type: 'withdraw',
+        title: 'Ancien retrait',
+        status: 'failed',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+      assert.ok(legacy.contractMessage.includes('Motif du contrat indisponible.'));
+      assert.ok(!legacy.contractMessage.includes('statut 0'), 'Une ancienne entrée sans reçu conserve un message prudent');
       App.activity.setAccount(App.user);
     });
 
@@ -815,8 +885,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=307'), 'versionCode=307 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.1"'), 'versionName=3.3.1 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=308'), 'versionCode=308 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.2"'), 'versionName=3.3.2 présent');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');

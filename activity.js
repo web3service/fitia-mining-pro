@@ -20,6 +20,7 @@
       this.filter = 'all';
       this.watched = new Set();
       this.explorer = this.safeExplorer(options.explorer);
+      this.formatError = typeof options.formatError === 'function' ? options.formatError : null;
     }
 
     safeExplorer(value) {
@@ -48,6 +49,12 @@
       if (!raw || !HASH_PATTERN.test(String(raw.hash || ''))) return null;
       const createdAt = Number(raw.createdAt);
       const updatedAt = Number(raw.updatedAt);
+      const status = VALID_STATUSES.has(raw.status) ? raw.status : 'pending';
+      const defaultContractMessage = status === 'pending'
+        ? 'En attente de la réponse on-chain…'
+        : status === 'success'
+          ? 'Réponse on-chain : transaction confirmée.'
+          : 'Réponse on-chain : transaction échouée. Motif du contrat indisponible.';
       return {
         hash: String(raw.hash).toLowerCase(),
         type: this.cleanText(raw.type || 'other', 30),
@@ -56,7 +63,8 @@
         amount: this.cleanText(raw.amount || '', 60),
         token: this.cleanText(raw.token || '', 16),
         to: ADDRESS_PATTERN.test(String(raw.to || '')) ? String(raw.to).toLowerCase() : '',
-        status: VALID_STATUSES.has(raw.status) ? raw.status : 'pending',
+        status,
+        contractMessage: this.cleanText(raw.contractMessage || defaultContractMessage, 420),
         createdAt: Number.isFinite(createdAt) && createdAt > 0 ? createdAt : Date.now(),
         updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? updatedAt : Date.now(),
         blockNumber: raw.blockNumber != null && Number.isSafeInteger(Number(raw.blockNumber)) && Number(raw.blockNumber) >= 0
@@ -154,6 +162,7 @@
         hash: tx?.hash,
         to: metadata.to || tx?.to || '',
         status: 'pending',
+        contractMessage: 'En attente de la réponse on-chain…',
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
@@ -164,11 +173,14 @@
       if (isNew) {
         this.state.transactions.unshift(entry);
       } else {
+        const existing = this.state.transactions[existingIndex];
         this.state.transactions[existingIndex] = {
-          ...this.state.transactions[existingIndex],
+          ...existing,
           ...entry,
-          createdAt: this.state.transactions[existingIndex].createdAt,
-          status: this.state.transactions[existingIndex].status
+          createdAt: existing.createdAt,
+          status: existing.status,
+          contractMessage: existing.status === 'pending' ? entry.contractMessage : existing.contractMessage,
+          blockNumber: existing.status === 'pending' ? entry.blockNumber : existing.blockNumber
         };
       }
       this.state.transactions = this.state.transactions.slice(0, MAX_TRANSACTIONS);
@@ -178,6 +190,56 @@
 
       if (typeof tx?.wait === 'function') this.watch(tx, entry.hash);
       return entry;
+    }
+
+    contractErrorDetail(error) {
+      const revertName = this.cleanText(error?.revert?.name || '', 80);
+      if (revertName) {
+        let args = [];
+        try {
+          args = error?.revert?.args
+            ? Array.from(error.revert.args).map((value) => this.cleanText(value, 70))
+            : [];
+        } catch (_) { /* Le nom de l'erreur reste exploitable sans ses arguments. */ }
+        return `${revertName}${args.length ? `(${args.join(', ')})` : ''}`;
+      }
+      const reason = this.cleanText(error?.reason || '', 180);
+      if (reason) return reason;
+      const shortMessage = this.cleanText(error?.shortMessage || '', 180);
+      return shortMessage.toLowerCase().includes('revert') ? shortMessage : '';
+    }
+
+    friendlyContractError(error) {
+      if (!this.formatError) return '';
+      try {
+        return this.cleanText(this.formatError(error), 180);
+      } catch (_) {
+        return '';
+      }
+    }
+
+    buildContractMessage(status, receipt = null, error = null) {
+      if (status === 'success') return 'Réponse on-chain : succès (statut 1).';
+      const parts = [
+        receipt && error?.code !== 'TRANSACTION_REPLACED'
+          ? 'Réponse on-chain : échec (statut 0).'
+          : 'Réponse on-chain : transaction non confirmée.'
+      ];
+      if (error?.code === 'TRANSACTION_REPLACED') {
+        parts.push('Transaction remplacée ou annulée avant confirmation.');
+      } else {
+        const detail = this.contractErrorDetail(error);
+        if (detail) {
+          parts.push(`Contrat : ${detail.replace(/[.]+$/, '')}.`);
+          const friendly = this.friendlyContractError(error);
+          if (friendly && friendly !== detail && friendly !== `Contrat : ${detail}`) parts.push(friendly);
+        } else {
+          parts.push(receipt
+            ? 'Motif du contrat indisponible dans le reçu.'
+            : 'Motif du contrat indisponible.');
+        }
+      }
+      return parts.join(' ');
     }
 
     watch(tx, hash) {
@@ -201,28 +263,29 @@
             if (this.account !== watchedAccount) return;
             const receipt = error.receipt || null;
             const failed = error?.code === 'TRANSACTION_REPLACED' || Number(receipt?.status ?? 0) === 0;
-            this.finalize(hash, failed ? 'failed' : 'success', receipt);
+            this.finalize(hash, failed ? 'failed' : 'success', receipt, error);
           } else {
             this.watched.delete(hash);
           }
         });
     }
 
-    finalize(hash, status, receipt = null) {
+    finalize(hash, status, receipt = null, error = null) {
       if (!VALID_STATUSES.has(status) || status === 'pending') return;
       const normalizedHash = String(hash || '').toLowerCase();
       const entry = this.state.transactions.find((item) => item.hash === normalizedHash);
       if (!entry || entry.status !== 'pending') return;
       entry.status = status;
       entry.updatedAt = Date.now();
+      entry.contractMessage = this.buildContractMessage(status, receipt, error);
       if (receipt?.blockNumber != null && Number.isSafeInteger(Number(receipt.blockNumber)) && Number(receipt.blockNumber) >= 0) {
         entry.blockNumber = Number(receipt.blockNumber);
       }
       this.save();
       this.notify(
         status,
-        status === 'success' ? 'Transaction confirmée' : 'Transaction échouée',
-        this.entryMessage(entry),
+        status === 'success' ? 'Réponse on-chain : succès' : 'Réponse on-chain : échec',
+        `${this.entryMessage(entry)} • ${entry.contractMessage}`,
         entry.hash
       );
     }
@@ -404,6 +467,12 @@
           main.appendChild(this.element('div', 'activity-amount', `${entry.amount}${entry.token ? ` ${entry.token}` : ''}`));
         }
         if (entry.description) main.appendChild(this.element('div', 'activity-description', entry.description));
+        if (entry.contractMessage) {
+          main.appendChild(this.element('div', `activity-contract-message status-${entry.status}`, entry.contractMessage));
+        }
+        if (entry.blockNumber != null) {
+          main.appendChild(this.element('div', 'activity-block', `Reçu on-chain • Bloc #${entry.blockNumber}`));
+        }
         main.appendChild(this.element('div', 'activity-meta', `${this.formatDate(entry.createdAt)} • ${this.shortHash(entry.hash)}`));
         const link = this.element('button', 'activity-tx-link', '↗');
         link.type = 'button';

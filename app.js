@@ -610,7 +610,10 @@ class Application {
     this.mine = null;
     this.usdtToken = null;
     this.ftaToken = null;
-    this.activity = new FitiaActivityCenter({ explorer: CONFIG.EXPLORER });
+    this.activity = new FitiaActivityCenter({
+      explorer: CONFIG.EXPLORER,
+      formatError: (error) => this.getErrorMessage(error)
+    });
 
     this.payMode = 'USDT';
     this.shopViewMode = 'machines';
