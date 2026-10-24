@@ -1,4 +1,4 @@
-# ⚡ FITIA PRO MINER V3.3.3 — Application Mobile Autonome & APK Android Durci
+# ⚡ FITIA PRO MINER V3.3.4 — Application Mobile Autonome & APK Android Durci
 
 Application mobile **100% indépendante** pour l'écosystème **FITIA PRO** sur **Polygon Mainnet (Chain ID 137)**, intégrant directement son propre **portefeuille crypto non-custodial haute sécurité** et compilée en **APK Android signé (`FITIA-PRO-Miner.apk`)**.
 
@@ -14,7 +14,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
-## 🛡️ Architecture Sécurité Durcie (V3.3.3)
+## 🛡️ Architecture Sécurité Durcie (V3.3.4)
 
 - **Chiffrement du Coffre-Fort à 3 Couches Indépendantes** :
   1. **Couche 1 (Utilisateur)** : `AES-256-GCM` dérivé du code PIN à 6 chiffres via `PBKDF2-SHA256` à **310 000 itérations** (sel aléatoire 128 bits, IV 96 bits). Rejet systématique des codes PIN faibles ou répétitifs (`123456`, `000000`, `121212`, `258025`, etc.).
@@ -42,13 +42,14 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 - **Compatibilité `FitiaMiningV3_Mine` V3.2 & V3.0** : synchronisation temps réel sur `myInfo(address)`, gestion de `shopExpiry` et fallback automatique sur les contrats V3.0.
 - **Historique & notifications locaux par adresse** : toutes les transactions initiées via le signer sont enregistrées avec leur type, montant disponible, état (`pending` / confirmée / échouée), hash et lien PolygonScan. Les transactions en attente sont revérifiées après déverrouillage ou retour au premier plan. Chaque résultat final affiche le statut réel du reçu on-chain, son bloc et, lorsqu'ils sont disponibles, le nom exact du custom error ou le motif du contrat avec sa traduction. En l'absence de motif, l'historique l'indique explicitement sans en inventer. Aucune clé privée, phrase de récupération ou réponse RPC sensible n'est enregistrée dans ce module.
 - Le centre d'activité couvre les envois, approbations, dépôts, retraits, achats, connexions de machines, claims, parrainages et swaps. Il ne prétend pas resynchroniser les opérations on-chain antérieures ou externes, qui restent consultables sur PolygonScan.
+- **Réclamation des récompenses** : affiche « Réclamation en attente… » au clic puis « Réclamation confirmée » uniquement après un reçu réussi. Une réponse RPC 403 est revérifiée par le hash de transaction et n'est jamais présentée comme une erreur du contrat ; sans reçu, l'opération reste en attente.
 
 ---
 
 ## 🧪 Tests Automatisés & Recompilation APK
 
 ```bash
-# Lancer la suite complète d'audit sécurité & tests E2E (18 tests)
+# Lancer la suite complète d'audit sécurité & tests E2E (19 tests)
 npm test
 
 # Recompiler, aligner (4 octets) et signer l'APK Android (v2 + v3)

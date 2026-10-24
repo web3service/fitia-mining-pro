@@ -119,8 +119,10 @@ const i18n = {
     invalidAmount: "Montant invalide",
     swapping: "Échange en cours...",
     swapSuccess: "Échange réussi !",
-    claiming: "Récupération des gains...",
-    claimed: "Gains réclamés ! 🎉",
+    claiming: "Réclamation en attente…",
+    claimed: "Réclamation confirmée",
+    claimStillPending: "Réclamation en attente de confirmation sur Polygon.",
+    claimNotConfirmed: "Réclamation non confirmée. Vérifiez votre historique avant de réessayer.",
     days: "Jours",
     rig: "RIG",
     totalBal: "Solde Total Estimé",
@@ -308,8 +310,10 @@ const i18n = {
     invalidAmount: "Invalid amount",
     swapping: "Swapping...",
     swapSuccess: "Swap successful!",
-    claiming: "Claiming...",
-    claimed: "Rewards claimed! 🎉",
+    claiming: "Claim pending…",
+    claimed: "Claim confirmed",
+    claimStillPending: "Claim is still awaiting Polygon confirmation.",
+    claimNotConfirmed: "Claim not confirmed. Check your history before trying again.",
     days: "Days",
     rig: "RIG",
     totalBal: "Estimated Total Balance",
@@ -2473,23 +2477,79 @@ class Application {
     }
   }
 
+  isServerResponse403(error) {
+    const numericStatuses = [
+      error?.status,
+      error?.statusCode,
+      error?.response?.status,
+      error?.info?.responseStatus
+    ];
+    if (numericStatuses.some((value) => Number(value) === 403)) return true;
+    const text = [
+      error?.message,
+      error?.shortMessage,
+      error?.reason,
+      error?.error?.message
+    ].filter(Boolean).join(' ');
+    return /\b403\b/.test(text);
+  }
+
+  async waitForClaimReceipt(tx) {
+    try {
+      return await tx.wait();
+    } catch (error) {
+      if (!this.isServerResponse403(error)) throw error;
+      const hash = tx?.hash || error?.transactionHash || error?.hash || error?.transaction?.hash || '';
+      if (hash && this.provider && typeof this.provider.getTransactionReceipt === 'function') {
+        try {
+          return await this.provider.getTransactionReceipt(hash);
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+  }
+
   async claim() {
     if (!this.user) return;
     if (!this.userMachines.length) return this.showToast(this.t('errNoMachine'), true);
-    if (!(await this.ensurePolGas())) return;
 
     this.stopMiningCounter();
     this.setLoader(true, this.t('claiming'));
+    this.showToast(this.t('claiming'));
     try {
+      if (!(await this.ensurePolGas())) {
+        if (this.currentRealPower > 0) this.startMiningCounter();
+        return;
+      }
       const tx = await this.mine.claimRewards();
-      await tx.wait();
+      const receipt = await this.waitForClaimReceipt(tx);
+      if (!receipt) {
+        this.showToast(this.t('claimStillPending'));
+        if (this.currentRealPower > 0) this.startMiningCounter();
+        return;
+      }
+      if (Number(receipt.status ?? 1) === 0) {
+        this.showToast(this.t('claimNotConfirmed'), true);
+        if (this.currentRealPower > 0) this.startMiningCounter();
+        return;
+      }
       this.pendingBalance = 0;
       document.getElementById('val-pending').textContent = "0.00000000";
       FitiaSecurity.Native.vibrate(45);
       this.showToast(this.t('claimed'));
-      await this.updateData();
+      try {
+        await this.updateData();
+      } catch (_) {
+        // Un rafraîchissement RPC en échec n'annule pas une réclamation confirmée.
+      }
     } catch (e) {
-      this.showError(e);
+      if (this.isServerResponse403(e)) {
+        this.showToast(this.t('claimNotConfirmed'), true);
+      } else {
+        this.showError(e);
+      }
       if (this.currentRealPower > 0) this.startMiningCounter();
     } finally {
       this.setLoader(false);
