@@ -694,23 +694,6 @@ header {
   gap: 6px;
 }
 
-.wallet-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(240, 185, 11, 0.28);
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 20px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.wallet-status:active { transform: scale(0.96); background: rgba(240, 185, 11, 0.18); }
-.shield-mini { font-size: 0.8rem; }
-
 .btn-icon-header {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -725,6 +708,14 @@ header {
   cursor: pointer;
 }
 .btn-icon-header:active { background: rgba(239, 68, 68, 0.25); }
+.settings-btn-header {
+  flex-shrink: 0;
+  color: var(--primary);
+  border-color: rgba(240, 185, 11, 0.28);
+  font-size: 1rem;
+  transition: transform 0.15s, background 0.15s;
+}
+.settings-btn-header:active { transform: scale(0.94); background: rgba(240, 185, 11, 0.18); }
 
 .status-dot {
   width: 8px;
@@ -1744,8 +1735,7 @@ main::-webkit-scrollbar { display: none; }
   header { padding: 10px 10px; padding-top: max(10px, var(--safe-top)); }
   .brand-text { font-size: 0.82rem; }
   .header-right { gap: 4px; }
-  .activity-bell { width: 32px; height: 32px; }
-  .wallet-status { padding: 5px 8px; font-size: 0.7rem; }
+  .activity-bell, .settings-btn-header { width: 32px; height: 32px; }
   .pin-key { height: 52px; font-size: 1.25rem; }
   .seed-grid { grid-template-columns: repeat(2, 1fr); }
   .plug-grid { grid-template-columns: 1fr; }

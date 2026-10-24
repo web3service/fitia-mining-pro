@@ -1531,7 +1531,6 @@ class Application {
     document.getElementById('chat-fab-btn')?.classList.remove('hidden');
 
     const short = this.shortAddr(this.user);
-    document.getElementById('addr-display').textContent = short;
     document.getElementById('wallet-card-addr').textContent = short;
 
     // Décimales dynamiques du token FTA + paramètres de frais du Core
