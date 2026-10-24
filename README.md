@@ -1,4 +1,4 @@
-# ⚡ FITIA PRO MINER V3.3.2 — Application Mobile Autonome & APK Android Durci
+# ⚡ FITIA PRO MINER V3.3.3 — Application Mobile Autonome & APK Android Durci
 
 Application mobile **100% indépendante** pour l'écosystème **FITIA PRO** sur **Polygon Mainnet (Chain ID 137)**, intégrant directement son propre **portefeuille crypto non-custodial haute sécurité** et compilée en **APK Android signé (`FITIA-PRO-Miner.apk`)**.
 
@@ -10,11 +10,11 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 - **`android-src/wallet.html`** : interface du portefeuille réservée à l'APK et embarquée sous `assets/www/wallet.html`.
 - **Chargement local sécurisé** : Android ouvre `https://app.fitia.pro/wallet.html`, dont le contenu est intercepté et servi depuis les assets locaux. L'origine est conservée pour préserver le coffre chiffré et les données existantes.
 - **Chargement silencieux** : seule l'animation est affichée, sans messages de progression.
-- **En-tête allégé** : l'adresse du wallet est remplacée par un bouton **Paramètres** ouvrant les réglages et la sécurité. L'adresse reste disponible dans la carte Portefeuille et à la réception.
+- **En-tête allégé** : l'adresse du wallet est remplacée par un bouton **Paramètres** ouvrant les réglages et la sécurité. L'adresse reste disponible dans la carte Portefeuille et à la réception. Dans cette modale, les sous-titres techniques, indications réseau, boutons PolygonScan/Verrouiller et émojis sont masqués sans désactiver les protections.
 
 ---
 
-## 🛡️ Architecture Sécurité Durcie (V3.3.2)
+## 🛡️ Architecture Sécurité Durcie (V3.3.3)
 
 - **Chiffrement du Coffre-Fort à 3 Couches Indépendantes** :
   1. **Couche 1 (Utilisateur)** : `AES-256-GCM` dérivé du code PIN à 6 chiffres via `PBKDF2-SHA256` à **310 000 itérations** (sel aléatoire 128 bits, IV 96 bits). Rejet systématique des codes PIN faibles ou répétitifs (`123456`, `000000`, `121212`, `258025`, etc.).

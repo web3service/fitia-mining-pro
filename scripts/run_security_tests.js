@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.2 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.3 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -387,7 +387,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.2\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.3\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -591,7 +591,29 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(settingsButton.getAttribute('aria-label'), 'Ouvrir les paramètres');
       assert.strictEqual(e2eWin.document.getElementById('wallet-card-addr').textContent, App.shortAddr(App.user), 'Adresse conservée dans la carte Portefeuille');
       await App.openSecurityModal();
-      assert.ok(e2eWin.document.getElementById('modal-security').classList.contains('active'), 'Le bouton ouvre les réglages et la sécurité');
+      const settingsModal = e2eWin.document.getElementById('modal-security');
+      assert.ok(settingsModal.classList.contains('active'), 'Le bouton ouvre les réglages et la sécurité');
+      const hiddenSettingsSelectors = [
+        '.sec-wallet-top',
+        '[data-i18n="reqPinHint"]',
+        '[data-i18n="changePinSub"]',
+        '[data-i18n="autoLockSub"]',
+        'button[onclick="App.openPolygonScan()"]',
+        'button[onclick="App.lockWallet()"]'
+      ];
+      hiddenSettingsSelectors.forEach((selector) => {
+        const elements = settingsModal.querySelectorAll(selector);
+        assert.ok(elements.length > 0, `Élément de paramètres trouvé : ${selector}`);
+        elements.forEach((element) => {
+          assert.ok(element.classList.contains('hidden'), `Élément masqué dans les paramètres : ${selector}`);
+        });
+      });
+      assert.ok(
+        !/[\u{2300}-\u{23FF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u.test(settingsModal.textContent),
+        'Aucun emoji dans la modale Paramètres'
+      );
+      assert.ok(!e2eWin.document.getElementById('select-autolock').classList.contains('hidden'), 'Le réglage de verrouillage automatique reste disponible');
+      assert.ok(!e2eWin.document.getElementById('btn-lock-app').classList.contains('hidden'), 'Le verrouillage de l’en-tête principal reste disponible');
       App.closeModals();
     });
 
@@ -885,8 +907,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=308'), 'versionCode=308 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.2"'), 'versionName=3.3.2 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=309'), 'versionCode=309 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.3"'), 'versionName=3.3.3 présent');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');
