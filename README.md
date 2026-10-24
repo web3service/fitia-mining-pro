@@ -1,4 +1,4 @@
-# ⚡ FITIA PRO MINER V3.3.4 — Application Mobile Autonome & APK Android Durci
+# ⚡ FITIA PRO MINER V3.3.5 — Application Mobile Autonome & APK Android Durci
 
 Application mobile **100% indépendante** pour l'écosystème **FITIA PRO** sur **Polygon Mainnet (Chain ID 137)**, intégrant directement son propre **portefeuille crypto non-custodial haute sécurité** et compilée en **APK Android signé (`FITIA-PRO-Miner.apk`)**.
 
@@ -14,7 +14,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
-## 🛡️ Architecture Sécurité Durcie (V3.3.4)
+## 🛡️ Architecture Sécurité Durcie (V3.3.5)
 
 - **Chiffrement du Coffre-Fort à 3 Couches Indépendantes** :
   1. **Couche 1 (Utilisateur)** : `AES-256-GCM` dérivé du code PIN à 6 chiffres via `PBKDF2-SHA256` à **310 000 itérations** (sel aléatoire 128 bits, IV 96 bits). Rejet systématique des codes PIN faibles ou répétitifs (`123456`, `000000`, `121212`, `258025`, etc.).
@@ -46,10 +46,20 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
+## 📲 Mise à Jour dans l’Application & Signature Stable
+
+- **`update.json`** publie la version disponible, l’URL GitHub Release et le SHA-256 de l’APK. L’application affiche une notification uniquement lorsqu’une version supérieure est disponible et mémorise « Plus tard » par version.
+- Le téléchargement natif accepte uniquement les releases HTTPS du dépôt officiel, limite la taille du fichier et vérifie son SHA-256 avant d’ouvrir le programme d’installation Android. Le provider interne expose uniquement cet APK en lecture seule.
+- Android demande toujours l’autorisation d’installation et la confirmation de l’utilisateur. Le canal de mise à jour dans l’application est actif, tandis que la vitrine publique reste en maintenance.
+- **Certificat stable** : le build réutilise `android-src/keystore/fitia-release.p12` (dossier ignoré par Git) et vérifie l’empreinte publique épinglée dans `android-src/release-certificate-sha256.txt`. Il ne génère plus de nouvelle clé automatiquement et refuse de produire un APK avec un certificat différent.
+- La clé privée et ses mots de passe doivent être sauvegardés hors Git dans un emplacement sécurisé. Les variables `FITIA_ANDROID_KEYSTORE`, `FITIA_ANDROID_KEYSTORE_PASSWORD`, `FITIA_ANDROID_KEY_PASSWORD` et `FITIA_ANDROID_KEY_ALIAS` permettent d’utiliser un emplacement externe.
+
+---
+
 ## 🧪 Tests Automatisés & Recompilation APK
 
 ```bash
-# Lancer la suite complète d'audit sécurité & tests E2E (19 tests)
+# Lancer la suite complète d'audit sécurité & tests E2E (20 tests)
 npm test
 
 # Recompiler, aligner (4 octets) et signer l'APK Android (v2 + v3)

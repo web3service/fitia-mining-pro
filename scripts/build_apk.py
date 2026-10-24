@@ -6,6 +6,7 @@ Pipeline officiel Android : aapt2 -> ecj (javac) -> d8 (dex) -> 4-byte zipalign 
 
 import glob
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -16,10 +17,16 @@ ANDROID_SRC = os.path.join(ROOT_DIR, "android-src")
 BUILD_DIR = "/tmp/fitia-apk-build"
 TOOLCHAIN_DIR = os.environ.get("ANDROID_TOOLCHAIN_DIR", "/tmp/android-toolchain")
 OUTPUT_APK = os.path.join(ROOT_DIR, "FITIA-PRO-Miner.apk")
+CERTIFICATE_PIN_FILE = os.path.join(ANDROID_SRC, "release-certificate-sha256.txt")
 
 
 def run_cmd(cmd, cwd=None):
-    print("  $", " ".join(cmd))
+    sensitive_flags = {"--ks-pass", "--key-pass", "-storepass", "-keypass"}
+    display_cmd = [
+        "<secret>" if index > 0 and cmd[index - 1] in sensitive_flags else argument
+        for index, argument in enumerate(cmd)
+    ]
+    print("  $", " ".join(display_cmd))
     res = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if res.returncode != 0:
         print(res.stdout)
@@ -236,32 +243,34 @@ def main():
     )
     verify_apk_alignment(aligned_apk)
 
-    print("6/6 Signature cryptographique de l'APK (v1 + v2 + v3)...")
-    keystore_dir = os.path.join(BUILD_DIR, "keystore")
-    os.makedirs(keystore_dir, exist_ok=True)
-    keystore_path = os.path.join(keystore_dir, "fitia-release.p12")
-    ks_pass = "FitiaProMining2026!"
-    alias = "fitia_release"
+    print("6/6 Signature cryptographique de l'APK avec le certificat stable (v1 + v2 + v3)...")
+    keystore_path = os.environ.get(
+        "FITIA_ANDROID_KEYSTORE",
+        os.path.join(ANDROID_SRC, "keystore", "fitia-release.p12")
+    )
+    ks_pass = os.environ.get("FITIA_ANDROID_KEYSTORE_PASSWORD", "FitiaProMining2026!")
+    key_pass = os.environ.get("FITIA_ANDROID_KEY_PASSWORD", ks_pass)
+    alias = os.environ.get("FITIA_ANDROID_KEY_ALIAS", "fitia_release")
 
-    run_cmd([
-        keytool_bin, "-genkeypair",
-        "-keystore", keystore_path,
-        "-storetype", "PKCS12",
-        "-storepass", ks_pass,
-        "-keypass", ks_pass,
-        "-alias", alias,
-        "-keyalg", "RSA",
-        "-keysize", "2048",
-        "-validity", "10000",
-        "-dname", "CN=FITIA PRO MINER, OU=Mobile Wallet, O=Fitia Pro, L=Paris, C=FR"
-    ])
+    if not os.path.isfile(keystore_path):
+        raise FileNotFoundError(
+            "Clé de signature stable introuvable. Restaurez le fichier .p12/.jks dans "
+            "android-src/keystore/ ou définissez FITIA_ANDROID_KEYSTORE. "
+            "Aucune nouvelle clé n'est générée automatiquement."
+        )
+    if not os.path.isfile(CERTIFICATE_PIN_FILE):
+        raise FileNotFoundError(f"Empreinte de certificat attendue manquante : {CERTIFICATE_PIN_FILE}")
+    with open(CERTIFICATE_PIN_FILE, "r", encoding="utf-8") as cert_file:
+        expected_cert_sha256 = cert_file.read().strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_cert_sha256):
+        raise RuntimeError("L'empreinte SHA-256 du certificat attendu est invalide.")
 
     run_cmd([
         java_bin, "-jar", apksigner_jar, "sign",
         "--ks", keystore_path,
         "--ks-key-alias", alias,
         "--ks-pass", f"pass:{ks_pass}",
-        "--key-pass", f"pass:{ks_pass}",
+        "--key-pass", f"pass:{key_pass}",
         "--v1-signing-enabled", "true",
         "--v2-signing-enabled", "true",
         "--v3-signing-enabled", "true",
@@ -271,6 +280,15 @@ def main():
 
     verify_out = run_cmd([java_bin, "-jar", apksigner_jar, "verify", "--verbose", "--print-certs", OUTPUT_APK])
     print(verify_out.strip())
+    cert_match = re.search(r"Signer #1 certificate SHA-256 digest:\s*([0-9a-fA-F]{64})", verify_out)
+    actual_cert_sha256 = cert_match.group(1).lower() if cert_match else ""
+    if actual_cert_sha256 != expected_cert_sha256:
+        os.remove(OUTPUT_APK)
+        raise RuntimeError(
+            "Le certificat de l'APK ne correspond pas au certificat stable attendu. "
+            "L'APK non conforme a été supprimé."
+        )
+    print(f"  ✓ Certificat stable vérifié : {actual_cert_sha256}")
     badging_out = run_cmd([aapt2_bin, "dump", "badging", OUTPUT_APK])
     for line in badging_out.splitlines()[:8]:
         print(" ", line)

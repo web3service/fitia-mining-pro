@@ -76,6 +76,33 @@
       }
     },
 
+    getAppVersionCode() {
+      try {
+        if (global.FitiaNative && typeof global.FitiaNative.getAppVersionCode === 'function') {
+          return Number(global.FitiaNative.getAppVersionCode()) || 0;
+        }
+      } catch (_) {}
+      return 0;
+    },
+
+    getAppVersionName() {
+      try {
+        if (global.FitiaNative && typeof global.FitiaNative.getAppVersionName === 'function') {
+          return String(global.FitiaNative.getAppVersionName() || '');
+        }
+      } catch (_) {}
+      return '';
+    },
+
+    downloadAndInstallUpdate(url, expectedSha256) {
+      try {
+        if (global.FitiaNative && typeof global.FitiaNative.downloadAndInstallUpdate === 'function') {
+          return !!global.FitiaNative.downloadAndInstallUpdate(String(url || ''), String(expectedSha256 || ''));
+        }
+      } catch (_) {}
+      return false;
+    },
+
     setScreenSecure(secure) {
       try {
         if (global.FitiaNative && typeof global.FitiaNative.setScreenSecure === 'function') {

@@ -11,6 +11,7 @@ const CONFIG = {
   FTA:  "0x5c418b12c7e9c2A8e9A71A68c6d9b319E7B1d1fd",
   CHAIN_ID: 137,
   EXPLORER: "https://polygonscan.com",
+  UPDATE_MANIFEST: "https://raw.githubusercontent.com/web3service/fitia-mining-pro/main/update.json",
   WHATSAPP_GROUP: "https://chat.whatsapp.com/BDsvPCB6xp8H8X0YaRmPFP",
   WHATSAPP_CHANNEL: "https://whatsapp.com/channel/0029VbCQhI38PgsPLbBJdV1e"
 };
@@ -30,6 +31,14 @@ const i18n = {
     importExistingWallet: "📥 J'ai déjà un portefeuille (12 mots / Clé)",
     downloadApkTitle: "Télécharger l'application Android (.APK)",
     downloadApkSub: "Installation directe sur votre téléphone",
+    updateAvailableTitle: "Nouvelle mise à jour disponible",
+    updateDownloadInstall: "Télécharger et installer",
+    updateLater: "Plus tard",
+    updateInstallHint: "Android vous demandera de confirmer l’installation.",
+    updateDownloading: "Téléchargement de la mise à jour…",
+    updateStartError: "Impossible de lancer la mise à jour. Réessayez plus tard.",
+    updateLatest: "L’application est à jour.",
+    updateCheckFailed: "Impossible de vérifier la mise à jour pour le moment.",
     back: "Retour",
     backupSeedTitle: "Phrase de récupération (12 mots)",
     backupSeedWarn: "Notez ces 12 mots dans l'ordre exact et gardez-les en lieu sûr. Ne les partagez jamais : quiconque possède ces mots contrôle vos fonds.",
@@ -221,6 +230,14 @@ const i18n = {
     importExistingWallet: "📥 I already have a wallet (12 words / Key)",
     downloadApkTitle: "Download Android App (.APK)",
     downloadApkSub: "Direct installation on your phone",
+    updateAvailableTitle: "New update available",
+    updateDownloadInstall: "Download and install",
+    updateLater: "Later",
+    updateInstallHint: "Android will ask you to confirm the installation.",
+    updateDownloading: "Downloading the update…",
+    updateStartError: "Unable to start the update. Please try again later.",
+    updateLatest: "The app is up to date.",
+    updateCheckFailed: "Unable to check for updates right now.",
     back: "Back",
     backupSeedTitle: "Recovery Phrase (12 words)",
     backupSeedWarn: "Write down these 12 words in exact order and keep them safe. Never share them: anyone with these words controls your funds.",
@@ -656,6 +673,8 @@ class Application {
     this.refreshInterval = null;
     this.lockoutTimer = null;
     this.backgroundedAt = 0;
+    this.availableUpdate = null;
+    this.updateCheckInFlight = false;
 
     this.vizContext = null;
     this.vizBars = [];
@@ -744,6 +763,88 @@ class Application {
     } else {
       this.showAuthStep('welcome');
     }
+  }
+
+  normalizeUpdateManifest(raw) {
+    if (!raw || raw.enabled !== true) return null;
+    const versionCode = Number(raw.versionCode);
+    if (!Number.isSafeInteger(versionCode) || versionCode <= 0) return null;
+    const versionName = String(raw.versionName || '').trim();
+    const sha256 = String(raw.sha256 || '').toLowerCase();
+    if (!/^[0-9A-Za-z.-]{1,24}$/.test(versionName) || !/^[0-9a-f]{64}$/.test(sha256)) return null;
+    try {
+      const apkUrl = new URL(String(raw.apkUrl || ''));
+      if (apkUrl.protocol !== 'https:' || apkUrl.hostname !== 'github.com' || apkUrl.username || apkUrl.password) return null;
+      if ((apkUrl.port && apkUrl.port !== '443') || !apkUrl.pathname.startsWith('/web3service/fitia-mining-pro/releases/download/') || !apkUrl.pathname.endsWith('.apk')) return null;
+      return {
+        versionCode,
+        versionName,
+        apkUrl: apkUrl.href,
+        sha256,
+        notes: String(raw.notes || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 320)
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async checkForUpdates(manual = false) {
+    if (this.updateCheckInFlight || !FitiaSecurity.Native.isNativeApk()) return;
+    const installedVersionCode = FitiaSecurity.Native.getAppVersionCode();
+    if (!installedVersionCode) return;
+    this.updateCheckInFlight = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(CONFIG.UPDATE_MANIFEST, {
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error('UPDATE_UNAVAILABLE');
+      const update = this.normalizeUpdateManifest(await response.json());
+      if (!update || update.versionCode <= installedVersionCode) {
+        if (manual) this.showToast(this.t('updateLatest'));
+        return;
+      }
+      this.availableUpdate = update;
+      const dismissedVersion = Number(localStorage.getItem('fitia_update_dismissed_code') || 0);
+      if (!manual && dismissedVersion === update.versionCode) return;
+      this.showUpdateModal(update);
+    } catch (_) {
+      if (manual) this.showToast(this.t('updateCheckFailed'), true);
+    } finally {
+      clearTimeout(timeout);
+      this.updateCheckInFlight = false;
+    }
+  }
+
+  showUpdateModal(update) {
+    if (!update) return;
+    this.availableUpdate = update;
+    document.getElementById('update-version').textContent = `Version ${update.versionName}`;
+    document.getElementById('update-notes').textContent = update.notes;
+    document.getElementById('update-notes').classList.toggle('hidden', !update.notes);
+    document.getElementById('modal-update').classList.add('active');
+  }
+
+  startUpdateDownload() {
+    const update = this.availableUpdate;
+    if (!update) return;
+    const started = FitiaSecurity.Native.downloadAndInstallUpdate(update.apkUrl, update.sha256);
+    if (!started) {
+      this.showToast(this.t('updateStartError'), true);
+      return;
+    }
+    document.getElementById('modal-update').classList.remove('active');
+    this.showToast(this.t('updateDownloading'));
+  }
+
+  dismissUpdate() {
+    if (this.availableUpdate) {
+      localStorage.setItem('fitia_update_dismissed_code', String(this.availableUpdate.versionCode));
+    }
+    document.getElementById('modal-update').classList.remove('active');
   }
 
   setupLifecycleListeners() {
@@ -1564,6 +1665,7 @@ class Application {
 
     this.initVisualizer();
     window.addEventListener('resize', () => this.resizeCanvas());
+    setTimeout(() => this.checkForUpdates(false), 1200);
   }
 
   // ─── Vérification préalable du gaz POL sur Polygon ───────────────

@@ -681,6 +681,21 @@
   </div>
 </div>
 
+<!-- Notification de mise à jour Android -->
+<div id="modal-update" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 data-i18n="updateAvailableTitle">Nouvelle mise à jour disponible</h3>
+      <button class="modal-close" onclick="App.dismissUpdate()" aria-label="Fermer">✕</button>
+    </div>
+    <p id="update-version" class="update-version">Version</p>
+    <p id="update-notes" class="small-text update-notes"></p>
+    <p class="small-text" data-i18n="updateInstallHint">Android vous demandera de confirmer l’installation.</p>
+    <button class="btn-primary" onclick="App.startUpdateDownload()" data-i18n="updateDownloadInstall">Télécharger et installer</button>
+    <button class="btn-secondary-outline update-later-btn" onclick="App.dismissUpdate()" data-i18n="updateLater">Plus tard</button>
+  </div>
+</div>
+
 <!-- Modale d'Affichage de Secret (12 mots / Clé Privée) -->
 <div id="modal-secret-reveal" class="modal">
   <div class="modal-content">

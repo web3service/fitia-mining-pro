@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.4 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.5 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -101,12 +101,21 @@ function createMockAndroidBridge() {
     pinGuardJson: '',
     clipboard: '',
     lastClearDelayMs: 0,
-    vibrations: 0
+    vibrations: 0,
+    appVersionCode: 0,
+    appVersionName: '',
+    updateDownloads: []
   };
 
   return {
     _state: state,
     isNativeApk: () => true,
+    getAppVersionCode: () => state.appVersionCode,
+    getAppVersionName: () => state.appVersionName,
+    downloadAndInstallUpdate: (url, expectedSha256) => {
+      state.updateDownloads.push({ url: String(url), expectedSha256: String(expectedSha256) });
+      return true;
+    },
     vibrate: () => { state.vibrations++; },
     setScreenSecure: (enable) => { state.screenSecure = Boolean(enable); },
     copyText: (t) => { state.clipboard = String(t || ''); },
@@ -387,7 +396,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.4\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.5\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -721,6 +730,64 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
+    await runTest('APP-UPDATE', 'Notification de mise à jour, téléchargement natif autorisé et mémorisation de Plus tard', async () => {
+      const originalFetch = e2eWin.fetch;
+      const nativeState = e2eWin.FitiaNative._state;
+      const originalDownloads = nativeState.updateDownloads;
+      const update = {
+        enabled: true,
+        versionCode: 311,
+        versionName: '3.3.5',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.5/FITIA-PRO-Miner.apk',
+        sha256: 'a'.repeat(64),
+        notes: '<img src=x onerror=alert(1)> Mise à jour stable'
+      };
+      nativeState.appVersionCode = 310;
+      nativeState.updateDownloads = [];
+      e2eWin.localStorage.removeItem('fitia_update_dismissed_code');
+      e2eWin.fetch = async () => ({ ok: true, json: async () => update });
+
+      try {
+        await App.checkForUpdates(true);
+        const modal = e2eWin.document.getElementById('modal-update');
+        assert.ok(modal.classList.contains('active'), 'Une version supérieure ouvre la notification');
+        assert.strictEqual(e2eWin.document.getElementById('update-version').textContent, 'Version 3.3.5');
+        assert.strictEqual(modal.querySelector('img'), null, 'Les notes de version restent du texte sûr');
+
+        App.startUpdateDownload();
+        assert.strictEqual(nativeState.updateDownloads.length, 1);
+        assert.strictEqual(nativeState.updateDownloads[0].url, update.apkUrl);
+        assert.strictEqual(nativeState.updateDownloads[0].expectedSha256, update.sha256);
+        assert.ok(!modal.classList.contains('active'), 'La modale se ferme au lancement du téléchargement');
+
+        await App.checkForUpdates(true);
+        assert.ok(modal.classList.contains('active'));
+        App.dismissUpdate();
+        assert.strictEqual(e2eWin.localStorage.getItem('fitia_update_dismissed_code'), '311');
+        await App.checkForUpdates(false);
+        assert.ok(!modal.classList.contains('active'), 'La version ignorée ne rouvre pas la notification automatique');
+
+        assert.strictEqual(
+          App.normalizeUpdateManifest({ ...update, apkUrl: 'https://example.com/FITIA-PRO-Miner.apk' }),
+          null,
+          'Une URL de téléchargement non autorisée est rejetée'
+        );
+        assert.strictEqual(App.normalizeUpdateManifest({ ...update, sha256: 'invalide' }), null);
+
+        nativeState.appVersionCode = 311;
+        await App.checkForUpdates(true);
+        assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
+      } finally {
+        e2eWin.fetch = originalFetch;
+        nativeState.appVersionCode = 0;
+        nativeState.updateDownloads = originalDownloads;
+        e2eWin.localStorage.removeItem('fitia_update_dismissed_code');
+        App.availableUpdate = null;
+        App.updateCheckInFlight = false;
+        e2eWin.document.getElementById('modal-update').classList.remove('active');
+      }
+    });
+
     await runTest('POLYGON-GAS', 'Plancher EIP-1559 Polygon >= 30 Gwei imposé automatiquement par PolygonRpcManager', async () => {
       const fees = await e2eWin.FitiaSecurity.Rpc.getOptimalFeeData(App.provider);
       const min30Gwei = ethersLib.parseUnits('30', 'gwei');
@@ -991,6 +1058,12 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
       assert.ok(!packagedFiles.includes('assets/www/index.html'), 'La vitrine publique n’est pas embarquée dans l’APK');
+      const updateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
+      const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
+      assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
+      assert.strictEqual(updateManifest.versionCode, 311);
+      assert.strictEqual(updateManifest.versionName, '3.3.5');
+      assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste distant épingle le SHA-256 exact de l’APK');
 
       const aapt2 = '/tmp/android-toolchain/aapt2';
       const java = '/tmp/android-toolchain/jdk/bin/java';
@@ -998,8 +1071,11 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=310'), 'versionCode=310 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.4"'), 'versionName=3.3.4 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=311'), 'versionCode=311 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.5"'), 'versionName=3.3.5 présent');
+        assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
+        assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
+        assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');
@@ -1008,9 +1084,11 @@ function httpRequest(port, method, reqPath) {
         const netSecTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'res/xml/network_security_config.xml'], { encoding: 'utf8' });
         assert.ok(netSecTree.includes('cleartextTrafficPermitted=false'), 'cleartextTrafficPermitted=false vérifié');
 
-        const sigOut = execFileSync(java, ['-jar', apksigner, 'verify', '--verbose', apkPath], { encoding: 'utf8' });
+        const sigOut = execFileSync(java, ['-jar', apksigner, 'verify', '--verbose', '--print-certs', apkPath], { encoding: 'utf8' });
         assert.ok(sigOut.includes('Verified using v2 scheme (APK Signature Scheme v2): true'));
         assert.ok(sigOut.includes('Verified using v3 scheme (APK Signature Scheme v3): true'));
+        const expectedCertificate = fs.readFileSync(path.join(ROOT, 'android-src', 'release-certificate-sha256.txt'), 'utf8').trim().toLowerCase();
+        assert.ok(sigOut.toLowerCase().includes(expectedCertificate), 'Le certificat stable épinglé signe bien l’APK');
       }
     });
 
