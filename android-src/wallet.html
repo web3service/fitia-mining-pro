@@ -579,20 +579,20 @@
 <div id="modal-security" class="modal">
   <div class="modal-content modal-scrollable">
     <div class="modal-header">
-      <h3 data-i18n="securityCenterTitle">🛡️ Portefeuille & Sécurité</h3>
+      <h3 data-i18n="securityCenterTitle">Portefeuille & Sécurité</h3>
       <button class="modal-close" onclick="App.closeModals()">✕</button>
     </div>
 
     <div class="sec-wallet-summary">
-      <div class="sec-wallet-top">
-        <span class="status-pill active">● Polygon (137)</span>
+      <div class="sec-wallet-top hidden">
+        <span class="status-pill active">Polygon (137)</span>
         <span id="sec-rpc-latency" class="rpc-latency-badge">RPC OK</span>
       </div>
       <div class="sec-addr-full" id="sec-full-address">0x...</div>
       <div class="sec-wallet-btns">
-        <button class="btn-chip" onclick="App.copyReceiveAddress()">📋 <span data-i18n="copyAddrShort">Copier</span></button>
-        <button class="btn-chip" onclick="App.openPolygonScan()">🔍 PolygonScan</button>
-        <button class="btn-chip" onclick="App.lockWallet()">🔒 <span data-i18n="lockNow">Verrouiller</span></button>
+        <button class="btn-chip" onclick="App.copyReceiveAddress()"><span data-i18n="copyAddrShort">Copier</span></button>
+        <button class="btn-chip hidden" onclick="App.openPolygonScan()">PolygonScan</button>
+        <button class="btn-chip hidden" onclick="App.lockWallet()"><span data-i18n="lockNow">Verrouiller</span></button>
       </div>
     </div>
 
@@ -600,20 +600,18 @@
     <div class="sec-menu-list">
       <button id="btn-export-seed" class="sec-menu-item" onclick="App.exportRecoveryPhrase()">
         <div class="sec-menu-left">
-          <span class="sec-icon">📝</span>
           <div>
             <strong data-i18n="viewSeedPhrase">Phrase de récupération (12 mots)</strong>
-            <small data-i18n="reqPinHint">Protégé par code PIN</small>
+            <small class="hidden" data-i18n="reqPinHint">Protégé par code PIN</small>
           </div>
         </div>
         <span>›</span>
       </button>
       <button class="sec-menu-item" onclick="App.exportPrivateKey()">
         <div class="sec-menu-left">
-          <span class="sec-icon">🗝️</span>
           <div>
             <strong data-i18n="exportPrivKey">Exporter la clé privée</strong>
-            <small data-i18n="reqPinHint">Protégé par code PIN</small>
+            <small class="hidden" data-i18n="reqPinHint">Protégé par code PIN</small>
           </div>
         </div>
         <span>›</span>
@@ -624,10 +622,9 @@
     <div class="sec-menu-list">
       <button class="sec-menu-item" onclick="App.startChangePin()">
         <div class="sec-menu-left">
-          <span class="sec-icon">🔢</span>
           <div>
             <strong data-i18n="changePinTitle">Modifier le code PIN à 6 chiffres</strong>
-            <small data-i18n="changePinSub">Rechiffrer le coffre-fort AES-256</small>
+            <small class="hidden" data-i18n="changePinSub">Rechiffrer le coffre-fort AES-256</small>
           </div>
         </div>
         <span>›</span>
@@ -635,7 +632,6 @@
 
       <div id="sec-bio-row" class="sec-menu-item no-tap hidden">
         <div class="sec-menu-left">
-          <span class="sec-icon">🫆</span>
           <div>
             <strong data-i18n="biometricUnlock">Déverrouillage biométrique</strong>
             <small data-i18n="biometricSub">Empreinte digitale / Reconnaissance faciale</small>
@@ -649,10 +645,9 @@
 
       <div class="sec-menu-item no-tap">
         <div class="sec-menu-left">
-          <span class="sec-icon">⏱️</span>
           <div>
             <strong data-i18n="autoLockLabel">Verrouillage automatique</strong>
-            <small data-i18n="autoLockSub">Après inactivité en arrière-plan</small>
+            <small class="hidden" data-i18n="autoLockSub">Après inactivité en arrière-plan</small>
           </div>
         </div>
         <select id="select-autolock" class="sec-inline-select" onchange="App.onChangeAutoLock(this.value)">
@@ -674,16 +669,14 @@
     </div>
 
     <a id="sec-apk-download-btn" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk" class="apk-download-banner" style="margin-top:14px;">
-      <span>📲</span>
       <div>
         <strong data-i18n="downloadApkTitle">Télécharger l'APK Android</strong>
         <small data-i18n="downloadApkSub">Installer FITIA PRO sur téléphone Android</small>
       </div>
-      <span>⬇</span>
     </a>
 
     <button class="btn-danger-outline" style="margin-top: 16px;" onclick="App.promptResetWallet()" data-i18n="switchOrResetWallet">
-      🔄 Changer ou réinitialiser ce portefeuille
+      Changer ou réinitialiser ce portefeuille
     </button>
   </div>
 </div>
