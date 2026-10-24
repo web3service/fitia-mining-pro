@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.0 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.1 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -387,7 +387,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.0\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.1\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -584,6 +584,15 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(e2eWin.document.getElementById('bal-wallet-usdt').textContent, '125.50');
       assert.strictEqual(e2eWin.document.getElementById('bal-usdt').textContent, '50.00');
       assert.ok(App.currentRealPower > 0, 'Puissance de minage V3.2 calculée depuis myInfo()');
+
+      assert.strictEqual(e2eWin.document.getElementById('addr-display'), null, 'Adresse masquée dans l’en-tête');
+      const settingsButton = e2eWin.document.getElementById('btn-settings-app');
+      assert.ok(settingsButton, 'Bouton Paramètres présent dans l’en-tête');
+      assert.strictEqual(settingsButton.getAttribute('aria-label'), 'Ouvrir les paramètres');
+      assert.strictEqual(e2eWin.document.getElementById('wallet-card-addr').textContent, App.shortAddr(App.user), 'Adresse conservée dans la carte Portefeuille');
+      await App.openSecurityModal();
+      assert.ok(e2eWin.document.getElementById('modal-security').classList.contains('active'), 'Le bouton ouvre les réglages et la sécurité');
+      App.closeModals();
     });
 
     await runTest('SMART-CONTRACT', 'Boutique V3.2 (shopExpiry) + fallback automatique V3.0 (64 octets) + Custom Errors', async () => {
@@ -806,8 +815,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=306'), 'versionCode=306 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.0"'), 'versionName=3.3.0 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=307'), 'versionCode=307 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.1"'), 'versionName=3.3.1 présent');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');
