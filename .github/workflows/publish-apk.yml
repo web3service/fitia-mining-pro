@@ -7,6 +7,13 @@ on:
         description: Existing GitHub release tag (for example v3.3.5)
         required: true
         type: string
+  push:
+    branches:
+      - main
+    paths:
+      - FITIA-PRO-Miner.apk
+      - update.json
+      - .github/workflows/publish-apk.yml
 
 permissions:
   contents: write
@@ -34,7 +41,14 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          gh release view "${{ inputs.tag }}"
-          gh release upload "${{ inputs.tag }}" FITIA-PRO-Miner.apk --clobber
+          expected_tag="v$(python3 -c 'import json; print(json.load(open("update.json"))["versionName"])')"
+          tag="${REQUESTED_TAG:-$expected_tag}"
+          if [[ "$tag" != "$expected_tag" ]]; then
+            echo "Release tag $tag does not match update.json ($expected_tag)" >&2
+            exit 1
+          fi
+          gh release view "$tag"
+          gh release upload "$tag" FITIA-PRO-Miner.apk --clobber
