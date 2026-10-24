@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.3 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.4 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -387,7 +387,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.3\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.4\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -628,6 +628,97 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(App.getErrorMessage({ revert: { name: 'Running' } }), App.t('errRunning'));
       assert.ok(App.getErrorMessage({ revert: { name: 'Expired', args: ['Shop'] } }).toLowerCase().includes('expir'));
       assert.ok(App.getErrorMessage({ revert: { name: 'InsF', args: ['USDT'] } }).includes('USDT'));
+    });
+
+    await runTest('CLAIM-UX', 'Réclamation en attente puis confirmée, avec récupération silencieuse après une réponse RPC 403', async () => {
+      const originals = {
+        mine: App.mine,
+        provider: App.provider,
+        ensurePolGas: App.ensurePolGas,
+        updateData: App.updateData,
+        stopMiningCounter: App.stopMiningCounter,
+        startMiningCounter: App.startMiningCounter,
+        showToast: App.showToast,
+        userMachines: App.userMachines,
+        currentRealPower: App.currentRealPower,
+        pendingBalance: App.pendingBalance
+      };
+      const pendingElement = e2eWin.document.getElementById('val-pending');
+      const oldPendingText = pendingElement.textContent;
+      const messages = [];
+      const hash = `0x${'ab'.repeat(32)}`;
+      App.ensurePolGas = async () => true;
+      App.updateData = async () => {};
+      App.stopMiningCounter = () => {};
+      App.startMiningCounter = () => {};
+      App.showToast = (message, isError = false) => messages.push({ message, isError });
+      App.userMachines = [{}];
+      App.currentRealPower = 0;
+
+      try {
+        let resolveReceipt;
+        App.mine = {
+          async claimRewards() {
+            return { hash, wait: () => new Promise((resolve) => { resolveReceipt = resolve; }) };
+          }
+        };
+        const firstClaim = App.claim();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.strictEqual(messages[0].message, 'Réclamation en attente…', 'Le clic affiche immédiatement la réclamation en attente');
+        resolveReceipt({ status: 1, blockNumber: 62500010 });
+        await firstClaim;
+        assert.strictEqual(messages.at(-1).message, 'Réclamation confirmée');
+        assert.strictEqual(messages.at(-1).isError, false);
+
+        messages.length = 0;
+        App.mine = {
+          async claimRewards() {
+            return {
+              hash,
+              wait: async () => { throw { code: 'SERVER_ERROR', message: 'server response 403', shortMessage: 'server response 403' }; }
+            };
+          }
+        };
+        App.provider = {
+          async getTransactionReceipt(requestedHash) {
+            assert.strictEqual(requestedHash, hash, 'Le reçu est revérifié par le hash après le 403');
+            return { status: 1, blockNumber: 62500011 };
+          }
+        };
+        App.updateData = async () => { throw { message: 'server response 403' }; };
+        await App.claim();
+        assert.deepStrictEqual(messages.map((item) => item.message), ['Réclamation en attente…', 'Réclamation confirmée']);
+        assert.ok(messages.every((item) => !item.message.includes('403') && !item.message.includes('server response')));
+
+        messages.length = 0;
+        App.updateData = async () => {};
+        App.provider = { async getTransactionReceipt() { return null; } };
+        await App.claim();
+        assert.strictEqual(messages.at(-1).message, App.t('claimStillPending'));
+        assert.ok(!messages.some((item) => item.message === 'Réclamation confirmée'), 'Aucune confirmation inventée sans reçu');
+        assert.ok(messages.every((item) => !item.message.includes('403')));
+
+        messages.length = 0;
+        App.mine = {
+          async claimRewards() { throw { code: 'SERVER_ERROR', message: 'server response 403', shortMessage: 'server response 403' }; }
+        };
+        await App.claim();
+        assert.strictEqual(messages.at(-1).message, App.t('claimNotConfirmed'));
+        assert.strictEqual(messages.at(-1).isError, true);
+        assert.ok(messages.every((item) => !item.message.includes('403') && !item.message.includes('Contrat :')));
+      } finally {
+        App.mine = originals.mine;
+        App.provider = originals.provider;
+        App.ensurePolGas = originals.ensurePolGas;
+        App.updateData = originals.updateData;
+        App.stopMiningCounter = originals.stopMiningCounter;
+        App.startMiningCounter = originals.startMiningCounter;
+        App.showToast = originals.showToast;
+        App.userMachines = originals.userMachines;
+        App.currentRealPower = originals.currentRealPower;
+        App.pendingBalance = originals.pendingBalance;
+        pendingElement.textContent = oldPendingText;
+      }
     });
 
     await runTest('POLYGON-GAS', 'Plancher EIP-1559 Polygon >= 30 Gwei imposé automatiquement par PolygonRpcManager', async () => {
@@ -907,8 +998,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=309'), 'versionCode=309 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.3"'), 'versionName=3.3.3 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=310'), 'versionCode=310 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.4"'), 'versionName=3.3.4 présent');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');
