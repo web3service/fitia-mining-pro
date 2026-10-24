@@ -1,0 +1,77 @@
+{
+  "enabled": true,
+  "announcements": [
+    {
+      "id": "official-news",
+      "category": "information",
+      "title": {
+        "fr": "Annonces officielles",
+        "en": "Official announcements",
+        "de": "Offizielle Ankündigungen",
+        "zh": "官方公告",
+        "sg": "Official announcements"
+      },
+      "message": {
+        "fr": "Retrouvez ici les nouveautés et informations importantes de FITIA PRO.",
+        "en": "Find FITIA PRO news and important information here.",
+        "de": "Hier finden Sie Neuigkeiten und wichtige Informationen zu FITIA PRO.",
+        "zh": "在这里查看 FITIA PRO 的最新消息和重要信息。",
+        "sg": "Find FITIA PRO news and important information here."
+      }
+    },
+    {
+      "id": "official-events",
+      "category": "event",
+      "title": {
+        "fr": "Événements FITIA",
+        "en": "FITIA events",
+        "de": "FITIA-Veranstaltungen",
+        "zh": "FITIA 活动",
+        "sg": "FITIA events"
+      },
+      "message": {
+        "fr": "Les prochains événements officiels seront annoncés ici.",
+        "en": "Upcoming official events will be announced here.",
+        "de": "Die nächsten offiziellen Veranstaltungen werden hier angekündigt.",
+        "zh": "最新官方活动将在这里公布。",
+        "sg": "Upcoming official events will be announced here."
+      }
+    },
+    {
+      "id": "official-referral",
+      "category": "referral",
+      "title": {
+        "fr": "Parrainage FITIA",
+        "en": "FITIA referral",
+        "de": "FITIA-Empfehlung",
+        "zh": "FITIA 推荐",
+        "sg": "FITIA referral"
+      },
+      "message": {
+        "fr": "Retrouvez votre ID et partagez votre code depuis la section Parrainage.",
+        "en": "Find your ID and share your code in the Referral section.",
+        "de": "Ihre ID und Ihren Code finden Sie im Bereich Empfehlungen.",
+        "zh": "在推荐栏目中查找并分享您的推荐 ID。",
+        "sg": "Find your ID and share your code in the Referral section."
+      }
+    },
+    {
+      "id": "wallet-security",
+      "category": "security",
+      "title": {
+        "fr": "Sécurité du portefeuille",
+        "en": "Wallet security",
+        "de": "Wallet-Sicherheit",
+        "zh": "钱包安全",
+        "sg": "Wallet security"
+      },
+      "message": {
+        "fr": "Ne partagez jamais vos 12 mots, votre clé privée ou votre code PIN.",
+        "en": "Never share your 12 words, private key or PIN.",
+        "de": "Teilen Sie niemals Ihre 12 Wörter, Ihren privaten Schlüssel oder Ihre PIN.",
+        "zh": "切勿分享您的 12 个助记词、私钥或 PIN 码。",
+        "sg": "Never share your 12 words, private key or PIN."
+      }
+    }
+  ]
+}

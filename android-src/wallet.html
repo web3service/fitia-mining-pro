@@ -271,6 +271,13 @@
 <main id="main-view">
   <!-- ═══ DASHBOARD ═══ -->
   <div id="view-dashboard" class="view active">
+    <section id="announcement-center" class="announcement-center" role="region" aria-roledescription="carousel" aria-label="Annonces officielles FITIA">
+      <div id="announcement-viewport" class="announcement-viewport">
+        <div id="announcement-track" class="announcement-track"></div>
+      </div>
+      <div id="announcement-dots" class="announcement-dots" aria-label="Choisir une annonce"></div>
+    </section>
+
     <div class="card total-balance-card">
       <small data-i18n="totalBal">Solde Total Estimé</small>
       <div class="total-val" id="val-total-usd">$0.00</div>
@@ -812,6 +819,7 @@
 </div>
 
 <script src="activity.js"></script>
+<script src="announcements.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

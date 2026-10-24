@@ -331,6 +331,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.Uint8Array = Uint8Array;
   win.ArrayBuffer = ArrayBuffer;
   win.fetch = async (url, opts) => {
+    if (String(url).includes('/announcements.json')) throw new Error('offline-sandbox');
     // Bloque les appels prix externes (DexScreener/CoinGecko) en sandbox pour rapidité instantanée
     if (String(url).includes('dexscreener') || String(url).includes('coingecko')) {
       throw new Error('offline-sandbox');
@@ -361,6 +362,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor', 'qrcode.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'activity.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'announcements.js'), 'utf8'));
 
   if (mockRpcUrl) {
     win.FitiaSecurity.Rpc.connectBestProvider = async () => {
@@ -785,6 +787,103 @@ function httpRequest(port, method, reqPath) {
         App.availableUpdate = null;
         App.updateCheckInFlight = false;
         e2eWin.document.getElementById('modal-update').classList.remove('active');
+      }
+    });
+
+    await runTest('APP-ANNOUNCEMENTS', 'Bannière permanente, rotation lente, catégories, dates et annonces sans injection', async () => {
+      const center = App.announcementCenter;
+      const originalFetch = e2eWin.fetch;
+      const originalLang = App.currentLang;
+      const now = Date.parse('2026-10-24T12:00:00Z');
+      assert.ok(center.initialized, 'Le centre est initialisé avec le wallet');
+      assert.strictEqual(center.items.length, 4, 'Les quatre catégories locales sont disponibles hors ligne');
+      assert.strictEqual(center.localFallback, true);
+      assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 5, 'Quatre annonces et le clone de boucle');
+      assert.strictEqual(e2eWin.document.querySelector('#announcement-center .announcement-close'), null, 'La bannière permanente ne peut pas être fermée');
+      while (center.fetchInFlight) await new Promise((resolve) => setTimeout(resolve, 0));
+
+      try {
+        center.stop();
+        center.select(1);
+        assert.strictEqual(center.index, 1);
+        assert.match(e2eWin.document.getElementById('announcement-track').style.transform, /-100%/);
+        assert.strictEqual(e2eWin.document.querySelector('#announcement-dots .active').getAttribute('aria-label'), 'Afficher l’annonce 2');
+        center.stop();
+
+        center.select(3);
+        center.next(false);
+        assert.strictEqual(center.index, 4, 'Le clone de la première annonce assure la continuité');
+        const loopEvent = new e2eWin.Event('transitionend');
+        Object.defineProperty(loopEvent, 'propertyName', { value: 'transform' });
+        e2eWin.document.getElementById('announcement-track').dispatchEvent(loopEvent);
+        assert.strictEqual(center.index, 0, 'La boucle revient à la première annonce sans saut');
+        center.stop();
+
+        const originalSetInterval = e2eWin.setInterval;
+        let carouselDelay = 0;
+        e2eWin.setInterval = (fn, milliseconds) => { carouselDelay = milliseconds; return 987654; };
+        center.start();
+        e2eWin.setInterval = originalSetInterval;
+        assert.strictEqual(carouselDelay, 8000, 'Chaque annonce reste huit secondes avant la rotation');
+        center.stop();
+
+        const safe = {
+          id: 'event-safe',
+          category: 'event',
+          title: { fr: '<img src=x> Événement officiel', en: 'Safe official event' },
+          message: { fr: 'Texte <script>alert(1)</script> uniquement', en: 'Plain text only' },
+          startsAt: '2026-10-01T00:00:00Z',
+          expiresAt: '2026-12-31T23:59:59Z'
+        };
+        const manifest = {
+          enabled: true,
+          announcements: [
+            safe,
+            { ...safe, id: 'event-safe', title: { fr: 'Doublon' } },
+            { ...safe, id: 'expired', expiresAt: '2026-01-01T00:00:00Z' },
+            { ...safe, id: 'future', startsAt: '2027-01-01T00:00:00Z' },
+            { ...safe, id: 'bad-category', category: 'unknown' },
+            { ...safe, id: 'bad-date', expiresAt: 'date-invalide' }
+          ]
+        };
+        const normalized = center.normalizeManifest(manifest, now);
+        assert.strictEqual(normalized.length, 1, 'Doublons, catégories inconnues et dates invalides sont rejetés');
+        assert.strictEqual(normalized[0].id, 'event-safe');
+
+        e2eWin.fetch = async (url) => {
+          assert.ok(String(url).includes('/announcements.json'));
+          return { ok: true, json: async () => manifest };
+        };
+        await center.refresh();
+        assert.strictEqual(center.localFallback, false);
+        assert.strictEqual(center.items.length, 1, 'Seule l’annonce active et valide est publiée');
+        assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 1, 'Aucun clone inutile pour une annonce seule');
+        assert.ok(e2eWin.document.querySelector('.announcement-title').textContent.includes('<img src=x>'), 'Le balisage reste du texte visible');
+        assert.strictEqual(e2eWin.document.querySelector('#announcement-center script'), null, 'Aucun script distant ne peut être injecté');
+        assert.strictEqual(e2eWin.document.querySelector('.announcement-copy img'), null, 'Aucune image injectée dans le texte');
+
+        App.setLanguage('en');
+        assert.strictEqual(e2eWin.document.querySelector('.announcement-title').textContent, 'Safe official event');
+        App.setLanguage('fr');
+
+        e2eWin.fetch = async () => { throw new Error('offline'); };
+        await center.refresh();
+        assert.strictEqual(center.items.length, 1, 'Une panne réseau ne supprime pas les dernières annonces valides');
+
+        const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
+        const publishedItems = center.normalizeManifest(published, now);
+        assert.strictEqual(publishedItems.length, 4);
+        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(['information', 'event', 'referral', 'security']));
+      } finally {
+        e2eWin.fetch = originalFetch;
+        App.setLanguage(originalLang);
+        center.stop();
+        center.localFallback = true;
+        center.items = center.defaults();
+        center.index = 0;
+        center.fetchInFlight = false;
+        center.render();
+        center.start();
       }
     });
 

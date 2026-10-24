@@ -46,6 +46,15 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
+## 📣 Annonces Officielles dans l’Application
+
+- **Bannière permanente sur l’accueil** pour les informations, événements, parrainages et messages de sécurité. Elle ne peut pas être fermée accidentellement.
+- Rotation de droite à gauche toutes les **8 secondes**, avec une transition de **1,4 seconde**, des points de sélection et la navigation par balayage horizontal. La rotation se met en pause hors de l’accueil, en arrière-plan et lorsque le wallet est verrouillé.
+- **`announcements.json`** permet de publier des annonces traduites sans modifier le wallet. Chaque entrée possède un identifiant unique, une catégorie et des dates `startsAt` / `expiresAt` facultatives ; les annonces futures, expirées ou invalides sont ignorées.
+- Les textes sont validés, limités en longueur et insérés uniquement avec `textContent`. Aucun HTML, lien ou visuel distant n’est accepté. En cas de coupure réseau, des annonces locales traduites restent disponibles.
+
+---
+
 ## 📲 Mise à Jour dans l’Application & Signature Stable
 
 - **`update.json`** publie la version disponible, l’URL GitHub Release et le SHA-256 de l’APK. L’application affiche une notification uniquement lorsqu’une version supérieure est disponible et mémorise « Plus tard » par version.
@@ -59,7 +68,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 ## 🧪 Tests Automatisés & Recompilation APK
 
 ```bash
-# Lancer la suite complète d'audit sécurité & tests E2E (20 tests)
+# Lancer la suite complète d'audit sécurité & tests E2E (21 tests)
 npm test
 
 # Recompiler, aligner (4 octets) et signer l'APK Android (v2 + v3)

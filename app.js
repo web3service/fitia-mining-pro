@@ -696,6 +696,7 @@ class Application {
 
     const savedLang = localStorage.getItem('fitia_lang');
     this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'fr';
+    this.announcementCenter = new FitiaAnnouncementCenter(this);
 
     this.chatInitialized = false;
     this.chatHistory = [];
@@ -749,6 +750,7 @@ class Application {
   // ═══════════════════════════════════════════════════════════════
   async init() {
     this.setLanguage(this.currentLang);
+    this.announcementCenter.init();
     this.setupLifecycleListeners();
 
     // Masquer les bannières de téléchargement APK lorsqu'on est déjà dans l'APK Android installé
@@ -872,6 +874,7 @@ class Application {
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
+        this.announcementCenter.stop();
         this.backgroundedAt = Date.now();
         FitiaSecurity.Native.setScreenSecure(true);
       } else if (this.user && this.backgroundedAt > 0) {
@@ -883,6 +886,7 @@ class Application {
           FitiaSecurity.Native.setScreenSecure(false);
           this.activity.refreshPending(this.provider);
         }
+        if (this.user) this.announcementCenter.start();
         this.backgroundedAt = 0;
       }
     });
@@ -956,6 +960,7 @@ class Application {
     if (btn) btn.innerText = `${flags[lang]} ${lang.toUpperCase()}`;
     document.getElementById('lang-menu-content')?.classList.remove('open');
     this.applyTranslations();
+    if (this.announcementCenter?.initialized) this.announcementCenter.render();
     if (this.user) {
       this.renderShop();
       this.renderActiveMachines();
@@ -1437,6 +1442,7 @@ class Application {
     this.closeModals();
     this.closeRevealModal();
     this.stopMiningCounter();
+    this.announcementCenter.stop();
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
@@ -1637,6 +1643,9 @@ class Application {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('app-shell').classList.remove('hidden');
     document.getElementById('chat-fab-btn')?.classList.remove('hidden');
+    this.announcementCenter.render();
+    this.announcementCenter.start();
+    this.announcementCenter.refresh();
 
     const short = this.shortAddr(this.user);
     document.getElementById('wallet-card-addr').textContent = short;
@@ -3090,7 +3099,12 @@ class Application {
     }
     document.querySelectorAll('.nav-item').forEach((el) => el.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
-    if (viewId === 'dashboard') setTimeout(() => this.resizeCanvas(), 50);
+    if (viewId === 'dashboard') {
+      setTimeout(() => this.resizeCanvas(), 50);
+      this.announcementCenter.start();
+    } else {
+      this.announcementCenter.stop();
+    }
   }
 
   setLoader(show) {
