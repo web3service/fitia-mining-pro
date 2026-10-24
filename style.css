@@ -1656,6 +1656,20 @@ main::-webkit-scrollbar { display: none; }
 .activity-status.status-failed { color: var(--danger); }
 .activity-amount { margin-top: 4px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; overflow-wrap: anywhere; }
 .activity-description { margin-top: 4px; color: var(--text-muted); font-size: 0.66rem; line-height: 1.4; overflow-wrap: anywhere; }
+.activity-contract-message {
+  margin-top: 7px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.07);
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.activity-contract-message.status-success { color: #6ee7b7; background: rgba(16, 185, 129, 0.08); }
+.activity-contract-message.status-failed { color: #fca5a5; background: rgba(239, 68, 68, 0.08); }
+.activity-contract-message.status-pending { color: var(--primary); background: rgba(240, 185, 11, 0.07); }
+.activity-block { margin-top: 5px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; }
 .activity-meta { margin-top: 5px; color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; overflow-wrap: anywhere; }
 .activity-tx-link {
   width: 30px;
