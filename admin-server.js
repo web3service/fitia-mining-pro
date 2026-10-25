@@ -374,10 +374,13 @@ function createAdminServer(options = {}) {
     ['/index.html', { file: path.join(ADMIN_DIR, 'index.html'), type: 'text/html; charset=utf-8' }],
     ['/admin.css', { file: path.join(ADMIN_DIR, 'admin.css'), type: 'text/css; charset=utf-8' }],
     ['/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
+    ['/admin/admin.css', { file: path.join(ADMIN_DIR, 'admin.css'), type: 'text/css; charset=utf-8' }],
+    ['/admin/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/assets/icon-192.png', { file: path.join(ROOT, 'assets/icon-192.png'), type: 'image/png' }]
   ]);
 
   async function handleApi(req, res, pathname) {
+    pathname = pathname.replace(/^\/api\/admin\//, '/api/');
     if (pathname === '/api/login' && req.method === 'POST') {
       const ip = req.socket.remoteAddress || 'unknown';
       const now = Date.now();

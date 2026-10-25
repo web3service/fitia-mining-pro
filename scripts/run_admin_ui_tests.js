@@ -25,13 +25,13 @@ function response(data, status = 200) {
 }
 
 window.fetch = async (url, options = {}) => {
-  if (url === '/api/session') {
+  if (url === '/api/admin/session') {
     return response({ authenticated: true, csrfToken: 'a'.repeat(64), mode: 'local', project: null, branch: null });
   }
-  if (url === '/api/announcements' && (!options.method || options.method === 'GET')) {
+  if (url === '/api/admin/announcements' && (!options.method || options.method === 'GET')) {
     return response({ manifest, revision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
-  if (url === '/api/announcements' && options.method === 'PUT') {
+  if (url === '/api/admin/announcements' && options.method === 'PUT') {
     const body = JSON.parse(options.body);
     assert.strictEqual(body.revision, revision);
     manifest = body.manifest;

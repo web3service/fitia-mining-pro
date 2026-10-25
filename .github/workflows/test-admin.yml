@@ -5,6 +5,10 @@ on:
     paths:
       - 'admin/**'
       - 'admin-server.js'
+      - 'api/admin.js'
+      - 'vercel.json'
+      - '.vercelignore'
+      - 'scripts/run_vercel_admin_tests.js'
       - 'scripts/run_admin_tests.js'
       - 'scripts/run_admin_ui_tests.js'
       - 'package.json'
@@ -15,6 +19,10 @@ on:
     paths:
       - 'admin/**'
       - 'admin-server.js'
+      - 'api/admin.js'
+      - 'vercel.json'
+      - '.vercelignore'
+      - 'scripts/run_vercel_admin_tests.js'
       - 'scripts/run_admin_tests.js'
       - 'scripts/run_admin_ui_tests.js'
       - 'package.json'
