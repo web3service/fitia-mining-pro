@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "admin": "node admin-server.js",
     "test": "node scripts/run_security_tests.js",
+    "test:admin": "node scripts/run_admin_tests.js && node scripts/run_admin_ui_tests.js",
     "build:apk": "python3 scripts/build_apk.py"
   },
   "keywords": [

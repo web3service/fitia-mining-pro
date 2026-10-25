@@ -1,0 +1,42 @@
+name: Test FITIA admin panel
+
+on:
+  pull_request:
+    paths:
+      - 'admin/**'
+      - 'admin-server.js'
+      - 'scripts/run_admin_tests.js'
+      - 'scripts/run_admin_ui_tests.js'
+      - 'package.json'
+      - '.github/workflows/test-admin.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'admin/**'
+      - 'admin-server.js'
+      - 'scripts/run_admin_tests.js'
+      - 'scripts/run_admin_ui_tests.js'
+      - 'package.json'
+      - '.github/workflows/test-admin.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  admin-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install isolated UI test dependency
+        run: npm install --prefix /tmp/test-deps --no-package-lock --no-audit --no-fund jsdom@26.1.0
+
+      - name: Run admin server and UI tests
+        run: npm run test:admin

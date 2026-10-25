@@ -72,6 +72,22 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
+## 🛠️ Panneau d’administration FITIA PRO
+
+Une application Node.js séparée permet de gérer les événements et annonces du wallet : programmation, traductions, aperçu mobile, réorganisation et publication sécurisée de `announcements.json`.
+
+```bash
+# Démarrer le serveur d’administration (configuration décrite dans ADMIN.md)
+npm run admin
+
+# Exécuter les tests serveur et interface du panneau
+npm run test:admin
+```
+
+Consultez **`ADMIN.md`** pour les modes local et GitHub, les variables d’environnement et les règles de déploiement. Le panneau ne fait partie ni de la vitrine publique ni de l’APK.
+
+---
+
 ## 🧪 Tests Automatisés & Recompilation APK
 
 ```bash
