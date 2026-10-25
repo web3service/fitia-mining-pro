@@ -1462,6 +1462,9 @@ main::-webkit-scrollbar { display: none; }
 
 /* Swap */
 .swap-interface { padding: 15px; }
+.swap-market { margin-bottom: 14px; }
+.swap-market label { display: block; margin: 0 4px 6px; color: var(--text-muted); font-size: 0.78rem; font-weight: 600; }
+.swap-market select { width: 100%; padding: 11px 12px; font-size: 0.84rem; font-weight: 700; }
 .swap-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; padding: 0 4px; }
 .swap-bal-clickable { cursor: pointer; }
 .max-pill { background: rgba(240, 185, 11, 0.18); color: var(--primary); font-size: 0.65rem; font-weight: 800; padding: 1px 6px; border-radius: 6px; margin-left: 4px; }

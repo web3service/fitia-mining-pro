@@ -186,6 +186,24 @@ async function startMockPolygonRpc(ethersLib) {
     "function decimals() view returns (uint8)"
   ]);
 
+  const quickswapRouterIface = new ethersLib.Interface([
+    "function getAmountsOut(uint256 amountIn, address[] path) view returns (uint256[] amounts)"
+  ]);
+  const quickswapFactoryIface = new ethersLib.Interface([
+    "function getPair(address tokenA, address tokenB) view returns (address pair)"
+  ]);
+  const quickswapPairIface = new ethersLib.Interface([
+    "function token0() view returns (address)",
+    "function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)"
+  ]);
+  const quickswapRouterAddress = '0xa5e0829caced8ffdd4de3c43696c57f7d7a678ff';
+  const quickswapFactoryAddress = '0x5757371414417b8c6caad45baef941abc7d3ab32';
+  const quickswapPairAddress = '0x604229c960e5cacf2aaeac8be68ac07ba9df81c3';
+  const wpolAddress = '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270';
+  const usdtAddress = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
+  const reserveWpol = ethersLib.parseEther('1000000');
+  const reserveUsdt = ethersLib.parseUnits('250000', 6);
+
   function handleSingleRpc(payload) {
     const { id, method, params } = payload;
     const nowSec = Math.floor(Date.now() / 1000);
@@ -212,6 +230,12 @@ async function startMockPolygonRpc(ethersLib) {
           hash: '0x' + '11'.repeat(32),
           parentHash: '0x' + '00'.repeat(32),
           timestamp: '0x' + nowSec.toString(16),
+          nonce: '0x0000000000000000',
+          difficulty: '0x0',
+          gasLimit: '0x1c9c380',
+          gasUsed: '0x0',
+          miner: ethersLib.ZeroAddress,
+          extraData: '0x',
           baseFeePerGas: '0x' + ethersLib.parseUnits('35', 'gwei').toString(16),
           transactions: []
         }
@@ -223,7 +247,32 @@ async function startMockPolygonRpc(ethersLib) {
       const data = callObj.data || '0x';
       const sel = data.slice(0, 10);
 
-      if (to === '0xc2132d05d31c914a87c6611c10748aeb04b58e8f') {
+      if (to === quickswapRouterAddress && sel === quickswapRouterIface.getFunction('getAmountsOut').selector) {
+        const [amountIn, path] = quickswapRouterIface.decodeFunctionData('getAmountsOut', data);
+        const normalizedPath = Array.from(path).map((address) => address.toLowerCase());
+        const isPolToUsdt = normalizedPath.length === 2 && normalizedPath[0] === wpolAddress && normalizedPath[1] === usdtAddress;
+        const isUsdtToPol = normalizedPath.length === 2 && normalizedPath[0] === usdtAddress && normalizedPath[1] === wpolAddress;
+        if (isPolToUsdt || isUsdtToPol) {
+          const reserveIn = isPolToUsdt ? reserveWpol : reserveUsdt;
+          const reserveOut = isPolToUsdt ? reserveUsdt : reserveWpol;
+          const amountInWithFee = amountIn * 997n;
+          const amountOut = (amountInWithFee * reserveOut) / ((reserveIn * 1000n) + amountInWithFee);
+          return { jsonrpc: '2.0', id, result: quickswapRouterIface.encodeFunctionResult('getAmountsOut', [[amountIn, amountOut]]) };
+        }
+      }
+      if (to === quickswapFactoryAddress && sel === quickswapFactoryIface.getFunction('getPair').selector) {
+        return { jsonrpc: '2.0', id, result: quickswapFactoryIface.encodeFunctionResult('getPair', [quickswapPairAddress]) };
+      }
+      if (to === quickswapPairAddress) {
+        if (sel === quickswapPairIface.getFunction('token0').selector) {
+          return { jsonrpc: '2.0', id, result: quickswapPairIface.encodeFunctionResult('token0', [wpolAddress]) };
+        }
+        if (sel === quickswapPairIface.getFunction('getReserves').selector) {
+          return { jsonrpc: '2.0', id, result: quickswapPairIface.encodeFunctionResult('getReserves', [reserveWpol, reserveUsdt, nowSec]) };
+        }
+      }
+
+      if (to === usdtAddress) {
         if (sel === erc20Iface.getFunction('decimals').selector)
           return { jsonrpc: '2.0', id, result: erc20Iface.encodeFunctionResult('decimals', [6]) };
         if (sel === erc20Iface.getFunction('balanceOf').selector)
@@ -948,6 +997,172 @@ function httpRequest(port, method, reqPath) {
       assert.ok(BigInt(fees.maxFeePerGas) > BigInt(fees.maxPriorityFeePerGas));
     });
 
+    await runTest('SWAP-DEX', 'POL ↔ USDT : devis QuickSwap réel, minimum reçu, slippage et conservation du swap FITIA Core', async () => {
+      const document = e2eWin.document;
+      const market = document.getElementById('swap-market-select');
+      assert.strictEqual(market.options.length, 2);
+      assert.strictEqual(market.options[0].value, 'CORE_FTA');
+      assert.strictEqual(market.options[1].value, 'POL_USDT');
+
+      await App.setSwapMarket('POL_USDT');
+      assert.strictEqual(App.swapDirection, 'POL_TO_USDT');
+      assert.strictEqual(document.getElementById('token-from-display').textContent, 'POL');
+      assert.strictEqual(document.getElementById('token-to-display').textContent, 'USDT');
+      assert.strictEqual(document.getElementById('btn-execute-swap').disabled, true, 'Aucun swap DEX sans devis valide');
+
+      document.getElementById('swap-from-in').value = '2';
+      await App.calcSwap();
+      const polQuote = App.pendingDexQuote;
+      assert.ok(polQuote, 'Le devis POL → USDT est disponible');
+      assert.strictEqual(polQuote.path[0].toLowerCase(), '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270');
+      assert.strictEqual(polQuote.path[1].toLowerCase(), '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
+      assert.ok(polQuote.expectedOut > 0n);
+      assert.strictEqual(polQuote.minOut, (polQuote.expectedOut * 9950n) / 10000n);
+      assert.ok(polQuote.priceImpactBps >= 30n, 'L’écart affiché inclut au moins les 0,30 % du pool');
+      assert.strictEqual(document.getElementById('btn-execute-swap').disabled, false);
+      assert.strictEqual(document.getElementById('swap-details').classList.contains('hidden'), false);
+      assert.strictEqual(document.getElementById('swap-to-in').value, App.formatSwapAmount(polQuote.expectedOut, 6, 6));
+      assert.strictEqual(document.getElementById('swap-detail-fee').textContent, '0.30%');
+      assert.ok(document.getElementById('swap-detail-min').textContent.includes('USDT'));
+      assert.ok(document.getElementById('swap-detail-rate').textContent.startsWith('1 POL = '));
+
+      await App.toggleSwap();
+      assert.strictEqual(App.swapDirection, 'USDT_TO_POL');
+      assert.strictEqual(document.getElementById('token-from-display').textContent, 'USDT');
+      assert.strictEqual(document.getElementById('token-to-display').textContent, 'POL');
+      document.getElementById('swap-from-in').value = '10';
+      await App.calcSwap();
+      const usdtQuote = App.pendingDexQuote;
+      assert.ok(usdtQuote, 'Le devis USDT → POL est disponible');
+      assert.strictEqual(usdtQuote.path[0].toLowerCase(), '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
+      assert.strictEqual(usdtQuote.path[1].toLowerCase(), '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270');
+      assert.ok(usdtQuote.expectedOut > 0n);
+      assert.strictEqual(usdtQuote.minOut, (usdtQuote.expectedOut * 9950n) / 10000n);
+      assert.ok(document.getElementById('swap-detail-rate').textContent.startsWith('1 USDT = '));
+
+      document.getElementById('swap-from-in').value = '999999';
+      await App.calcSwap();
+      assert.strictEqual(App.pendingDexQuote, null);
+      assert.strictEqual(document.getElementById('btn-execute-swap').disabled, true);
+      assert.strictEqual(document.getElementById('swap-rate').textContent, App.t('errInsufficientFunds'));
+
+      await App.setSwapMarket('CORE_FTA');
+      const previousFtaPrice = App.ftaPriceUsd;
+      App.ftaPriceUsd = 0.01;
+      document.getElementById('swap-from-in').value = '10';
+      App.calcSwap();
+      assert.strictEqual(App.swapDirection, 'USDT_TO_FTA');
+      assert.strictEqual(document.getElementById('swap-to-in').value, '960.000000', 'Le calcul USDT → FTA à 4 % est conservé');
+      assert.strictEqual(document.getElementById('swap-detail-fee').textContent, '0.400000 USDT');
+      assert.strictEqual(document.getElementById('btn-execute-swap').disabled, false);
+      App.ftaPriceUsd = previousFtaPrice;
+      document.getElementById('swap-from-in').value = '';
+      document.getElementById('swap-to-in').value = '';
+      document.getElementById('swap-details').classList.add('hidden');
+    });
+
+    await runTest('SWAP-DEX', 'Autorisation USDT exacte, remise à zéro USDT et erreurs DEX non mensongères', async () => {
+      const originalToken = App.usdtToken;
+      const originalToast = App.showToast;
+      const approvals = [];
+      App.showToast = () => {};
+      const fakeToken = (allowance) => ({
+        async allowance() { return allowance; },
+        async approve(spender, amount) {
+          approvals.push({ spender, amount });
+          return { wait: async () => ({ status: 1 }) };
+        }
+      });
+      try {
+        App.usdtToken = fakeToken(100n);
+        await App.ensureDexUsdtAllowance(100n);
+        assert.strictEqual(approvals.length, 0, 'Aucune approbation si l’allowance suffit');
+
+        App.usdtToken = fakeToken(0n);
+        await App.ensureDexUsdtAllowance(100n);
+        assert.strictEqual(approvals.length, 1);
+        assert.strictEqual(approvals[0].amount, 100n, 'Allowance limitée au montant du swap');
+        assert.strictEqual(approvals[0].spender.toLowerCase(), App.quickswapRouter.target.toLowerCase());
+
+        approvals.length = 0;
+        App.usdtToken = fakeToken(50n);
+        await App.ensureDexUsdtAllowance(100n);
+        assert.deepStrictEqual(approvals.map((item) => item.amount), [0n, 100n], 'USDT est remis à zéro avant la nouvelle allowance');
+      } finally {
+        App.usdtToken = originalToken;
+        App.showToast = originalToast;
+      }
+      assert.strictEqual(App.getErrorMessage({ code: 'ACTION_REJECTED' }), App.t('swapRejected'));
+      assert.strictEqual(App.getErrorMessage({ message: 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT' }), App.t('swapSlippageError'));
+      assert.strictEqual(App.getErrorMessage({ message: 'UniswapV2Router: EXPIRED' }), App.t('swapExpired'));
+    });
+
+    await runTest('SWAP-DEX', 'Exécution POL/USDT : paramètres router, statut pending puis confirmé dans les deux sens', async () => {
+      const document = e2eWin.document;
+      await App.setSwapMarket('POL_USDT');
+      const originals = {
+        ensurePolGas: App.ensurePolGas,
+        ensureDexPolGas: App.ensureDexPolGas,
+        ensureDexTokenSwapGas: App.ensureDexTokenSwapGas,
+        ensureDexUsdtAllowance: App.ensureDexUsdtAllowance,
+        updateData: App.updateData,
+        showToast: App.showToast
+      };
+      const toasts = [];
+      let polCall = null;
+      let usdtCall = null;
+      let approvedAmount = 0n;
+      try {
+        App.ensurePolGas = async () => true;
+        App.ensureDexPolGas = async () => true;
+        App.ensureDexTokenSwapGas = async () => true;
+        App.ensureDexUsdtAllowance = async (amount) => { approvedAmount = amount; };
+        App.updateData = async () => {};
+        App.showToast = (message) => { toasts.push(message); };
+
+        document.getElementById('swap-from-in').value = '2';
+        await App.calcSwap();
+        const expectedPolMin = App.pendingDexQuote.minOut;
+        App.quickswapRouter.swapExactETHForTokens = async (...args) => {
+          polCall = args;
+          return { wait: async () => ({ status: 1 }) };
+        };
+        await App.executeSwap();
+        assert.ok(polCall, 'Le router POL → USDT est appelé');
+        assert.strictEqual(polCall[0], expectedPolMin);
+        assert.strictEqual(polCall[2], App.user);
+        assert.ok(polCall[3] > BigInt(Math.floor(Date.now() / 1000)));
+        assert.strictEqual(polCall[4].value, ethersLib.parseEther('2'));
+        assert.strictEqual(document.getElementById('swap-from-in').value, '');
+        assert.ok(toasts.includes(App.t('swapPending')) && toasts.includes(App.t('swapSuccess')));
+        assert.strictEqual(App.swapTransactionInProgress, false);
+
+        App.swapDirection = 'USDT_TO_POL';
+        App.renderSwapInterface();
+        document.getElementById('swap-from-in').value = '10';
+        await App.calcSwap();
+        const expectedUsdtMin = App.pendingDexQuote.minOut;
+        App.quickswapRouter.swapExactTokensForETH = async (...args) => {
+          usdtCall = args;
+          return { wait: async () => ({ status: 1 }) };
+        };
+        await App.executeSwap();
+        assert.ok(usdtCall, 'Le router USDT → POL est appelé');
+        assert.strictEqual(usdtCall[0], ethersLib.parseUnits('10', 6));
+        assert.strictEqual(approvedAmount, ethersLib.parseUnits('10', 6));
+        assert.strictEqual(usdtCall[1], expectedUsdtMin);
+        assert.strictEqual(usdtCall[3], App.user);
+        assert.ok(usdtCall[4] > BigInt(Math.floor(Date.now() / 1000)));
+        assert.strictEqual(document.getElementById('swap-from-in').value, '');
+        assert.strictEqual(App.swapTransactionInProgress, false);
+      } finally {
+        delete App.quickswapRouter.swapExactETHForTokens;
+        delete App.quickswapRouter.swapExactTokensForETH;
+        Object.assign(App, originals);
+        await App.setSwapMarket('CORE_FTA');
+      }
+    });
+
     await runTest('SEND-GUARDS', 'Blocage adresse burn (0x000..0), adresses de contrats (USDT/FTA/Core/Mine) & solde insuffisant', async () => {
       let pinPromptTriggered = false;
       const origReqPin = App.requestPinVerification.bind(App);
@@ -1043,7 +1258,16 @@ function httpRequest(port, method, reqPath) {
         [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('claimRewards') }, 'claim', 'Réclamation des récompenses'],
         [{ to: App.core.target, data: App.core.interface.encodeFunctionData('setReferrer', [destination]) }, 'referral', 'Parrainage enregistré'],
         [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapUForF', [1000000n, 1n, 9999999999n]) }, 'swap', 'Swap USDT → FTA'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapFForU', [100000000n, 1n, 9999999999n]) }, 'swap', 'Swap FTA → USDT']
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapFForU', [100000000n, 1n, 9999999999n]) }, 'swap', 'Swap FTA → USDT'],
+        [{
+          to: App.quickswapRouter.target,
+          data: App.quickswapRouter.interface.encodeFunctionData('swapExactETHForTokens', [1n, ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'], destination, 9999999999n]),
+          value: 1000000000000000000n
+        }, 'swap', 'Swap POL → USDT'],
+        [{
+          to: App.quickswapRouter.target,
+          data: App.quickswapRouter.interface.encodeFunctionData('swapExactTokensForETH', [1000000n, 1n, ['0xc2132D05D31c914a87C6611C10748AEb04B58e8F', '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'], destination, 9999999999n])
+        }, 'swap', 'Swap USDT → POL']
       ];
       cases.forEach(([request, expectedType, expectedTitle]) => {
         const metadata = App.describeActivityTransaction(request);

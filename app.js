@@ -9,6 +9,10 @@ const CONFIG = {
   MINE: "0xBd9FA9801eDA247b28B3BB9dDBf1CF52cA563Bc6",
   USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
   FTA:  "0x5c418b12c7e9c2A8e9A71A68c6d9b319E7B1d1fd",
+  // QuickSwap V2 sur Polygon PoS (adresses officielles QuickSwap / Polygon).
+  QUICKSWAP_ROUTER: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+  QUICKSWAP_FACTORY: "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32",
+  WPOL: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
   CHAIN_ID: 137,
   EXPLORER: "https://polygonscan.com",
   UPDATE_MANIFEST: "https://raw.githubusercontent.com/web3service/fitia-mining-pro/main/update-current.json",
@@ -145,9 +149,22 @@ const i18n = {
     noActiveMachines: "Aucune machine active",
     exchangeRate: "Taux de change",
     priceImpact: "Impact prix",
+    priceImpactWithFee: "Impact + frais du pool",
     swapFee: "Frais swap (4%)",
+    dexFeeLabel: "Frais de liquidité QuickSwap",
     minimumReceived: "Minimum reçu",
     slippageTolerance: "Tolérance slippage",
+    swapMarket: "Marché",
+    quickswapRateInfo: "QuickSwap V2 • Devis et liquidité on-chain",
+    swapQuoteLoading: "Récupération du devis on-chain...",
+    swapQuoteUnavailable: "Devis indisponible. Vérifiez le réseau et la liquidité, puis réessayez.",
+    swapPolGasReserve: "Solde POL insuffisant pour couvrir le montant et les frais réseau estimés.",
+    swapPending: "Transaction envoyée. Confirmation Polygon en attente.",
+    swapApprovalPending: "Autorisation USDT envoyée. Confirmation en attente.",
+    swapSlippageError: "Le prix a évolué au-delà de la tolérance. Demandez un nouveau devis.",
+    swapExpired: "Le devis a expiré. Demandez un nouveau devis.",
+    swapRejected: "Transaction annulée.",
+    swapNotConfirmed: "Échange non confirmé. Vérifiez votre historique avant de réessayer.",
     networkFee: "Frais réseau estimés",
     depositBtn: "DÉPOSER ↓",
     withdrawBtn: "RETIRER ↑",
@@ -335,9 +352,22 @@ const i18n = {
     noActiveMachines: "No active machines",
     exchangeRate: "Exchange Rate",
     priceImpact: "Price Impact",
+    priceImpactWithFee: "Price impact + pool fee",
     swapFee: "Swap Fee (4%)",
+    dexFeeLabel: "QuickSwap liquidity fee",
     minimumReceived: "Minimum Received",
     slippageTolerance: "Slippage Tolerance",
+    swapMarket: "Market",
+    quickswapRateInfo: "QuickSwap V2 • On-chain quote and liquidity",
+    swapQuoteLoading: "Fetching on-chain quote...",
+    swapQuoteUnavailable: "Quote unavailable. Check the network and liquidity, then try again.",
+    swapPolGasReserve: "Insufficient POL to cover both the amount and estimated network fees.",
+    swapPending: "Transaction sent. Waiting for Polygon confirmation.",
+    swapApprovalPending: "USDT approval sent. Waiting for confirmation.",
+    swapSlippageError: "The price moved beyond your tolerance. Request a new quote.",
+    swapExpired: "The quote expired. Request a new quote.",
+    swapRejected: "Transaction cancelled.",
+    swapNotConfirmed: "Swap not confirmed. Check your history before trying again.",
     networkFee: "Est. Network Fee",
     depositBtn: "DEPOSIT ↓",
     withdrawBtn: "WITHDRAW ↑",
@@ -591,8 +621,24 @@ const ERC20_ABI = [
   "function transfer(address,uint256) returns (bool)"
 ];
 
+const QUICKSWAP_ROUTER_ABI = [
+  "function getAmountsOut(uint256 amountIn, address[] path) view returns (uint256[] amounts)",
+  "function swapExactETHForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline) payable returns (uint256[] amounts)",
+  "function swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) returns (uint256[] amounts)"
+];
+const QUICKSWAP_FACTORY_ABI = [
+  "function getPair(address tokenA, address tokenB) view returns (address pair)"
+];
+const QUICKSWAP_PAIR_ABI = [
+  "function token0() view returns (address)",
+  "function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)"
+];
+
 const SWAP_FEE_RATE = 0.04;
 const SLIPPAGE = 0.005;
+const DEX_SLIPPAGE_BPS = 50n;
+const BPS_DENOMINATOR = 10000n;
+const DEX_DEADLINE_SECONDS = 600;
 
 // ═══════════════════════════════════════════════════════════════════
 //  CLASSE PRINCIPALE : Application Autonome
@@ -607,6 +653,8 @@ class Application {
     this.mine = null;
     this.usdtToken = null;
     this.ftaToken = null;
+    this.quickswapRouter = null;
+    this.quickswapFactory = null;
     this.activity = new FitiaActivityCenter({
       explorer: CONFIG.EXPLORER,
       formatError: (error) => this.getErrorMessage(error)
@@ -614,7 +662,11 @@ class Application {
 
     this.payMode = 'USDT';
     this.shopViewMode = 'machines';
+    this.swapMarket = 'CORE_FTA';
     this.swapDirection = 'USDT_TO_FTA';
+    this.dexQuoteRequestId = 0;
+    this.pendingDexQuote = null;
+    this.swapTransactionInProgress = false;
 
     this.usdtDecimals = 6;
     this.ftaDecimals = 8;
@@ -927,6 +979,14 @@ class Application {
     if (btn) btn.innerText = `${flags[lang]} ${lang.toUpperCase()}`;
     document.getElementById('lang-menu-content')?.classList.remove('open');
     this.applyTranslations();
+    const isDexSwap = this.swapMarket === 'POL_USDT';
+    const swapImpactLabel = document.getElementById('swap-detail-impact-label');
+    const swapFeeLabel = document.getElementById('swap-detail-fee-label');
+    if (swapImpactLabel) swapImpactLabel.textContent = this.t(isDexSwap ? 'priceImpactWithFee' : 'priceImpact');
+    if (swapFeeLabel) swapFeeLabel.textContent = this.t(isDexSwap ? 'dexFeeLabel' : 'swapFee');
+    if (isDexSwap && this.pendingDexQuote) {
+      document.getElementById('swap-rate').textContent = this.t('quickswapRateInfo');
+    }
     if (this.announcementCenter?.initialized) this.announcementCenter.render();
     if (this.user) {
       this.renderShop();
@@ -1400,6 +1460,11 @@ class Application {
     this.mine = null;
     this.usdtToken = null;
     this.ftaToken = null;
+    this.quickswapRouter = null;
+    this.quickswapFactory = null;
+    this.pendingDexQuote = null;
+    this.dexQuoteRequestId += 1;
+    this.swapTransactionInProgress = false;
 
     // 2) Réactivation immédiate de FLAG_SECURE puis fermeture des modales
     FitiaSecurity.Native.setScreenSecure(true);
@@ -1461,7 +1526,8 @@ class Application {
         { address: CONFIG.CORE, contract: this.core, kind: 'core' },
         { address: CONFIG.MINE, contract: this.mine, kind: 'mine' },
         { address: CONFIG.USDT, contract: this.usdtToken, kind: 'USDT' },
-        { address: CONFIG.FTA, contract: this.ftaToken, kind: 'FTA' }
+        { address: CONFIG.FTA, contract: this.ftaToken, kind: 'FTA' },
+        { address: CONFIG.QUICKSWAP_ROUTER, contract: this.quickswapRouter, kind: 'quickswap' }
       ];
       const matched = candidates.find((item) => String(item.address).toLowerCase() === to && item.contract);
       if (!matched) return fallback;
@@ -1483,6 +1549,30 @@ class Application {
           result.title = `Autorisation ${matched.kind}`;
           result.amount = this.formatActivityAmount(args[1], tokenDecimals);
           result.description = `Dépense autorisée à ${this.shortActivityAddress(args[0])}`;
+        }
+        return result;
+      }
+
+      if (matched.kind === 'quickswap') {
+        if (parsed.name === 'swapExactETHForTokens') {
+          return {
+            ...result,
+            type: 'swap',
+            title: 'Swap POL → USDT',
+            token: 'POL',
+            amount: this.formatActivityAmount(txRequest.value || 0, 18),
+            description: 'Échange via QuickSwap V2'
+          };
+        }
+        if (parsed.name === 'swapExactTokensForETH') {
+          return {
+            ...result,
+            type: 'swap',
+            title: 'Swap USDT → POL',
+            token: 'USDT',
+            amount: this.formatActivityAmount(args[0], this.usdtDecimals),
+            description: 'Échange via QuickSwap V2'
+          };
         }
         return result;
       }
@@ -1602,6 +1692,8 @@ class Application {
     this.mine = new ethers.Contract(CONFIG.MINE, MINE_ABI, this.signer);
     this.usdtToken = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
     this.ftaToken = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
+    this.quickswapRouter = new ethers.Contract(CONFIG.QUICKSWAP_ROUTER, QUICKSWAP_ROUTER_ABI, this.signer);
+    this.quickswapFactory = new ethers.Contract(CONFIG.QUICKSWAP_FACTORY, QUICKSWAP_FACTORY_ABI, this.provider);
 
     // Bascule l'affichage vers l'application principale (autorise les captures du tableau de bord public)
     FitiaSecurity.Native.setScreenSecure(false);
@@ -1812,12 +1904,23 @@ class Application {
         document.getElementById('ref-form-wrap')?.classList.remove('hidden');
       }
 
-      // Infos Swap (cumul Compte Minage + Wallet grâce à l'auto-dépôt)
-      document.getElementById('swap-rate').textContent = this.t('currentRate') + this.ftaPriceUsd.toFixed(6) + this.t('usdtPerFta');
+      // Infos Swap : FITIA Core cumule wallet + minage, QuickSwap utilise uniquement le wallet.
       const totalAvailUsdt = cUsdt + wUsdt;
       const totalAvailFta = cFta + wFta;
-      document.getElementById('swap-bal-from').textContent = (this.swapDirection === 'USDT_TO_FTA' ? totalAvailUsdt : totalAvailFta).toFixed(4);
-      document.getElementById('swap-bal-to').textContent = (this.swapDirection === 'USDT_TO_FTA' ? totalAvailFta : totalAvailUsdt).toFixed(4);
+      if (this.swapMarket === 'POL_USDT') {
+        const pair = this.getSwapPair();
+        const fromBalance = pair.from === 'POL' ? nPol : wUsdt;
+        const toBalance = pair.to === 'POL' ? nPol : wUsdt;
+        document.getElementById('swap-bal-from').textContent = fromBalance.toFixed(pair.from === 'POL' ? 6 : 2);
+        document.getElementById('swap-bal-to').textContent = toBalance.toFixed(pair.to === 'POL' ? 6 : 2);
+        if (!this.pendingDexQuote && !document.getElementById('swap-from-in').value) {
+          document.getElementById('swap-rate').textContent = this.t('quickswapRateInfo');
+        }
+      } else {
+        document.getElementById('swap-rate').textContent = this.t('currentRate') + this.ftaPriceUsd.toFixed(6) + this.t('usdtPerFta');
+        document.getElementById('swap-bal-from').textContent = (this.swapDirection === 'USDT_TO_FTA' ? totalAvailUsdt : totalAvailFta).toFixed(4);
+        document.getElementById('swap-bal-to').textContent = (this.swapDirection === 'USDT_TO_FTA' ? totalAvailFta : totalAvailUsdt).toFixed(4);
+      }
 
       // ─── 4. Compteur de minage synchronisé sur lc on-chain ───────
       const nowSec = Math.floor(Date.now() / 1000);
@@ -1865,6 +1968,8 @@ class Application {
       this.mine = new ethers.Contract(CONFIG.MINE, MINE_ABI, this.signer);
       this.usdtToken = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
       this.ftaToken = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
+      this.quickswapRouter = new ethers.Contract(CONFIG.QUICKSWAP_ROUTER, QUICKSWAP_ROUTER_ABI, this.signer);
+      this.quickswapFactory = new ethers.Contract(CONFIG.QUICKSWAP_FACTORY, QUICKSWAP_FACTORY_ABI, this.provider);
     } catch (_) {}
   }
 
@@ -2665,31 +2770,126 @@ class Application {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  SWAP (USDT ↔ FTA via Bonding Curve du Core V3)
+  //  SWAP : USDT ↔ FTA (FITIA Core) + POL ↔ USDT (QuickSwap V2)
   // ═══════════════════════════════════════════════════════════════
-  toggleSwap() {
-    this.swapDirection = this.swapDirection === 'USDT_TO_FTA' ? 'FTA_TO_USDT' : 'USDT_TO_FTA';
-    document.getElementById('token-from-display').textContent = this.swapDirection === 'USDT_TO_FTA' ? 'USDT' : 'FTA';
-    document.getElementById('token-to-display').textContent = this.swapDirection === 'USDT_TO_FTA' ? 'FTA' : 'USDT';
-    document.getElementById('swap-to-in').value = '';
-    document.getElementById('swap-from-in').value = '';
-    document.getElementById('swap-details').classList.add('hidden');
-    this.updateData();
+  getSwapPair() {
+    const pairs = {
+      USDT_TO_FTA: { from: 'USDT', to: 'FTA' },
+      FTA_TO_USDT: { from: 'FTA', to: 'USDT' },
+      POL_TO_USDT: { from: 'POL', to: 'USDT' },
+      USDT_TO_POL: { from: 'USDT', to: 'POL' }
+    };
+    return pairs[this.swapDirection] || pairs.USDT_TO_FTA;
   }
 
-  fillMaxSwap() {
-    const isUsdtTo = this.swapDirection === 'USDT_TO_FTA';
-    const maxAvail = isUsdtTo
-      ? (this.balances.coreUsdt + this.balances.walletUsdt)
-      : (this.balances.coreFta + this.balances.walletFta);
-    if (maxAvail > 0) {
-      document.getElementById('swap-from-in').value = isUsdtTo ? maxAvail.toFixed(2) : maxAvail.toFixed(4);
-      this.calcSwap();
+  getSwapTokenDecimals(token) {
+    if (token === 'POL') return 18;
+    return token === 'USDT' ? this.usdtDecimals : this.ftaDecimals;
+  }
+
+  formatSwapAmount(value, decimals, displayDecimals = 6) {
+    const raw = ethers.formatUnits(value, decimals);
+    const [whole, fraction = ''] = raw.split('.');
+    const truncated = fraction.slice(0, displayDecimals).replace(/0+$/, '');
+    return truncated ? `${whole}.${truncated}` : whole;
+  }
+
+  parseSwapInput(value, decimals) {
+    const clean = String(value ?? '').trim();
+    if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(clean)) return null;
+    try {
+      const amount = ethers.parseUnits(clean, decimals);
+      return amount > 0n ? amount : null;
+    } catch (_) {
+      return null;
     }
   }
 
+  setSwapMarket(market) {
+    if (this.swapTransactionInProgress || !['CORE_FTA', 'POL_USDT'].includes(market)) return;
+    this.swapMarket = market;
+    this.swapDirection = market === 'POL_USDT' ? 'POL_TO_USDT' : 'USDT_TO_FTA';
+    this.renderSwapInterface();
+    return this.updateData();
+  }
+
+  renderSwapInterface() {
+    this.dexQuoteRequestId += 1;
+    this.pendingDexQuote = null;
+    const pair = this.getSwapPair();
+    const isDex = this.swapMarket === 'POL_USDT';
+    document.getElementById('swap-market-select').value = this.swapMarket;
+    document.getElementById('token-from-display').textContent = pair.from;
+    document.getElementById('token-to-display').textContent = pair.to;
+    document.getElementById('swap-from-in').value = '';
+    document.getElementById('swap-to-in').value = '';
+    document.getElementById('swap-details').classList.add('hidden');
+    document.getElementById('swap-detail-impact-label').textContent = this.t(isDex ? 'priceImpactWithFee' : 'priceImpact');
+    document.getElementById('swap-detail-fee-label').textContent = this.t(isDex ? 'dexFeeLabel' : 'swapFee');
+    document.getElementById('swap-detail-impact').textContent = isDex ? '—' : '< 2%';
+    document.getElementById('swap-detail-fee').textContent = '—';
+    document.getElementById('swap-detail-min').textContent = '—';
+    document.getElementById('swap-detail-slippage').textContent = `${SLIPPAGE * 100}%`;
+    document.getElementById('swap-rate').textContent = isDex
+      ? this.t('quickswapRateInfo')
+      : this.t('currentRate') + this.ftaPriceUsd.toFixed(6) + this.t('usdtPerFta');
+    document.getElementById('btn-execute-swap').disabled = isDex;
+  }
+
+  toggleSwap() {
+    if (this.swapTransactionInProgress) return;
+    if (this.swapMarket === 'POL_USDT') {
+      this.swapDirection = this.swapDirection === 'POL_TO_USDT' ? 'USDT_TO_POL' : 'POL_TO_USDT';
+    } else {
+      this.swapDirection = this.swapDirection === 'USDT_TO_FTA' ? 'FTA_TO_USDT' : 'USDT_TO_FTA';
+    }
+    this.renderSwapInterface();
+    return this.updateData();
+  }
+
+  async fillMaxSwap() {
+    if (this.swapTransactionInProgress) return;
+    if (this.swapMarket === 'POL_USDT') {
+      const pair = this.getSwapPair();
+      try {
+        if (pair.from === 'POL') {
+          if (!this.provider || !this.user) return;
+          const [balanceWei, fees] = await Promise.all([
+            this.provider.getBalance(this.user),
+            FitiaSecurity.Rpc.getOptimalFeeData(this.provider)
+          ]);
+          // Réserve conservative pour le gaz ; le contrôle final utilise l'estimation réelle.
+          const gasReserve = (fees.maxFeePerGas * 400000n * 120n) / 100n;
+          const available = balanceWei > gasReserve ? balanceWei - gasReserve : 0n;
+          document.getElementById('swap-from-in').value = available > 0n ? this.formatSwapAmount(available, 18, 6) : '';
+        } else {
+          document.getElementById('swap-from-in').value = this.balances.walletUsdt > 0
+            ? this.balances.walletUsdt.toFixed(this.usdtDecimals)
+            : '';
+        }
+      } catch (e) {
+        this.showError(e);
+        return;
+      }
+    } else {
+      const isUsdtTo = this.swapDirection === 'USDT_TO_FTA';
+      const maxAvail = isUsdtTo
+        ? (this.balances.coreUsdt + this.balances.walletUsdt)
+        : (this.balances.coreFta + this.balances.walletFta);
+      document.getElementById('swap-from-in').value = maxAvail > 0
+        ? maxAvail.toFixed(isUsdtTo ? this.usdtDecimals : 4)
+        : '';
+    }
+    this.calcSwap();
+  }
+
   calcSwap() {
+    if (this.swapMarket === 'POL_USDT') return this.calcDexSwap();
     const val = document.getElementById('swap-from-in').value;
+    document.getElementById('btn-execute-swap').disabled = false;
+    document.getElementById('swap-detail-impact-label').textContent = this.t('priceImpact');
+    document.getElementById('swap-detail-fee-label').textContent = this.t('swapFee');
+    document.getElementById('swap-detail-impact').textContent = '< 2%';
     if (!val || Number(val) <= 0) {
       document.getElementById('swap-to-in').value = '';
       document.getElementById('swap-details').classList.add('hidden');
@@ -2715,7 +2915,146 @@ class Application {
     document.getElementById('swap-detail-min').textContent = `${minReceived.toFixed(6)} ${toToken}`;
   }
 
+  async calcDexSwap() {
+    const requestId = ++this.dexQuoteRequestId;
+    this.pendingDexQuote = null;
+    const outputInput = document.getElementById('swap-to-in');
+    const details = document.getElementById('swap-details');
+    const button = document.getElementById('btn-execute-swap');
+    outputInput.value = '';
+    details.classList.add('hidden');
+    button.disabled = true;
+    if (this.swapTransactionInProgress) return;
+
+    const pair = this.getSwapPair();
+    const inputDecimals = this.getSwapTokenDecimals(pair.from);
+    const outputDecimals = this.getSwapTokenDecimals(pair.to);
+    const amountIn = this.parseSwapInput(document.getElementById('swap-from-in').value, inputDecimals);
+    if (!amountIn) {
+      document.getElementById('swap-rate').textContent = this.t('quickswapRateInfo');
+      return;
+    }
+
+    const cachedBalance = pair.from === 'POL' ? this.balances.nativePol : this.balances.walletUsdt;
+    if (Number(ethers.formatUnits(amountIn, inputDecimals)) > cachedBalance + 1e-9) {
+      document.getElementById('swap-rate').textContent = this.t('errInsufficientFunds');
+      return;
+    }
+
+    document.getElementById('swap-detail-impact-label').textContent = this.t('priceImpactWithFee');
+    document.getElementById('swap-detail-fee-label').textContent = this.t('dexFeeLabel');
+    document.getElementById('swap-rate').textContent = this.t('swapQuoteLoading');
+    const path = pair.from === 'POL' ? [CONFIG.WPOL, CONFIG.USDT] : [CONFIG.USDT, CONFIG.WPOL];
+
+    try {
+      const quote = await this.getDexSwapQuote(amountIn, path);
+      if (requestId !== this.dexQuoteRequestId || this.swapTransactionInProgress) return;
+      this.pendingDexQuote = quote;
+      outputInput.value = this.formatSwapAmount(quote.expectedOut, outputDecimals, 6);
+      details.classList.remove('hidden');
+
+      const inputHuman = Number(ethers.formatUnits(amountIn, inputDecimals));
+      const outputHuman = Number(ethers.formatUnits(quote.expectedOut, outputDecimals));
+      const executionRate = inputHuman > 0 ? outputHuman / inputHuman : 0;
+      document.getElementById('swap-detail-rate').textContent = `1 ${pair.from} = ${executionRate.toFixed(pair.to === 'POL' ? 8 : 6)} ${pair.to}`;
+      document.getElementById('swap-detail-impact').textContent = `${(Number(quote.priceImpactBps) / 100).toFixed(2)}%`;
+      document.getElementById('swap-detail-fee').textContent = '0.30%';
+      document.getElementById('swap-detail-min').textContent = `${this.formatSwapAmount(quote.minOut, outputDecimals, 6)} ${pair.to}`;
+      document.getElementById('swap-rate').textContent = this.t('quickswapRateInfo');
+      button.disabled = false;
+    } catch (error) {
+      if (requestId !== this.dexQuoteRequestId) return;
+      console.error('QuickSwap quote:', error);
+      this.pendingDexQuote = null;
+      outputInput.value = '';
+      details.classList.add('hidden');
+      document.getElementById('swap-rate').textContent = this.t('swapQuoteUnavailable');
+      button.disabled = true;
+    }
+  }
+
+  async getDexSwapQuote(amountIn, path) {
+    if (!this.quickswapRouter || !this.quickswapFactory || !this.provider) {
+      throw new Error('QUICKSWAP_NOT_READY');
+    }
+    const amounts = await this.quickswapRouter.getAmountsOut(amountIn, path);
+    const expectedOut = amounts[amounts.length - 1];
+    if (!expectedOut || expectedOut <= 0n) throw new Error('EMPTY_QUICKSWAP_QUOTE');
+    const minOut = (expectedOut * (BPS_DENOMINATOR - DEX_SLIPPAGE_BPS)) / BPS_DENOMINATOR;
+
+    const pairAddress = await this.quickswapFactory.getPair(path[0], path[1]);
+    if (!pairAddress || pairAddress.toLowerCase() === ethers.ZeroAddress.toLowerCase()) {
+      throw new Error('NO_QUICKSWAP_LIQUIDITY');
+    }
+    const pairContract = new ethers.Contract(pairAddress, QUICKSWAP_PAIR_ABI, this.provider);
+    const [token0, reserves] = await Promise.all([pairContract.token0(), pairContract.getReserves()]);
+    const token0IsInput = token0.toLowerCase() === path[0].toLowerCase();
+    const reserveIn = token0IsInput ? reserves[0] : reserves[1];
+    const reserveOut = token0IsInput ? reserves[1] : reserves[0];
+    if (reserveIn <= 0n || reserveOut <= 0n) throw new Error('EMPTY_QUICKSWAP_POOL');
+
+    // Écart entre le prix spot sans frais et le prix réellement coté (frais pool inclus).
+    const idealOut = (amountIn * reserveOut) / reserveIn;
+    const priceImpactBps = idealOut > expectedOut && idealOut > 0n
+      ? ((idealOut - expectedOut) * BPS_DENOMINATOR) / idealOut
+      : 0n;
+    return { amountIn, expectedOut, minOut, path, pairAddress, priceImpactBps };
+  }
+
+  async ensureDexUsdtAllowance(amountIn) {
+    const allowance = await this.usdtToken.allowance(this.user, CONFIG.QUICKSWAP_ROUTER);
+    if (allowance >= amountIn) return;
+    // L'USDT Polygon exige une remise à zéro avant de modifier une allowance existante.
+    if (allowance > 0n) {
+      const resetTx = await this.usdtToken.approve(CONFIG.QUICKSWAP_ROUTER, 0n);
+      this.showToast(this.t('swapApprovalPending'));
+      await resetTx.wait();
+    }
+    const approvalTx = await this.usdtToken.approve(CONFIG.QUICKSWAP_ROUTER, amountIn);
+    this.showToast(this.t('swapApprovalPending'));
+    await approvalTx.wait();
+  }
+
+  async getDexDeadline() {
+    const block = await this.provider.getBlock('latest');
+    if (!block) throw new Error('POLYGON_BLOCK_UNAVAILABLE');
+    return BigInt(block.timestamp + DEX_DEADLINE_SECONDS);
+  }
+
+  async ensureDexPolGas(amountIn, quote, deadline) {
+    const balanceWei = await this.provider.getBalance(this.user);
+    if (balanceWei < amountIn) {
+      this.showToast(this.t('errInsufficientFunds'), true);
+      return false;
+    }
+    const [fees, gasEstimate] = await Promise.all([
+      FitiaSecurity.Rpc.getOptimalFeeData(this.provider),
+      this.quickswapRouter.swapExactETHForTokens.estimateGas(quote.minOut, quote.path, this.user, deadline, { value: amountIn })
+    ]);
+    const required = amountIn + ((gasEstimate * fees.maxFeePerGas * 120n) / 100n);
+    if (balanceWei < required) {
+      this.showToast(this.t('swapPolGasReserve'), true);
+      return false;
+    }
+    return true;
+  }
+
+  async ensureDexTokenSwapGas(quote, amountIn, deadline) {
+    const [balanceWei, fees, gasEstimate] = await Promise.all([
+      this.provider.getBalance(this.user),
+      FitiaSecurity.Rpc.getOptimalFeeData(this.provider),
+      this.quickswapRouter.swapExactTokensForETH.estimateGas(amountIn, quote.minOut, quote.path, this.user, deadline)
+    ]);
+    const required = (gasEstimate * fees.maxFeePerGas * 120n) / 100n;
+    if (balanceWei < required) {
+      this.showToast(this.t('swapPolGasReserve'), true);
+      return false;
+    }
+    return true;
+  }
+
   async executeSwap() {
+    if (this.swapMarket === 'POL_USDT') return this.executeDexSwap();
     const val = document.getElementById('swap-from-in').value;
     if (!val || Number(val) <= 0) return this.showToast(this.t('invalidAmount'), true);
     if (!(await this.ensurePolGas())) return;
@@ -2753,6 +3092,62 @@ class Application {
       this.showError(e);
     } finally {
       this.setLoader(false);
+    }
+  }
+
+  async executeDexSwap() {
+    if (this.swapTransactionInProgress) return;
+    const pair = this.getSwapPair();
+    const inputDecimals = this.getSwapTokenDecimals(pair.from);
+    const amountIn = this.parseSwapInput(document.getElementById('swap-from-in').value, inputDecimals);
+    if (!amountIn) return this.showToast(this.t('invalidAmount'), true);
+
+    this.swapTransactionInProgress = true;
+    document.getElementById('btn-execute-swap').disabled = true;
+    this.setLoader(true, this.t('swapping'));
+    try {
+      if (!(await this.ensurePolGas())) return;
+      const path = pair.from === 'POL' ? [CONFIG.WPOL, CONFIG.USDT] : [CONFIG.USDT, CONFIG.WPOL];
+      // Nouveau devis juste avant signature : le minimum reçu ne dépend jamais d'un ancien affichage.
+      const quote = await this.getDexSwapQuote(amountIn, path);
+      const deadline = await this.getDexDeadline();
+      let tx;
+
+      if (pair.from === 'POL') {
+        if (!(await this.ensureDexPolGas(amountIn, quote, deadline))) return;
+        tx = await this.quickswapRouter.swapExactETHForTokens(
+          quote.minOut, path, this.user, deadline, { value: amountIn }
+        );
+      } else {
+        const walletUsdt = await this.usdtToken.balanceOf(this.user);
+        if (walletUsdt < amountIn) {
+          this.showToast(this.t('errInsufficientFunds'), true);
+          return;
+        }
+        await this.ensureDexUsdtAllowance(amountIn);
+        if (!(await this.ensureDexTokenSwapGas(quote, amountIn, deadline))) return;
+        tx = await this.quickswapRouter.swapExactTokensForETH(
+          amountIn, quote.minOut, path, this.user, deadline
+        );
+      }
+
+      this.showToast(this.t('swapPending'));
+      const receipt = await tx.wait();
+      if (!receipt || receipt.status !== 1) throw new Error('SWAP_NOT_CONFIRMED');
+      FitiaSecurity.Native.vibrate(35);
+      this.showToast(this.t('swapSuccess'));
+      this.pendingDexQuote = null;
+      document.getElementById('swap-from-in').value = '';
+      document.getElementById('swap-to-in').value = '';
+      document.getElementById('swap-details').classList.add('hidden');
+      await this.updateData();
+    } catch (e) {
+      this.showError(e);
+    } finally {
+      this.swapTransactionInProgress = false;
+      this.setLoader(false);
+      const hasQuote = this.pendingDexQuote && document.getElementById('swap-from-in').value;
+      document.getElementById('btn-execute-swap').disabled = this.swapMarket === 'POL_USDT' ? !hasQuote : false;
     }
   }
 
@@ -2967,6 +3362,8 @@ class Application {
       this.mine = new ethers.Contract(CONFIG.MINE, MINE_ABI, this.signer);
       this.usdtToken = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
       this.ftaToken = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
+      this.quickswapRouter = new ethers.Contract(CONFIG.QUICKSWAP_ROUTER, QUICKSWAP_ROUTER_ABI, this.signer);
+      this.quickswapFactory = new ethers.Contract(CONFIG.QUICKSWAP_FACTORY, QUICKSWAP_FACTORY_ABI, this.provider);
       document.getElementById('sec-rpc-latency').textContent = res.latencyMs ? `Polygon • ${res.latencyMs} ms` : 'Polygon • Actif';
       this.showToast(`✅ Connecté (${res.latencyMs || 'OK'} ms)`);
       await this.updateData();
@@ -3090,6 +3487,11 @@ class Application {
     const shortMsg = e?.shortMessage || e?.reason || '';
     const errStr = ((e?.message || '') + ' ' + shortMsg + ' ' + (e?.code || '')).toLowerCase();
 
+    if (e?.code === 'ACTION_REJECTED' || e?.code === 4001 || errStr.includes('user rejected') || errStr.includes('action_rejected')) return this.t('swapRejected');
+    if (errStr.includes('insufficient_output_amount') || errStr.includes('insufficient output amount')) return this.t('swapSlippageError');
+    if (errStr.includes('uniswapv2router') && errStr.includes('expired')) return this.t('swapExpired');
+    if (errStr.includes('quickswap_not_ready') || errStr.includes('quickswap_liquidity') || errStr.includes('empty_quickswap')) return this.t('swapQuoteUnavailable');
+    if (errStr.includes('swap_not_confirmed')) return this.t('swapNotConfirmed');
     if (errStr.includes('insufficient funds') || errStr.includes('insf')) return this.t('noGasPolErr');
     if (errStr.includes('tff') || errStr.includes('transferfrom')) return '❌ Transfert refusé : vérifiez votre solde USDT/FTA.';
     if (errStr.includes('nonce')) return this.t('errNonce');
