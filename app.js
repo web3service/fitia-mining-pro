@@ -31,9 +31,9 @@ const i18n = {
     importExistingWallet: "📥 J'ai déjà un portefeuille (12 mots / Clé)",
     downloadApkTitle: "Télécharger l'application Android (.APK)",
     downloadApkSub: "Installation directe sur votre téléphone",
-    updateAvailableTitle: "Nouvelle mise à jour disponible",
+    updateRequiredTitle: "Mise à jour requise",
+    updateRequiredMessage: "Des améliorations de sécurité et de nouvelles fonctionnalités sont disponibles. Installez la dernière version pour continuer à utiliser FITIA PRO.",
     updateDownloadInstall: "Télécharger et installer",
-    updateLater: "Plus tard",
     updateInstallHint: "Android vous demandera de confirmer l’installation.",
     updateDownloading: "Téléchargement de la mise à jour…",
     updateStartError: "Impossible de lancer la mise à jour. Réessayez plus tard.",
@@ -230,9 +230,9 @@ const i18n = {
     importExistingWallet: "📥 I already have a wallet (12 words / Key)",
     downloadApkTitle: "Download Android App (.APK)",
     downloadApkSub: "Direct installation on your phone",
-    updateAvailableTitle: "New update available",
+    updateRequiredTitle: "Update required",
+    updateRequiredMessage: "Security improvements and new features are available. Install the latest version to continue using FITIA PRO.",
     updateDownloadInstall: "Download and install",
-    updateLater: "Later",
     updateInstallHint: "Android will ask you to confirm the installation.",
     updateDownloading: "Downloading the update…",
     updateStartError: "Unable to start the update. Please try again later.",
@@ -782,8 +782,7 @@ class Application {
         versionCode,
         versionName,
         apkUrl: apkUrl.href,
-        sha256,
-        notes: String(raw.notes || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 320)
+        sha256
       };
     } catch (_) {
       return null;
@@ -809,9 +808,6 @@ class Application {
         if (manual) this.showToast(this.t('updateLatest'));
         return;
       }
-      this.availableUpdate = update;
-      const dismissedVersion = Number(localStorage.getItem('fitia_update_dismissed_code') || 0);
-      if (!manual && dismissedVersion === update.versionCode) return;
       this.showUpdateModal(update);
     } catch (_) {
       if (manual) this.showToast(this.t('updateCheckFailed'), true);
@@ -824,9 +820,8 @@ class Application {
   showUpdateModal(update) {
     if (!update) return;
     this.availableUpdate = update;
-    document.getElementById('update-version').textContent = `Version ${update.versionName}`;
-    document.getElementById('update-notes').textContent = update.notes;
-    document.getElementById('update-notes').classList.toggle('hidden', !update.notes);
+    localStorage.removeItem('fitia_update_dismissed_code');
+    document.getElementById('update-required-message').textContent = this.t('updateRequiredMessage');
     document.getElementById('modal-update').classList.add('active');
   }
 
@@ -838,15 +833,8 @@ class Application {
       this.showToast(this.t('updateStartError'), true);
       return;
     }
-    document.getElementById('modal-update').classList.remove('active');
+    // La mise à jour reste obligatoire jusqu'à l'installation effective de la nouvelle version.
     this.showToast(this.t('updateDownloading'));
-  }
-
-  dismissUpdate() {
-    if (this.availableUpdate) {
-      localStorage.setItem('fitia_update_dismissed_code', String(this.availableUpdate.versionCode));
-    }
-    document.getElementById('modal-update').classList.remove('active');
   }
 
   setupLifecycleListeners() {
@@ -916,6 +904,9 @@ class Application {
 
     // Gestionnaire du bouton Retour matériel Android (appelé par MainActivity.java)
     window.onAndroidBackPressed = () => {
+      if (document.getElementById('modal-update')?.classList.contains('active')) {
+        return true;
+      }
       const confirmModal = document.getElementById('modal-pin-confirm');
       if (confirmModal?.classList.contains('active')) {
         this.cancelPinVerification();
@@ -2274,7 +2265,7 @@ class Application {
   }
 
   closeModals() {
-    document.querySelectorAll('.modal:not(#modal-pin-confirm):not(#modal-secret-reveal)').forEach((m) => {
+    document.querySelectorAll('.modal:not(#modal-pin-confirm):not(#modal-secret-reveal):not(#modal-update)').forEach((m) => {
       m.classList.remove('active');
     });
   }

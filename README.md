@@ -1,4 +1,4 @@
-# ⚡ FITIA PRO MINER V3.3.8 — Application Mobile Autonome & APK Android Durci
+# ⚡ FITIA PRO MINER V3.3.9 — Application Mobile Autonome & APK Android Durci
 
 Application mobile **100% indépendante** pour l'écosystème **FITIA PRO** sur **Polygon Mainnet (Chain ID 137)**, intégrant directement son propre **portefeuille crypto non-custodial haute sécurité** et compilée en **APK Android signé (`FITIA-PRO-Miner.apk`)**.
 
@@ -15,7 +15,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
-## 🛡️ Architecture Sécurité Durcie (V3.3.8)
+## 🛡️ Architecture Sécurité Durcie (V3.3.9)
 
 - **Chiffrement du Coffre-Fort à 3 Couches Indépendantes** :
   1. **Couche 1 (Utilisateur)** : `AES-256-GCM` dérivé du code PIN à 6 chiffres via `PBKDF2-SHA256` à **310 000 itérations** (sel aléatoire 128 bits, IV 96 bits). Rejet systématique des codes PIN faibles ou répétitifs (`123456`, `000000`, `121212`, `258025`, etc.).
@@ -58,9 +58,11 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ## 📲 Mise à Jour dans l’Application & Signature Stable
 
-- **`update-current.json`** publie la version disponible pour FITIA PRO 3.3.7 et les versions suivantes, l’URL GitHub Release et le SHA-256 de l’APK. L’application affiche une notification uniquement lorsqu’une version supérieure est disponible et mémorise « Plus tard » par version. La version 3.3.8 est proposée directement aux installations 3.3.7, qui utilisent le même certificat.
+- **`update-current.json`** publie la version disponible pour FITIA PRO 3.3.7 et les versions suivantes, l’URL GitHub Release et le SHA-256 de l’APK. La version 3.3.9 est proposée directement aux installations 3.3.7 et 3.3.8, qui utilisent le même certificat.
+- **Mise à jour obligatoire à partir de 3.3.9** : toute version supérieure ouvre une modale non fermable qui reste affichée pendant le téléchargement et jusqu’à l’installation. Il n’existe ni bouton « Plus tard », ni report mémorisé, ni contournement par la fermeture générique des modales ou le bouton Retour Android.
+- **Message professionnel et générique** : les notes distantes et le détail des versions ne sont pas affichés. La modale indique uniquement que des améliorations de sécurité et de nouvelles fonctionnalités sont disponibles, avec l’action de téléchargement et d’installation.
 - **Canaux historiques protégés** : `update-stable.json` reste volontairement sur 3.3.6 et `update.json` sur 3.3.5 afin de ne jamais proposer automatiquement un APK signé avec un certificat incompatible.
-- **Migration manuelle vers 3.3.8** : depuis 3.3.5 ou 3.3.6, sauvegardez d’abord les 12 mots du wallet, installez manuellement l’APK 3.3.8 et désinstallez l’ancienne version si Android refuse le changement de signataire. Les mises à jour 3.3.7+ utilisent le nouveau certificat stable et le canal intégré.
+- **Migration manuelle vers 3.3.9** : depuis 3.3.5 ou 3.3.6, sauvegardez d’abord les 12 mots du wallet, installez manuellement l’APK 3.3.9 et désinstallez l’ancienne version si Android refuse le changement de signataire. Les mises à jour 3.3.7+ utilisent le nouveau certificat stable et le canal intégré.
 - Le téléchargement natif accepte uniquement les releases HTTPS du dépôt officiel, limite la taille du fichier et vérifie son SHA-256 avant d’ouvrir le programme d’installation Android. Le provider interne expose uniquement cet APK en lecture seule.
 - Android demande toujours l’autorisation d’installation et la confirmation de l’utilisateur. Le canal de mise à jour dans l’application est actif, tandis que la vitrine publique reste en maintenance.
 - **Nouveau certificat stable à partir de 3.3.7** : le build réutilise `android-src/keystore/fitia-release.p12` (dossier ignoré par Git) et vérifie l’empreinte publique `fa3494fb50ee2240f477b7cb21bb0d8606cedceac36a263e1e877f34319fdf72` épinglée dans `android-src/release-certificate-sha256.txt`. Il ne génère pas de nouvelle clé automatiquement et refuse de produire un APK avec un certificat différent. Aucune continuité avec les certificats 3.3.5 ou 3.3.6 n’est revendiquée.

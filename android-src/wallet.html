@@ -689,18 +689,15 @@
   </div>
 </div>
 
-<!-- Notification de mise à jour Android -->
-<div id="modal-update" class="modal">
+<!-- Mise à jour Android obligatoire -->
+<div id="modal-update" class="modal" role="dialog" aria-modal="true" aria-labelledby="update-required-title">
   <div class="modal-content">
     <div class="modal-header">
-      <h3 data-i18n="updateAvailableTitle">Nouvelle mise à jour disponible</h3>
-      <button class="modal-close" onclick="App.dismissUpdate()" aria-label="Fermer">✕</button>
+      <h3 id="update-required-title" data-i18n="updateRequiredTitle">Mise à jour requise</h3>
     </div>
-    <p id="update-version" class="update-version">Version</p>
-    <p id="update-notes" class="small-text update-notes"></p>
+    <p id="update-required-message" class="small-text update-required-message" data-i18n="updateRequiredMessage">Des améliorations de sécurité et de nouvelles fonctionnalités sont disponibles. Installez la dernière version pour continuer à utiliser FITIA PRO.</p>
     <p class="small-text" data-i18n="updateInstallHint">Android vous demandera de confirmer l’installation.</p>
     <button class="btn-primary" onclick="App.startUpdateDownload()" data-i18n="updateDownloadInstall">Télécharger et installer</button>
-    <button class="btn-secondary-outline update-later-btn" onclick="App.dismissUpdate()" data-i18n="updateLater">Plus tard</button>
   </div>
 </div>
 

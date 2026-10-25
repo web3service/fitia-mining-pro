@@ -1170,15 +1170,7 @@ main::-webkit-scrollbar { display: none; }
   max-height: 88dvh;
   overflow-y: auto;
 }
-.update-version {
-  margin: 0 0 10px;
-  color: var(--primary);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-.update-notes { margin-bottom: 12px; line-height: 1.5; white-space: pre-line; }
-.update-later-btn { width: 100%; margin-top: 8px; }
+.update-required-message { margin-bottom: 12px; line-height: 1.5; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .modal-header h3 { margin: 0; font-size: 1.12rem; }
