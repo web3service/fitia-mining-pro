@@ -37,7 +37,7 @@ jobs:
           fi
           echo "Verified APK SHA-256: $actual"
 
-      - name: Attach APK to the existing release
+      - name: Attach APK and publish the verified release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -52,3 +52,6 @@ jobs:
           fi
           gh release view "$tag"
           gh release upload "$tag" FITIA-PRO-Miner.apk --clobber
+          if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == "true" ]]; then
+            gh release edit "$tag" --draft=false
+          fi
