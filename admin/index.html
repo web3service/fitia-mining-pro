@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>FITIA PRO — Administration</title>
+  <link rel="icon" type="image/png" href="/assets/icon-192.png">
+  <link rel="stylesheet" href="/admin.css">
+  <script src="/admin.js" defer></script>
+</head>
+<body>
+  <div id="login-view" class="login-shell">
+    <main class="login-card">
+      <div class="login-brand">
+        <img src="/assets/icon-192.png" width="64" height="64" alt="FITIA PRO">
+        <div><strong>FITIA PRO</strong><span>Administration</span></div>
+      </div>
+      <p class="eyebrow">Espace sécurisé</p>
+      <h1>Gestion du projet</h1>
+      <p class="muted">Connectez-vous pour gérer les événements et les annonces diffusés dans l’application.</p>
+      <form id="login-form" class="login-form">
+        <label for="login-password">Mot de passe administrateur</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required autofocus>
+        <button id="login-button" class="button button-primary button-full" type="submit">Se connecter</button>
+        <p id="login-error" class="form-error" role="alert"></p>
+      </form>
+      <p class="login-footnote">La session expire automatiquement. Aucun mot de passe n’est conservé dans le navigateur.</p>
+    </main>
+  </div>
+
+  <div id="admin-view" class="admin-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/icon-192.png" width="42" height="42" alt="">
+        <div><strong>FITIA PRO</strong><span>Administration</span></div>
+      </div>
+      <nav class="sidebar-nav" aria-label="Navigation principale">
+        <button class="nav-button active" type="button" data-section="dashboard">
+          <span class="nav-icon" aria-hidden="true">⌂</span> Vue d’ensemble
+        </button>
+        <button class="nav-button" type="button" data-section="announcements">
+          <span class="nav-icon" aria-hidden="true">◉</span> Événements &amp; annonces
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <span id="sidebar-mode" class="source-badge">Mode local</span>
+        <button id="logout-button" class="button button-quiet button-full" type="button">Se déconnecter</button>
+      </div>
+    </aside>
+
+    <div class="admin-workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Panneau d’administration</p>
+          <h1 id="page-title">Vue d’ensemble</h1>
+        </div>
+        <div class="topbar-actions">
+          <span id="connection-status" class="connection-status"><span></span> Connexion…</span>
+          <button id="refresh-button" class="button button-secondary" type="button">Actualiser</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section id="section-dashboard" class="page-section">
+          <div class="hero-panel">
+            <div>
+              <p class="eyebrow">Communication officielle</p>
+              <h2>Vos annonces, au bon moment.</h2>
+              <p>Créez un événement, choisissez sa période de diffusion et vérifiez son rendu avant publication.</p>
+            </div>
+            <button class="button button-primary" type="button" data-new-announcement>Créer une annonce</button>
+          </div>
+
+          <div class="stats-grid" aria-label="Statistiques des annonces">
+            <article class="stat-card stat-active"><span>Actives</span><strong id="stat-active">0</strong><small>Visibles maintenant</small></article>
+            <article class="stat-card stat-scheduled"><span>Programmées</span><strong id="stat-scheduled">0</strong><small>Diffusion à venir</small></article>
+            <article class="stat-card stat-expired"><span>Expirées</span><strong id="stat-expired">0</strong><small>Diffusion terminée</small></article>
+            <article class="stat-card stat-total"><span>Total</span><strong id="stat-total">0</strong><small>Annonces enregistrées</small></article>
+          </div>
+
+          <div class="dashboard-grid">
+            <article class="panel">
+              <div class="panel-heading"><div><p class="eyebrow">Diffusion</p><h3>État du canal</h3></div><span id="dashboard-enabled" class="status-pill">—</span></div>
+              <dl class="details-list">
+                <div><dt>Source</dt><dd id="dashboard-source">—</dd></div>
+                <div><dt>Dernière synchronisation</dt><dd id="dashboard-sync">—</dd></div>
+                <div><dt>Intervalle dans l’application</dt><dd>8 secondes</dd></div>
+              </dl>
+            </article>
+            <article class="panel">
+              <p class="eyebrow">Action rapide</p>
+              <h3>Programmer un événement</h3>
+              <p class="muted">Ajoutez les dates de début et de fin pour automatiser sa visibilité dans le wallet.</p>
+              <button class="button button-secondary" type="button" data-new-event>Nouvel événement</button>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-announcements" class="page-section hidden">
+          <div class="section-heading">
+            <div><p class="eyebrow">Contenu du wallet</p><h2>Événements &amp; annonces</h2><p class="muted">Jusqu’à 12 annonces actives simultanément, dans l’ordre affiché.</p></div>
+            <button class="button button-primary" type="button" data-new-announcement>Nouvelle annonce</button>
+          </div>
+
+          <div class="distribution-card">
+            <div><strong>Diffusion des annonces</strong><p>Désactivez temporairement le canal distant sans supprimer son contenu. Les annonces locales de secours restent disponibles.</p></div>
+            <label class="switch-control">
+              <input id="manifest-enabled" type="checkbox" aria-label="Activer la diffusion des annonces">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span id="manifest-enabled-label">Activée</span>
+            </label>
+          </div>
+
+          <div class="list-toolbar">
+            <label class="search-field"><span class="sr-only">Rechercher une annonce</span><input id="search-input" type="search" placeholder="Rechercher un titre ou un message…"></label>
+            <label><span class="sr-only">Filtrer par catégorie</span><select id="category-filter"><option value="all">Toutes les catégories</option><option value="event">Événements</option><option value="information">Informations</option><option value="referral">Parrainage</option><option value="security">Sécurité</option></select></label>
+            <label><span class="sr-only">Filtrer par statut</span><select id="status-filter"><option value="all">Tous les statuts</option><option value="active">Actives</option><option value="scheduled">Programmées</option><option value="expired">Expirées</option></select></label>
+          </div>
+
+          <div id="list-error" class="alert alert-error hidden" role="alert"></div>
+          <div id="announcements-list" class="announcements-list"></div>
+          <div id="empty-state" class="empty-state hidden">
+            <img src="/assets/icon-192.png" width="52" height="52" alt="">
+            <h3>Aucune annonce trouvée</h3>
+            <p>Modifiez les filtres ou créez une nouvelle annonce.</p>
+            <button class="button button-secondary" type="button" data-new-announcement>Créer une annonce</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="editor-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+    <div class="modal-backdrop" data-close-editor></div>
+    <div class="modal-card">
+      <form id="announcement-form">
+        <header class="modal-header">
+          <div><p class="eyebrow">Éditeur de contenu</p><h2 id="editor-title">Nouvelle annonce</h2></div>
+          <button class="icon-button" type="button" data-close-editor aria-label="Fermer">×</button>
+        </header>
+        <div class="modal-body">
+          <div class="editor-fields">
+            <div class="field-group">
+              <label for="item-category">Catégorie</label>
+              <select id="item-category" required><option value="event">Événement</option><option value="information">Information</option><option value="referral">Parrainage</option><option value="security">Sécurité</option></select>
+            </div>
+            <div class="localized-primary">
+              <div class="field-group"><label for="item-title-fr">Titre en français <span>obligatoire</span></label><input id="item-title-fr" maxlength="80" required></div>
+              <div class="field-group"><label for="item-message-fr">Message en français <span>obligatoire</span></label><textarea id="item-message-fr" rows="4" maxlength="180" required></textarea><small class="field-hint"><span id="message-count">0</span>/180 caractères</small></div>
+            </div>
+
+            <details class="translations-panel">
+              <summary>Autres langues <span>anglais recommandé</span></summary>
+              <div class="translations-grid">
+                <div class="translation-fields"><h3>Anglais</h3><label for="item-title-en">Titre</label><input id="item-title-en" maxlength="80"><label for="item-message-en">Message</label><textarea id="item-message-en" rows="3" maxlength="180"></textarea></div>
+                <div class="translation-fields"><h3>Allemand</h3><label for="item-title-de">Titre</label><input id="item-title-de" maxlength="80"><label for="item-message-de">Message</label><textarea id="item-message-de" rows="3" maxlength="180"></textarea></div>
+                <div class="translation-fields"><h3>Chinois</h3><label for="item-title-zh">Titre</label><input id="item-title-zh" maxlength="80"><label for="item-message-zh">Message</label><textarea id="item-message-zh" rows="3" maxlength="180"></textarea></div>
+                <div class="translation-fields"><h3>Sango</h3><label for="item-title-sg">Titre</label><input id="item-title-sg" maxlength="80"><label for="item-message-sg">Message</label><textarea id="item-message-sg" rows="3" maxlength="180"></textarea></div>
+              </div>
+            </details>
+
+            <div class="date-grid">
+              <div class="field-group"><label for="item-starts-at">Début de diffusion <span>facultatif</span></label><input id="item-starts-at" type="datetime-local"></div>
+              <div class="field-group"><label for="item-expires-at">Fin de diffusion <span>facultatif</span></label><input id="item-expires-at" type="datetime-local"></div>
+            </div>
+            <p id="editor-error" class="form-error" role="alert"></p>
+          </div>
+
+          <aside class="preview-panel">
+            <p class="eyebrow">Aperçu dans le wallet</p>
+            <div class="phone-preview">
+              <div class="phone-preview-brand"><img src="/assets/icon-192.png" width="28" height="28" alt=""><strong>FITIA PRO</strong></div>
+              <div id="preview-slide" class="preview-slide preview-event">
+                <img src="/assets/icon-192.png" width="48" height="48" alt="">
+                <div><small id="preview-category">Événement</small><strong id="preview-title">Votre titre</strong><p id="preview-message">Votre message apparaîtra ici.</p></div>
+              </div>
+            </div>
+            <p id="preview-schedule" class="preview-schedule">Diffusion sans limite de date</p>
+            <p class="preview-note">Le contenu est toujours affiché comme du texte dans l’application.</p>
+          </aside>
+        </div>
+        <footer class="modal-footer">
+          <button class="button button-quiet" type="button" data-close-editor>Annuler</button>
+          <button id="save-announcement" class="button button-primary" type="submit">Publier l’annonce</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <div id="loading-overlay" class="loading-overlay hidden" aria-live="polite"><div class="loading-card"><span class="spinner" aria-hidden="true"></span><strong id="loading-label">Synchronisation…</strong></div></div>
+</body>
+</html>
