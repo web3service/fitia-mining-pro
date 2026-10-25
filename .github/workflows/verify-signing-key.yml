@@ -40,65 +40,102 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
           EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+
+          stage="Initialisation"
+          actual_alias="non détecté"
+          actual_sha256="non détectée"
+
+          write_summary() {
+            local title="$1"
+            local message="$2"
+            {
+              printf '## %s\n\n' "$title"
+              printf -- '- Étape : %s\n' "$stage"
+              printf -- '- Alias détecté : `%s`\n' "$actual_alias"
+              printf -- '- Empreinte SHA-256 détectée : `%s`\n' "$actual_sha256"
+              printf '\n%s\n' "$message"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          fail() {
+            local message="$1"
+            trap - ERR
+            write_summary "❌ Échec de la vérification de la clé" "$message"
+            printf 'Error: %s\n' "$message" >&2
+            exit 1
+          }
+
+          unexpected_error() {
+            local line="$1"
+            fail "Erreur inattendue à la ligne $line du script de vérification."
+          }
+          trap 'unexpected_error $LINENO' ERR
 
           if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" ]]; then
-            echo 'Both FITIA_ANDROID_KEYSTORE_BASE64 and FITIA_ANDROID_KEYSTORE_PASSWORD must be configured.' >&2
-            exit 1
+            fail "Les deux secrets FITIA_ANDROID_KEYSTORE_BASE64 et FITIA_ANDROID_KEYSTORE_PASSWORD doivent être configurés."
           fi
 
           if [[ ! "$EXPECTED_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
-            echo 'The expected certificate fingerprint must contain exactly 64 hexadecimal characters.' >&2
-            exit 1
+            fail "L’empreinte attendue doit contenir exactement 64 caractères hexadécimaux."
           fi
-
           expected="${EXPECTED_SHA256,,}"
+
+          stage="Préparation du fichier temporaire"
           work_dir="$(mktemp -d)"
           trap 'rm -rf "$work_dir"' EXIT
           keystore="$work_dir/fitia-release.p12"
           keytool_output="$work_dir/keytool-output.txt"
 
           if ! printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"; then
-            echo 'FITIA_ANDROID_KEYSTORE_BASE64 is not valid Base64.' >&2
-            exit 1
+            fail "Le secret FITIA_ANDROID_KEYSTORE_BASE64 n’est pas un Base64 valide. Recopiez la ligne complète du fichier Base64."
           fi
           chmod 600 "$keystore"
 
           if [[ ! -s "$keystore" ]]; then
-            echo 'The decoded PKCS12 keystore is empty.' >&2
-            exit 1
+            fail "Le fichier PKCS12 obtenu après décodage est vide."
           fi
 
-          if ! keytool -list -v \
+          stage="Ouverture du PKCS12"
+          if ! keytool -list \
             -keystore "$keystore" \
             -storetype PKCS12 \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -alias fitia_release > "$keytool_output" 2>&1; then
-            echo 'Unable to open the private key. Check the keystore password and the fitia_release alias.' >&2
-            exit 1
+            -storepass "$KEYSTORE_PASSWORD" > "$keytool_output" 2>&1; then
+            fail "Impossible d’ouvrir le fichier PKCS12. Vérifiez le mot de passe du secret FITIA_ANDROID_KEYSTORE_PASSWORD et le contenu du Base64."
           fi
 
-          if ! grep -q 'Entry type: PrivateKeyEntry' "$keytool_output"; then
-            echo 'The fitia_release entry is not a private key entry.' >&2
-            exit 1
+          stage="Lecture de la clé privée"
+          entry_count="$(sed -n -E 's/^Your keystore contains ([0-9]+) (entry|entries)$/\1/p' "$keytool_output")"
+          if [[ "$entry_count" != "1" ]]; then
+            fail "Le PKCS12 doit contenir exactement une clé privée. Nombre d’entrées détecté : ${entry_count:-inconnu}."
           fi
 
-          actual="$(sed -n -E 's/^[[:space:]]*SHA256:[[:space:]]*//p' "$keytool_output" \
-            | head -n 1 \
+          detected_alias="$(awk -F', ' '/PrivateKeyEntry/{print $1; exit}' "$keytool_output")"
+          if [[ -n "$detected_alias" ]]; then
+            actual_alias="$detected_alias"
+          else
+            fail "Aucune entrée de clé privée n’a été trouvée dans le PKCS12."
+          fi
+
+          actual_sha256="$(sed -n -E 's/^Certificate fingerprint \(SHA-256\):[[:space:]]*//p' "$keytool_output" \
             | tr -d ':' \
-            | tr '[:upper:]' '[:lower:]'
-          )"
-
-          if [[ ! "$actual" =~ ^[0-9a-f]{64}$ ]]; then
-            echo 'Unable to read the public SHA-256 certificate fingerprint.' >&2
-            exit 1
+            | tr '[:upper:]' '[:lower:]')"
+          if [[ ! "$actual_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+            actual_sha256="non détectée"
+            fail "Impossible de lire l’empreinte SHA-256 publique du certificat."
           fi
 
-          if [[ "$actual" != "$expected" ]]; then
-            printf 'Certificate mismatch.\nExpected: %s\nActual:   %s\n' "$expected" "$actual" >&2
-            exit 1
+          stage="Comparaison du certificat"
+          if [[ "$actual_sha256" != "$expected" ]]; then
+            fail "L’empreinte du certificat ne correspond pas à celle attendue. Comparez les deux empreintes affichées ci-dessus."
           fi
 
-          printf 'Private key, password, and fitia_release alias verified.\n'
-          printf 'Certificate SHA-256: %s\n' "$actual"
-          printf 'No APK was built or published. Temporary key material has been removed.\n'
+          stage="Vérification de l’alias"
+          if [[ "$actual_alias" != "fitia_release" ]]; then
+            fail "La clé et le mot de passe sont valides, mais l’alias est ${actual_alias} au lieu de fitia_release. Le projet devra adapter l’alias ; ne recréez pas la clé."
+          fi
+
+          stage="Terminé"
+          write_summary "✅ Clé de signature vérifiée" "Le fichier PKCS12, le mot de passe, la clé privée, l’alias et l’empreinte sont tous valides. Aucun APK n’a été compilé ou publié."
+          printf 'Private key, password, fitia_release alias, and certificate verified.\n'
+          printf 'Certificate SHA-256: %s\n' "$actual_sha256"
