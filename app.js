@@ -2787,6 +2787,15 @@ class Application {
     return token === 'USDT' ? this.usdtDecimals : this.ftaDecimals;
   }
 
+  getSwapTokenIcon(token) {
+    const icons = {
+      POL: 'assets/pol.svg',
+      USDT: 'assets/usdt.svg',
+      FTA: 'assets/fta.svg'
+    };
+    return icons[token] || '';
+  }
+
   formatSwapAmount(value, decimals, displayDecimals = 6) {
     const raw = ethers.formatUnits(value, decimals);
     const [whole, fraction = ''] = raw.split('.');
@@ -2806,7 +2815,7 @@ class Application {
   }
 
   setSwapMarket(market) {
-    if (this.swapTransactionInProgress || !['CORE_FTA', 'POL_USDT'].includes(market)) return;
+    if (this.swapTransactionInProgress || !['CORE_FTA', 'POL_USDT'].includes(market) || market === this.swapMarket) return;
     this.swapMarket = market;
     this.swapDirection = market === 'POL_USDT' ? 'POL_TO_USDT' : 'USDT_TO_FTA';
     this.renderSwapInterface();
@@ -2818,9 +2827,15 @@ class Application {
     this.pendingDexQuote = null;
     const pair = this.getSwapPair();
     const isDex = this.swapMarket === 'POL_USDT';
-    document.getElementById('swap-market-select').value = this.swapMarket;
-    document.getElementById('token-from-display').textContent = pair.from;
-    document.getElementById('token-to-display').textContent = pair.to;
+    document.querySelectorAll('.swap-market-option[data-swap-market]').forEach((button) => {
+      const isActive = button.dataset.swapMarket === this.swapMarket;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+    document.getElementById('token-from-logo').src = this.getSwapTokenIcon(pair.from);
+    document.getElementById('token-to-logo').src = this.getSwapTokenIcon(pair.to);
+    document.getElementById('token-from-symbol').textContent = pair.from;
+    document.getElementById('token-to-symbol').textContent = pair.to;
     document.getElementById('swap-from-in').value = '';
     document.getElementById('swap-to-in').value = '';
     document.getElementById('swap-details').classList.add('hidden');

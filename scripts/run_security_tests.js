@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.9 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.10 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -447,7 +447,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.9\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.10\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -834,15 +834,15 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 315,
-        versionName: '3.3.9',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.9/FITIA-PRO-Miner.apk',
+        versionCode: 316,
+        versionName: '3.3.10',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.10/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
       nativeState.appVersionCode = 314;
       nativeState.updateDownloads = [];
-      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '315');
+      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '316');
       e2eWin.fetch = async () => ({ ok: true, json: async () => update });
 
       try {
@@ -879,7 +879,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 315;
+        nativeState.appVersionCode = 316;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -997,12 +997,45 @@ function httpRequest(port, method, reqPath) {
       assert.ok(BigInt(fees.maxFeePerGas) > BigInt(fees.maxPriorityFeePerGas));
     });
 
+    await runTest('SWAP-UI', 'Cartes de marché stylées et logos locaux POL/USDT/FTA synchronisés avec la direction', async () => {
+      const document = e2eWin.document;
+      const options = Array.from(document.querySelectorAll('.swap-market-option[data-swap-market]'));
+      assert.strictEqual(options.length, 2);
+      assert.deepStrictEqual(options.map((option) => option.dataset.swapMarket), ['CORE_FTA', 'POL_USDT']);
+      assert.strictEqual(document.getElementById('swap-market-select'), null, 'Le menu texte est remplacé par les cartes visuelles');
+      document.getElementById('swap-from-in').value = '7.5';
+      await App.setSwapMarket('CORE_FTA');
+      assert.strictEqual(document.getElementById('swap-from-in').value, '7.5', 'Un appui sur le marché déjà actif conserve le montant');
+      document.getElementById('swap-from-in').value = '';
+      document.querySelectorAll('.swap-market-option img, .token-select img').forEach((image) => {
+        const source = image.getAttribute('src');
+        assert.ok(source.startsWith('assets/'), 'Les logos sont embarqués localement dans l’APK');
+        assert.ok(fs.existsSync(path.join(ROOT, source)), `Logo local présent : ${source}`);
+      });
+
+      await App.setSwapMarket('POL_USDT');
+      assert.strictEqual(document.getElementById('token-from-logo').getAttribute('src'), 'assets/pol.svg');
+      assert.strictEqual(document.getElementById('token-to-logo').getAttribute('src'), 'assets/usdt.svg');
+      assert.strictEqual(document.querySelector('[data-swap-market="POL_USDT"]').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(document.querySelector('[data-swap-market="CORE_FTA"]').getAttribute('aria-pressed'), 'false');
+
+      await App.toggleSwap();
+      assert.strictEqual(document.getElementById('token-from-logo').getAttribute('src'), 'assets/usdt.svg');
+      assert.strictEqual(document.getElementById('token-to-logo').getAttribute('src'), 'assets/pol.svg');
+
+      await App.setSwapMarket('CORE_FTA');
+      assert.strictEqual(document.getElementById('token-from-logo').getAttribute('src'), 'assets/usdt.svg');
+      assert.strictEqual(document.getElementById('token-to-logo').getAttribute('src'), 'assets/fta.svg');
+      assert.strictEqual(document.querySelector('[data-swap-market="CORE_FTA"]').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(document.querySelector('[data-swap-market="POL_USDT"]').getAttribute('aria-pressed'), 'false');
+    });
+
     await runTest('SWAP-DEX', 'POL ↔ USDT : devis QuickSwap réel, minimum reçu, slippage et conservation du swap FITIA Core', async () => {
       const document = e2eWin.document;
-      const market = document.getElementById('swap-market-select');
-      assert.strictEqual(market.options.length, 2);
-      assert.strictEqual(market.options[0].value, 'CORE_FTA');
-      assert.strictEqual(market.options[1].value, 'POL_USDT');
+      const marketOptions = Array.from(document.querySelectorAll('.swap-market-option[data-swap-market]'));
+      assert.strictEqual(marketOptions.length, 2);
+      assert.strictEqual(marketOptions[0].dataset.swapMarket, 'CORE_FTA');
+      assert.strictEqual(marketOptions[1].dataset.swapMarket, 'POL_USDT');
 
       await App.setSwapMarket('POL_USDT');
       assert.strictEqual(App.swapDirection, 'POL_TO_USDT');
@@ -1442,11 +1475,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 315);
-      assert.strictEqual(updateManifest.versionName, '3.3.9');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.9/'));
+      assert.strictEqual(updateManifest.versionCode, 316);
+      assert.strictEqual(updateManifest.versionName, '3.3.10');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.10/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.9 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.10 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -1461,8 +1494,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=315'), 'versionCode=315 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.9"'), 'versionName=3.3.9 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=316'), 'versionCode=316 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.10"'), 'versionName=3.3.10 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

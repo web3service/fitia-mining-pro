@@ -1,4 +1,4 @@
-# ⚡ FITIA PRO MINER V3.3.9 — Application Mobile Autonome & APK Android Durci
+# ⚡ FITIA PRO MINER V3.3.10 — Application Mobile Autonome & APK Android Durci
 
 Application mobile **100% indépendante** pour l'écosystème **FITIA PRO** sur **Polygon Mainnet (Chain ID 137)**, intégrant directement son propre **portefeuille crypto non-custodial haute sécurité** et compilée en **APK Android signé (`FITIA-PRO-Miner.apk`)**.
 
@@ -16,7 +16,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
-## 🛡️ Architecture Sécurité Durcie (V3.3.9)
+## 🛡️ Architecture Sécurité Durcie (V3.3.10)
 
 - **Chiffrement du Coffre-Fort à 3 Couches Indépendantes** :
   1. **Couche 1 (Utilisateur)** : `AES-256-GCM` dérivé du code PIN à 6 chiffres via `PBKDF2-SHA256` à **310 000 itérations** (sel aléatoire 128 bits, IV 96 bits). Rejet systématique des codes PIN faibles ou répétitifs (`123456`, `000000`, `121212`, `258025`, etc.).
@@ -75,7 +75,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 ## 🧪 Tests Automatisés & Recompilation APK
 
 ```bash
-# Lancer la suite complète d'audit sécurité & tests E2E (22 tests)
+# Lancer la suite complète d'audit sécurité & tests E2E (26 tests)
 npm test
 
 # Recompiler, aligner (4 octets) et signer l'APK Android (v2 + v3)

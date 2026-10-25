@@ -453,11 +453,25 @@
     <h2 class="view-title" data-i18n="swapTitle">💱 Échange</h2>
     <div class="card swap-interface">
       <div class="swap-market">
-        <label for="swap-market-select" data-i18n="swapMarket">Marché</label>
-        <select id="swap-market-select" class="game-input" onchange="App.setSwapMarket(this.value)">
-          <option value="CORE_FTA">USDT ↔ FTA • FITIA Core</option>
-          <option value="POL_USDT">POL ↔ USDT • QuickSwap V2</option>
-        </select>
+        <span class="swap-market-label" id="swap-market-label" data-i18n="swapMarket">Marché</span>
+        <div class="swap-market-options" role="group" aria-labelledby="swap-market-label">
+          <button type="button" class="swap-market-option active" data-swap-market="CORE_FTA" onclick="App.setSwapMarket('CORE_FTA')" aria-pressed="true">
+            <span class="swap-market-icons" aria-hidden="true">
+              <img src="assets/usdt.svg" width="30" height="30" alt="" draggable="false">
+              <img src="assets/fta.svg" width="30" height="30" alt="" draggable="false">
+            </span>
+            <span class="swap-market-copy"><strong>USDT / FTA</strong><small>FITIA Core</small></span>
+            <svg class="swap-market-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" fill="currentColor"/></svg>
+          </button>
+          <button type="button" class="swap-market-option" data-swap-market="POL_USDT" onclick="App.setSwapMarket('POL_USDT')" aria-pressed="false">
+            <span class="swap-market-icons" aria-hidden="true">
+              <img src="assets/pol.svg" width="30" height="30" alt="" draggable="false">
+              <img src="assets/usdt.svg" width="30" height="30" alt="" draggable="false">
+            </span>
+            <span class="swap-market-copy"><strong>POL / USDT</strong><small>QuickSwap V2</small></span>
+            <svg class="swap-market-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" fill="currentColor"/></svg>
+          </button>
+        </div>
       </div>
       <div class="swap-header">
         <span data-i18n="youPay">Vous payez</span>
@@ -465,13 +479,13 @@
       </div>
       <div class="input-wrap">
         <input type="number" id="swap-from-in" placeholder="0.0" min="0" step="any" oninput="App.calcSwap()">
-        <div class="token-select" onclick="App.toggleSwap()" id="token-from-display">USDT</div>
+        <div class="token-select" onclick="App.toggleSwap()" id="token-from-display"><img id="token-from-logo" class="swap-token-logo" src="assets/usdt.svg" width="26" height="26" alt="" draggable="false" aria-hidden="true"><span id="token-from-symbol">USDT</span></div>
       </div>
       <div class="swap-arrow-wrap"><div class="swap-arrow" onclick="App.toggleSwap()">⇅</div></div>
       <div class="swap-header"><span data-i18n="youReceive">Vous recevez</span><span><span data-i18n="balance">Solde:</span> <span id="swap-bal-to">0</span></span></div>
       <div class="input-wrap">
         <input type="number" id="swap-to-in" placeholder="0.0" step="any" readonly>
-        <div class="token-select" style="background:#333; cursor:default;" id="token-to-display">FTA</div>
+        <div class="token-select token-select-static" id="token-to-display"><img id="token-to-logo" class="swap-token-logo" src="assets/fta.svg" width="26" height="26" alt="" draggable="false" aria-hidden="true"><span id="token-to-symbol">FTA</span></div>
       </div>
       <div id="swap-details" class="swap-details hidden">
         <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="exchangeRate">Taux de change</span><span class="swap-detail-value" id="swap-detail-rate">—</span></div>
