@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.10 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.11 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -447,7 +447,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.10\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.11\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -834,15 +834,15 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 316,
-        versionName: '3.3.10',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.10/FITIA-PRO-Miner.apk',
+        versionCode: 317,
+        versionName: '3.3.11',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.11/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
-      nativeState.appVersionCode = 314;
+      nativeState.appVersionCode = 316;
       nativeState.updateDownloads = [];
-      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '316');
+      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '317');
       e2eWin.fetch = async () => ({ ok: true, json: async () => update });
 
       try {
@@ -879,7 +879,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 316;
+        nativeState.appVersionCode = 317;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1025,9 +1025,79 @@ function httpRequest(port, method, reqPath) {
 
       await App.setSwapMarket('CORE_FTA');
       assert.strictEqual(document.getElementById('token-from-logo').getAttribute('src'), 'assets/usdt.svg');
-      assert.strictEqual(document.getElementById('token-to-logo').getAttribute('src'), 'assets/fta.svg');
+      assert.strictEqual(document.getElementById('token-to-logo').getAttribute('src'), 'assets/fta.png');
       assert.strictEqual(document.querySelector('[data-swap-market="CORE_FTA"]').getAttribute('aria-pressed'), 'true');
       assert.strictEqual(document.querySelector('[data-swap-market="POL_USDT"]').getAttribute('aria-pressed'), 'false');
+    });
+
+    await runTest('MINING-UI', 'Compte Minage : titre corrigé, vrai logo FTA, sélecteur visuel et Retirer sans suffixe', async () => {
+      const document = e2eWin.document;
+      const originalLang = App.currentLang;
+      const tokenInput = document.getElementById('deposit-token-select');
+      const amountInput = document.getElementById('deposit-amount');
+      const originalToken = tokenInput.value;
+      const originalAmount = amountInput.value;
+
+      try {
+        App.setLanguage('fr');
+        const title = document.querySelector('[data-i18n="miningVaultTitle"]');
+        const withdrawButton = document.querySelector('[data-i18n="withdrawBtn"]');
+        assert.strictEqual(title.textContent.trim(), '⚡ Compte Minage');
+        assert.ok(!title.textContent.includes('Contrat FITIA'));
+        assert.strictEqual(withdrawButton.textContent.trim(), 'RETIRER');
+        assert.ok(!withdrawButton.textContent.includes('↑'));
+        assert.ok(!withdrawButton.textContent.includes('ij'));
+
+        assert.strictEqual(tokenInput.type, 'hidden', 'La valeur USDT/FTA reste disponible aux opérations existantes');
+        const options = Array.from(document.querySelectorAll('.transfer-token-option[data-transfer-token]'));
+        assert.deepStrictEqual(options.map((option) => option.dataset.transferToken), ['USDT', 'FTA']);
+        assert.deepStrictEqual(options.map((option) => option.querySelector('img').getAttribute('src')), ['assets/usdt.svg', 'assets/fta.png']);
+        options.forEach((option) => {
+          const source = option.querySelector('img').getAttribute('src');
+          assert.ok(fs.existsSync(path.join(ROOT, source)), `Logo du sélecteur présent : ${source}`);
+        });
+
+        amountInput.value = '12.5';
+        App.onTransferTokenChange('FTA');
+        assert.strictEqual(tokenInput.value, 'FTA');
+        assert.strictEqual(document.querySelector('[data-transfer-token="FTA"]').getAttribute('aria-pressed'), 'true');
+        assert.strictEqual(document.querySelector('[data-transfer-token="USDT"]').getAttribute('aria-pressed'), 'false');
+        assert.strictEqual(amountInput.value, '', 'Le changement de token conserve la réinitialisation du montant');
+
+        amountInput.value = '3';
+        App.onTransferTokenChange('USDT');
+        assert.strictEqual(tokenInput.value, 'USDT');
+        assert.strictEqual(document.querySelector('[data-transfer-token="USDT"]').getAttribute('aria-pressed'), 'true');
+        assert.strictEqual(amountInput.value, '');
+        App.onTransferTokenChange('POL');
+        assert.strictEqual(tokenInput.value, 'USDT', 'Un token non pris en charge est ignoré');
+
+        for (const lang of ['en', 'de', 'zh']) {
+          App.setLanguage(lang);
+          assert.ok(!title.textContent.includes('FITIA Contract') && !title.textContent.includes('(FITIA)') && !title.textContent.includes('FITIA 合约'));
+          assert.ok(!withdrawButton.textContent.includes('↑'));
+        }
+      } finally {
+        App.onTransferTokenChange(originalToken);
+        amountInput.value = originalAmount;
+        App.setLanguage(originalLang);
+      }
+    });
+
+    await runTest('BRANDING', 'Le vrai logo FTA est aussi la source des icônes de téléchargement et Android', async () => {
+      const officialLogoSha256 = 'ecc7f5ff1020467b333de258cc46cb6aafcf99432edb40698b82dda8f0d37c9d';
+      for (const relativePath of ['assets/fta.png', 'assets/icon-512.png']) {
+        const contents = fs.readFileSync(path.join(ROOT, relativePath));
+        assert.strictEqual(crypto.createHash('sha256').update(contents).digest('hex'), officialLogoSha256, `Logo officiel inchangé : ${relativePath}`);
+      }
+      assert.ok(!fs.existsSync(path.join(ROOT, 'assets/fta.svg')), 'L’ancien dessin FTA générique est supprimé');
+      const walletSource = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8');
+      const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+      const landingSource = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const buildSource = fs.readFileSync(path.join(ROOT, 'scripts/build_apk.py'), 'utf8');
+      assert.ok(!walletSource.includes('assets/fta.svg') && !appSource.includes('assets/fta.svg'));
+      assert.ok(landingSource.includes('src="assets/icon-192.png"'), 'La page de téléchargement conserve le logo FITIA');
+      assert.ok(buildSource.includes('"assets", "icon-512.png"'), 'Les icônes Android sont générées depuis le logo officiel 512 px');
     });
 
     await runTest('SWAP-DEX', 'POL ↔ USDT : devis QuickSwap réel, minimum reçu, slippage et conservation du swap FITIA Core', async () => {
@@ -1468,6 +1538,8 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/announcements.js'), 'Le module annonces est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
+      assert.ok(packagedFiles.includes('assets/www/assets/fta.png'), 'Le vrai logo FTA est embarqué dans l’APK');
+      assert.ok(!packagedFiles.includes('assets/www/assets/fta.svg'), 'L’ancien dessin FTA n’est plus embarqué');
       assert.ok(!packagedFiles.includes('assets/www/index.html'), 'La vitrine publique n’est pas embarquée dans l’APK');
       const updateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update-current.json'), 'utf8'));
       const legacy35Manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
@@ -1475,11 +1547,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 316);
-      assert.strictEqual(updateManifest.versionName, '3.3.10');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.10/'));
+      assert.strictEqual(updateManifest.versionCode, 317);
+      assert.strictEqual(updateManifest.versionName, '3.3.11');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.11/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.10 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.11 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -1494,8 +1566,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=316'), 'versionCode=316 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.10"'), 'versionName=3.3.10 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=317'), 'versionCode=317 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.11"'), 'versionName=3.3.11 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

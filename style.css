@@ -1032,7 +1032,13 @@ main::-webkit-scrollbar { display: none; }
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-wrap: wrap;
 }
-.wallet-token-select { flex: 0 0 78px; min-width: 72px; margin-bottom: 0; padding: 10px 6px; font-size: 0.85rem; }
+.transfer-token-selector { display: flex; flex: 0 0 auto; gap: 5px; }
+.transfer-token-option { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 62px; padding: 8px 7px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; background: rgba(0, 0, 0, 0.22); color: var(--text-muted); font-size: 0.72rem; font-weight: 800; cursor: pointer; transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.15s; }
+.transfer-token-option img { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; object-fit: cover; }
+.transfer-token-option:hover { border-color: rgba(240, 185, 11, 0.45); }
+.transfer-token-option:active { transform: scale(0.97); }
+.transfer-token-option:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.transfer-token-option.active { border-color: var(--primary); background: rgba(240, 185, 11, 0.13); color: var(--text); }
 .amount-max-wrap {
   flex: 2 1 120px;
   position: relative;

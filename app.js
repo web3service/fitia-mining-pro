@@ -89,7 +89,7 @@ const i18n = {
     availFta: "Dispo FTA",
     myAssets: "⚙️ Portefeuille & Actifs",
     onchainWalletTitle: "🔐 Mon Portefeuille Polygon",
-    miningVaultTitle: "⚡ Compte Minage (Contrat FITIA)",
+    miningVaultTitle: "⚡ Compte Minage",
     miningVaultDesc: "Solde utilisé pour la boutique, le swap et vos récompenses de minage. Déposez ou retirez vers votre portefeuille à tout moment.",
     lowPolGasWarn: "Ajoutez un peu de POL (~0.05 POL) à votre adresse pour payer les frais réseau Polygon.",
     noGasPolErr: "⛽ Solde POL insuffisant pour payer les frais réseau Polygon (~0.01 POL requis). Appuyez sur Recevoir pour déposer un peu de POL.",
@@ -167,7 +167,7 @@ const i18n = {
     swapNotConfirmed: "Échange non confirmé. Vérifiez votre historique avant de réessayer.",
     networkFee: "Frais réseau estimés",
     depositBtn: "DÉPOSER ↓",
-    withdrawBtn: "RETIRER ↑",
+    withdrawBtn: "RETIRER",
     depositing: "Dépôt vers Minage...",
     depositSuccess: "Dépôt réussi !",
     withdrawing: "Retrait vers Portefeuille...",
@@ -292,7 +292,7 @@ const i18n = {
     availFta: "Avail FTA",
     myAssets: "⚙️ Wallet & Assets",
     onchainWalletTitle: "🔐 My Polygon Wallet",
-    miningVaultTitle: "⚡ Mining Account (FITIA Contract)",
+    miningVaultTitle: "⚡ Mining Account",
     miningVaultDesc: "Balance used for shop, swap and mining rewards. Deposit or withdraw to your wallet anytime.",
     lowPolGasWarn: "Add a small amount of POL (~0.05 POL) to your address to cover Polygon network gas fees.",
     noGasPolErr: "⛽ Insufficient POL for Polygon gas fees (~0.01 POL needed). Tap Receive to add POL.",
@@ -370,7 +370,7 @@ const i18n = {
     swapNotConfirmed: "Swap not confirmed. Check your history before trying again.",
     networkFee: "Est. Network Fee",
     depositBtn: "DEPOSIT ↓",
-    withdrawBtn: "WITHDRAW ↑",
+    withdrawBtn: "WITHDRAW",
     depositing: "Depositing to Mining...",
     depositSuccess: "Deposit successful!",
     withdrawing: "Withdrawing to Wallet...",
@@ -450,7 +450,7 @@ const i18n = {
     buy: "KAUFEN",
     myAssets: "⚙️ Wallet & Assets",
     onchainWalletTitle: "🔐 Meine Polygon Wallet",
-    miningVaultTitle: "⚡ Mining-Konto (FITIA)",
+    miningVaultTitle: "⚡ Mining-Konto",
     plugMachine: "🔌 Maschine anschließen",
     plugDesc: "Wähle Maschinen-Index und Batterietyp.",
     machineId: "Maschinen-Index (0, 1...)",
@@ -481,7 +481,7 @@ const i18n = {
     noBatteries: "Keine Batterien",
     noActiveMachines: "Keine aktiven Maschinen",
     depositBtn: "EINZAHLEN ↓",
-    withdrawBtn: "ABHEBEN ↑",
+    withdrawBtn: "ABHEBEN",
     send: "Senden",
     receive: "Empfangen",
     addrCopied: "Adresse kopiert!"
@@ -508,7 +508,7 @@ const i18n = {
     buy: "购买",
     myAssets: "⚙️ 钱包与资产",
     onchainWalletTitle: "🔐 我的 Polygon 钱包",
-    miningVaultTitle: "⚡ 挖矿账户 (FITIA 合约)",
+    miningVaultTitle: "⚡ 挖矿账户",
     plugMachine: "🔌 插入矿机",
     plugDesc: "选择矿机索引和电池类型。",
     machineId: "矿机索引 (0, 1...)",
@@ -539,7 +539,7 @@ const i18n = {
     noBatteries: "暂无电池",
     noActiveMachines: "无运行中矿机",
     depositBtn: "存入 ↓",
-    withdrawBtn: "提取 ↑",
+    withdrawBtn: "提取",
     send: "发送",
     receive: "接收",
     addrCopied: "地址已复制！"
@@ -2188,7 +2188,14 @@ class Application {
   // ═══════════════════════════════════════════════════════════════
   //  DÉPÔT & RETRAIT MANUELS (PORTEFEUILLE ↔ COMPTE MINAGE)
   // ═══════════════════════════════════════════════════════════════
-  onTransferTokenChange() {
+  onTransferTokenChange(token) {
+    if (!['USDT', 'FTA'].includes(token)) return;
+    document.getElementById('deposit-token-select').value = token;
+    document.querySelectorAll('.transfer-token-option[data-transfer-token]').forEach((button) => {
+      const isActive = button.dataset.transferToken === token;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
     document.getElementById('deposit-amount').value = '';
   }
 
@@ -2791,7 +2798,7 @@ class Application {
     const icons = {
       POL: 'assets/pol.svg',
       USDT: 'assets/usdt.svg',
-      FTA: 'assets/fta.svg'
+      FTA: 'assets/fta.png'
     };
     return icons[token] || '';
   }
