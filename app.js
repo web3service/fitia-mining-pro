@@ -11,7 +11,7 @@ const CONFIG = {
   FTA:  "0x5c418b12c7e9c2A8e9A71A68c6d9b319E7B1d1fd",
   CHAIN_ID: 137,
   EXPLORER: "https://polygonscan.com",
-  UPDATE_MANIFEST: "https://raw.githubusercontent.com/web3service/fitia-mining-pro/main/update.json",
+  UPDATE_MANIFEST: "https://raw.githubusercontent.com/web3service/fitia-mining-pro/main/update-stable.json",
   WHATSAPP_GROUP: "https://chat.whatsapp.com/BDsvPCB6xp8H8X0YaRmPFP",
   WHATSAPP_CHANNEL: "https://whatsapp.com/channel/0029VbCQhI38PgsPLbBJdV1e"
 };
