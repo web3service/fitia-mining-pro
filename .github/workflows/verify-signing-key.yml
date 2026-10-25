@@ -130,12 +130,33 @@ jobs:
             fail "L’empreinte du certificat ne correspond pas à celle attendue. Comparez les deux empreintes affichées ci-dessus."
           fi
 
-          stage="Vérification de l’alias"
-          if [[ "$actual_alias" != "fitia_release" ]]; then
-            fail "La clé et le mot de passe sont valides, mais l’alias est ${actual_alias} au lieu de fitia_release. Le projet devra adapter l’alias ; ne recréez pas la clé."
+          stage="Test de détection automatique par le compilateur"
+          if ! build_alias="$(python3 - "$keystore" 2>&1 <<'PY'
+          import contextlib
+          import io
+          import os
+          import shutil
+          import sys
+          from scripts.build_apk import detect_private_key_alias
+
+          with contextlib.redirect_stdout(io.StringIO()):
+              alias = detect_private_key_alias(
+                  shutil.which("keytool"),
+                  sys.argv[1],
+                  os.environ["KEYSTORE_PASSWORD"],
+              )
+          print(alias)
+          PY
+          )"; then
+            fail "Le compilateur n’a pas réussi à détecter automatiquement l’unique clé privée. Aucun secret n’a été affiché."
+          fi
+
+          if [[ "$build_alias" != "$actual_alias" ]]; then
+            fail "La détection du compilateur (${build_alias}) ne correspond pas à l’alias du PKCS12 (${actual_alias})."
           fi
 
           stage="Terminé"
-          write_summary "✅ Clé de signature vérifiée" "Le fichier PKCS12, le mot de passe, la clé privée, l’alias et l’empreinte sont tous valides. Aucun APK n’a été compilé ou publié."
-          printf 'Private key, password, fitia_release alias, and certificate verified.\n'
+          write_summary "✅ Clé de signature vérifiée" "Le fichier PKCS12, le mot de passe, la clé privée et l’empreinte sont valides. Le compilateur a détecté et utilisé automatiquement l’alias ${actual_alias}. Aucun APK n’a été compilé ou publié."
+          printf 'Private key, password, automatic alias detection, and certificate verified.\n'
+          printf 'Detected alias: %s\n' "$actual_alias"
           printf 'Certificate SHA-256: %s\n' "$actual_sha256"

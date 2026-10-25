@@ -30,8 +30,34 @@ def run_cmd(cmd, cwd=None):
     res = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if res.returncode != 0:
         print(res.stdout)
-        raise RuntimeError(f"Command failed with exit code {res.returncode}: {' '.join(cmd)}")
+        raise RuntimeError(f"Command failed with exit code {res.returncode}: {' '.join(display_cmd)}")
     return res.stdout
+
+
+def detect_private_key_alias(keytool_bin, keystore_path, ks_pass):
+    """Détecte l'unique clé privée sans imposer un alias propre à l'outil d'export."""
+    output = run_cmd([
+        keytool_bin,
+        "-J-Duser.language=en",
+        "-J-Duser.country=US",
+        "-list",
+        "-keystore", keystore_path,
+        "-storepass", ks_pass,
+    ])
+    private_key_aliases = []
+    for line in output.splitlines():
+        if "PrivateKeyEntry" not in line or "," not in line:
+            continue
+        alias = line.split(",", 1)[0].strip()
+        if alias:
+            private_key_aliases.append(alias)
+
+    if len(private_key_aliases) != 1:
+        raise RuntimeError(
+            "Le keystore doit contenir exactement une entrée PrivateKeyEntry pour "
+            f"la détection automatique ({len(private_key_aliases)} détectée(s))."
+        )
+    return private_key_aliases[0]
 
 
 def generate_android_icons():
@@ -250,7 +276,7 @@ def main():
     )
     ks_pass = os.environ.get("FITIA_ANDROID_KEYSTORE_PASSWORD", "FitiaProMining2026!")
     key_pass = os.environ.get("FITIA_ANDROID_KEY_PASSWORD", ks_pass)
-    alias = os.environ.get("FITIA_ANDROID_KEY_ALIAS", "fitia_release")
+    configured_alias = os.environ.get("FITIA_ANDROID_KEY_ALIAS", "").strip()
 
     if not os.path.isfile(keystore_path):
         raise FileNotFoundError(
@@ -264,6 +290,9 @@ def main():
         expected_cert_sha256 = cert_file.read().strip().lower()
     if not re.fullmatch(r"[0-9a-f]{64}", expected_cert_sha256):
         raise RuntimeError("L'empreinte SHA-256 du certificat attendu est invalide.")
+
+    alias = configured_alias or detect_private_key_alias(keytool_bin, keystore_path, ks_pass)
+    print(f"  ✓ Alias de la clé privée utilisé pour la signature : {alias}")
 
     run_cmd([
         java_bin, "-jar", apksigner_jar, "sign",
