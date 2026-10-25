@@ -1,8 +1,8 @@
 {
   "enabled": true,
-  "versionCode": 313,
-  "versionName": "3.3.7",
-  "apkUrl": "https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.7/FITIA-PRO-Miner.apk",
-  "sha256": "d6e46c5aac86765aa0da56ef181978034728a23fcde474dee836dcd33fc1e0e8",
-  "notes": "Nouveau certificat stable. Installation manuelle depuis 3.3.6 après sauvegarde des 12 mots ; les prochaines mises à jour utiliseront ce même certificat."
+  "versionCode": 314,
+  "versionName": "3.3.8",
+  "apkUrl": "https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.8/FITIA-PRO-Miner.apk",
+  "sha256": "e83df702a3232ad3f78bf98770b3ff895c7ec8f646a01b3d5b1ad83aae92a9f6",
+  "notes": "Parrainage déplacé dans Paramètres. Mise à jour directe depuis 3.3.7 avec le même certificat ; depuis 3.3.5 ou 3.3.6, installation manuelle après sauvegarde des 12 mots."
 }
