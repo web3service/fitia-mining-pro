@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.11 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.12 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -447,7 +447,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.11\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.12\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -834,15 +834,15 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 317,
-        versionName: '3.3.11',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.11/FITIA-PRO-Miner.apk',
+        versionCode: 318,
+        versionName: '3.3.12',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.12/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
-      nativeState.appVersionCode = 316;
+      nativeState.appVersionCode = 317;
       nativeState.updateDownloads = [];
-      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '317');
+      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '318');
       e2eWin.fetch = async () => ({ ok: true, json: async () => update });
 
       try {
@@ -879,7 +879,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 317;
+        nativeState.appVersionCode = 318;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1084,6 +1084,33 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
+    await runTest('IMPORT-UI', 'Importer un portefeuille : Retour et choix du PIN sans caractères parasites', async () => {
+      const document = e2eWin.document;
+      const originalLang = App.currentLang;
+      const importStep = document.getElementById('auth-step-import');
+      const backButton = importStep.querySelector('.auth-back-btn');
+      const pinButton = document.getElementById('btn-import-continue');
+
+      try {
+        App.setLanguage('fr');
+        assert.strictEqual(backButton.textContent.trim(), 'Retour');
+        assert.strictEqual(pinButton.textContent.trim(), 'CHOISIR MON CODE PIN');
+        assert.ok(!backButton.textContent.includes('←') && !backButton.textContent.includes('ij'));
+        assert.ok(!pinButton.textContent.includes('→') && !pinButton.textContent.includes("'n") && !pinButton.textContent.includes('\\n'));
+        document.querySelectorAll('.auth-back-btn').forEach((button) => {
+          assert.strictEqual(button.textContent.trim(), 'Retour', 'Aucun symbole parasite autour de Retour');
+        });
+        assert.strictEqual(backButton.getAttribute('onclick'), 'App.cancelImportFlow()');
+        assert.strictEqual(pinButton.getAttribute('onclick'), 'App.submitImportSecret()');
+
+        App.setLanguage('en');
+        assert.strictEqual(backButton.textContent.trim(), 'Back');
+        assert.strictEqual(pinButton.textContent.trim(), 'SET MY 6-DIGIT PIN');
+      } finally {
+        App.setLanguage(originalLang);
+      }
+    });
+
     await runTest('BRANDING', 'Le vrai logo FTA est aussi la source des icônes de téléchargement et Android', async () => {
       const officialLogoSha256 = 'ecc7f5ff1020467b333de258cc46cb6aafcf99432edb40698b82dda8f0d37c9d';
       for (const relativePath of ['assets/fta.png', 'assets/icon-512.png']) {
@@ -1098,6 +1125,22 @@ function httpRequest(port, method, reqPath) {
       assert.ok(!walletSource.includes('assets/fta.svg') && !appSource.includes('assets/fta.svg'));
       assert.ok(landingSource.includes('src="assets/icon-192.png"'), 'La page de téléchargement conserve le logo FITIA');
       assert.ok(buildSource.includes('"assets", "icon-512.png"'), 'Les icônes Android sont générées depuis le logo officiel 512 px');
+      assert.ok(buildSource.includes('"fitia_pro_launcher.png"') && buildSource.includes('"fitia_pro_launcher_foreground.png"'));
+      const androidManifest = fs.readFileSync(path.join(ROOT, 'android-src/AndroidManifest.xml'), 'utf8');
+      assert.ok(androidManifest.includes('android:icon="@mipmap/fitia_pro_launcher"'));
+      assert.ok(androidManifest.includes('android:roundIcon="@mipmap/fitia_pro_launcher_round"'));
+      assert.ok(!androidManifest.includes('@mipmap/ic_launcher'), 'L’ancien nom de ressource potentiellement mis en cache n’est plus référencé');
+      for (const dpi of ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+        const resourceDir = path.join(ROOT, 'android-src/res', `mipmap-${dpi}`);
+        for (const filename of ['fitia_pro_launcher.png', 'fitia_pro_launcher_round.png', 'fitia_pro_launcher_foreground.png']) {
+          assert.ok(fs.existsSync(path.join(resourceDir, filename)), `Ressource FITIA présente : ${dpi}/${filename}`);
+        }
+        assert.ok(!fs.existsSync(path.join(resourceDir, 'ic_launcher.png')));
+      }
+      for (const filename of ['fitia_pro_launcher.xml', 'fitia_pro_launcher_round.xml']) {
+        const adaptiveIcon = fs.readFileSync(path.join(ROOT, 'android-src/res/mipmap-anydpi-v26', filename), 'utf8');
+        assert.ok(adaptiveIcon.includes('@mipmap/fitia_pro_launcher_foreground'));
+      }
     });
 
     await runTest('SWAP-DEX', 'POL ↔ USDT : devis QuickSwap réel, minimum reçu, slippage et conservation du swap FITIA Core', async () => {
@@ -1540,6 +1583,9 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
       assert.ok(packagedFiles.includes('assets/www/assets/fta.png'), 'Le vrai logo FTA est embarqué dans l’APK');
       assert.ok(!packagedFiles.includes('assets/www/assets/fta.svg'), 'L’ancien dessin FTA n’est plus embarqué');
+      assert.ok(packagedFiles.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'La nouvelle ressource d’icône FITIA est embarquée');
+      assert.ok(packagedFiles.includes('res/mipmap-xxxhdpi-v4/fitia_pro_launcher.png'), 'Le vrai logo de lancement est embarqué');
+      assert.ok(!packagedFiles.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'L’ancienne ressource d’icône mise en cache est absente');
       assert.ok(!packagedFiles.includes('assets/www/index.html'), 'La vitrine publique n’est pas embarquée dans l’APK');
       const updateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update-current.json'), 'utf8'));
       const legacy35Manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
@@ -1547,11 +1593,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 317);
-      assert.strictEqual(updateManifest.versionName, '3.3.11');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.11/'));
+      assert.strictEqual(updateManifest.versionCode, 318);
+      assert.strictEqual(updateManifest.versionName, '3.3.12');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.12/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.11 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.12 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -1565,9 +1611,12 @@ function httpRequest(port, method, reqPath) {
       const apksigner = '/tmp/android-toolchain/apksigner.jar';
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
+        const badgingOut = execFileSync(aapt2, ['dump', 'badging', apkPath], { encoding: 'utf8' });
+        assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
+        assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=317'), 'versionCode=317 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.11"'), 'versionName=3.3.11 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=318'), 'versionCode=318 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.12"'), 'versionName=3.3.12 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
