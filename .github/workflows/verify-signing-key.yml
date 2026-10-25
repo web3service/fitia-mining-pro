@@ -1,0 +1,104 @@
+name: Verify replacement Android signing key
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha256:
+        description: Expected public SHA-256 certificate fingerprint
+        required: true
+        default: fa3494fb50ee2240f477b7cb21bb0d8606cedceac36a263e1e877f34319fdf72
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fitia-signing-key-verification
+  cancel-in-progress: false
+
+jobs:
+  verify-signing-key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      LANG: C
+      LC_ALL: C
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Verify the stored private key and public certificate
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FITIA_ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" ]]; then
+            echo 'Both FITIA_ANDROID_KEYSTORE_BASE64 and FITIA_ANDROID_KEYSTORE_PASSWORD must be configured.' >&2
+            exit 1
+          fi
+
+          if [[ ! "$EXPECTED_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo 'The expected certificate fingerprint must contain exactly 64 hexadecimal characters.' >&2
+            exit 1
+          fi
+
+          expected="${EXPECTED_SHA256,,}"
+          work_dir="$(mktemp -d)"
+          trap 'rm -rf "$work_dir"' EXIT
+          keystore="$work_dir/fitia-release.p12"
+          keytool_output="$work_dir/keytool-output.txt"
+
+          if ! printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"; then
+            echo 'FITIA_ANDROID_KEYSTORE_BASE64 is not valid Base64.' >&2
+            exit 1
+          fi
+          chmod 600 "$keystore"
+
+          if [[ ! -s "$keystore" ]]; then
+            echo 'The decoded PKCS12 keystore is empty.' >&2
+            exit 1
+          fi
+
+          if ! keytool -list -v \
+            -keystore "$keystore" \
+            -storetype PKCS12 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias fitia_release > "$keytool_output" 2>&1; then
+            echo 'Unable to open the private key. Check the keystore password and the fitia_release alias.' >&2
+            exit 1
+          fi
+
+          if ! grep -q 'Entry type: PrivateKeyEntry' "$keytool_output"; then
+            echo 'The fitia_release entry is not a private key entry.' >&2
+            exit 1
+          fi
+
+          actual="$(sed -n -E 's/^[[:space:]]*SHA256:[[:space:]]*//p' "$keytool_output" \
+            | head -n 1 \
+            | tr -d ':' \
+            | tr '[:upper:]' '[:lower:]'
+          )"
+
+          if [[ ! "$actual" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'Unable to read the public SHA-256 certificate fingerprint.' >&2
+            exit 1
+          fi
+
+          if [[ "$actual" != "$expected" ]]; then
+            printf 'Certificate mismatch.\nExpected: %s\nActual:   %s\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+
+          printf 'Private key, password, and fitia_release alias verified.\n'
+          printf 'Certificate SHA-256: %s\n' "$actual"
+          printf 'No APK was built or published. Temporary key material has been removed.\n'
