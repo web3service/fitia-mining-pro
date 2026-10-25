@@ -37,18 +37,58 @@ jobs:
 
       - name: Prepare Android toolchain
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          stage="Initialisation"
+          report_failure() {
+            local exit_code="$1"
+            local command="$2"
+            {
+              printf '## ❌ Échec de préparation des outils Android\n\n'
+              printf -- '- Étape : %s\n' "$stage"
+              printf -- '- Commande : `%s`\n' "$command"
+              printf -- '- Code de sortie : %s\n' "$exit_code"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit "$exit_code"
+          }
+          trap 'report_failure $? "$BASH_COMMAND"' ERR
+
+          if [[ -z "${JAVA_HOME:-}" || ! -d "$JAVA_HOME" ]]; then
+            stage="Vérification de JAVA_HOME"
+            false
+          fi
+          command -v curl > /dev/null
+
+          stage="Copie d’aapt2 et apksigner"
           mkdir -p /tmp/android-toolchain
           cp /tmp/android-npm/node_modules/aaptjs3/bin/x64/linux/aapt2 /tmp/android-toolchain/aapt2
           cp /tmp/android-npm/node_modules/@postar/apktool-node/lib/apksigner.jar /tmp/android-toolchain/apksigner.jar
           chmod +x /tmp/android-toolchain/aapt2
           ln -sfn "$JAVA_HOME" /tmp/android-toolchain/jdk
-          gh api -H 'Accept: application/vnd.github.raw+json' repos/Sable/android-platforms/contents/android-34/android.jar > /tmp/android-toolchain/android.jar
-          gh api -H 'Accept: application/vnd.github.raw+json' repos/NorbertXYZ/eclipse-maven/contents/org/eclipse/jdt/ecj/3.45.0/ecj-3.45.0.jar > /tmp/android-toolchain/ecj-3.45.0.jar
-          gh api -H 'Accept: application/vnd.github.raw+json' repos/jmatsu/using-moshi-for-bugs-of-r8-with-kotlin-1.6.0/contents/.m2/repository/com/android/tools/r8/8470bf/r8-8470bf.jar > /tmp/android-toolchain/d8.jar
+
+          stage="Téléchargement d’android.jar"
+          curl -fL --retry 4 --retry-delay 2 --retry-all-errors \
+            https://raw.githubusercontent.com/Sable/android-platforms/master/android-34/android.jar \
+            -o /tmp/android-toolchain/android.jar
+
+          stage="Téléchargement d’ecj-3.45.0.jar"
+          curl -fL --retry 4 --retry-delay 2 --retry-all-errors \
+            https://raw.githubusercontent.com/NorbertXYZ/eclipse-maven/main/org/eclipse/jdt/ecj/3.45.0/ecj-3.45.0.jar \
+            -o /tmp/android-toolchain/ecj-3.45.0.jar
+
+          stage="Téléchargement de d8.jar"
+          curl -fL --retry 4 --retry-delay 2 --retry-all-errors \
+            https://raw.githubusercontent.com/jmatsu/using-moshi-for-bugs-of-r8-with-kotlin-1.6.0/main/.m2/repository/com/android/tools/r8/8470bf/r8-8470bf.jar \
+            -o /tmp/android-toolchain/d8.jar
+
+          stage="Vérification des fichiers"
+          test -x /tmp/android-toolchain/aapt2
+          test -s /tmp/android-toolchain/apksigner.jar
+          test -s /tmp/android-toolchain/android.jar
+          test -s /tmp/android-toolchain/ecj-3.45.0.jar
+          test -s /tmp/android-toolchain/d8.jar
+          trap - ERR
+          printf '✅ Outils Android préparés et fichiers vérifiés.\n' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Restore stable signing key from Actions secrets
         shell: bash
