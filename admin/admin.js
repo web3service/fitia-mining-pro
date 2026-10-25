@@ -104,7 +104,7 @@
     const method = options.method || 'GET';
     const headers = { Accept: 'application/json', ...(options.headers || {}) };
     if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-    if (method !== 'GET' && pathname !== '/api/login' && state.csrfToken) {
+    if (method !== 'GET' && pathname !== '/api/admin/login' && state.csrfToken) {
       headers['X-CSRF-Token'] = state.csrfToken;
     }
     const response = await fetch(pathname, {
@@ -115,7 +115,7 @@
     });
     let data = {};
     try { data = await response.json(); } catch (_) { /* Réponse JSON vide ou invalide. */ }
-    if (response.status === 401 && pathname !== '/api/login') {
+    if (response.status === 401 && pathname !== '/api/admin/login') {
       showLogin();
       const error = new Error('Votre session a expiré. Reconnectez-vous.');
       error.code = 'AUTH_REQUIRED';
@@ -152,7 +152,7 @@
     if (!options.quiet) setLoading(true, 'Chargement des annonces…');
     byId('list-error').classList.add('hidden');
     try {
-      const data = await api('/api/announcements');
+      const data = await api('/api/admin/announcements');
       state.manifest = data.manifest;
       state.revision = data.revision;
       state.lastSync = new Date();
@@ -176,7 +176,7 @@
     state.saving = true;
     setLoading(true, state.mode === 'github' ? 'Publication dans le wallet…' : 'Enregistrement local…');
     try {
-      const data = await api('/api/announcements', {
+      const data = await api('/api/admin/announcements', {
         method: 'PUT',
         body: { manifest: nextManifest, revision: state.revision }
       });
@@ -433,7 +433,7 @@
       button.disabled = true;
       byId('login-error').textContent = '';
       try {
-        const session = await api('/api/login', {
+        const session = await api('/api/admin/login', {
           method: 'POST',
           body: { password: byId('login-password').value }
         });
@@ -448,7 +448,7 @@
     });
 
     byId('logout-button').addEventListener('click', async () => {
-      try { await api('/api/logout', { method: 'POST', body: {} }); } catch (_) { /* La session est déjà invalidée. */ }
+      try { await api('/api/admin/logout', { method: 'POST', body: {} }); } catch (_) { /* La session est déjà invalidée. */ }
       showLogin();
     });
     byId('refresh-button').addEventListener('click', () => loadData());
@@ -483,7 +483,7 @@
   async function init() {
     bindEvents();
     try {
-      const session = await api('/api/session');
+      const session = await api('/api/admin/session');
       await showAdmin(session);
     } catch (error) {
       if (error.code !== 'AUTH_REQUIRED') showLogin();

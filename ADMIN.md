@@ -74,11 +74,27 @@ La branche configurée doit autoriser cette écriture. Seul `announcements.json`
 | `FITIA_ADMIN_GITHUB_BRANCH` | Branche publiée | `main` |
 | `FITIA_ADMIN_PORT` | Port HTTP du panneau | `8090` |
 
-## Déploiement
+## Déploiement Vercel
 
-Le panneau doit être déployé comme **service Node.js séparé**, derrière HTTPS. Le dossier `admin/` et `admin-server.js` sont exclus de la vitrine statique par `.vercelignore`.
+Le projet contient une fonction serverless `api/admin.js` et les réécritures nécessaires dans `vercel.json`. Le panneau sera disponible sur **`https://votre-domaine/admin/`** après configuration.
 
-Ne déployez pas les fichiers statiques du panneau sans `admin-server.js` : l’interface seule ne fournit ni authentification ni publication. Ne réutilisez pas le serveur public du wallet pour exposer l’administration.
+1. Ouvrez le projet Vercel, puis **Settings → Environment Variables**.
+2. Ajoutez `FITIA_ADMIN_PASSWORD` avec un mot de passe long et unique.
+3. Ajoutez `FITIA_GITHUB_TOKEN` avec le secret GitHub côté serveur autorisant **Contents: Read and write** sur ce dépôt.
+4. Activez ces variables pour **Production**, et pour **Preview** si vous souhaitez tester les déploiements de PR.
+5. Redéployez le projet après leur ajout.
+
+Les variables `FITIA_ADMIN_GITHUB_OWNER`, `FITIA_ADMIN_GITHUB_REPO` et `FITIA_ADMIN_GITHUB_BRANCH` sont facultatives et reprennent par défaut `web3service`, `fitia-mining-pro` et `main`.
+
+Ne transmettez ces secrets ni dans le code, ni dans Git, ni dans une conversation. La fonction Vercel exige le mode GitHub : elle ne propose pas d’écriture dans le système de fichiers temporaire de Vercel. Les sessions sont signées et utilisent un cookie `Secure`, `HttpOnly` et `SameSite=Strict`.
+
+La limitation des tentatives intégrée est appliquée par instance serverless. Pour une protection distribuée supplémentaire, une règle de limitation peut aussi être configurée dans le pare-feu Vercel lorsque cette option est disponible sur le compte.
+
+`admin-server.js` reste exclu du déploiement Vercel. Seuls l’interface statique et la fonction serverless sont publiés. Les en-têtes CSP de `/admin/` interdisent les scripts et styles externes.
+
+## Déploiement Node.js séparé
+
+Le serveur autonome reste disponible avec `npm run admin` pour un hébergement Node.js séparé derrière HTTPS. Ne réutilisez pas le serveur public du wallet pour exposer l’administration.
 
 ## Tests
 
@@ -89,6 +105,6 @@ npm install --prefix /tmp/test-deps --no-package-lock --no-audit --no-fund jsdom
 npm run test:admin
 ```
 
-La suite comprend 12 contrôles serveur et un test d’interface : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, limitation des tentatives, publication GitHub simulée et prévention XSS.
+La suite comprend 12 contrôles du serveur autonome, un test d’interface et 5 contrôles Vercel : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, limitation des tentatives, sessions serverless, publication GitHub simulée et prévention XSS.
 
 Le workflow **Test FITIA admin panel** exécute ces contrôles sur les pull requests concernées et sur `main`.

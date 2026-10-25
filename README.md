@@ -84,7 +84,7 @@ npm run admin
 npm run test:admin
 ```
 
-Consultez **`ADMIN.md`** pour les modes local et GitHub, les variables d’environnement et les règles de déploiement. Le panneau ne fait partie ni de la vitrine publique ni de l’APK.
+Consultez **`ADMIN.md`** pour les modes local et GitHub, les variables d’environnement et le déploiement **Vercel serverless** ou sur un serveur Node.js autonome. Le panneau reste séparé du wallet et ne nécessite aucune modification de l’APK.
 
 ---
 

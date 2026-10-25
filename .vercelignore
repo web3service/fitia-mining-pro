@@ -10,6 +10,5 @@ wallet.js
 style.css
 vendor/
 manifest.json
-admin/
 admin-server.js
 ADMIN.md

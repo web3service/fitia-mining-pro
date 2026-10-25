@@ -86,18 +86,18 @@ function clone(value) {
     });
 
     await runTest('Lecture et mutations protégées par une session administrateur', async () => {
-      const session = await request(localBase, '/api/session');
+      const session = await request(localBase, '/api/admin/session');
       assert.strictEqual(session.response.status, 401);
-      const list = await request(localBase, '/api/announcements');
+      const list = await request(localBase, '/api/admin/announcements');
       assert.strictEqual(list.response.status, 401);
-      const update = await request(localBase, '/api/announcements', { method: 'PUT', body: {} });
+      const update = await request(localBase, '/api/admin/announcements', { method: 'PUT', body: {} });
       assert.strictEqual(update.response.status, 401);
     });
 
     await runTest('Connexion par mot de passe, cookie HttpOnly et jeton CSRF temporaire', async () => {
-      const wrong = await request(localBase, '/api/login', { method: 'POST', body: { password: 'incorrect-password' } });
+      const wrong = await request(localBase, '/api/admin/login', { method: 'POST', body: { password: 'incorrect-password' } });
       assert.strictEqual(wrong.response.status, 401);
-      const login = await request(localBase, '/api/login', { method: 'POST', body: { password: PASSWORD } });
+      const login = await request(localBase, '/api/admin/login', { method: 'POST', body: { password: PASSWORD } });
       assert.strictEqual(login.response.status, 200);
       assert.strictEqual(login.data.authenticated, true);
       assert.strictEqual(login.data.mode, 'local');
@@ -108,13 +108,13 @@ function clone(value) {
       assert.ok(!setCookie.includes(PASSWORD));
       cookie = setCookie.split(';')[0];
       csrf = login.data.csrfToken;
-      const session = await request(localBase, '/api/session', { cookie });
+      const session = await request(localBase, '/api/admin/session', { cookie });
       assert.strictEqual(session.response.status, 200);
       assert.strictEqual(session.data.csrfToken, csrf);
     });
 
     await runTest('Chargement du manifeste sans exposer de secret ni d’identifiant', async () => {
-      const result = await request(localBase, '/api/announcements', { cookie });
+      const result = await request(localBase, '/api/admin/announcements', { cookie });
       assert.strictEqual(result.response.status, 200);
       assert.strictEqual(result.data.manifest.enabled, true);
       assert.strictEqual(result.data.manifest.announcements.length, 4);
@@ -127,11 +127,11 @@ function clone(value) {
     });
 
     await runTest('Refus des mutations sans CSRF ou depuis une origine externe', async () => {
-      const withoutCsrf = await request(localBase, '/api/announcements', {
+      const withoutCsrf = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, body: { manifest, revision }
       });
       assert.strictEqual(withoutCsrf.response.status, 403);
-      const wrongOrigin = await request(localBase, '/api/announcements', {
+      const wrongOrigin = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, origin: 'https://example.com', body: { manifest, revision }
       });
       assert.strictEqual(wrongOrigin.response.status, 403);
@@ -148,7 +148,7 @@ function clone(value) {
         startsAt: '2030-01-01T00:00:00.000Z',
         expiresAt: '2030-12-31T23:59:59.000Z'
       });
-      const result = await request(localBase, '/api/announcements', {
+      const result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision }
       });
       assert.strictEqual(result.response.status, 200, result.text);
@@ -164,7 +164,7 @@ function clone(value) {
     await runTest('Validation des catégories, dates, doublons et limite de 12 annonces actives', async () => {
       const invalidCategory = clone(manifest);
       invalidCategory.announcements[0].category = 'unknown';
-      let result = await request(localBase, '/api/announcements', {
+      let result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: invalidCategory, revision }
       });
       assert.strictEqual(result.response.status, 400);
@@ -172,14 +172,14 @@ function clone(value) {
       const invalidDates = clone(manifest);
       invalidDates.announcements[4].startsAt = '2030-02-01T00:00:00.000Z';
       invalidDates.announcements[4].expiresAt = '2030-01-01T00:00:00.000Z';
-      result = await request(localBase, '/api/announcements', {
+      result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: invalidDates, revision }
       });
       assert.strictEqual(result.response.status, 400);
 
       const duplicate = clone(manifest);
       duplicate.announcements[4].id = duplicate.announcements[0].id;
-      result = await request(localBase, '/api/announcements', {
+      result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: duplicate, revision }
       });
       assert.strictEqual(result.response.status, 400);
@@ -187,14 +187,14 @@ function clone(value) {
       const tooMany = { enabled: true, announcements: Array.from({ length: 13 }, (_, index) => ({
         id: `event-${index}`, category: 'event', title: { fr: `Titre ${index}` }, message: { fr: 'Message' }
       })) };
-      result = await request(localBase, '/api/announcements', {
+      result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: tooMany, revision }
       });
       assert.strictEqual(result.response.status, 400);
     });
 
     await runTest('Une révision obsolète ne peut pas écraser une modification concurrente', async () => {
-      const result = await request(localBase, '/api/announcements', {
+      const result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest, revision: staleRevision }
       });
       assert.strictEqual(result.response.status, 409);
@@ -205,7 +205,7 @@ function clone(value) {
       let next = clone(manifest);
       const [eventItem] = next.announcements.splice(4, 1);
       next.announcements.unshift(eventItem);
-      let result = await request(localBase, '/api/announcements', {
+      let result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision }
       });
       assert.strictEqual(result.response.status, 200);
@@ -215,7 +215,7 @@ function clone(value) {
 
       next = clone(manifest);
       next.enabled = false;
-      result = await request(localBase, '/api/announcements', {
+      result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision }
       });
       assert.strictEqual(result.response.status, 200);
@@ -225,7 +225,7 @@ function clone(value) {
 
       next = clone(manifest);
       next.announcements = next.announcements.filter((item) => item.id !== 'event-admin-test');
-      result = await request(localBase, '/api/announcements', {
+      result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision }
       });
       assert.strictEqual(result.response.status, 200);
@@ -247,15 +247,15 @@ function clone(value) {
     });
 
     await runTest('Déconnexion, invalidation de session et limitation des tentatives', async () => {
-      const logout = await request(localBase, '/api/logout', { method: 'POST', cookie, csrf, body: {} });
+      const logout = await request(localBase, '/api/admin/logout', { method: 'POST', cookie, csrf, body: {} });
       assert.strictEqual(logout.response.status, 200);
-      const session = await request(localBase, '/api/session', { cookie });
+      const session = await request(localBase, '/api/admin/session', { cookie });
       assert.strictEqual(session.response.status, 401);
       for (let index = 0; index < 5; index += 1) {
-        const wrong = await request(localBase, '/api/login', { method: 'POST', body: { password: `wrong-${index}` } });
+        const wrong = await request(localBase, '/api/admin/login', { method: 'POST', body: { password: `wrong-${index}` } });
         assert.strictEqual(wrong.response.status, 401);
       }
-      const limited = await request(localBase, '/api/login', { method: 'POST', body: { password: PASSWORD } });
+      const limited = await request(localBase, '/api/admin/login', { method: 'POST', body: { password: PASSWORD } });
       assert.strictEqual(limited.response.status, 429);
       assert.ok(limited.response.headers.get('retry-after'));
     });
@@ -291,12 +291,12 @@ function clone(value) {
       });
       const port = await listen(githubServer);
       const base = `http://127.0.0.1:${port}`;
-      const login = await request(base, '/api/login', { method: 'POST', body: { password: PASSWORD } });
+      const login = await request(base, '/api/admin/login', { method: 'POST', body: { password: PASSWORD } });
       assert.strictEqual(login.response.status, 200);
       assert.strictEqual(login.data.mode, 'github');
       const ghCookie = login.response.headers.get('set-cookie').split(';')[0];
       const ghCsrf = login.data.csrfToken;
-      const loaded = await request(base, '/api/announcements', { cookie: ghCookie });
+      const loaded = await request(base, '/api/admin/announcements', { cookie: ghCookie });
       assert.strictEqual(loaded.response.status, 200);
       assert.strictEqual(loaded.data.revision, 'sha-initial');
       assert.ok(!loaded.text.includes('test-token-not-real'));
@@ -304,7 +304,7 @@ function clone(value) {
       next.announcements.push({
         id: 'event-github-test', category: 'event', title: { fr: 'Test GitHub' }, message: { fr: 'Publication simulée' }
       });
-      const saved = await request(base, '/api/announcements', {
+      const saved = await request(base, '/api/admin/announcements', {
         method: 'PUT', cookie: ghCookie, csrf: ghCsrf, body: { manifest: next, revision: loaded.data.revision }
       });
       assert.strictEqual(saved.response.status, 200, saved.text);
