@@ -3,6 +3,6 @@
   "versionCode": 313,
   "versionName": "3.3.7",
   "apkUrl": "https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.7/FITIA-PRO-Miner.apk",
-  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "sha256": "d6e46c5aac86765aa0da56ef181978034728a23fcde474dee836dcd33fc1e0e8",
   "notes": "Nouveau certificat stable. Installation manuelle depuis 3.3.6 après sauvegarde des 12 mots ; les prochaines mises à jour utiliseront ce même certificat."
 }
