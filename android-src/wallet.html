@@ -59,7 +59,7 @@
     <!-- 2. SAUVEGARDE DE LA PHRASE DE 12 MOTS -->
     <div id="auth-step-backup" class="auth-step hidden">
       <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.showAuthStep('welcome')">← <span data-i18n="back">Retour</span></button>
+        <button class="auth-back-btn" onclick="App.showAuthStep('welcome')"><span data-i18n="back">Retour</span></button>
       </div>
       <h2 class="auth-step-title" data-i18n="backupSeedTitle">Phrase de récupération (12 mots)</h2>
       <div class="security-warning-box">
@@ -89,7 +89,7 @@
     <!-- 3. VÉRIFICATION DES 12 MOTS -->
     <div id="auth-step-verify" class="auth-step hidden">
       <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.showAuthStep('backup')">← <span data-i18n="back">Retour</span></button>
+        <button class="auth-back-btn" onclick="App.showAuthStep('backup')"><span data-i18n="back">Retour</span></button>
       </div>
       <h2 class="auth-step-title" data-i18n="verifySeedTitle">Vérifiez votre sauvegarde</h2>
       <p class="small-text" style="margin-bottom: 14px;" data-i18n="verifySeedDesc">Sélectionnez les bons mots correspondant aux numéros demandés.</p>
@@ -102,7 +102,7 @@
     <!-- 4. IMPORTATION DE PORTEFEUILLE (12/24 MOTS OU CLÉ PRIVÉE) -->
     <div id="auth-step-import" class="auth-step hidden">
       <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.cancelImportFlow()">← <span data-i18n="back">Retour</span></button>
+        <button class="auth-back-btn" onclick="App.cancelImportFlow()"><span data-i18n="back">Retour</span></button>
       </div>
       <h2 class="auth-step-title" data-i18n="importTitle">Importer un portefeuille</h2>
 
@@ -125,13 +125,13 @@
         </div>
       </div>
 
-      <button id="btn-import-continue" class="btn-primary" style="margin-top: 14px;" disabled onclick="App.submitImportSecret()" data-i18n="continueToPin">CHOISIR MON CODE PIN →</button>
+      <button id="btn-import-continue" class="btn-primary" style="margin-top: 14px;" disabled onclick="App.submitImportSecret()" data-i18n="continueToPin">CHOISIR MON CODE PIN</button>
     </div>
 
     <!-- 5. CRÉATION / CONFIRMATION DU CODE PIN À 6 CHIFFRES -->
     <div id="auth-step-setpin" class="auth-step hidden">
       <div class="auth-top-bar">
-        <button class="auth-back-btn" onclick="App.backFromSetPin()">← <span data-i18n="back">Retour</span></button>
+        <button class="auth-back-btn" onclick="App.backFromSetPin()"><span data-i18n="back">Retour</span></button>
       </div>
       <div class="pin-header-box">
         <h2 id="setpin-title" class="auth-step-title" data-i18n="createPinTitle">Créez votre code PIN</h2>

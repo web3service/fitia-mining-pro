@@ -90,7 +90,7 @@ def generate_android_icons():
 
         # Icône classique : le PNG FITIA conservant sa transparence d'origine.
         ic = base_img.resize((legacy_px, legacy_px), Image.Resampling.LANCZOS)
-        ic.save(os.path.join(mip_dir, "ic_launcher.png"))
+        ic.save(os.path.join(mip_dir, "fitia_pro_launcher.png"))
 
         # Icône ronde : applique un masque circulaire aux bords du visuel.
         mask = Image.new("L", (legacy_px * 4, legacy_px * 4), 0)
@@ -99,11 +99,11 @@ def generate_android_icons():
         mask = mask.resize((legacy_px, legacy_px), Image.Resampling.LANCZOS)
         round_ic = Image.new("RGBA", (legacy_px, legacy_px), (0, 0, 0, 0))
         round_ic.paste(ic, (0, 0), mask)
-        round_ic.save(os.path.join(mip_dir, "ic_launcher_round.png"))
+        round_ic.save(os.path.join(mip_dir, "fitia_pro_launcher_round.png"))
 
         # Premier plan adaptatif, superposé à @color/ic_launcher_background.
         fg = fg_master.resize((fg_px, fg_px), Image.Resampling.LANCZOS)
-        fg.save(os.path.join(mip_dir, "ic_launcher_foreground.png"))
+        fg.save(os.path.join(mip_dir, "fitia_pro_launcher_foreground.png"))
 
 
 def write_4byte_aligned_apk(base_apk_path, dex_path, web_files, out_aligned_path):
