@@ -36,50 +36,22 @@
         <div class="auth-logo-ring">
           <img src="assets/icon-192.png" alt="FITIA PRO" class="auth-logo-img">
         </div>
-        <div class="auth-badge-pill" data-i18n="standaloneBadge">PORTEFEUILLE AUTONOME • POLYGON</div>
         <h1 class="auth-title">FITIA <span class="pro-badge-lg">PRO</span></h1>
-        <p class="auth-subtitle" data-i18n="welcomeDesc">Portefeuille crypto non-custodial intégré et minage intelligent. Aucun wallet externe requis.</p>
-      </div>
-
-      <div class="auth-features">
-        <div class="auth-feature-item">
-          <span class="auth-feature-icon">🔐</span>
-          <div>
-            <strong data-i18n="featEncTitle">Chiffrement</strong>
-            <small data-i18n="featEncDesc">Protégé sur votre téléphone par code PIN à 6 chiffres</small>
-          </div>
-        </div>
-        <div class="auth-feature-item">
-          <span class="auth-feature-icon">🔑</span>
-          <div>
-            <strong data-i18n="featKeyTitle">100% Non-Custodial</strong>
-            <small data-i18n="featKeyDesc">Vos 12 mots secrets restent uniquement sur votre appareil</small>
-          </div>
-        </div>
-        <div class="auth-feature-item">
-          <span class="auth-feature-icon">⚡</span>
-          <div>
-            <strong data-i18n="featNetTitle">Connexion Directe Polygon</strong>
-            <small data-i18n="featNetDesc">Transactions instantanées sans MetaMask ni WalletConnect</small>
-          </div>
-        </div>
       </div>
 
       <div class="auth-actions">
         <button class="btn-mega auth-btn-create" onclick="App.startCreateWallet()">
           <span class="pulse-ring"></span>
-          <span data-i18n="createNewWallet">✨ CRÉER UN PORTEFEUILLE</span>
+          <span data-i18n="createNewWallet">CRÉER UN PORTEFEUILLE</span>
         </button>
         <button class="btn-secondary-outline" onclick="App.startImportWallet()" data-i18n="importExistingWallet">
            J'ai déjà un portefeuille (12 mots / Clé)
         </button>
         <a id="welcome-apk-download" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk" class="apk-download-banner">
-          <span>🤖</span>
           <div>
             <strong data-i18n="downloadApkTitle">Télécharger l'application Android (.APK)</strong>
             <small data-i18n="downloadApkSub">Installation directe sur votre téléphone</small>
           </div>
-          <span>⬇</span>
         </a>
       </div>
     </div>
@@ -88,11 +60,9 @@
     <div id="auth-step-backup" class="auth-step hidden">
       <div class="auth-top-bar">
         <button class="auth-back-btn" onclick="App.showAuthStep('welcome')">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator">1 / 3</span>
       </div>
       <h2 class="auth-step-title" data-i18n="backupSeedTitle">Phrase de récupération (12 mots)</h2>
       <div class="security-warning-box">
-        <span>⚠️</span>
         <p data-i18n="backupSeedWarn">Notez ces 12 mots dans l'ordre exact et gardez-les en lieu sûr. Ne les partagez jamais : quiconque possède ces mots contrôle vos fonds.</p>
       </div>
 
@@ -104,8 +74,8 @@
       <div id="seed-words-grid" class="seed-grid blurred"></div>
 
       <div class="seed-tools-row">
-        <button class="btn-chip" onclick="App.toggleSeedBlur()" id="btn-toggle-seed">👁️ <span data-i18n="revealWords">Afficher</span></button>
-        <button class="btn-chip accent" onclick="App.copyCreatedSeed()">📋 <span data-i18n="copyWords">Copier les 12 mots</span></button>
+        <button class="btn-chip" onclick="App.toggleSeedBlur()" id="btn-toggle-seed"><span data-i18n="revealWords">Afficher</span></button>
+        <button class="btn-chip accent" onclick="App.copyCreatedSeed()"><span data-i18n="copyWords">Copier les 12 mots</span></button>
       </div>
 
       <label class="seed-confirm-check">
@@ -120,7 +90,6 @@
     <div id="auth-step-verify" class="auth-step hidden">
       <div class="auth-top-bar">
         <button class="auth-back-btn" onclick="App.showAuthStep('backup')">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator">2 / 3</span>
       </div>
       <h2 class="auth-step-title" data-i18n="verifySeedTitle">Vérifiez votre sauvegarde</h2>
       <p class="small-text" style="margin-bottom: 14px;" data-i18n="verifySeedDesc">Sélectionnez les bons mots correspondant aux numéros demandés.</p>
@@ -134,7 +103,6 @@
     <div id="auth-step-import" class="auth-step hidden">
       <div class="auth-top-bar">
         <button class="auth-back-btn" onclick="App.cancelImportFlow()">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator" data-i18n="importBadge">IMPORT</span>
       </div>
       <h2 class="auth-step-title" data-i18n="importTitle">Importer un portefeuille</h2>
 
@@ -147,28 +115,25 @@
 
       <div class="import-textarea-wrap">
         <textarea id="import-secret-input" class="game-input import-textarea" rows="4" placeholder="mot1 mot2 mot3 ..." oninput="App.onImportInputChange()" autocomplete="off" autocapitalize="none" spellcheck="false"></textarea>
-        <button class="btn-paste-inline" onclick="App.pasteIntoImport()">📋 <span data-i18n="paste">Coller</span></button>
+        <button class="btn-paste-inline" onclick="App.pasteIntoImport()"><span data-i18n="paste">Coller</span></button>
       </div>
 
       <div id="import-detected-box" class="import-detected-box hidden">
-        <span>✓</span>
         <div>
           <small data-i18n="detectedWallet">Portefeuille Polygon détecté :</small>
           <strong id="import-detected-addr">0x...</strong>
         </div>
       </div>
 
-      <button id="btn-import-continue" class="btn-primary" style="margin-top: 14px;" disabled onclick="App.submitImportSecret()" data-i18n="continueToPin">CHOISIR MON CODE PINE→</button>
+      <button id="btn-import-continue" class="btn-primary" style="margin-top: 14px;" disabled onclick="App.submitImportSecret()" data-i18n="continueToPin">CHOISIR MON CODE PIN →</button>
     </div>
 
     <!-- 5. CRÉATION / CONFIRMATION DU CODE PIN À 6 CHIFFRES -->
     <div id="auth-step-setpin" class="auth-step hidden">
       <div class="auth-top-bar">
         <button class="auth-back-btn" onclick="App.backFromSetPin()">← <span data-i18n="back">Retour</span></button>
-        <span class="auth-step-indicator">3 / 3</span>
       </div>
       <div class="pin-header-box">
-        <div class="pin-shield-icon">🛡️</div>
         <h2 id="setpin-title" class="auth-step-title" data-i18n="createPinTitle">Créez votre code PIN</h2>
         <p id="setpin-subtitle" class="small-text" data-i18n="createPinDesc">Choisissez un code à 6 chiffres pour chiffrer votre portefeuille.</p>
       </div>
@@ -190,7 +155,7 @@
         <button type="button" class="pin-key" onclick="App.onSetPinDigit('9')">9</button>
         <button type="button" class="pin-key pin-key-empty" disabled></button>
         <button type="button" class="pin-key" onclick="App.onSetPinDigit('0')">0</button>
-        <button type="button" class="pin-key pin-key-action" onclick="App.onSetPinBackspace()">⌫</button>
+        <button type="button" class="pin-key pin-key-action" onclick="App.onSetPinBackspace()" aria-label="Effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg></button>
       </div>
     </div>
 
@@ -223,10 +188,10 @@
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('7')">7</button>
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('8')">8</button>
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('9')">9</button>
-        <button type="button" id="btn-unlock-bio" class="pin-key pin-key-action hidden" onclick="App.triggerBiometricUnlock()" title="Biométrie">🫆</button>
+        <button type="button" id="btn-unlock-bio" class="pin-key pin-key-action hidden" onclick="App.triggerBiometricUnlock()" title="Biométrie">BIO</button>
         <button type="button" id="btn-unlock-spacer" class="pin-key pin-key-empty" disabled></button>
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('0')">0</button>
-        <button type="button" class="pin-key pin-key-action" onclick="App.onUnlockBackspace()">⌫</button>
+        <button type="button" class="pin-key pin-key-action" onclick="App.onUnlockBackspace()" aria-label="Effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg></button>
       </div>
 
       <button type="button" class="auth-link-btn" onclick="App.promptRestoreFromLock()" data-i18n="forgotPinLink">
@@ -744,7 +709,7 @@
       <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('9')">9</button>
       <button type="button" class="pin-key pin-key-empty" disabled></button>
       <button type="button" class="pin-key" onclick="App.onConfirmPinDigit('0')">0</button>
-      <button type="button" class="pin-key pin-key-action" onclick="App.onConfirmPinBackspace()">⌫</button>
+      <button type="button" class="pin-key pin-key-action" onclick="App.onConfirmPinBackspace()" aria-label="Effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg></button>
     </div>
   </div>
 </div>

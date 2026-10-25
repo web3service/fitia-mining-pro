@@ -12,6 +12,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 - **Chargement silencieux** : seule l'animation est affichée, sans messages de progression.
 - **En-tête allégé** : l'adresse du wallet est remplacée par un bouton **Paramètres** ouvrant les réglages et la sécurité. L'adresse reste disponible dans la carte Portefeuille et à la réception. Dans cette modale, les sous-titres techniques, indications réseau, boutons PolygonScan/Verrouiller et émojis sont masqués sans désactiver les protections.
 - **Parrainage dans Paramètres (3.3.8)** : la section Parrainage est déplacée du tableau de bord vers la modale Paramètres. Le partage de son propre code, le statut du parrain actuel et la liaison d'un parrain conservent leurs identifiants et leurs actions, sans emoji dans la modale.
+- **Création et importation épurées (3.3.9)** : l’accueil conserve uniquement le logo, le nom FITIA PRO et les actions utiles. Les cartes promotionnelles, le badge Polygon, les compteurs d’étape et les emojis sont retirés des écrans d’authentification. Les boutons PIN et d’effacement restent fonctionnels, avec des libellés corrigés et des icônes SVG nettes.
 
 ---
 

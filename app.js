@@ -19,16 +19,8 @@ const CONFIG = {
 // ─── Traductions i18n (5 langues) ──────────────────────────────────
 const i18n = {
   fr: {
-    standaloneBadge: "PORTEFEUILLE AUTONOME • POLYGON",
-    welcomeDesc: "Portefeuille crypto non-custodial intégré et minage intelligent. Aucun wallet externe requis.",
-    featEncTitle: "Chiffrement AES-256-GCM",
-    featEncDesc: "Protégé sur votre téléphone par code PIN à 6 chiffres",
-    featKeyTitle: "100% Non-Custodial",
-    featKeyDesc: "Vos 12 mots secrets restent uniquement sur votre appareil",
-    featNetTitle: "Connexion Directe Polygon",
-    featNetDesc: "Transactions instantanées sans MetaMask ni WalletConnect",
-    createNewWallet: "✨ CRÉER UN PORTEFEUILLE",
-    importExistingWallet: "📥 J'ai déjà un portefeuille (12 mots / Clé)",
+    createNewWallet: "CRÉER UN PORTEFEUILLE",
+    importExistingWallet: "J'ai déjà un portefeuille (12 mots / Clé)",
     downloadApkTitle: "Télécharger l'application Android (.APK)",
     downloadApkSub: "Installation directe sur votre téléphone",
     updateRequiredTitle: "Mise à jour requise",
@@ -53,7 +45,6 @@ const i18n = {
     selectWordNum: "Sélectionnez le mot #",
     validateAndSetPin: "VALIDER & CRÉER MON PIN →",
     quizWrong: "Les mots sélectionnés ne correspondent pas. Vérifiez vos 12 mots.",
-    importBadge: "IMPORT",
     importTitle: "Importer un portefeuille",
     seedPhraseTab: "Phrase (12/24 mots)",
     privateKeyTab: "Clé privée (0x...)",
@@ -67,7 +58,7 @@ const i18n = {
     confirmPinTitle: "Confirmez votre code PIN",
     confirmPinDesc: "Saisissez à nouveau vos 6 chiffres pour confirmer.",
     pinMismatch: "Les deux codes PIN ne correspondent pas. Recommencez.",
-    walletReady: "✅ Portefeuille sécurisé prêt !",
+    walletReady: "Portefeuille sécurisé prêt !",
     unlockTitle: "Déverrouiller FITIA PRO",
     unlockDesc: "Entrez votre code PIN à 6 chiffres",
     forgotPinLink: "Code PIN oublié ? Restaurer avec mes 12 mots / clé",
@@ -174,7 +165,7 @@ const i18n = {
     sending: "Signature & envoi...",
     sentSuccess: "Transfert envoyé avec succès !",
     addrCopied: "Adresse copiée !",
-    secretCopied: "📋 Copié ! Effacement automatique du presse-papiers dans 45s.",
+    secretCopied: "Copié ! Effacement automatique du presse-papiers dans 45s.",
     weakPinErr: "Code PIN trop simple (évitez 123456 ou 000000). Choisissez un code plus fort.",
     burnAddrBlocked: "⛔ Envoi vers l'adresse nulle (0x000...0) bloqué pour protéger vos fonds.",
     contractAddrBlocked: "⛔ Adresse de contrat détectée ! N'envoyez pas directement à l'adresse d'un contrat.",
@@ -202,7 +193,7 @@ const i18n = {
     copySecretBtn: "Copier dans le presse-papiers",
     confirmWithPin: "Confirmation Sécurité",
     enterPinToContinue: "Entrez votre code PIN à 6 chiffres pour autoriser cette opération.",
-    pinChangedSuccess: "✅ Code PIN modifié avec succès !",
+    pinChangedSuccess: "Code PIN modifié avec succès !",
     errRejected: "Opération annulée",
     errInsufficientFunds: "Solde insuffisant",
     errNetwork: "Erreur réseau Polygon. Basculement RPC...",
@@ -218,16 +209,8 @@ const i18n = {
     shopExpiredLabel: "EXPIRÉ"
   },
   en: {
-    standaloneBadge: "STANDALONE WALLET • POLYGON",
-    welcomeDesc: "Built-in non-custodial crypto wallet and smart mining. No external wallet required.",
-    featEncTitle: "AES-256-GCM Encryption",
-    featEncDesc: "Protected locally on your phone by a 6-digit PIN",
-    featKeyTitle: "100% Non-Custodial",
-    featKeyDesc: "Your 12 secret words stay strictly on your device",
-    featNetTitle: "Direct Polygon Connection",
-    featNetDesc: "Instant transactions without MetaMask or WalletConnect",
-    createNewWallet: "✨ CREATE NEW WALLET",
-    importExistingWallet: "📥 I already have a wallet (12 words / Key)",
+    createNewWallet: "CREATE NEW WALLET",
+    importExistingWallet: "I already have a wallet (12 words / Key)",
     downloadApkTitle: "Download Android App (.APK)",
     downloadApkSub: "Direct installation on your phone",
     updateRequiredTitle: "Update required",
@@ -252,7 +235,6 @@ const i18n = {
     selectWordNum: "Select word #",
     validateAndSetPin: "VERIFY & SET MY PIN →",
     quizWrong: "Selected words do not match. Check your 12-word phrase.",
-    importBadge: "IMPORT",
     importTitle: "Import a Wallet",
     seedPhraseTab: "Phrase (12/24 words)",
     privateKeyTab: "Private Key (0x...)",
@@ -266,7 +248,7 @@ const i18n = {
     confirmPinTitle: "Confirm your PIN",
     confirmPinDesc: "Re-enter your 6 digits to confirm.",
     pinMismatch: "PIN codes do not match. Please try again.",
-    walletReady: "✅ Secure wallet ready!",
+    walletReady: "Secure wallet ready!",
     unlockTitle: "Unlock FITIA PRO",
     unlockDesc: "Enter your 6-digit PIN",
     forgotPinLink: "Forgot PIN? Restore with 12-word phrase / key",
@@ -373,7 +355,7 @@ const i18n = {
     sending: "Signing & sending...",
     sentSuccess: "Sent successfully!",
     addrCopied: "Address copied!",
-    secretCopied: "📋 Copied! Clipboard will auto-clear in 45s for security.",
+    secretCopied: "Copied! Clipboard will auto-clear in 45s for security.",
     weakPinErr: "PIN is too simple (avoid 123456 or 000000). Choose a stronger PIN.",
     burnAddrBlocked: "⛔ Sending to burn address (0x000...0) is blocked to protect your funds.",
     contractAddrBlocked: "⛔ Contract address detected! Do not send tokens directly to a contract address.",
@@ -417,10 +399,8 @@ const i18n = {
     shopExpiredLabel: "EXPIRED"
   },
   de: {
-    standaloneBadge: "EIGENSTÄNDIGE WALLET • POLYGON",
-    welcomeDesc: "Integrierte Non-Custodial Krypto-Wallet und Smart Mining. Keine externe Wallet nötig.",
-    createNewWallet: "✨ NEUE WALLET ERSTELLEN",
-    importExistingWallet: "📥 Bestehende Wallet importieren",
+    createNewWallet: "NEUE WALLET ERSTELLEN",
+    importExistingWallet: "Bestehende Wallet importieren",
     unlockTitle: "FITIA PRO entsperren",
     unlockDesc: "6-stellige PIN eingeben",
     wrongPin: "Falsche PIN.",
@@ -477,10 +457,8 @@ const i18n = {
     addrCopied: "Adresse kopiert!"
   },
   zh: {
-    standaloneBadge: "独立加密钱包 • POLYGON",
-    welcomeDesc: "内置非托管加密钱包与智能挖矿，无需连接外部钱包。",
-    createNewWallet: "✨ 创建新钱包",
-    importExistingWallet: "📥 导入已有钱包（12助记词 / 私钥）",
+    createNewWallet: "创建新钱包",
+    importExistingWallet: "导入已有钱包（12助记词 / 私钥）",
     unlockTitle: "解锁 FITIA PRO",
     unlockDesc: "请输入6位数字PIN码",
     wrongPin: "PIN码错误",
@@ -537,10 +515,8 @@ const i18n = {
     addrCopied: "地址已复制！"
   },
   sg: {
-    standaloneBadge: "STANDALONE WALLET • POLYGON",
-    welcomeDesc: "Built-in non-custodial crypto wallet and smart mining. No external wallet required.",
-    createNewWallet: "✨ CREATE NEW WALLET",
-    importExistingWallet: "📥 Import Existing Wallet",
+    createNewWallet: "CREATE NEW WALLET",
+    importExistingWallet: "Import Existing Wallet",
     unlockTitle: "Unlock FITIA PRO",
     unlockDesc: "Enter your 6-digit PIN"
   }
@@ -1008,7 +984,7 @@ class Application {
     `).join('');
 
     const toggleBtn = document.getElementById('btn-toggle-seed');
-    if (toggleBtn) toggleBtn.innerHTML = `👁️ <span>${FitiaSecurity.escapeHtml(this.t('revealWords'))}</span>`;
+    if (toggleBtn) toggleBtn.innerHTML = `<span>${FitiaSecurity.escapeHtml(this.t('revealWords'))}</span>`;
 
     const cb = document.getElementById('seed-saved-checkbox');
     cb.checked = false;
@@ -1023,9 +999,7 @@ class Application {
     grid.classList.toggle('blurred', this.seedBlurred);
     const toggleBtn = document.getElementById('btn-toggle-seed');
     if (toggleBtn) {
-      toggleBtn.innerHTML = this.seedBlurred
-        ? `👁️ <span>${FitiaSecurity.escapeHtml(this.t('revealWords'))}</span>`
-        : `🙈 <span>${FitiaSecurity.escapeHtml(this.t('hideWords'))}</span>`;
+      toggleBtn.innerHTML = `<span>${FitiaSecurity.escapeHtml(this.t(this.seedBlurred ? 'revealWords' : 'hideWords'))}</span>`;
     }
   }
 

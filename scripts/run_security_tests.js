@@ -568,7 +568,33 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(e2eWin.document.getElementById('loader').textContent.trim(), '', 'Le loader reste silencieux');
       App.setLoader(false);
 
+      const authScreen = e2eWin.document.getElementById('auth-screen');
+      const welcomeStep = e2eWin.document.getElementById('auth-step-welcome');
+      const onboardingEmojiPattern = /[\u{2300}-\u{23FF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u;
+      assert.strictEqual(welcomeStep.querySelector('.auth-badge-pill'), null, 'Le badge Polygon est retiré de l’accueil');
+      assert.strictEqual(welcomeStep.querySelector('.auth-subtitle'), null, 'Le sous-titre promotionnel est retiré');
+      assert.strictEqual(welcomeStep.querySelector('.auth-features'), null, 'Les cartes Chiffrement, Non-Custodial et Connexion sont retirées');
+      assert.strictEqual(authScreen.querySelectorAll('.auth-step-indicator').length, 0, 'Aucun compteur ou badge à côté de Retour');
+      assert.ok(!/PINE/.test(authScreen.textContent), 'La faute PINE est absente');
+      assert.ok(!/polygon/i.test(welcomeStep.textContent), 'Polygon n’est plus affiché sur l’accueil Créer/Importer');
+      assert.ok(!/chiffrement|non-custodial|connexion directe/i.test(welcomeStep.textContent), 'Les messages promotionnels sont masqués');
+
+      const originalAuthLang = App.currentLang;
+      for (const lang of ['fr', 'en', 'de', 'zh', 'sg']) {
+        App.setLanguage(lang);
+        assert.ok(!onboardingEmojiPattern.test(authScreen.textContent), `Aucun emoji dans les écrans d’authentification (${lang})`);
+        assert.ok(!/PINE/.test(authScreen.textContent), `Libellé PIN correct (${lang})`);
+      }
+      App.setLanguage(originalAuthLang);
+      assert.strictEqual(e2eWin.document.getElementById('btn-import-continue').textContent.trim(), App.t('continueToPin'));
+
       App.startCreateWallet();
+      const seedToggleButton = e2eWin.document.getElementById('btn-toggle-seed');
+      App.toggleSeedBlur();
+      assert.strictEqual(seedToggleButton.textContent, App.t('hideWords'));
+      App.toggleSeedBlur();
+      assert.strictEqual(seedToggleButton.textContent, App.t('revealWords'));
+      assert.ok(!onboardingEmojiPattern.test(authScreen.textContent), 'Les boutons dynamiques des 12 mots restent sans emoji');
       assert.ok(App.pendingWalletSecret?.mnemonic);
       e2eWin.document.getElementById('seed-saved-checkbox').checked = true;
       App.onSeedCheckboxChange();
