@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.7 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.8 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -398,7 +398,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.7\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.8\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -628,6 +628,27 @@ function httpRequest(port, method, reqPath) {
       App.closeModals();
     });
 
+    await runTest('UI-REFERRAL', 'Parrainage déplacé du tableau de bord vers Paramètres avec partage et liaison conservés', async () => {
+      const document = e2eWin.document;
+      const settingsModal = document.getElementById('modal-security');
+      await App.openSecurityModal();
+
+      assert.strictEqual(document.querySelector('#view-dashboard .referral-card'), null, 'Aucune carte Parrainage sur le tableau de bord');
+      assert.strictEqual(document.querySelectorAll('.referral-card').length, 1, 'Une seule carte Parrainage dans le wallet');
+      const referralCard = settingsModal.querySelector('.referral-card');
+      assert.ok(referralCard, 'La carte Parrainage est dans la modale Paramètres');
+      ['my-ref-id-label', 'current-referrer-status', 'ref-form-wrap', 'ref-address-input'].forEach((id) => {
+        assert.ok(referralCard.querySelector(`#${id}`), `Élément Parrainage conservé : ${id}`);
+      });
+      assert.ok(referralCard.querySelector('button[onclick="App.shareMyReferral()"]'), 'Le partage du code de parrainage reste disponible');
+      assert.ok(referralCard.querySelector('button[onclick="App.bindReferrer()"]'), 'La liaison du parrain reste disponible');
+      assert.ok(
+        !/[\u{2300}-\u{23FF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u.test(referralCard.textContent),
+        'La section Parrainage reste sans emoji dans Paramètres'
+      );
+      App.closeModals();
+    });
+
     await runTest('SMART-CONTRACT', 'Boutique V3.2 (shopExpiry) + fallback automatique V3.0 (64 octets) + Custom Errors', async () => {
       App.setShopView('machines');
       await App.renderShop();
@@ -738,13 +759,13 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 313,
-        versionName: '3.3.7',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.7/FITIA-PRO-Miner.apk',
+        versionCode: 314,
+        versionName: '3.3.8',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.8/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Mise à jour stable'
       };
-      nativeState.appVersionCode = 312;
+      nativeState.appVersionCode = 313;
       nativeState.updateDownloads = [];
       e2eWin.localStorage.removeItem('fitia_update_dismissed_code');
       e2eWin.fetch = async () => ({ ok: true, json: async () => update });
@@ -753,7 +774,7 @@ function httpRequest(port, method, reqPath) {
         await App.checkForUpdates(true);
         const modal = e2eWin.document.getElementById('modal-update');
         assert.ok(modal.classList.contains('active'), 'Une version supérieure ouvre la notification');
-        assert.strictEqual(e2eWin.document.getElementById('update-version').textContent, 'Version 3.3.7');
+        assert.strictEqual(e2eWin.document.getElementById('update-version').textContent, 'Version 3.3.8');
         assert.strictEqual(modal.querySelector('img'), null, 'Les notes de version restent du texte sûr');
 
         App.startUpdateDownload();
@@ -765,7 +786,7 @@ function httpRequest(port, method, reqPath) {
         await App.checkForUpdates(true);
         assert.ok(modal.classList.contains('active'));
         App.dismissUpdate();
-        assert.strictEqual(e2eWin.localStorage.getItem('fitia_update_dismissed_code'), '313');
+        assert.strictEqual(e2eWin.localStorage.getItem('fitia_update_dismissed_code'), '314');
         await App.checkForUpdates(false);
         assert.ok(!modal.classList.contains('active'), 'La version ignorée ne rouvre pas la notification automatique');
 
@@ -776,7 +797,7 @@ function httpRequest(port, method, reqPath) {
         );
         assert.strictEqual(App.normalizeUpdateManifest({ ...update, sha256: 'invalide' }), null);
 
-        nativeState.appVersionCode = 313;
+        nativeState.appVersionCode = 314;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1164,11 +1185,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 313);
-      assert.strictEqual(updateManifest.versionName, '3.3.7');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.7/'));
+      assert.strictEqual(updateManifest.versionCode, 314);
+      assert.strictEqual(updateManifest.versionName, '3.3.8');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.8/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.7 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.8 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -1183,8 +1204,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=313'), 'versionCode=313 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.7"'), 'versionName=3.3.7 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=314'), 'versionCode=314 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.8"'), 'versionName=3.3.8 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
