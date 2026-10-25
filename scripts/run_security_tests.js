@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.6 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.7 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -398,7 +398,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.6\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.7\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -738,13 +738,13 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 312,
-        versionName: '3.3.6',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.6/FITIA-PRO-Miner.apk',
+        versionCode: 313,
+        versionName: '3.3.7',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.7/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Mise à jour stable'
       };
-      nativeState.appVersionCode = 311;
+      nativeState.appVersionCode = 312;
       nativeState.updateDownloads = [];
       e2eWin.localStorage.removeItem('fitia_update_dismissed_code');
       e2eWin.fetch = async () => ({ ok: true, json: async () => update });
@@ -753,7 +753,7 @@ function httpRequest(port, method, reqPath) {
         await App.checkForUpdates(true);
         const modal = e2eWin.document.getElementById('modal-update');
         assert.ok(modal.classList.contains('active'), 'Une version supérieure ouvre la notification');
-        assert.strictEqual(e2eWin.document.getElementById('update-version').textContent, 'Version 3.3.6');
+        assert.strictEqual(e2eWin.document.getElementById('update-version').textContent, 'Version 3.3.7');
         assert.strictEqual(modal.querySelector('img'), null, 'Les notes de version restent du texte sûr');
 
         App.startUpdateDownload();
@@ -765,7 +765,7 @@ function httpRequest(port, method, reqPath) {
         await App.checkForUpdates(true);
         assert.ok(modal.classList.contains('active'));
         App.dismissUpdate();
-        assert.strictEqual(e2eWin.localStorage.getItem('fitia_update_dismissed_code'), '312');
+        assert.strictEqual(e2eWin.localStorage.getItem('fitia_update_dismissed_code'), '313');
         await App.checkForUpdates(false);
         assert.ok(!modal.classList.contains('active'), 'La version ignorée ne rouvre pas la notification automatique');
 
@@ -776,7 +776,7 @@ function httpRequest(port, method, reqPath) {
         );
         assert.strictEqual(App.normalizeUpdateManifest({ ...update, sha256: 'invalide' }), null);
 
-        nativeState.appVersionCode = 312;
+        nativeState.appVersionCode = 313;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1158,17 +1158,24 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/announcements.js'), 'Le module annonces est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
       assert.ok(!packagedFiles.includes('assets/www/index.html'), 'La vitrine publique n’est pas embarquée dans l’APK');
-      const updateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update-stable.json'), 'utf8'));
-      const legacyUpdateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
+      const updateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update-current.json'), 'utf8'));
+      const legacy35Manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
+      const legacy36Manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update-stable.json'), 'utf8'));
+      const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 312);
-      assert.strictEqual(updateManifest.versionName, '3.3.6');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.6/'));
-      assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste distant épingle le SHA-256 exact de l’APK');
-      assert.strictEqual(legacyUpdateManifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
-      assert.strictEqual(legacyUpdateManifest.versionName, '3.3.5');
-      assert.strictEqual(legacyUpdateManifest.sha256, '538996f093ab34dc055dc5876c415381b496b21bf1b3de6bbe84e8cb0d95c209', 'Le manifeste historique 3.3.5 reste inchangé');
+      assert.strictEqual(updateManifest.versionCode, 313);
+      assert.strictEqual(updateManifest.versionName, '3.3.7');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.7/'));
+      assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.7 utilise le nouveau canal de mise à jour');
+      assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
+      assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
+      assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
+      assert.strictEqual(legacy35Manifest.sha256, '538996f093ab34dc055dc5876c415381b496b21bf1b3de6bbe84e8cb0d95c209', 'Le manifeste historique 3.3.5 reste inchangé');
+      assert.strictEqual(legacy36Manifest.versionCode, 312, 'Les versions 3.3.6 ne reçoivent pas un APK au certificat incompatible');
+      assert.strictEqual(legacy36Manifest.versionName, '3.3.6');
+      assert.strictEqual(legacy36Manifest.sha256, '0762b701eb24240ff88d63236c341df247ef2aa37d2955a49728ad2260e6d948', 'Le manifeste historique 3.3.6 reste inchangé');
 
       const aapt2 = '/tmp/android-toolchain/aapt2';
       const java = '/tmp/android-toolchain/jdk/bin/java';
@@ -1176,8 +1183,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=312'), 'versionCode=312 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.6"'), 'versionName=3.3.6 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=313'), 'versionCode=313 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.7"'), 'versionName=3.3.7 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

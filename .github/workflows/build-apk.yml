@@ -2,13 +2,18 @@ name: Build signed Android APK
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
+    inputs:
+      commit_build:
+        description: Commit the tested APK and update-current.json to the selected non-main branch
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -66,6 +71,10 @@ jobs:
           FITIA_ANDROID_KEY_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
         run: python3 scripts/build_apk.py
 
+      - name: Update the current release manifest
+        shell: bash
+        run: python3 scripts/update_release_manifest.py
+
       - name: Run security and APK tests
         shell: bash
         run: |
@@ -80,10 +89,60 @@ jobs:
         shell: bash
         run: rm -f android-src/keystore/fitia-release.p12
 
-      - name: Upload signed APK artifact
+      - name: Upload signed APK and current manifest
         uses: actions/upload-artifact@v4
         with:
           name: FITIA-PRO-Miner-APK
-          path: FITIA-PRO-Miner.apk
+          path: |
+            FITIA-PRO-Miner.apk
+            update-current.json
           if-no-files-found: error
           retention-days: 30
+
+  commit-build:
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
+    needs: build-apk
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Check out the selected branch
+        uses: actions/checkout@v4
+
+      - name: Download the tested build
+        uses: actions/download-artifact@v4
+        with:
+          name: FITIA-PRO-Miner-APK
+          path: /tmp/fitia-signed-build
+
+      - name: Verify and commit the signed build
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir=/tmp/fitia-signed-build
+          expected="$(python3 -c 'import json; print(json.load(open("/tmp/fitia-signed-build/update-current.json"))["sha256"])')"
+          actual="$(sha256sum "$artifact_dir/FITIA-PRO-Miner.apk" | awk '{print $1}')"
+          if [[ ! "$actual" =~ ^[0-9a-f]{64}$ ]] || [[ "$actual" != "$expected" ]]; then
+            echo 'Downloaded APK SHA-256 does not match the tested manifest' >&2
+            exit 1
+          fi
+
+          manifest_version="$(python3 -c 'import json; print(json.load(open("/tmp/fitia-signed-build/update-current.json"))["versionName"])')"
+          package_version="$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')"
+          if [[ "$manifest_version" != "$package_version" ]]; then
+            echo 'Downloaded manifest version does not match package.json' >&2
+            exit 1
+          fi
+
+          cp "$artifact_dir/FITIA-PRO-Miner.apk" FITIA-PRO-Miner.apk
+          cp "$artifact_dir/update-current.json" update-current.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add FITIA-PRO-Miner.apk update-current.json
+          if git diff --cached --quiet; then
+            echo 'The tested build is already committed on this branch.'
+            exit 0
+          fi
+          git commit -m 'Build signed Android APK and update current manifest'
+          git push origin "HEAD:${GITHUB_REF_NAME}"

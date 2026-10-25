@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing GitHub release tag (for example v3.3.6)
+        description: Existing GitHub release tag (for example v3.3.7)
         required: true
         type: string
   push:
@@ -12,7 +12,7 @@ on:
       - main
     paths:
       - FITIA-PRO-Miner.apk
-      - update-stable.json
+      - update-current.json
       - .github/workflows/publish-apk.yml
 
 permissions:
@@ -25,14 +25,14 @@ jobs:
       - name: Check out the signed APK and update manifest
         uses: actions/checkout@v4
 
-      - name: Verify APK against update-stable.json
+      - name: Verify APK against update-current.json
         shell: bash
         run: |
           set -euo pipefail
-          expected="$(python3 -c 'import json; print(json.load(open("update-stable.json"))["sha256"])')"
+          expected="$(python3 -c 'import json; print(json.load(open("update-current.json"))["sha256"])')"
           actual="$(sha256sum FITIA-PRO-Miner.apk | awk '{print $1}')"
           if [[ ! "$actual" =~ ^[0-9a-f]{64}$ ]] || [[ "$actual" != "$expected" ]]; then
-            echo "APK SHA-256 does not match update-stable.json" >&2
+            echo "APK SHA-256 does not match update-current.json" >&2
             exit 1
           fi
           echo "Verified APK SHA-256: $actual"
@@ -44,10 +44,10 @@ jobs:
           REQUESTED_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          expected_tag="v$(python3 -c 'import json; print(json.load(open("update-stable.json"))["versionName"])')"
+          expected_tag="v$(python3 -c 'import json; print(json.load(open("update-current.json"))["versionName"])')"
           tag="${REQUESTED_TAG:-$expected_tag}"
           if [[ "$tag" != "$expected_tag" ]]; then
-            echo "Release tag $tag does not match update-stable.json ($expected_tag)" >&2
+            echo "Release tag $tag does not match update-current.json ($expected_tag)" >&2
             exit 1
           fi
           gh release view "$tag"
