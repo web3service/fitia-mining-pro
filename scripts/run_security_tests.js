@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.5 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.6 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -331,6 +331,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.Uint8Array = Uint8Array;
   win.ArrayBuffer = ArrayBuffer;
   win.fetch = async (url, opts) => {
+    if (String(url).includes('/announcements.json')) throw new Error('offline-sandbox');
     // Bloque les appels prix externes (DexScreener/CoinGecko) en sandbox pour rapidité instantanée
     if (String(url).includes('dexscreener') || String(url).includes('coingecko')) {
       throw new Error('offline-sandbox');
@@ -361,6 +362,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor', 'qrcode.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'activity.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'announcements.js'), 'utf8'));
 
   if (mockRpcUrl) {
     win.FitiaSecurity.Rpc.connectBestProvider = async () => {
@@ -396,7 +398,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.5\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.6\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -736,13 +738,13 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 311,
-        versionName: '3.3.5',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.5/FITIA-PRO-Miner.apk',
+        versionCode: 312,
+        versionName: '3.3.6',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.6/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Mise à jour stable'
       };
-      nativeState.appVersionCode = 310;
+      nativeState.appVersionCode = 311;
       nativeState.updateDownloads = [];
       e2eWin.localStorage.removeItem('fitia_update_dismissed_code');
       e2eWin.fetch = async () => ({ ok: true, json: async () => update });
@@ -751,7 +753,7 @@ function httpRequest(port, method, reqPath) {
         await App.checkForUpdates(true);
         const modal = e2eWin.document.getElementById('modal-update');
         assert.ok(modal.classList.contains('active'), 'Une version supérieure ouvre la notification');
-        assert.strictEqual(e2eWin.document.getElementById('update-version').textContent, 'Version 3.3.5');
+        assert.strictEqual(e2eWin.document.getElementById('update-version').textContent, 'Version 3.3.6');
         assert.strictEqual(modal.querySelector('img'), null, 'Les notes de version restent du texte sûr');
 
         App.startUpdateDownload();
@@ -763,7 +765,7 @@ function httpRequest(port, method, reqPath) {
         await App.checkForUpdates(true);
         assert.ok(modal.classList.contains('active'));
         App.dismissUpdate();
-        assert.strictEqual(e2eWin.localStorage.getItem('fitia_update_dismissed_code'), '311');
+        assert.strictEqual(e2eWin.localStorage.getItem('fitia_update_dismissed_code'), '312');
         await App.checkForUpdates(false);
         assert.ok(!modal.classList.contains('active'), 'La version ignorée ne rouvre pas la notification automatique');
 
@@ -774,7 +776,7 @@ function httpRequest(port, method, reqPath) {
         );
         assert.strictEqual(App.normalizeUpdateManifest({ ...update, sha256: 'invalide' }), null);
 
-        nativeState.appVersionCode = 311;
+        nativeState.appVersionCode = 312;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -785,6 +787,103 @@ function httpRequest(port, method, reqPath) {
         App.availableUpdate = null;
         App.updateCheckInFlight = false;
         e2eWin.document.getElementById('modal-update').classList.remove('active');
+      }
+    });
+
+    await runTest('APP-ANNOUNCEMENTS', 'Bannière permanente, rotation lente, catégories, dates et annonces sans injection', async () => {
+      const center = App.announcementCenter;
+      const originalFetch = e2eWin.fetch;
+      const originalLang = App.currentLang;
+      const now = Date.parse('2026-10-24T12:00:00Z');
+      assert.ok(center.initialized, 'Le centre est initialisé avec le wallet');
+      assert.strictEqual(center.items.length, 4, 'Les quatre catégories locales sont disponibles hors ligne');
+      assert.strictEqual(center.localFallback, true);
+      assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 5, 'Quatre annonces et le clone de boucle');
+      assert.strictEqual(e2eWin.document.querySelector('#announcement-center .announcement-close'), null, 'La bannière permanente ne peut pas être fermée');
+      while (center.fetchInFlight) await new Promise((resolve) => setTimeout(resolve, 0));
+
+      try {
+        center.stop();
+        center.select(1);
+        assert.strictEqual(center.index, 1);
+        assert.match(e2eWin.document.getElementById('announcement-track').style.transform, /-100%/);
+        assert.strictEqual(e2eWin.document.querySelector('#announcement-dots .active').getAttribute('aria-label'), 'Afficher l’annonce 2');
+        center.stop();
+
+        center.select(3);
+        center.next(false);
+        assert.strictEqual(center.index, 4, 'Le clone de la première annonce assure la continuité');
+        const loopEvent = new e2eWin.Event('transitionend');
+        Object.defineProperty(loopEvent, 'propertyName', { value: 'transform' });
+        e2eWin.document.getElementById('announcement-track').dispatchEvent(loopEvent);
+        assert.strictEqual(center.index, 0, 'La boucle revient à la première annonce sans saut');
+        center.stop();
+
+        const originalSetInterval = e2eWin.setInterval;
+        let carouselDelay = 0;
+        e2eWin.setInterval = (fn, milliseconds) => { carouselDelay = milliseconds; return 987654; };
+        center.start();
+        e2eWin.setInterval = originalSetInterval;
+        assert.strictEqual(carouselDelay, 8000, 'Chaque annonce reste huit secondes avant la rotation');
+        center.stop();
+
+        const safe = {
+          id: 'event-safe',
+          category: 'event',
+          title: { fr: '<img src=x> Événement officiel', en: 'Safe official event' },
+          message: { fr: 'Texte <script>alert(1)</script> uniquement', en: 'Plain text only' },
+          startsAt: '2026-10-01T00:00:00Z',
+          expiresAt: '2026-12-31T23:59:59Z'
+        };
+        const manifest = {
+          enabled: true,
+          announcements: [
+            safe,
+            { ...safe, id: 'event-safe', title: { fr: 'Doublon' } },
+            { ...safe, id: 'expired', expiresAt: '2026-01-01T00:00:00Z' },
+            { ...safe, id: 'future', startsAt: '2027-01-01T00:00:00Z' },
+            { ...safe, id: 'bad-category', category: 'unknown' },
+            { ...safe, id: 'bad-date', expiresAt: 'date-invalide' }
+          ]
+        };
+        const normalized = center.normalizeManifest(manifest, now);
+        assert.strictEqual(normalized.length, 1, 'Doublons, catégories inconnues et dates invalides sont rejetés');
+        assert.strictEqual(normalized[0].id, 'event-safe');
+
+        e2eWin.fetch = async (url) => {
+          assert.ok(String(url).includes('/announcements.json'));
+          return { ok: true, json: async () => manifest };
+        };
+        await center.refresh();
+        assert.strictEqual(center.localFallback, false);
+        assert.strictEqual(center.items.length, 1, 'Seule l’annonce active et valide est publiée');
+        assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 1, 'Aucun clone inutile pour une annonce seule');
+        assert.ok(e2eWin.document.querySelector('.announcement-title').textContent.includes('<img src=x>'), 'Le balisage reste du texte visible');
+        assert.strictEqual(e2eWin.document.querySelector('#announcement-center script'), null, 'Aucun script distant ne peut être injecté');
+        assert.strictEqual(e2eWin.document.querySelector('.announcement-copy img'), null, 'Aucune image injectée dans le texte');
+
+        App.setLanguage('en');
+        assert.strictEqual(e2eWin.document.querySelector('.announcement-title').textContent, 'Safe official event');
+        App.setLanguage('fr');
+
+        e2eWin.fetch = async () => { throw new Error('offline'); };
+        await center.refresh();
+        assert.strictEqual(center.items.length, 1, 'Une panne réseau ne supprime pas les dernières annonces valides');
+
+        const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
+        const publishedItems = center.normalizeManifest(published, now);
+        assert.strictEqual(publishedItems.length, 4);
+        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(['information', 'event', 'referral', 'security']));
+      } finally {
+        e2eWin.fetch = originalFetch;
+        App.setLanguage(originalLang);
+        center.stop();
+        center.localFallback = true;
+        center.items = center.defaults();
+        center.index = 0;
+        center.fetchInFlight = false;
+        center.render();
+        center.start();
       }
     });
 
@@ -1056,14 +1155,20 @@ function httpRequest(port, method, reqPath) {
         'print("\\n".join(zipfile.ZipFile(sys.argv[1]).namelist()))'
       ].join(';'), apkPath], { encoding: 'utf8' });
       assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/announcements.js'), 'Le module annonces est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
       assert.ok(!packagedFiles.includes('assets/www/index.html'), 'La vitrine publique n’est pas embarquée dans l’APK');
-      const updateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
+      const updateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update-stable.json'), 'utf8'));
+      const legacyUpdateManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 311);
-      assert.strictEqual(updateManifest.versionName, '3.3.5');
+      assert.strictEqual(updateManifest.versionCode, 312);
+      assert.strictEqual(updateManifest.versionName, '3.3.6');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.6/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste distant épingle le SHA-256 exact de l’APK');
+      assert.strictEqual(legacyUpdateManifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
+      assert.strictEqual(legacyUpdateManifest.versionName, '3.3.5');
+      assert.strictEqual(legacyUpdateManifest.sha256, '538996f093ab34dc055dc5876c415381b496b21bf1b3de6bbe84e8cb0d95c209', 'Le manifeste historique 3.3.5 reste inchangé');
 
       const aapt2 = '/tmp/android-toolchain/aapt2';
       const java = '/tmp/android-toolchain/jdk/bin/java';
@@ -1071,8 +1176,8 @@ function httpRequest(port, method, reqPath) {
 
       if (fs.existsSync(aapt2) && fs.existsSync(java) && fs.existsSync(apksigner)) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=311'), 'versionCode=311 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.5"'), 'versionName=3.3.5 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=312'), 'versionCode=312 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.6"'), 'versionName=3.3.6 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
