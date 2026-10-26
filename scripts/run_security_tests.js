@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.20 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.21 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -27,6 +27,20 @@ async function runTest(suiteName, testName, fn) {
   } catch (err) {
     failed++;
     console.error(`  ❌ [${suiteName}] ${testName}\n     ↳ ${err.stack || err.message}`);
+  }
+}
+
+async function withDeadline(promise, timeoutMs, message) {
+  let timer = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
@@ -459,7 +473,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.20\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.21\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -795,6 +809,100 @@ function httpRequest(port, method, reqPath) {
       App.closeModals();
     });
 
+    await runTest('STARTUP-RPC', 'Ouverture immédiate après PIN même avec un RPC bloqué, puis synchronisation en arrière-plan', async () => {
+      const startupEnv = await bootAppEnvironment(mockRpc.url);
+      const startupWin = startupEnv.win;
+      const startupApp = startupWin.App;
+      const secret = startupWin.FitiaSecurity.Vault.generateNewWallet();
+      let resolveConnection = null;
+      let promotionRefreshed = false;
+      try {
+        startupApp.promotionCenter.refresh = () => { promotionRefreshed = true; };
+        startupWin.FitiaSecurity.Rpc.connectBestProvider = () => new Promise((resolve) => {
+          resolveConnection = resolve;
+        });
+        startupApp.setLoader(true);
+        await withDeadline(
+          startupApp.activateUnlockedSession(secret),
+          400,
+          'Le déverrouillage local attend encore une réponse RPC'
+        );
+        assert.ok(startupApp.user, 'La session locale est active sans réponse blockchain');
+        assert.strictEqual(secret.privateKey, '', 'La copie de la clé est effacée immédiatement');
+        assert.strictEqual(secret.mnemonic, '', 'La copie de la phrase est effacée immédiatement');
+        assert.ok(startupWin.document.getElementById('auth-screen').classList.contains('hidden'));
+        assert.ok(!startupWin.document.getElementById('app-shell').classList.contains('hidden'));
+        assert.ok(startupWin.document.getElementById('loader').classList.contains('hidden'), 'Le loader ne couvre plus le tableau de bord');
+        assert.ok(resolveConnection, 'La connexion Polygon continue en arrière-plan');
+        assert.strictEqual(promotionRefreshed, false, 'Aucun chargement de boutique ne part avant la sélection du RPC');
+
+        const mockProvider = startupWin.FitiaSecurity.Rpc.createStaticProvider(mockRpc.url);
+        resolveConnection({ provider: mockProvider, url: mockRpc.url, latencyMs: 12, block: 62500000 });
+        await withDeadline(startupApp.sessionBootstrapPromise, 2500, 'La synchronisation ne reprend pas après le retour du RPC');
+        assert.strictEqual(startupWin.document.getElementById('bal-wallet-usdt').textContent, '125.50');
+        assert.ok(startupApp.currentRealPower > 0, 'Les données blockchain arrivent après l’ouverture');
+        assert.strictEqual(promotionRefreshed, true, 'La boutique se synchronise après la connexion');
+      } finally {
+        secret.privateKey = '';
+        secret.mnemonic = '';
+        startupEnv.dom.window.close();
+      }
+    });
+
+    await runTest('NETWORK-RESILIENCE', 'Nœuds RPC testés en parallèle et services de prix limités dans le temps', async () => {
+      const networkEnv = await bootAppEnvironment();
+      const networkWin = networkEnv.win;
+      const rpc = networkWin.FitiaSecurity.Rpc;
+      const networkApp = networkWin.App;
+      const originalFetch = networkWin.fetch;
+      try {
+        const calls = [];
+        let rejectFirst = null;
+        let resolveSecond = null;
+        rpc.getAvailableRpcs = () => [
+          { name: 'RPC A', url: 'https://rpc-a.example' },
+          { name: 'RPC B', url: 'https://rpc-b.example' }
+        ];
+        rpc.pingRpc = (url) => {
+          calls.push(url);
+          return new Promise((resolve, reject) => {
+            if (url.includes('rpc-a')) rejectFirst = reject;
+            else resolveSecond = resolve;
+          });
+        };
+        let connectionSettled = false;
+        const connection = rpc.connectBestProvider('https://rpc-a.example');
+        void connection.then(() => { connectionSettled = true; });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.deepStrictEqual(calls.sort(), ['https://rpc-a.example', 'https://rpc-b.example'], 'Les deux nœuds démarrent sans attente séquentielle');
+        resolveSecond({ ok: true, block: 62500001, latencyMs: 18, provider: { destroy() {} } });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.strictEqual(connectionSettled, false, 'La préférence du premier nœud reste déterministe');
+        rejectFirst(new Error('offline'));
+        const selected = await withDeadline(connection, 300, 'Le second nœud ne prend pas le relais');
+        assert.strictEqual(selected.url, 'https://rpc-b.example');
+        assert.strictEqual(selected.block, 62500001);
+
+        networkWin.fetch = (url, options) => new Promise((resolve, reject) => {
+          if (!String(url).includes('dexscreener') && !String(url).includes('coingecko')) {
+            originalFetch(url, options).then(resolve, reject);
+            return;
+          }
+          const signal = options?.signal;
+          if (signal?.aborted) reject(new Error('aborted'));
+          else signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+        });
+        networkApp.polPriceUsd = 0;
+        const startedAt = Date.now();
+        await withDeadline(networkApp.fetchMarketPrices(25), 400, 'Les services de prix restent sans délai maximal');
+        assert.ok(Date.now() - startedAt < 350, 'Les deux appels prix sont interrompus rapidement');
+        assert.strictEqual(networkApp.polPriceUsd, 0.42, 'Le prix de secours reste disponible hors ligne');
+      } finally {
+        networkWin.fetch = originalFetch;
+        networkEnv.dom.window.close();
+      }
+    });
+
     await runTest('UI-REFERRAL', 'Lien direct gratuit, code de secours, préremplissage sécurisé et compatibilité on-chain', async () => {
       const document = e2eWin.document;
       const settingsModal = document.getElementById('modal-security');
@@ -1014,9 +1122,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 326,
-        versionName: '3.3.20',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.20/FITIA-PRO-Miner.apk',
+        versionCode: 327,
+        versionName: '3.3.21',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.21/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1059,7 +1167,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 326;
+        nativeState.appVersionCode = 327;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2354,6 +2462,13 @@ function httpRequest(port, method, reqPath) {
         'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/wallet.html"))'
       ].join(';'), apkPath]);
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
+      for (const sourceFile of ['app.js', 'wallet.js']) {
+        const packagedSource = execFileSync('python3', ['-c', [
+          'import zipfile, sys',
+          'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'
+        ].join(';'), apkPath, sourceFile]);
+        assert.ok(packagedSource.equals(fs.readFileSync(path.join(ROOT, sourceFile))), `L’APK embarque exactement ${sourceFile} avec le correctif réseau audité`);
+      }
       for (const fontFile of [
         'inter-latin-400-normal.woff2', 'inter-latin-600-normal.woff2',
         'inter-latin-700-normal.woff2', 'inter-latin-800-normal.woff2',
@@ -2376,11 +2491,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 326);
-      assert.strictEqual(updateManifest.versionName, '3.3.20');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.20/'));
+      assert.strictEqual(updateManifest.versionCode, 327);
+      assert.strictEqual(updateManifest.versionName, '3.3.21');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.21/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.20 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.21 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2398,8 +2513,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=326'), 'versionCode=326 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.20"'), 'versionName=3.3.20 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=327'), 'versionCode=327 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.21"'), 'versionName=3.3.21 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
