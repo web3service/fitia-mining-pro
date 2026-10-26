@@ -72,6 +72,16 @@
         "zh": "最新官方活动将在这里公布。",
         "sg": "Upcoming official events will be announced here."
       }
+    },
+    {
+      "id": "information-mvoi2jrw-25ab433e",
+      "category": "information",
+      "title": {
+        "fr": "FTA Promotionnel"
+      },
+      "message": {
+        "fr": "Événements FTA Promotionnel à ne pas manquer"
+      }
     }
   ]
 }
