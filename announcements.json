@@ -38,24 +38,6 @@
       }
     },
     {
-      "id": "official-referral",
-      "category": "referral",
-      "title": {
-        "fr": "Parrainage FITIA",
-        "en": "FITIA referral",
-        "de": "FITIA-Empfehlung",
-        "zh": "FITIA 推荐",
-        "sg": "FITIA referral"
-      },
-      "message": {
-        "fr": "Retrouvez votre ID et partagez votre code depuis la section Parrainage.",
-        "en": "Find your ID and share your code in the Referral section.",
-        "de": "Ihre ID und Ihren Code finden Sie im Bereich Empfehlungen.",
-        "zh": "在推荐栏目中查找并分享您的推荐 ID。",
-        "sg": "Find your ID and share your code in the Referral section."
-      }
-    },
-    {
       "id": "wallet-security",
       "category": "security",
       "title": {
