@@ -19,6 +19,7 @@ const writes = [];
 let promotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
 let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];
+let failPromotions = false;
 const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
 const { window } = dom;
 Object.defineProperty(window, 'crypto', { value: crypto.webcrypto });
@@ -44,6 +45,7 @@ window.fetch = async (url, options = {}) => {
     return response({ manifest, revision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
   if (url === '/api/admin/promotions' && (!options.method || options.method === 'GET')) {
+    if (failPromotions) return response({ error: 'Canal décorations indisponible', code: 'GITHUB_READ' }, 503);
     return response({ manifest: promotionManifest, revision: promotionRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
   if (url === '/api/admin/promotions' && options.method === 'PUT') {
@@ -156,7 +158,14 @@ async function waitFor(condition, label) {
   await waitFor(() => promotionWrites.length === 4, 'suppression décoration');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression décoration');
   assert.strictEqual(promotionManifest.promotions.length, 0);
-  console.log('  ✅ UI admin : annonces et décorations, création, modification, dates, activation, suppression et blocage XSS validés');
+
+  manifest.announcements[0].title.fr = 'Annonce rechargée malgré la panne';
+  failPromotions = true;
+  window.document.getElementById('refresh-button').click();
+  await waitFor(() => !window.document.getElementById('promotions-list-error').classList.contains('hidden'), 'panne indépendante des décorations');
+  assert.ok(window.document.querySelector('#announcements-list .announcement-row').textContent.includes('Annonce rechargée malgré la panne'));
+  assert.strictEqual(window.document.getElementById('promotions-list-error').textContent, 'Canal décorations indisponible');
+  console.log('  ✅ UI admin : annonces et décorations indépendants, CRUD, dates, activation, panne isolée et blocage XSS validés');
   window.close();
 })().catch((error) => {
   console.error(error);

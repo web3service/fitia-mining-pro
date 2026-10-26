@@ -161,27 +161,38 @@
     byId('list-error').classList.add('hidden');
     byId('promotions-list-error').classList.add('hidden');
     try {
-      const [announcementData, promotionData] = await Promise.all([
+      const [announcementResult, promotionResult] = await Promise.allSettled([
         api('/api/admin/announcements'),
         api('/api/admin/promotions')
       ]);
-      state.manifest = announcementData.manifest;
-      state.revision = announcementData.revision;
-      state.promotionManifest = promotionData.manifest;
-      state.promotionRevision = promotionData.revision;
-      state.lastSync = new Date();
-      updateSource(announcementData);
-      renderAll();
-      setConnection('online');
-    } catch (error) {
-      setConnection('offline');
-      if (error.code !== 'AUTH_REQUIRED') {
-        byId('list-error').textContent = error.message;
-        byId('list-error').classList.remove('hidden');
-        byId('promotions-list-error').textContent = error.message;
-        byId('promotions-list-error').classList.remove('hidden');
-        showToast(error.message, 'error');
+      const errors = [];
+      if (announcementResult.status === 'fulfilled') {
+        state.manifest = announcementResult.value.manifest;
+        state.revision = announcementResult.value.revision;
+        updateSource(announcementResult.value);
+      } else {
+        errors.push(announcementResult.reason);
+        if (announcementResult.reason.code !== 'AUTH_REQUIRED') {
+          byId('list-error').textContent = announcementResult.reason.message;
+          byId('list-error').classList.remove('hidden');
+        }
       }
+      if (promotionResult.status === 'fulfilled') {
+        state.promotionManifest = promotionResult.value.manifest;
+        state.promotionRevision = promotionResult.value.revision;
+        if (announcementResult.status !== 'fulfilled') updateSource(promotionResult.value);
+      } else {
+        errors.push(promotionResult.reason);
+        if (promotionResult.reason.code !== 'AUTH_REQUIRED') {
+          byId('promotions-list-error').textContent = promotionResult.reason.message;
+          byId('promotions-list-error').classList.remove('hidden');
+        }
+      }
+      if (announcementResult.status === 'fulfilled' || promotionResult.status === 'fulfilled') state.lastSync = new Date();
+      renderAll();
+      setConnection(errors.length ? 'offline' : 'online');
+      const visibleErrors = errors.filter((error) => error.code !== 'AUTH_REQUIRED');
+      if (visibleErrors.length) showToast(visibleErrors.map((error) => error.message).join(' · '), 'error');
     } finally {
       if (!options.quiet) setLoading(false);
     }
@@ -231,7 +242,7 @@
       state.promotionRevision = data.revision;
       state.lastSync = new Date();
       updateSource(data);
-      renderPromotions();
+      renderAll();
       setConnection('online');
       showToast(successMessage);
       return true;
@@ -250,11 +261,12 @@
   }
 
   function renderAll() {
-    if (!state.manifest || !state.promotionManifest) return;
-    renderDashboard();
-    renderDistribution();
-    renderAnnouncements();
-    renderPromotions();
+    if (state.manifest) {
+      renderDashboard();
+      renderDistribution();
+      renderAnnouncements();
+    }
+    if (state.promotionManifest) renderPromotions();
   }
 
   function renderDashboard() {
