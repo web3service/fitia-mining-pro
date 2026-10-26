@@ -1,11 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════
-//  DÉCORATIONS PROMOTIONNELLES FITIA — cartes cadeaux & badges de Noël
+//  DÉCORATIONS PROMOTIONNELLES FITIA — effets saisonniers animés
 //  Aucun prix ni paramètre d'achat n'est modifié par ce module.
 // ═══════════════════════════════════════════════════════════════════
 (() => {
   const MANIFEST_URL = 'https://raw.githubusercontent.com/web3service/fitia-mining-pro/main/promotions.json';
+  const EFFECTS = window.FitiaPromotionEffects;
   const TARGET_TYPES = new Set(['machine', 'battery']);
-  const VARIANTS = new Set(['gift', 'badge']);
+  const VARIANTS = new Set(EFFECTS.VARIANTS);
   const LANGUAGES = ['fr', 'en', 'de', 'zh', 'sg'];
 
   class FitiaPromotionCenter {
@@ -61,11 +62,12 @@
         const targetType = this.cleanText(item.targetType, 16).toLowerCase();
         const targetId = item.targetId;
         const variant = this.cleanText(item.variant, 16).toLowerCase();
+        const animated = item.animated === undefined ? true : item.animated;
         const label = this.normalizeLocalizedText(item.label);
         const targetKey = `${targetType}:${targetId}`;
         if (!/^[a-z0-9._-]+$/.test(id) || ids.has(id) || targets.has(targetKey)) return;
         if (!TARGET_TYPES.has(targetType) || !Number.isSafeInteger(targetId) || targetId < 0 || targetId > 99) return;
-        if (!VARIANTS.has(variant) || !label) return;
+        if (!VARIANTS.has(variant) || typeof animated !== 'boolean' || !label) return;
         const startsAt = this.parseDate(item.startsAt);
         const expiresAt = this.parseDate(item.expiresAt);
         if (startsAt === undefined || expiresAt === undefined) return;
@@ -74,7 +76,7 @@
         if (expiresAt !== null && expiresAt <= currentTime) return;
         ids.add(id);
         targets.add(targetKey);
-        normalized.push({ id, targetType, targetId, variant, label, startsAt, expiresAt });
+        normalized.push({ id, targetType, targetId, variant, animated, label, startsAt, expiresAt });
       });
       return normalized;
     }
@@ -118,9 +120,11 @@
 
     clear(card) {
       if (!card) return;
-      card.classList.remove('shop-promo', 'shop-promo-gift', 'shop-promo-badge');
+      card.classList.remove('shop-promo');
+      VARIANTS.forEach((variant) => card.classList.remove(`shop-promo-${variant}`));
       card.removeAttribute('data-promotion-id');
       card.querySelectorAll(':scope > .shop-promo-label').forEach((element) => element.remove());
+      EFFECTS.clear(card);
     }
 
     decorate(card, targetType, targetId) {
@@ -131,11 +135,12 @@
       if (!promotion) return;
       card.classList.add('shop-promo', `shop-promo-${promotion.variant}`);
       card.setAttribute('data-promotion-id', promotion.id);
-      const label = document.createElement('span');
+      const label = card.ownerDocument.createElement('span');
       label.className = 'shop-promo-label';
       label.textContent = this.localizedText(promotion.label);
       label.setAttribute('aria-label', this.localizedText(promotion.label));
       card.appendChild(label);
+      EFFECTS.decorate(card, promotion.variant, promotion.animated);
     }
 
     async refresh(options = {}) {

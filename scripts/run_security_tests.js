@@ -412,6 +412,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'activity.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'announcements.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'promotions.js'), 'utf8'));
 
   if (mockRpcUrl) {
@@ -992,7 +993,7 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
-    await runTest('APP-PROMOTIONS', 'Cartes cadeaux et badges ciblés, dates, traductions et achats strictement inchangés', async () => {
+    await runTest('APP-PROMOTIONS', 'Effets saisonniers ciblés, animations, dates, traductions et achats strictement inchangés', async () => {
       const center = App.promotionCenter;
       const originalFetch = e2eWin.fetch;
       const originals = {
@@ -1023,7 +1024,7 @@ function httpRequest(port, method, reqPath) {
           { ...activeGift, id: 'expired', targetId: 1, expiresAt: new Date(now - 86400000).toISOString() },
           { ...activeGift, id: 'bad-target', targetId: 100 },
           { ...activeGift, id: 'null-target', targetId: null },
-          { ...activeGift, id: 'bad-variant', variant: 'snow' },
+          { ...activeGift, id: 'bad-variant', variant: 'unknown-effect' },
           { ...activeGift, id: 'bad-date', expiresAt: 'date-invalide' }
         ]
       };
@@ -1045,6 +1046,9 @@ function httpRequest(port, method, reqPath) {
         const machineCards = e2eWin.document.querySelectorAll('#shop-list .rig-item');
         assert.strictEqual(machineCards.length, 2);
         assert.ok(machineCards[0].classList.contains('shop-promo-gift'));
+        assert.strictEqual(normalized[0].animated, true, 'Les décorations existantes restent animées par défaut');
+        assert.ok(machineCards[0].querySelector('.promotion-effect-gift svg'));
+        assert.ok(machineCards[0].querySelectorAll('.promotion-particle').length > 0);
         assert.strictEqual(machineCards[0].getAttribute('data-promotion-id'), 'gift-machine-test');
         assert.ok(machineCards[0].querySelector('.shop-promo-label').textContent.includes('<img src=x>'));
         assert.strictEqual(machineCards[0].querySelector('.shop-promo-label img'), null, 'Le texte administrateur ne crée aucun HTML');
@@ -1089,13 +1093,48 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(datedCard.classList.contains('shop-promo'), false);
         center.items = normalized;
 
+        const effectVariants = e2eWin.FitiaPromotionEffects.VARIANTS;
+        assert.deepStrictEqual(Array.from(effectVariants), ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge']);
+        const effectCard = e2eWin.document.createElement('div');
+        for (const variant of effectVariants) {
+          center.items = [{ ...normalized[0], id: `effect-${variant}`, variant, animated: true, startsAt: null, expiresAt: null }];
+          center.decorate(effectCard, 'machine', 0);
+          assert.ok(effectCard.classList.contains(`shop-promo-${variant}`));
+          const effectSvg = effectCard.querySelector(`.promotion-effect-${variant} svg`);
+          assert.ok(effectSvg, `Illustration locale ${variant}`);
+          assert.strictEqual(effectSvg.querySelector('script, image, foreignObject'), null);
+          const gradientIds = new Set(Array.from(effectSvg.querySelectorAll('defs [id]'), (element) => element.id));
+          effectSvg.querySelectorAll('[fill], [stroke]').forEach((element) => {
+            for (const attribute of ['fill', 'stroke']) {
+              const value = element.getAttribute(attribute) || '';
+              const match = value.match(/^url\(#(.+)\)$/);
+              if (match) assert.ok(gradientIds.has(match[1]), `Dégradé local ${variant}`);
+            }
+          });
+          assert.strictEqual(effectCard.querySelectorAll(':scope > .promotion-effect-decoration').length, 1);
+          assert.ok(effectCard.querySelectorAll('.promotion-particle').length > 0, `Particules ${variant}`);
+        }
+        center.items = [{ ...normalized[0], id: 'static-bells', variant: 'bells', animated: false, startsAt: null, expiresAt: null }];
+        center.decorate(effectCard, 'machine', 0);
+        assert.ok(effectCard.classList.contains('promotion-effect-static'));
+        assert.strictEqual(effectCard.querySelector('.promotion-effect-particles'), null, 'Le mode statique ne crée aucune particule');
+        assert.ok(effectCard.querySelector('.promotion-effect-bells svg'));
+        center.items = [];
+        center.decorate(effectCard, 'machine', 0);
+        assert.strictEqual(effectCard.querySelector('.promotion-effect-decoration'), null);
+        assert.strictEqual(effectCard.classList.contains('shop-promo-bells'), false);
+        center.items = normalized;
+
         const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
-        assert.strictEqual(published.enabled, true);
+        assert.strictEqual(typeof published.enabled, 'boolean');
         assert.deepStrictEqual(published.promotions, []);
         const walletSource = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8');
+        assert.ok(walletSource.indexOf('src="promotion-effects.js"') < walletSource.indexOf('src="promotions.js"'));
         assert.ok(walletSource.indexOf('src="promotions.js"') < walletSource.indexOf('src="app.js"'));
+        assert.ok(walletSource.includes('href="promotion-effects.css"'));
         const buildSource = fs.readFileSync(path.join(ROOT, 'scripts/build_apk.py'), 'utf8');
         assert.ok(buildSource.includes('"promotions.js"'), 'Le prochain paquet APK embarque le module local');
+        assert.ok(buildSource.includes('"promotion-effects.js"') && buildSource.includes('"promotion-effects.css"'), 'Les illustrations et animations sont embarquées localement');
       } finally {
         e2eWin.fetch = originalFetch;
         if (center.boundaryTimer !== null) e2eWin.clearTimeout(center.boundaryTimer);

@@ -9,6 +9,17 @@
     security: 'Sécurité'
   };
   const STATUS_LABELS = { active: 'Active', scheduled: 'Programmée', expired: 'Expirée' };
+  const PROMOTION_VARIANT_LABELS = {
+    gift: 'Cadeau emballé',
+    bells: 'Cloches de Noël',
+    snow: 'Neige et flocons',
+    confetti: 'Confettis et célébration',
+    fireworks: 'Feux d’artifice — Nouvel An',
+    hearts: 'Cœurs — Saint-Valentin',
+    blossom: 'Fleurs — Printemps',
+    halloween: 'Citrouille — Halloween',
+    badge: 'Badge promotionnel'
+  };
   const state = {
     csrfToken: '',
     mode: 'local',
@@ -406,9 +417,10 @@
       row.dataset.promotionId = item.id;
 
       const symbol = document.createElement('div');
-      symbol.className = 'promotion-symbol';
-      symbol.textContent = item.variant === 'gift' ? 'CADEAU' : 'BADGE';
+      symbol.className = `promotion-symbol promotion-symbol-${item.variant}`;
+      if (item.animated === false) symbol.classList.add('promotion-effect-static');
       symbol.setAttribute('aria-hidden', 'true');
+      symbol.appendChild(window.FitiaPromotionEffects.createIcon(document, item.variant));
 
       const main = document.createElement('div');
       main.className = 'announcement-main';
@@ -416,14 +428,17 @@
       meta.className = 'announcement-meta';
       const variant = document.createElement('span');
       variant.className = `category-badge promotion-variant-${item.variant}`;
-      variant.textContent = item.variant === 'gift' ? 'Carte cadeau de Noël' : 'Badge promotionnel';
+      variant.textContent = PROMOTION_VARIANT_LABELS[item.variant] || item.variant;
       const statusBadge = document.createElement('span');
       statusBadge.className = `status-pill status-${status}`;
       statusBadge.textContent = STATUS_LABELS[status];
       const languages = document.createElement('span');
       languages.className = 'announcement-languages';
       languages.textContent = Object.keys(item.label).join(' · ').toUpperCase();
-      meta.append(variant, statusBadge, languages);
+      const animationState = document.createElement('span');
+      animationState.className = 'announcement-languages';
+      animationState.textContent = item.animated === false ? 'STATIQUE' : 'ANIMÉ';
+      meta.append(variant, statusBadge, languages, animationState);
       const title = document.createElement('h3');
       title.textContent = promotionTargetLabel(item);
       const label = document.createElement('p');
@@ -460,7 +475,7 @@
     byId('section-dashboard').classList.toggle('hidden', section !== 'dashboard');
     byId('section-announcements').classList.toggle('hidden', section !== 'announcements');
     byId('section-promotions').classList.toggle('hidden', section !== 'promotions');
-    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Cartes cadeaux & badges' };
+    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations' };
     byId('page-title').textContent = titles[section] || titles.dashboard;
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.classList.toggle('active', button.dataset.section === section);
@@ -487,6 +502,7 @@
     byId('promotion-target-type').value = item?.targetType || 'machine';
     byId('promotion-target-position').value = String(item ? item.targetId + 1 : 1);
     byId('promotion-variant').value = item?.variant || 'gift';
+    byId('promotion-animated').checked = item?.animated !== false;
     fillPromotionLabels(item?.label || {});
     byId('promotion-starts-at').value = item ? toInputDate(item.startsAt) : '';
     byId('promotion-expires-at').value = item ? toInputDate(item.expiresAt) : '';
@@ -508,7 +524,9 @@
     const variant = byId('promotion-variant').value;
     const targetType = byId('promotion-target-type').value;
     const position = Number(byId('promotion-target-position').value) || 1;
-    byId('promotion-preview-card').className = `promotion-preview-card preview-${variant}`;
+    const previewCard = byId('promotion-preview-card');
+    previewCard.className = `promotion-preview-card preview-${variant}`;
+    window.FitiaPromotionEffects.decorate(previewCard, variant, byId('promotion-animated').checked);
     byId('promotion-preview-label').textContent = byId('promotion-label-fr').value.trim() || byId('promotion-label-en').value.trim() || 'JOYEUX NOËL';
     byId('promotion-preview-target').textContent = `${targetType === 'machine' ? 'Machine' : 'Batterie'} n°${position}`;
     const startsAt = fromInputDate(byId('promotion-starts-at').value);
@@ -548,6 +566,7 @@
       targetType,
       targetId,
       variant,
+      animated: byId('promotion-animated').checked,
       label: readPromotionLabels()
     };
     if (startsAt) item.startsAt = startsAt;
