@@ -19,6 +19,7 @@ let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
 const writes = [];
 let promotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
+const initialPromotionCount = promotionManifest.promotions.length;
 let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];
 let failPromotions = false;
@@ -146,13 +147,15 @@ async function waitFor(condition, label) {
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => promotionWrites.length === 1, 'création décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture éditeur décoration');
-  assert.strictEqual(promotionManifest.promotions.length, 1);
-  assert.strictEqual(promotionManifest.promotions[0].targetType, 'battery');
-  assert.strictEqual(promotionManifest.promotions[0].targetId, 1);
-  assert.strictEqual(promotionManifest.promotions[0].variant, 'bells');
-  assert.strictEqual(promotionManifest.promotions[0].animated, false);
-  assert.strictEqual(promotionManifest.promotions[0].startsAt, '2030-12-01T08:00:00.000Z');
-  const promotionRow = window.document.querySelector('[data-promotion-id^="bells-"]');
+  assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount + 1);
+  const createdPromotion = promotionManifest.promotions[initialPromotionCount];
+  const createdPromotionId = createdPromotion.id;
+  assert.strictEqual(createdPromotion.targetType, 'battery');
+  assert.strictEqual(createdPromotion.targetId, 1);
+  assert.strictEqual(createdPromotion.variant, 'bells');
+  assert.strictEqual(createdPromotion.animated, false);
+  assert.strictEqual(createdPromotion.startsAt, '2030-12-01T08:00:00.000Z');
+  const promotionRow = window.document.querySelector(`[data-promotion-id="${createdPromotionId}"]`);
   assert.ok(promotionRow.textContent.includes(promotionLabel));
   assert.strictEqual(promotionRow.querySelector('[data-promotion-xss]'), null);
   assert.strictEqual(promotionRow.querySelector('script'), null);
@@ -169,9 +172,9 @@ async function waitFor(condition, label) {
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => promotionWrites.length === 2, 'modification décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture modification décoration');
-  assert.strictEqual(promotionManifest.promotions[0].targetId, 2);
-  assert.strictEqual(promotionManifest.promotions[0].variant, 'gift');
-  assert.strictEqual(promotionManifest.promotions[0].animated, true);
+  assert.strictEqual(promotionManifest.promotions[initialPromotionCount].targetId, 2);
+  assert.strictEqual(promotionManifest.promotions[initialPromotionCount].variant, 'gift');
+  assert.strictEqual(promotionManifest.promotions[initialPromotionCount].animated, true);
 
   const promotionsEnabled = window.document.getElementById('promotions-enabled');
   promotionsEnabled.checked = false;
@@ -180,10 +183,10 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin désactivation décorations');
   assert.strictEqual(promotionManifest.enabled, false);
 
-  window.document.querySelector('[data-promotion-id] .button-danger').click();
+  window.document.querySelector(`[data-promotion-id="${createdPromotionId}"] .button-danger`).click();
   await waitFor(() => promotionWrites.length === 4, 'suppression décoration');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression décoration');
-  assert.strictEqual(promotionManifest.promotions.length, 0);
+  assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount);
 
   manifest.announcements[0].title.fr = 'Annonce rechargée malgré la panne';
   failPromotions = true;

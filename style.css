@@ -858,20 +858,62 @@ main::-webkit-scrollbar { display: none; }
   font-family: 'JetBrains Mono', monospace;
 }
 
-.ref-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
+.referral-card {
+  position: relative;
+  margin-top: 15px;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(240, 185, 11, 0.22);
+  background: linear-gradient(145deg, rgba(240, 185, 11, 0.055), rgba(20, 28, 43, 0.98) 48%, #111a29);
 }
-.referral-card h3 { margin: 0; font-size: 1rem; }
+.referral-card::before {
+  position: absolute;
+  top: -70px;
+  right: -55px;
+  width: 170px;
+  height: 170px;
+  border: 1px solid rgba(240, 185, 11, 0.08);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+.referral-card > * { position: relative; }
+.ref-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.ref-brand { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.ref-brand-logo { flex: 0 0 auto; border: 1px solid rgba(240, 185, 11, 0.25); border-radius: 11px; background: #111a29; object-fit: cover; }
+.referral-card h3 { margin: 0; font-size: 0.96rem; line-height: 1.25; }
+.ref-subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 0.66rem; line-height: 1.35; }
+.ref-network-badge { flex: 0 0 auto; padding: 4px 7px; border: 1px solid rgba(139, 92, 246, 0.28); border-radius: 20px; background: rgba(139, 92, 246, 0.09); color: #c4b5fd; font-size: 0.51rem; font-weight: 800; letter-spacing: 0.09em; }
+.ref-code-panel { padding: 14px 12px; border: 1px solid rgba(240, 185, 11, 0.2); border-radius: 13px; background: linear-gradient(135deg, rgba(240, 185, 11, 0.09), rgba(240, 185, 11, 0.025)); text-align: center; }
+.ref-code-label { display: block; color: var(--text-muted); font-size: 0.59rem; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
+.ref-code-value { display: block; margin: 8px 0 7px; color: var(--primary); font-family: 'JetBrains Mono', monospace; font-size: clamp(1.04rem, 5.8vw, 1.35rem); letter-spacing: 0.055em; line-height: 1.3; overflow-wrap: anywhere; }
+.ref-code-value.ref-code-address { font-size: 0.77rem; letter-spacing: 0.015em; line-height: 1.55; }
+.ref-code-hint { margin: 0; color: var(--text-muted); font-size: 0.61rem; line-height: 1.4; }
+.ref-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.ref-action-btn { display: inline-flex; min-width: 0; min-height: 44px; align-items: center; justify-content: center; gap: 7px; padding: 10px 11px; border-radius: 10px; font-size: 0.7rem; font-weight: 800; cursor: pointer; transition: border-color 0.16s, background 0.16s, transform 0.16s; }
+.ref-action-btn svg { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ref-action-secondary { border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.045); color: var(--text); }
+.ref-action-primary { border: 1px solid var(--primary); background: linear-gradient(135deg, #ffd43b, var(--primary)); color: #171203; }
+.ref-action-btn:active { transform: scale(0.98); }
+.ref-action-btn:focus-visible, .ref-bind-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.ref-bind-block { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.ref-bind-title { display: block; margin-bottom: 6px; font-size: 0.76rem; }
+.referral-card #current-referrer-status { font-size: 0.68rem; line-height: 1.45; }
 .small-text { font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
 .btn-sm { padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; margin-top: 4px; }
 .btn-full { width: 100%; background: var(--accent); color: white; }
-.ref-input-group { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-.ref-input-group .game-input { margin-bottom: 0; font-size: 0.85rem; text-align: left; }
+.ref-input-group { display: flex; flex-direction: column; gap: 7px; margin-top: 11px; }
+.ref-input-label { color: #d5dcea; font-size: 0.66rem; font-weight: 700; }
+.ref-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+.ref-input-group .game-input { min-width: 0; height: 44px; margin-bottom: 0; padding: 10px 11px; font-size: 0.72rem; text-align: left; }
+.ref-bind-button { min-height: 44px; padding: 0 13px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: #171203; font-size: 0.66rem; font-weight: 850; cursor: pointer; }
+.ref-input-hint { margin: 0; color: var(--text-muted); font-size: 0.58rem; line-height: 1.45; }
+@media (max-width: 380px) {
+  .referral-card { padding: 14px; }
+  .ref-network-badge { display: none; }
+  .ref-input-row { grid-template-columns: 1fr; }
+  .ref-bind-button { width: 100%; }
+}
 
 /* ─── Wallet & Actifs ─── */
 .wallet-main-card { padding: 16px; }

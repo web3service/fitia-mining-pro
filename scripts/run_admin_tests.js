@@ -211,10 +211,10 @@ function clone(value) {
       const loaded = await request(localBase, '/api/admin/promotions', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
       assert.strictEqual(typeof loaded.data.manifest.enabled, 'boolean');
-      assert.strictEqual(loaded.data.manifest.promotions.length, 0);
+      assert.ok(Array.isArray(loaded.data.manifest.promotions));
       const initialRevision = loaded.data.revision;
       const next = clone(loaded.data.manifest);
-      next.promotions.push({
+      next.promotions = [{
         id: 'gift-admin-test',
         targetType: 'machine',
         targetId: 0,
@@ -222,7 +222,7 @@ function clone(value) {
         label: { fr: 'JOYEUX <b>NOËL</b>', en: 'MERRY CHRISTMAS' },
         startsAt: '2030-12-01T00:00:00.000Z',
         expiresAt: '2030-12-31T23:59:59.000Z'
-      });
+      }];
       const withoutCsrf = await request(localBase, '/api/admin/promotions', {
         method: 'PUT', cookie, body: { manifest: next, revision: initialRevision }
       });

@@ -584,15 +584,45 @@
       </div>
     </div>
 
-    <div class="card referral-card" style="margin-top: 15px;">
+    <div class="card referral-card">
       <div class="ref-header-row">
-        <h3 data-i18n="refTitle">Parrainage</h3>
-        <button class="btn-chip sm" onclick="App.shareMyReferral()"><span data-i18n="shareRef">Mon ID</span>: <strong id="my-ref-id-label">—</strong></button>
+        <div class="ref-brand">
+          <img src="assets/fta.png" class="ref-brand-logo" width="38" height="38" alt="">
+          <div>
+            <h3 data-i18n="refTitle">Programme de parrainage</h3>
+            <p class="ref-subtitle" data-i18n="refSubtitle">Partagez votre code avec votre communauté.</p>
+          </div>
+        </div>
+        <span class="ref-network-badge">POLYGON</span>
       </div>
-      <p id="current-referrer-status" class="small-text" data-i18n="refDesc">Entrez l'adresse ou l'ID de votre parrain.</p>
-      <div id="ref-form-wrap" class="ref-input-group">
-        <input type="text" id="ref-address-input" class="game-input" placeholder="0x... ou ID" data-i18n-placeholder="enterRefAddr">
-        <button class="btn-sm btn-full" onclick="App.bindReferrer()" data-i18n="bindRef">LIER</button>
+
+      <div class="ref-code-panel">
+        <span class="ref-code-label" data-i18n="yourRefCode">Votre code de parrainage</span>
+        <strong id="my-ref-id-label" class="ref-code-value">—</strong>
+        <p class="ref-code-hint" data-i18n="refCodeHint">Ce code personnel ne donne accès à aucun fonds.</p>
+      </div>
+      <div class="ref-actions">
+        <button type="button" class="ref-action-btn ref-action-secondary" onclick="App.copyMyReferralCode()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+          <span data-i18n="copyRefCode">Copier le code</span>
+        </button>
+        <button type="button" class="ref-action-btn ref-action-primary" onclick="App.shareMyReferral()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5"></path></svg>
+          <span data-i18n="shareRef">Partager</span>
+        </button>
+      </div>
+
+      <div class="ref-bind-block">
+        <strong class="ref-bind-title" data-i18n="refBindTitle">Vous avez un code ?</strong>
+        <p id="current-referrer-status" class="small-text" data-i18n="refDesc">Saisissez le code ou l’adresse Polygon de votre parrain.</p>
+        <div id="ref-form-wrap" class="ref-input-group">
+          <label class="ref-input-label" for="ref-address-input" data-i18n="refInputLabel">Code ou adresse du parrain</label>
+          <div class="ref-input-row">
+            <input type="text" id="ref-address-input" class="game-input" placeholder="FITIA-001042, #1042 ou 0x..." data-i18n-placeholder="enterRefAddr" aria-describedby="ref-input-hint" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+            <button type="button" class="ref-bind-button" onclick="App.bindReferrer()" data-i18n="bindRef">ASSOCIER</button>
+          </div>
+          <p id="ref-input-hint" class="ref-input-hint" data-i18n="refInputHint">Formats acceptés : FITIA-001042, #1042, 1042 ou adresse Polygon.</p>
+        </div>
       </div>
     </div>
 

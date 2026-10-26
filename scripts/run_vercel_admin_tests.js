@@ -181,13 +181,13 @@ async function request(base, action, options = {}) {
     await runTest('La fonction serverless publie les décorations dans leur propre fichier avec CSRF et validation', async () => {
       const loaded = await request(baseB, 'promotions', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
-      assert.strictEqual(loaded.data.manifest.promotions.length, 0);
+      assert.ok(Array.isArray(loaded.data.manifest.promotions));
       assert.strictEqual(loaded.data.revision, 'sha-vercel-promotion-initial');
       const next = loaded.data.manifest;
-      next.promotions.push({
+      next.promotions = [{
         id: 'gift-vercel-test', targetType: 'machine', targetId: 2, variant: 'gift', animated: false,
         label: { fr: 'JOYEUX NOËL', en: 'MERRY CHRISTMAS' }
-      });
+      }];
       const rejected = await request(baseB, 'promotions', {
         method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
       });

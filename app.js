@@ -69,11 +69,22 @@ const i18n = {
     wrongPin: "Code PIN incorrect.",
     lockedOutMsg: "Trop d'essais. Réessayez dans {s}s.",
     walletLocked: "🔒 Portefeuille verrouillé",
-    refTitle: "Parrainage",
-    refDesc: "Entrez l'adresse ou l'ID de votre parrain.",
-    refAlreadyBound: "Parrain lié :",
-    shareRef: "Mon ID",
-    bindRef: "LIER",
+    refTitle: "Programme de parrainage",
+    refSubtitle: "Partagez votre code avec votre communauté.",
+    refDesc: "Saisissez le code ou l’adresse Polygon de votre parrain.",
+    refAlreadyBound: "Parrain associé :",
+    yourRefCode: "Votre code de parrainage",
+    refCodeHint: "Ce code personnel ne donne accès à aucun fonds.",
+    copyRefCode: "Copier le code",
+    refCodeCopied: "Code de parrainage copié !",
+    shareRef: "Partager",
+    refBindTitle: "Vous avez un code ?",
+    refInputLabel: "Code ou adresse du parrain",
+    refInputHint: "Formats acceptés : FITIA-001042, #1042, 1042 ou adresse Polygon.",
+    invalidRefCode: "Code de parrainage ou adresse invalide",
+    refShareTitle: "FITIA PRO — Programme de parrainage",
+    refShareMessage: "Rejoignez FITIA PRO et utilisez mon code de parrainage : {code}\n\nDans l’application, ouvrez Paramètres puis Programme de parrainage pour l’associer.",
+    bindRef: "ASSOCIER",
     power: "PUISSANCE",
     ftaSec: "Hashrate",
     pending: "EN ATTENTE",
@@ -110,7 +121,7 @@ const i18n = {
     swapNav: "Swap",
     linking: "Liaison...",
     refLinked: "Parrain lié !",
-    enterRefAddr: "Adresse ou ID parrain (0x...)",
+    enterRefAddr: "FITIA-001042, #1042 ou 0x...",
     buyingMachine: "Achat Machine",
     buyingBattery: "Achat Batterie",
     autoDepositStep: "Dépôt automatique vers Compte Minage...",
@@ -272,11 +283,22 @@ const i18n = {
     wrongPin: "Incorrect PIN.",
     lockedOutMsg: "Too many attempts. Try again in {s}s.",
     walletLocked: "🔒 Wallet locked",
-    refTitle: "Referral System",
-    refDesc: "Enter referrer address or ID to link.",
-    refAlreadyBound: "Referrer linked:",
-    shareRef: "My ID",
-    bindRef: "BIND",
+    refTitle: "Referral program",
+    refSubtitle: "Share your code with your community.",
+    refDesc: "Enter your referrer’s code or Polygon address.",
+    refAlreadyBound: "Linked referrer:",
+    yourRefCode: "Your referral code",
+    refCodeHint: "This personal code does not give access to your funds.",
+    copyRefCode: "Copy code",
+    refCodeCopied: "Referral code copied!",
+    shareRef: "Share",
+    refBindTitle: "Have a referral code?",
+    refInputLabel: "Referrer code or address",
+    refInputHint: "Accepted formats: FITIA-001042, #1042, 1042 or a Polygon address.",
+    invalidRefCode: "Invalid referral code or address",
+    refShareTitle: "FITIA PRO — Referral program",
+    refShareMessage: "Join FITIA PRO and use my referral code: {code}\n\nIn the app, open Settings then Referral program to link it.",
+    bindRef: "LINK",
     power: "POWER",
     ftaSec: "Hashrate",
     pending: "PENDING",
@@ -313,7 +335,7 @@ const i18n = {
     swapNav: "Swap",
     linking: "Linking...",
     refLinked: "Referrer linked!",
-    enterRefAddr: "Referrer address or ID (0x...)",
+    enterRefAddr: "FITIA-001042, #1042 or 0x...",
     buyingMachine: "Buying Machine",
     buyingBattery: "Buying Battery",
     autoDepositStep: "Auto-depositing to Mining Account...",
@@ -434,9 +456,23 @@ const i18n = {
     unlockTitle: "FITIA PRO entsperren",
     unlockDesc: "6-stellige PIN eingeben",
     wrongPin: "Falsche PIN.",
-    refTitle: "Empfehlung",
-    refDesc: "Empfehler-Adresse oder ID eingeben.",
-    bindRef: "BINDEN",
+    refTitle: "Empfehlungsprogramm",
+    refSubtitle: "Teilen Sie Ihren Code mit Ihrer Community.",
+    refDesc: "Geben Sie den Code oder die Polygon-Adresse Ihres Empfehlers ein.",
+    refAlreadyBound: "Verbundener Empfehler:",
+    yourRefCode: "Ihr Empfehlungscode",
+    refCodeHint: "Dieser persönliche Code gewährt keinen Zugriff auf Ihr Guthaben.",
+    copyRefCode: "Code kopieren",
+    refCodeCopied: "Empfehlungscode kopiert!",
+    shareRef: "Teilen",
+    refBindTitle: "Haben Sie einen Empfehlungscode?",
+    refInputLabel: "Code oder Adresse des Empfehlers",
+    refInputHint: "Akzeptierte Formate: FITIA-001042, #1042, 1042 oder eine Polygon-Adresse.",
+    invalidRefCode: "Ungültiger Empfehlungscode oder ungültige Adresse",
+    refShareTitle: "FITIA PRO — Empfehlungsprogramm",
+    refShareMessage: "Treten Sie FITIA PRO bei und verwenden Sie meinen Empfehlungscode: {code}\n\nÖffnen Sie in der App Einstellungen und dann Empfehlungsprogramm, um ihn zu verknüpfen.",
+    bindRef: "VERKNÜPFEN",
+    enterRefAddr: "FITIA-001042, #1042 oder 0x...",
     power: "LEISTUNG",
     ftaSec: "Hashrate",
     pending: "AUSSTEHEND",
@@ -492,9 +528,23 @@ const i18n = {
     unlockTitle: "解锁 FITIA PRO",
     unlockDesc: "请输入6位数字PIN码",
     wrongPin: "PIN码错误",
-    refTitle: "推荐系统",
-    refDesc: "输入推荐人地址或ID进行绑定。",
+    refTitle: "推荐计划",
+    refSubtitle: "与您的社区分享推荐码。",
+    refDesc: "输入推荐人的推荐码或 Polygon 地址。",
+    refAlreadyBound: "已绑定推荐人：",
+    yourRefCode: "您的推荐码",
+    refCodeHint: "此个人推荐码不会授予任何人访问您资金的权限。",
+    copyRefCode: "复制推荐码",
+    refCodeCopied: "推荐码已复制！",
+    shareRef: "分享",
+    refBindTitle: "您有推荐码吗？",
+    refInputLabel: "推荐码或推荐人地址",
+    refInputHint: "支持格式：FITIA-001042、#1042、1042 或 Polygon 地址。",
+    invalidRefCode: "推荐码或地址无效",
+    refShareTitle: "FITIA PRO — 推荐计划",
+    refShareMessage: "加入 FITIA PRO 并使用我的推荐码：{code}\n\n在应用中打开“设置”，然后打开“推荐计划”进行绑定。",
     bindRef: "绑定",
+    enterRefAddr: "FITIA-001042、#1042 或 0x...",
     power: "算力",
     ftaSec: "Hashrate",
     pending: "待领取",
@@ -548,7 +598,24 @@ const i18n = {
     createNewWallet: "CREATE NEW WALLET",
     importExistingWallet: "Import Existing Wallet",
     unlockTitle: "Unlock FITIA PRO",
-    unlockDesc: "Enter your 6-digit PIN"
+    unlockDesc: "Enter your 6-digit PIN",
+    refTitle: "Referral program",
+    refSubtitle: "Share your code with your community.",
+    refDesc: "Enter your referrer’s code or Polygon address.",
+    refAlreadyBound: "Linked referrer:",
+    yourRefCode: "Your referral code",
+    refCodeHint: "This personal code does not give access to your funds.",
+    copyRefCode: "Copy code",
+    refCodeCopied: "Referral code copied!",
+    shareRef: "Share",
+    refBindTitle: "Have a referral code?",
+    refInputLabel: "Referrer code or address",
+    refInputHint: "Accepted formats: FITIA-001042, #1042, 1042 or a Polygon address.",
+    invalidRefCode: "Invalid referral code or address",
+    refShareTitle: "FITIA PRO — Referral program",
+    refShareMessage: "Join FITIA PRO and use my referral code: {code}\n\nIn the app, open Settings then Referral program to link it.",
+    bindRef: "LINK",
+    enterRefAddr: "FITIA-001042, #1042 or 0x..."
   }
 };
 
@@ -648,6 +715,7 @@ class Application {
     this.provider = null;
     this.signer = null;
     this.user = null;
+    this.myReferralCode = '';
 
     this.core = null;
     this.mine = null;
@@ -1458,6 +1526,9 @@ class Application {
     this.revealedSecretText = '';
     this.signer = null;
     this.user = null;
+    this.myReferralCode = '';
+    const referralCodeLabel = document.getElementById('my-ref-id-label');
+    if (referralCodeLabel) referralCodeLabel.textContent = '—';
     this.core = null;
     this.mine = null;
     this.usdtToken = null;
@@ -1897,9 +1968,14 @@ class Application {
       this.updatePriceChange('usdt', 1);
       this.updatePriceChange('fta', this.ftaPriceUsd);
 
-      // Infos Parrainage (UID + Parrain actuel)
+      // Infos Parrainage (code FITIA dérivé du même UID on-chain + parrain actuel)
       const myUid = Number(myUidRaw);
-      document.getElementById('my-ref-id-label').textContent = myUid > 0 ? `#${myUid}` : this.shortAddr(this.user);
+      const brandedReferralCode = this.formatReferralCode(myUid);
+      this.myReferralCode = brandedReferralCode || this.user || '';
+      const referralCodeLabel = document.getElementById('my-ref-id-label');
+      referralCodeLabel.textContent = this.myReferralCode || '—';
+      referralCodeLabel.classList.toggle('ref-code-address', !brandedReferralCode);
+      referralCodeLabel.title = this.myReferralCode;
       if (myRefAddr && myRefAddr !== ethers.ZeroAddress) {
         document.getElementById('current-referrer-status').textContent = `${this.t('refAlreadyBound')} ${this.shortAddr(myRefAddr)}`;
         document.getElementById('ref-form-wrap')?.classList.add('hidden');
@@ -2750,26 +2826,56 @@ class Application {
   }
 
   // ─── Parrainage ──────────────────────────────────────────────────
+  formatReferralCode(uid) {
+    const value = Number(uid);
+    if (!Number.isSafeInteger(value) || value <= 0) return '';
+    return `FITIA-${String(value).padStart(6, '0')}`;
+  }
+
+  parseReferralInput(value) {
+    const input = String(value || '').trim();
+    if (ethers.isAddress(input)) return { type: 'address', value: ethers.getAddress(input) };
+    const match = input.match(/^(?:FITIA-([0-9]{1,78})|#?([0-9]{1,78}))$/i);
+    const digits = match?.[1] || match?.[2];
+    if (!digits) return null;
+    const referralId = BigInt(digits);
+    if (referralId <= 0n) return null;
+    return { type: 'id', value: referralId };
+  }
+
+  getMyReferralCode() {
+    return this.myReferralCode || this.user || '';
+  }
+
+  async copyMyReferralCode() {
+    if (!this.user) return;
+    const code = this.getMyReferralCode();
+    if (!code) return;
+    const copied = await FitiaSecurity.Native.copyText(code);
+    this.showToast(copied ? this.t('refCodeCopied') : this.t('errGeneric'), !copied);
+  }
+
   async shareMyReferral() {
     if (!this.user) return;
-    const uidText = document.getElementById('my-ref-id-label')?.textContent || '';
-    const msg = `Rejoins FITIA PRO MINER ! Mon code/adresse parrain : ${this.user} (${uidText})`;
-    await FitiaSecurity.Native.shareText('FITIA PRO Parrainage', msg);
+    const code = this.getMyReferralCode();
+    if (!code) return;
+    const message = this.t('refShareMessage').replace('{code}', code);
+    const shared = await FitiaSecurity.Native.shareText(this.t('refShareTitle'), message);
+    if (!shared) this.showToast(this.t('errGeneric'), true);
   }
 
   async bindReferrer() {
     const input = document.getElementById('ref-address-input').value.trim();
-    if (!input || !this.user) return this.showToast(this.t('invalidAddr'), true);
+    const parsed = this.parseReferralInput(input);
+    if (!parsed || !this.user) return this.showToast(this.t('invalidRefCode'), true);
     if (!(await this.ensurePolGas())) return;
 
     this.setLoader(true, this.t('linking'));
     try {
-      if (input.startsWith('0x') && ethers.isAddress(input)) {
-        await (await this.core.setReferrer(input)).wait();
+      if (parsed.type === 'address') {
+        await (await this.core.setReferrer(parsed.value)).wait();
       } else {
-        const refId = parseInt(input.replace('#', ''), 10);
-        if (isNaN(refId) || refId <= 0) throw new Error("Format invalide");
-        await (await this.core.setReferrerById(refId)).wait();
+        await (await this.core.setReferrerById(parsed.value)).wait();
       }
       this.showToast(this.t('refLinked'));
       document.getElementById('ref-address-input').value = '';
@@ -3427,6 +3533,7 @@ class Application {
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     await FitiaSecurity.Vault.deleteVault();
     this.user = null;
+    this.myReferralCode = '';
     this.signer = null;
     this.showAuthStep('welcome');
   }

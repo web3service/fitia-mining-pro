@@ -104,7 +104,8 @@ function createMockAndroidBridge() {
     vibrations: 0,
     appVersionCode: 0,
     appVersionName: '',
-    updateDownloads: []
+    updateDownloads: [],
+    sharedTexts: []
   };
 
   return {
@@ -123,7 +124,7 @@ function createMockAndroidBridge() {
       state.clipboard = String(t || '');
       state.lastClearDelayMs = Number(clearDelayMs);
     },
-    shareText: () => {},
+    shareText: (title, text) => { state.sharedTexts.push({ title: String(title || ''), text: String(text || '') }); },
     setPinGuardState: (json) => { state.pinGuardJson = String(json || ''); },
     getPinGuardState: () => state.pinGuardJson,
     sealVault: (plainText) => {
@@ -705,7 +706,7 @@ function httpRequest(port, method, reqPath) {
       App.closeModals();
     });
 
-    await runTest('UI-REFERRAL', 'Parrainage déplacé du tableau de bord vers Paramètres avec partage et liaison conservés', async () => {
+    await runTest('UI-REFERRAL', 'Code FITIA professionnel, copie, partage et compatibilité des liaisons on-chain', async () => {
       const document = e2eWin.document;
       const settingsModal = document.getElementById('modal-security');
       await App.openSecurityModal();
@@ -717,8 +718,71 @@ function httpRequest(port, method, reqPath) {
       ['my-ref-id-label', 'current-referrer-status', 'ref-form-wrap', 'ref-address-input'].forEach((id) => {
         assert.ok(referralCard.querySelector(`#${id}`), `Élément Parrainage conservé : ${id}`);
       });
+      assert.ok(referralCard.querySelector('.ref-brand-logo[src="assets/fta.png"]'), 'Le logo FITIA local identifie le programme');
+      assert.ok(referralCard.querySelector('button[onclick="App.copyMyReferralCode()"]'), 'La copie directe du code est disponible');
       assert.ok(referralCard.querySelector('button[onclick="App.shareMyReferral()"]'), 'Le partage du code de parrainage reste disponible');
       assert.ok(referralCard.querySelector('button[onclick="App.bindReferrer()"]'), 'La liaison du parrain reste disponible');
+      assert.strictEqual(App.formatReferralCode(1042), 'FITIA-001042');
+      assert.strictEqual(App.formatReferralCode(42), 'FITIA-000042');
+      assert.strictEqual(App.formatReferralCode(1234567), 'FITIA-1234567');
+      assert.strictEqual(App.formatReferralCode(0), '', 'Sans UID, le format FITIA ne fabrique pas un faux code');
+      assert.strictEqual(document.getElementById('my-ref-id-label').textContent, 'FITIA-001042', 'L’UID on-chain 1042 est présenté sous sa forme professionnelle');
+      assert.strictEqual(App.getMyReferralCode(), 'FITIA-001042');
+      App.myReferralCode = '';
+      assert.strictEqual(App.getMyReferralCode(), App.user, 'Sans code UID, le partage utilise l’adresse complète et non raccourcie');
+      App.myReferralCode = 'FITIA-001042';
+
+      for (const [input, expected] of [['FITIA-001042', 1042n], ['fitia-1042', 1042n], ['#1042', 1042n], ['1042', 1042n]]) {
+        const parsed = App.parseReferralInput(input);
+        assert.strictEqual(parsed?.type, 'id', `${input} reste une liaison par UID`);
+        assert.strictEqual(parsed?.value, expected, `${input} est converti vers le bon UID`);
+      }
+      const parsedAddress = App.parseReferralInput(App.user);
+      assert.strictEqual(parsedAddress?.type, 'address');
+      assert.strictEqual(parsedAddress?.value, e2eWin.ethers.getAddress(App.user));
+      for (const invalid of ['', '0', '#0', 'FITIA-0', 'FITIA--1042', 'FITIA-1042-EXTRA', '0x1234', 'FITIA-ABC']) {
+        assert.strictEqual(App.parseReferralInput(invalid), null, `Entrée refusée : ${invalid || '(vide)'}`);
+      }
+
+      await App.copyMyReferralCode();
+      assert.strictEqual(e2eWin.FitiaNative._state.clipboard, 'FITIA-001042', 'La copie utilise le code complet');
+      assert.notStrictEqual(e2eWin.FitiaNative._state.lastClearDelayMs, 45000, 'Le code public n’utilise pas le presse-papiers sensible');
+      await App.shareMyReferral();
+      const shared = e2eWin.FitiaNative._state.sharedTexts.at(-1);
+      assert.ok(shared?.text.includes('FITIA-001042'), 'Le partage contient le code professionnel complet');
+      assert.ok(shared?.text.includes(App.user) === false, 'Le partage privilégie le code et ne duplique pas l’adresse');
+
+      const originals = { core: App.core, ensurePolGas: App.ensurePolGas, updateData: App.updateData };
+      const calls = [];
+      App.ensurePolGas = async () => true;
+      App.updateData = async () => {};
+      App.core = {
+        setReferrerById: async (uid) => { calls.push({ type: 'id', value: uid }); return { wait: async () => ({ status: 1 }) }; },
+        setReferrer: async (address) => { calls.push({ type: 'address', value: address }); return { wait: async () => ({ status: 1 }) }; }
+      };
+      try {
+        const input = document.getElementById('ref-address-input');
+        input.value = 'fitia-001042';
+        await App.bindReferrer();
+        input.value = '#1042';
+        await App.bindReferrer();
+        input.value = App.user;
+        await App.bindReferrer();
+        assert.deepStrictEqual(calls, [
+          { type: 'id', value: 1042n },
+          { type: 'id', value: 1042n },
+          { type: 'address', value: e2eWin.ethers.getAddress(App.user) }
+        ], 'Les nouveaux et anciens formats conservent leurs méthodes de contrat respectives');
+        input.value = 'FITIA--1042';
+        await App.bindReferrer();
+        assert.strictEqual(calls.length, 3, 'Une entrée invalide ne déclenche aucune transaction');
+      } finally {
+        App.core = originals.core;
+        App.ensurePolGas = originals.ensurePolGas;
+        App.updateData = originals.updateData;
+        document.getElementById('ref-address-input').value = '';
+      }
+
       assert.ok(
         !/[\u{2300}-\u{23FF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u.test(referralCard.textContent),
         'La section Parrainage reste sans emoji dans Paramètres'
@@ -1127,7 +1191,9 @@ function httpRequest(port, method, reqPath) {
 
         const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
         assert.strictEqual(typeof published.enabled, 'boolean');
-        assert.deepStrictEqual(published.promotions, []);
+        assert.ok(Array.isArray(published.promotions));
+        const publishedItems = center.normalizeManifest({ ...published, enabled: true }, now);
+        assert.strictEqual(publishedItems.length, published.promotions.length, 'La configuration publiée reste valide sans imposer son activation ni un nombre fixe de promotions');
         const walletSource = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8');
         assert.ok(walletSource.indexOf('src="promotion-effects.js"') < walletSource.indexOf('src="promotions.js"'));
         assert.ok(walletSource.indexOf('src="promotions.js"') < walletSource.indexOf('src="app.js"'));
@@ -1691,6 +1757,8 @@ function httpRequest(port, method, reqPath) {
       App.lockWallet(true);
       assert.strictEqual(App.signer, null);
       assert.strictEqual(App.user, null);
+      assert.strictEqual(App.myReferralCode, '', 'Le code de parrainage en mémoire est purgé au verrouillage');
+      assert.strictEqual(e2eWin.document.getElementById('my-ref-id-label').textContent, '—');
       assert.strictEqual(App.revealedSecretText, '');
       assert.strictEqual(e2eWin.FitiaNative._state.screenSecure, true, 'FLAG_SECURE réactivé au verrouillage');
     });
