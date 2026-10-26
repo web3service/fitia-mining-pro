@@ -3,6 +3,7 @@
   "hiddenShopItems": {
     "machine": [
       0,
+      5,
       7
     ],
     "battery": []
