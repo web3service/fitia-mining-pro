@@ -1,14 +1,4 @@
 {
   "enabled": false,
-  "promotions": [
-    {
-      "id": "badge-mvojpiu4-cc9b86db",
-      "targetType": "machine",
-      "targetId": 3,
-      "variant": "badge",
-      "label": {
-        "fr": "PROMO"
-      }
-    }
-  ]
+  "promotions": []
 }
