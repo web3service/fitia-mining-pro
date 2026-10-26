@@ -1316,6 +1316,117 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
+    await runTest('PLUG-UI', 'Connexion Machine/Batterie : sélection visuelle, stock, aperçu et transaction protégée', async () => {
+      const document = e2eWin.document;
+      const machineInput = document.getElementById('plug-machine-id');
+      const batteryInput = document.getElementById('plug-battery-type');
+      const submit = document.getElementById('btn-plug-machine');
+      const originals = {
+        userMachines: App.userMachines,
+        batteryInventory: App.batteryInventory,
+        batteryTypeDurations: App.batteryTypeDurations,
+        mine: App.mine,
+        ensurePolGas: App.ensurePolGas,
+        updateData: App.updateData,
+        showToast: App.showToast,
+        lang: App.currentLang,
+        machineValue: machineInput.value,
+        batteryValue: batteryInput.value,
+        inProgress: App.plugTransactionInProgress
+      };
+      const messages = [];
+      const calls = [];
+      const now = Math.floor(Date.now() / 1000);
+
+      try {
+        App.userMachines = [
+          { tid: 0, exp: 0 },
+          { tid: 1, exp: now - 60 },
+          { tid: 2, exp: now + 3600 }
+        ];
+        App.batteryInventory = { 0: 2, 1: 1 };
+        App.batteryTypeDurations = { 0: 7, 1: 30, 2: 90 };
+        App.showToast = (message, isError = false) => messages.push({ message, isError });
+        machineInput.value = '';
+        batteryInput.value = '';
+        App.renderPlugInterface();
+
+        assert.strictEqual(document.querySelectorAll('[data-plug-machine]').length, 2, 'Seules les machines non actives sont proposées');
+        assert.strictEqual(document.querySelector('[data-plug-machine="2"]'), null, 'La machine active est exclue');
+        assert.strictEqual(document.querySelectorAll('[data-plug-battery]').length, 2, 'Seules les batteries en stock sont proposées');
+        assert.strictEqual(document.querySelector('[data-plug-battery="2"]'), null, 'Le type sans stock est exclu');
+        assert.strictEqual(document.getElementById('plug-machine-count').textContent, '2');
+        assert.strictEqual(document.getElementById('plug-battery-count').textContent, '3');
+        assert.strictEqual(submit.disabled, true, 'La confirmation reste désactivée sans sélection');
+
+        assert.strictEqual(App.selectPlugMachine(1), true);
+        assert.strictEqual(App.selectPlugBattery(1), true);
+        assert.strictEqual(machineInput.value, '1');
+        assert.strictEqual(batteryInput.value, '1');
+        assert.strictEqual(document.querySelector('[data-plug-machine="1"]').getAttribute('aria-pressed'), 'true');
+        assert.strictEqual(document.querySelector('[data-plug-battery="1"]').getAttribute('aria-pressed'), 'true');
+        assert.strictEqual(document.getElementById('plug-connector').classList.contains('ready'), true);
+        assert.ok(document.getElementById('plug-summary').textContent.includes('#1'));
+        assert.ok(document.getElementById('plug-summary').textContent.includes('30'));
+        assert.strictEqual(submit.disabled, false, 'La paire valide active la confirmation');
+
+        App.renderPlugInterface();
+        assert.strictEqual(machineInput.value, '1', 'Une actualisation conserve la machine valide');
+        assert.strictEqual(batteryInput.value, '1', 'Une actualisation conserve la batterie valide');
+        App.quickSelectMachineToPlug(0);
+        assert.strictEqual(machineInput.value, '0', 'Le raccourci d’une machine préremplit la sélection visuelle');
+        assert.strictEqual(batteryInput.value, '1');
+
+        let resolveReceipt;
+        App.ensurePolGas = async () => true;
+        App.updateData = async () => {};
+        App.mine = {
+          plugInMachine: async (...args) => {
+            calls.push(args);
+            return { wait: () => new Promise((resolve) => { resolveReceipt = resolve; }) };
+          }
+        };
+        const firstConnection = App.plugInMachine();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.strictEqual(calls.length, 1);
+        assert.strictEqual(App.plugTransactionInProgress, true);
+        assert.strictEqual(submit.disabled, true, 'Le bouton est bloqué pendant la confirmation');
+        await App.plugInMachine();
+        assert.strictEqual(calls.length, 1, 'Un double-clic ne crée pas une deuxième transaction');
+        resolveReceipt({ status: 1 });
+        await firstConnection;
+        assert.deepStrictEqual(calls, [[0, 1]], 'Les index visuels sont transmis sans modification au contrat');
+        assert.strictEqual(App.plugTransactionInProgress, false);
+        assert.strictEqual(machineInput.value, '', 'La machine connectée est retirée de la sélection après confirmation');
+        assert.strictEqual(batteryInput.value, '1', 'Le type de batterie reste disponible pour une prochaine connexion');
+
+        machineInput.value = '2';
+        batteryInput.value = '1';
+        await App.plugInMachine();
+        assert.strictEqual(calls.length, 1, 'Une machine active ne peut pas être envoyée au contrat');
+        assert.strictEqual(messages.at(-1).message, App.t('errRunning'));
+        machineInput.value = '0';
+        batteryInput.value = '2';
+        await App.plugInMachine();
+        assert.strictEqual(calls.length, 1, 'Une batterie sans stock ne peut pas être envoyée au contrat');
+        assert.strictEqual(messages.at(-1).message, App.t('errNoBattery'));
+      } finally {
+        App.userMachines = originals.userMachines;
+        App.batteryInventory = originals.batteryInventory;
+        App.batteryTypeDurations = originals.batteryTypeDurations;
+        App.mine = originals.mine;
+        App.ensurePolGas = originals.ensurePolGas;
+        App.updateData = originals.updateData;
+        App.showToast = originals.showToast;
+        App.plugTransactionInProgress = originals.inProgress;
+        machineInput.value = originals.machineValue;
+        batteryInput.value = originals.batteryValue;
+        App.setLoader(false);
+        App.setLanguage(originals.lang);
+        App.renderPlugInterface();
+      }
+    });
+
     await runTest('IMPORT-UI', 'Importer un portefeuille : Retour et choix du PIN sans caractères parasites', async () => {
       const document = e2eWin.document;
       const originalLang = App.currentLang;
