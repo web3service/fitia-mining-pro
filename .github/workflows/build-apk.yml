@@ -8,25 +8,6 @@ on:
         required: true
         default: false
         type: boolean
-  push:
-    branches:
-      - arena/6a86f662-fitia-mining-pro
-    paths:
-      - 'app.js'
-      - 'store.js'
-      - 'store-catalog.js'
-      - 'store-products.json'
-      - 'style.css'
-      - 'admin/**'
-      - 'api/**'
-      - 'android-src/**'
-      - 'assets/**'
-      - 'scripts/**'
-      - 'admin-server.js'
-      - 'announcement-assets.js'
-      - 'package.json'
-      - 'vercel.json'
-      - '.github/workflows/build-apk.yml'
 
 jobs:
   build-apk:
@@ -160,7 +141,7 @@ jobs:
           retention-days: 30
 
   commit-build:
-    if: ${{ (inputs.commit_build || github.event_name == 'push') && github.ref != 'refs/heads/main' }}
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:
