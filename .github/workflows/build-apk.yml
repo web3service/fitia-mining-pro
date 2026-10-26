@@ -1,12 +1,6 @@
 name: Build signed Android APK
 
 on:
-  push:
-    branches:
-      - arena/a90e6d13-fitia-mining-pro
-    paths-ignore:
-      - FITIA-PRO-Miner.apk
-      - update-current.json
   workflow_dispatch:
     inputs:
       commit_build:
@@ -147,7 +141,7 @@ jobs:
           retention-days: 30
 
   commit-build:
-    if: ${{ (inputs.commit_build || github.event_name == 'push') && github.ref != 'refs/heads/main' }}
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:
