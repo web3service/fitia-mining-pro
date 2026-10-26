@@ -8,9 +8,6 @@ on:
         required: true
         default: false
         type: boolean
-  push:
-    branches:
-      - arena/6a4b6954-fitia-mining-pro
 
 jobs:
   build-apk:
@@ -144,7 +141,7 @@ jobs:
           retention-days: 30
 
   commit-build:
-    if: ${{ github.ref != 'refs/heads/main' && (github.event_name == 'push' || inputs.commit_build) }}
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:
