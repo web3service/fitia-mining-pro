@@ -4,6 +4,7 @@
     {
       "id": "official-news",
       "category": "information",
+      "enabled": true,
       "title": {
         "fr": "Annonces officielles",
         "en": "Official announcements",
@@ -24,6 +25,7 @@
     {
       "id": "official-events",
       "category": "event",
+      "enabled": true,
       "title": {
         "fr": "Événements FITIA",
         "en": "FITIA events",
@@ -44,6 +46,7 @@
     {
       "id": "wallet-security",
       "category": "security",
+      "enabled": true,
       "title": {
         "fr": "Sécurité du portefeuille",
         "en": "Wallet security",
@@ -64,6 +67,7 @@
     {
       "id": "event-mvohwnvm-9e9e7b0b",
       "category": "event",
+      "enabled": true,
       "title": {
         "fr": "Événements FTA",
         "en": "FITIA events",
@@ -84,6 +88,7 @@
     {
       "id": "information-mvoi2jrw-25ab433e",
       "category": "information",
+      "enabled": true,
       "title": {
         "fr": "FTA Promotionnel"
       },
@@ -96,6 +101,7 @@
     {
       "id": "information-mvoq3w03-c03b8486",
       "category": "information",
+      "enabled": false,
       "title": {
         "fr": "FITIA-CORE"
       },
