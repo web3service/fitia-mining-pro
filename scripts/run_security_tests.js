@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.18 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.19 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -459,7 +459,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.18\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.19\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -541,6 +541,38 @@ function httpRequest(port, method, reqPath) {
       await FitiaSecurity.Vault._resetPinFailures();
     });
 
+    await runTest('CRYPTO', 'Échec AndroidKeyStore : aucun repli en clair et aucun coffre existant écrasé', async () => {
+      const bridge = win.FitiaNative;
+      const originalSeal = bridge.sealVault;
+      const beforeLocal = win.localStorage.getItem('fitia_secure_vault_v2');
+      const beforeIdb = win.indexedDB._stores.kv.get('fitia_secure_vault_v2');
+      const replacement = FitiaSecurity.Vault.generateNewWallet();
+      try {
+        // Simule l’ancien repli natif qui renvoyait directement son entrée.
+        bridge.sealVault = (value) => String(value);
+        assert.strictEqual(await FitiaSecurity.Native.hardwareSeal('sensitive-payload'), null);
+        await assert.rejects(
+          () => FitiaSecurity.Vault.saveVault(replacement, '918273'),
+          (err) => err.code === 'HARDWARE_SEAL_FAILED'
+        );
+        assert.strictEqual(win.localStorage.getItem('fitia_secure_vault_v2'), beforeLocal);
+        assert.strictEqual(win.indexedDB._stores.kv.get('fitia_secure_vault_v2'), beforeIdb);
+
+        bridge.sealVault = () => '';
+        await assert.rejects(
+          () => FitiaSecurity.Vault.saveVault(replacement, '918273'),
+          (err) => err.code === 'HARDWARE_SEAL_FAILED'
+        );
+        assert.strictEqual(win.localStorage.getItem('fitia_secure_vault_v2'), beforeLocal);
+
+        const javaSource = fs.readFileSync(path.join(ROOT, 'android-src', 'java', 'com', 'fitia', 'miningpro', 'MainActivity.java'), 'utf8');
+        const nativeSealMethod = javaSource.slice(javaSource.indexOf('private String hardwareSeal('), javaSource.indexOf('private String hardwareUnseal('));
+        assert.ok(nativeSealMethod && !nativeSealMethod.includes('return plaintext'), 'Le pont Java ne doit jamais renvoyer le texte non scellé');
+      } finally {
+        bridge.sealVault = originalSeal;
+      }
+    });
+
     // ─── SUITE 2 : Anti-Brute-Force & Résistance à l'Effacement localStorage ───
     await runTest('LOCKOUT', 'Blocage après 5 faux PIN + persistance même si localStorage est vidé', async () => {
       await FitiaSecurity.Vault._resetPinFailures();
@@ -576,7 +608,7 @@ function httpRequest(port, method, reqPath) {
     });
 
     // ─── SUITE 3 : Anti-XSS, Anti-SSRF & Auto-Nettoyage Presse-Papiers ───
-    await runTest('XSS/SSRF', 'Échappement XSS strict & blocage SSRF complet (RFC1918, IPv6, Metadata, HTTP)', async () => {
+    await runTest('XSS/SSRF', 'Échappement XSS strict & blocage des RPC locaux, privés ou en littéral IP', async () => {
       const payload = `<img src=x onerror="alert('xss')">'&`;
       const escaped = FitiaSecurity.escapeHtml(payload);
       assert.ok(!escaped.includes('<') && !escaped.includes('>') && !escaped.includes('"'));
@@ -591,9 +623,21 @@ function httpRequest(port, method, reqPath) {
         'https://172.31.255.1/rpc',
         'https://192.168.1.254/rpc',
         'https://169.254.169.254/latest/meta-data/',
+        'https://localhost.:8545',
+        'https://127.0.0.1.:8545',
+        'https://2130706433:8545',
+        'https://0x7f000001:8545',
+        'https://8.8.8.8/rpc',
         'https://[::1]:8545',
+        'https://[::]:8545',
+        'https://[0:0:0:0:0:0:0:1]:8545',
+        'https://[::ffff:127.0.0.1]:8545',
+        'https://[::ffff:7f00:1]:8545',
         'https://[fe80::1]:8545',
         'https://[fd00::1]:8545',
+        'https://rpc.internal',
+        'https://rpc.lan',
+        'https://node.home.arpa',
         'https://admin:secret@polygon-rpc.com',
         'javascript:alert(1)'
       ];
@@ -608,6 +652,34 @@ function httpRequest(port, method, reqPath) {
         FitiaSecurity.Rpc.validateRpcUrl('https://polygon-bor-rpc.publicnode.com'),
         'https://polygon-bor-rpc.publicnode.com/'
       );
+    });
+
+    await runTest('WEBVIEW-CSP', 'Polices et icônes embarquées, aucune ressource tierce et CSP restrictive', async () => {
+      const walletHtml = fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'), 'utf8');
+      const styleSource = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
+      const csp = walletHtml.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)?.[1] || '';
+      assert.ok(csp.includes("default-src 'self'"));
+      assert.ok(csp.includes("base-uri 'none'"));
+      assert.ok(csp.includes("object-src 'none'"));
+      assert.ok(csp.includes("font-src 'self'"));
+      assert.ok(csp.includes("img-src 'self' data: blob:"));
+      assert.ok(!csp.includes('https://fonts.googleapis.com'));
+      assert.ok(!csp.includes('https://fonts.gstatic.com'));
+      assert.ok(!csp.includes('img-src \'self\' data: blob: https://'));
+      assert.ok(!/(?:src|href)=["']https?:\/\//i.test(walletHtml), 'Aucun sous-chargement HTTP(S) ne doit rester dans wallet.html');
+      assert.ok(!/(?:fonts\.googleapis\.com|fonts\.gstatic\.com|i\.ibb\.co)/i.test(walletHtml));
+      assert.ok(walletHtml.includes('src="assets/pol.svg"') && walletHtml.includes('src="assets/usdt.svg"'));
+
+      const fontFiles = [
+        'inter-latin-400-normal.woff2', 'inter-latin-600-normal.woff2',
+        'inter-latin-700-normal.woff2', 'inter-latin-800-normal.woff2',
+        'jetbrains-mono-latin-500-normal.woff2', 'jetbrains-mono-latin-700-normal.woff2'
+      ];
+      for (const fontFile of fontFiles) {
+        const relativePath = `assets/fonts/${fontFile}`;
+        assert.ok(styleSource.includes(relativePath), `${relativePath} doit être référencé localement`);
+        assert.ok(fs.statSync(path.join(ROOT, relativePath)).size > 1000, `${relativePath} doit être embarqué`);
+      }
     });
 
     await runTest('CLIPBOARD', 'Copie sensible des secrets avec effacement automatique programmé (45s)', async () => {
@@ -942,9 +1014,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 324,
-        versionName: '3.3.18',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.18/FITIA-PRO-Miner.apk',
+        versionCode: 325,
+        versionName: '3.3.19',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.19/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -987,7 +1059,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 324;
+        nativeState.appVersionCode = 325;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2130,6 +2202,18 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/store-catalog.js'), 'Les validations STORE sont embarquées dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/store-products.json'), 'Le catalogue local de secours est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
+      const packagedWallet = execFileSync('python3', ['-c', [
+        'import zipfile, sys',
+        'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/wallet.html"))'
+      ].join(';'), apkPath]);
+      assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
+      for (const fontFile of [
+        'inter-latin-400-normal.woff2', 'inter-latin-600-normal.woff2',
+        'inter-latin-700-normal.woff2', 'inter-latin-800-normal.woff2',
+        'jetbrains-mono-latin-500-normal.woff2', 'jetbrains-mono-latin-700-normal.woff2'
+      ]) {
+        assert.ok(packagedFiles.includes(`assets/www/assets/fonts/${fontFile}`), `La police locale ${fontFile} est embarquée dans l’APK`);
+      }
       assert.ok(packagedFiles.includes('assets/www/assets/fta.png'), 'Le vrai logo FTA est embarqué dans l’APK');
       for (const avatar of ['team-1.svg', 'team-2.svg', 'team-3.svg']) {
         assert.ok(packagedFiles.includes(`assets/www/assets/avatars/${avatar}`), `L’avatar FITIA ${avatar} est embarqué dans l’APK`);
@@ -2145,11 +2229,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 324);
-      assert.strictEqual(updateManifest.versionName, '3.3.18');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.18/'));
+      assert.strictEqual(updateManifest.versionCode, 325);
+      assert.strictEqual(updateManifest.versionName, '3.3.19');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.19/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.18 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.19 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2167,8 +2251,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=324'), 'versionCode=324 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.18"'), 'versionName=3.3.18 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=325'), 'versionCode=325 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.19"'), 'versionName=3.3.19 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
