@@ -54,6 +54,24 @@
         "zh": "切勿分享您的 12 个助记词、私钥或 PIN 码。",
         "sg": "Never share your 12 words, private key or PIN."
       }
+    },
+    {
+      "id": "event-mvohwnvm-9e9e7b0b",
+      "category": "event",
+      "title": {
+        "fr": "Événements FTA",
+        "en": "FITIA events",
+        "de": "FITIA-Veranstaltungen",
+        "zh": "FITIA 活动",
+        "sg": "FITIA events"
+      },
+      "message": {
+        "fr": "Les prochains événements officiels seront annoncés ici.",
+        "en": "Upcoming official events will be announced here.",
+        "de": "Die nächsten offiziellen Veranstaltungen werden hier angekündigt.",
+        "zh": "最新官方活动将在这里公布。",
+        "sg": "Upcoming official events will be announced here."
+      }
     }
   ]
 }
