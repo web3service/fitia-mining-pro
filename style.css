@@ -1930,7 +1930,7 @@ main::-webkit-scrollbar { display: none; }
 }
 .activity-item {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 30px;
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   padding: 12px 9px;
@@ -1984,18 +1984,6 @@ main::-webkit-scrollbar { display: none; }
 .activity-contract-message.status-pending { color: var(--primary); background: rgba(240, 185, 11, 0.07); }
 .activity-block { margin-top: 5px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; }
 .activity-meta { margin-top: 5px; color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; overflow-wrap: anywhere; }
-.activity-tx-link {
-  width: 30px;
-  height: 30px;
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  border-radius: 9px;
-  background: rgba(59, 130, 246, 0.08);
-  color: #60a5fa;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-.activity-tx-link:active { background: rgba(59, 130, 246, 0.2); }
-
 .notification-item {
   width: 100%;
   display: flex;

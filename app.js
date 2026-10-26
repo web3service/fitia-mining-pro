@@ -247,7 +247,79 @@ const i18n = {
     errRunning: "Cette machine est déjà en marche",
     errNoBattery: "Aucune batterie de ce type disponible",
     errMaxMachine: "Nombre maximum de machines atteint",
-    shopExpiredLabel: "EXPIRÉ"
+    shopExpiredLabel: "EXPIRÉ",
+    chatPlaceholder: "Posez votre question…",
+    chatSensitiveHidden: "[Information sensible masquée]",
+    chatClose: "Fermer l’assistant",
+    chatSend: "Envoyer la question",
+    pasteLongPress: "Appuyez longuement dans le champ pour coller.",
+    deleteDigit: "Effacer",
+    activityCenterTitle: "Centre d’activité",
+    activityHistoryTab: "Historique",
+    activityNotificationsTab: "Notifications",
+    activityHistoryTabLabel: "Historique et notifications",
+    activityWalletAlerts: "Alertes du portefeuille",
+    activityMarkAllRead: "Tout marquer comme lu",
+    activityFilterLabel: "Filtrer les transactions",
+    activityAll: "Toutes",
+    activityConfirmed: "Confirmées",
+    activityFailedPlural: "Échouées",
+    activityClose: "Fermer",
+    activityFootnote: "Historique local des opérations initiées dans FITIA PRO. Les opérations plus anciennes ou externes peuvent ne pas apparaître.",
+    activityDefaultTitle: "Transaction Polygon",
+    activityPendingMessage: "En attente de la réponse on-chain…",
+    activitySuccessMessage: "Réponse on-chain : transaction confirmée.",
+    activityFailedMessage: "Réponse on-chain : transaction échouée. Motif du contrat indisponible.",
+    activityPendingNotification: "Transaction en attente",
+    activitySuccessNotification: "Réponse on-chain : succès",
+    activityFailureNotification: "Réponse on-chain : échec",
+    activityTxSuccess: "Réponse on-chain : succès (statut 1).",
+    activityTxFailure: "Réponse on-chain : échec (statut 0).",
+    activityTxUnconfirmed: "Réponse on-chain : transaction non confirmée.",
+    activityTxReplaced: "Transaction remplacée ou annulée avant confirmation.",
+    activityContractPrefix: "Contrat :",
+    activityReasonUnavailableReceipt: "Motif du contrat indisponible dans le reçu.",
+    activityReasonUnavailable: "Motif du contrat indisponible.",
+    activityOperation: "opération",
+    activityOperations: "opérations",
+    activityNoResults: "Aucun résultat",
+    activityNoTransactions: "Aucune opération enregistrée",
+    activityChangeFilter: "Modifiez le filtre pour afficher les autres transactions.",
+    activityHistoryEmpty: "Vos prochaines transactions initiées depuis FITIA PRO apparaîtront ici.",
+    activityNoNotifications: "Aucune notification",
+    activityNotificationsEmpty: "Les envois, confirmations et échecs de transactions seront signalés ici.",
+    activityPendingCount: "{count} en attente",
+    activityUpToDate: "À jour",
+    activityStatusPending: "En attente",
+    activityStatusSuccess: "Confirmée",
+    activityStatusFailed: "Échouée",
+    activityReceiptBlock: "Reçu on-chain • Bloc #{block}",
+    activitySendPol: "Envoi de POL",
+    activityPolygonInteraction: "Interaction Polygon",
+    activityTo: "Vers",
+    activityContract: "Contrat",
+    activityNetworkTransaction: "Transaction sur le réseau Polygon",
+    activitySendToken: "Envoi de {token}",
+    activityApprovalToken: "Autorisation {token}",
+    activityApprovedSpender: "Dépense autorisée à {address}",
+    activityInteractionName: "Interaction {name}",
+    activityQuickswap: "Échange via QuickSwap V2",
+    activityDepositToken: "Dépôt {token}",
+    activityWithdrawToken: "Retrait {token}",
+    activityWalletToMining: "Portefeuille → Compte Minage",
+    activityMiningToWallet: "Compte Minage → Portefeuille",
+    activitySwapCore: "Échange via FITIA Core",
+    activityReferralRecorded: "Parrainage enregistré",
+    activityReferrer: "Parrain",
+    activityReferrerId: "ID parrain #{id}",
+    activityMachinePurchase: "Achat de machine",
+    activityBatteryPurchase: "Achat de batterie",
+    activityMachineType: "Machine de type {number}",
+    activityBatteryType: "Batterie de type {number}",
+    activityMachineConnection: "Connexion de machine",
+    activityMachineBatteryDetails: "Machine #{machine} • Batterie type {battery}",
+    activityClaimTitle: "Réclamation des récompenses",
+    activityClaimDescription: "Récompenses de minage FITIA"
   },
   en: {
     createNewWallet: "CREATE NEW WALLET",
@@ -474,7 +546,79 @@ const i18n = {
     errRunning: "Machine already running",
     errNoBattery: "No battery of this type",
     errMaxMachine: "Max machines reached",
-    shopExpiredLabel: "EXPIRED"
+    shopExpiredLabel: "EXPIRED",
+    chatPlaceholder: "Ask your question…",
+    chatSensitiveHidden: "[Sensitive information hidden]",
+    chatClose: "Close assistant",
+    chatSend: "Send question",
+    pasteLongPress: "Long-press the field to paste.",
+    deleteDigit: "Delete",
+    activityCenterTitle: "Activity center",
+    activityHistoryTab: "History",
+    activityNotificationsTab: "Notifications",
+    activityHistoryTabLabel: "History and notifications",
+    activityWalletAlerts: "Wallet alerts",
+    activityMarkAllRead: "Mark all as read",
+    activityFilterLabel: "Filter transactions",
+    activityAll: "All",
+    activityConfirmed: "Confirmed",
+    activityFailedPlural: "Failed",
+    activityClose: "Close",
+    activityFootnote: "Local history of transactions initiated in FITIA PRO. Older or external transactions may not appear.",
+    activityDefaultTitle: "Polygon transaction",
+    activityPendingMessage: "Waiting for on-chain confirmation…",
+    activitySuccessMessage: "On-chain response: transaction confirmed.",
+    activityFailedMessage: "On-chain response: transaction failed. Contract reason unavailable.",
+    activityPendingNotification: "Transaction pending",
+    activitySuccessNotification: "On-chain response: success",
+    activityFailureNotification: "On-chain response: failure",
+    activityTxSuccess: "On-chain response: success (status 1).",
+    activityTxFailure: "On-chain response: failure (status 0).",
+    activityTxUnconfirmed: "On-chain response: transaction not confirmed.",
+    activityTxReplaced: "Transaction replaced or cancelled before confirmation.",
+    activityContractPrefix: "Contract:",
+    activityReasonUnavailableReceipt: "Contract reason unavailable in the receipt.",
+    activityReasonUnavailable: "Contract reason unavailable.",
+    activityOperation: "operation",
+    activityOperations: "operations",
+    activityNoResults: "No results",
+    activityNoTransactions: "No transactions recorded",
+    activityChangeFilter: "Change the filter to display other transactions.",
+    activityHistoryEmpty: "Your next transactions initiated in FITIA PRO will appear here.",
+    activityNoNotifications: "No notifications",
+    activityNotificationsEmpty: "Transaction submissions, confirmations and failures will appear here.",
+    activityPendingCount: "{count} pending",
+    activityUpToDate: "Up to date",
+    activityStatusPending: "Pending",
+    activityStatusSuccess: "Confirmed",
+    activityStatusFailed: "Failed",
+    activityReceiptBlock: "On-chain receipt • Block #{block}",
+    activitySendPol: "Send POL",
+    activityPolygonInteraction: "Polygon interaction",
+    activityTo: "To",
+    activityContract: "Contract",
+    activityNetworkTransaction: "Transaction on the Polygon network",
+    activitySendToken: "Send {token}",
+    activityApprovalToken: "{token} approval",
+    activityApprovedSpender: "Spending approved for {address}",
+    activityInteractionName: "Interaction {name}",
+    activityQuickswap: "Swap via QuickSwap V2",
+    activityDepositToken: "Deposit {token}",
+    activityWithdrawToken: "Withdraw {token}",
+    activityWalletToMining: "Wallet → Mining Account",
+    activityMiningToWallet: "Mining Account → Wallet",
+    activitySwapCore: "Swap via FITIA Core",
+    activityReferralRecorded: "Referral recorded",
+    activityReferrer: "Referrer",
+    activityReferrerId: "Referrer ID #{id}",
+    activityMachinePurchase: "Machine purchase",
+    activityBatteryPurchase: "Battery purchase",
+    activityMachineType: "Machine type {number}",
+    activityBatteryType: "Battery type {number}",
+    activityMachineConnection: "Machine connection",
+    activityMachineBatteryDetails: "Machine #{machine} • Battery type {battery}",
+    activityClaimTitle: "Mining reward claim",
+    activityClaimDescription: "FITIA mining rewards"
   },
   de: {
     createNewWallet: "NEUE WALLET ERSTELLEN",
@@ -812,7 +956,9 @@ class Application {
     this.quickswapFactory = null;
     this.activity = new FitiaActivityCenter({
       explorer: CONFIG.EXPLORER,
-      formatError: (error) => this.getErrorMessage(error)
+      formatError: (error) => this.getErrorMessage(error),
+      translate: (key) => this.t(key),
+      language: () => this.currentLang
     });
 
     this.payMode = 'USDT';
@@ -879,19 +1025,21 @@ class Application {
     this.revealedSecretText = '';
 
     const savedLang = localStorage.getItem('fitia_lang');
-    this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'fr';
+    this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'en';
     this.announcementCenter = new FitiaAnnouncementCenter(this);
     this.promotionCenter = new FitiaPromotionCenter(this);
 
     this.chatInitialized = false;
     this.chatHistory = [];
+    this.chatTypingSequence = 0;
+    this.chatAssistant = new FitiaAssistant(this, CONFIG);
     this.prevPriceCheckpoint = {};
     this.priceCheckpointTime = 0;
   }
 
   // ─── Traduction avec fallback multi-niveaux ──────────────────────
   t(key) {
-    return i18n[this.currentLang]?.[key] || i18n.fr[key] || i18n.en[key] || key;
+    return i18n[this.currentLang]?.[key] || i18n.en[key] || i18n.fr[key] || key;
   }
 
   formatUsd(v) {
@@ -1149,6 +1297,7 @@ class Application {
     if (!i18n[lang]) return;
     this.currentLang = lang;
     localStorage.setItem('fitia_lang', lang);
+    document.documentElement.lang = lang === 'sg' ? 'en-SG' : lang;
     const flags = { en: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', zh: '🇨🇳', sg: '🇸🇬' };
     const btn = document.getElementById('lang-btn-display');
     if (btn) btn.innerText = `${flags[lang]} ${lang.toUpperCase()}`;
@@ -1163,6 +1312,7 @@ class Application {
       document.getElementById('swap-rate').textContent = this.t('quickswapRateInfo');
     }
     if (this.announcementCenter?.initialized) this.announcementCenter.render();
+    this.activity?.render();
     if (this.user) {
       this.renderShop();
       this.renderActiveMachines();
@@ -1180,6 +1330,14 @@ class Application {
     document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
       const key = el.getAttribute('data-i18n-placeholder');
       if (key) el.placeholder = this.t(key);
+    });
+    document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-aria-label');
+      if (key) el.setAttribute('aria-label', this.t(key));
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-title');
+      if (key) el.title = this.t(key);
     });
   }
 
@@ -1372,7 +1530,7 @@ class Application {
         }
       }
     } catch (_) {
-      this.showToast("Appuyez longuement dans le champ pour coller.");
+      this.showToast(this.t('pasteLongPress'));
     }
   }
 
@@ -1685,6 +1843,20 @@ class Application {
     return formatted.includes('.') ? formatted.replace(/\.?0+$/, '') : formatted;
   }
 
+  formatPendingActivityAmount() {
+    const rawUnits = Number(this.pendingBalance);
+    if (!Number.isFinite(rawUnits) || rawUnits <= 0) return '';
+    const wholeRawUnits = BigInt(Math.floor(rawUnits));
+    return wholeRawUnits > 0n ? this.formatActivityAmount(wholeRawUnits, this.ftaDecimals) : '';
+  }
+
+  activityText(key, values = {}) {
+    return Object.entries(values).reduce(
+      (text, [name, value]) => text.split(`{${name}}`).join(String(value)),
+      this.t(key)
+    );
+  }
+
   describeActivityTransaction(txRequest = {}) {
     const to = String(txRequest.to || '').toLowerCase();
     const data = typeof txRequest.data === 'string' ? txRequest.data : '0x';
@@ -1692,8 +1864,10 @@ class Application {
     try { hasValue = BigInt(txRequest.value ?? 0) > 0n; } catch (_) { /* Le fallback reste non financier. */ }
     const fallback = {
       type: hasValue && (!data || data === '0x') ? 'send' : 'other',
-      title: hasValue && (!data || data === '0x') ? 'Envoi de POL' : 'Interaction Polygon',
-      description: to ? `${hasValue && (!data || data === '0x') ? 'Vers' : 'Contrat'} ${this.shortActivityAddress(to)}` : 'Transaction sur le réseau Polygon',
+      title: this.t(hasValue && (!data || data === '0x') ? 'activitySendPol' : 'activityPolygonInteraction'),
+      description: to
+        ? `${this.t(hasValue && (!data || data === '0x') ? 'activityTo' : 'activityContract')} ${this.shortActivityAddress(to)}`
+        : this.t('activityNetworkTransaction'),
       amount: '',
       token: hasValue && (!data || data === '0x') ? 'POL' : '',
       to
@@ -1718,21 +1892,21 @@ class Application {
       const parsed = matched.contract.interface.parseTransaction({ data, value: txRequest.value || 0 });
       if (!parsed) return fallback;
       const args = parsed.args;
-      const result = { ...fallback, title: `Interaction ${parsed.name}` };
+      const result = { ...fallback, title: this.activityText('activityInteractionName', { name: parsed.name }) };
       const tokenDecimals = matched.kind === 'USDT' ? this.usdtDecimals : this.ftaDecimals;
 
       if (matched.kind === 'USDT' || matched.kind === 'FTA') {
         result.token = matched.kind;
         if (parsed.name === 'transfer') {
           result.type = 'send';
-          result.title = `Envoi de ${matched.kind}`;
+          result.title = this.activityText('activitySendToken', { token: matched.kind });
           result.amount = this.formatActivityAmount(args[1], tokenDecimals);
-          result.description = `Vers ${this.shortActivityAddress(args[0])}`;
+          result.description = `${this.t('activityTo')} ${this.shortActivityAddress(args[0])}`;
         } else if (parsed.name === 'approve') {
           result.type = 'approval';
-          result.title = `Autorisation ${matched.kind}`;
+          result.title = this.activityText('activityApprovalToken', { token: matched.kind });
           result.amount = this.formatActivityAmount(args[1], tokenDecimals);
-          result.description = `Dépense autorisée à ${this.shortActivityAddress(args[0])}`;
+          result.description = this.activityText('activityApprovedSpender', { address: this.shortActivityAddress(args[0]) });
         }
         return result;
       }
@@ -1745,7 +1919,7 @@ class Application {
             title: 'Swap POL → USDT',
             token: 'POL',
             amount: this.formatActivityAmount(txRequest.value || 0, 18),
-            description: 'Échange via QuickSwap V2'
+            description: this.t('activityQuickswap')
           };
         }
         if (parsed.name === 'swapExactTokensForETH') {
@@ -1755,7 +1929,7 @@ class Application {
             title: 'Swap USDT → POL',
             token: 'USDT',
             amount: this.formatActivityAmount(args[0], this.usdtDecimals),
-            description: 'Échange via QuickSwap V2'
+            description: this.t('activityQuickswap')
           };
         }
         return result;
@@ -1763,26 +1937,53 @@ class Application {
 
       if (matched.kind === 'core') {
         const coreOperations = {
-          depositUsdt: ['deposit', 'Dépôt USDT', 'USDT', this.usdtDecimals, 'Portefeuille → Compte Minage'],
-          depositFta: ['deposit', 'Dépôt FTA', 'FTA', this.ftaDecimals, 'Portefeuille → Compte Minage'],
-          withdrawUsdt: ['withdraw', 'Retrait USDT', 'USDT', this.usdtDecimals, 'Compte Minage → Portefeuille'],
-          withdrawFta: ['withdraw', 'Retrait FTA', 'FTA', this.ftaDecimals, 'Compte Minage → Portefeuille'],
-          withdrawPol: ['withdraw', 'Retrait POL', 'POL', 18, 'Compte Minage → Portefeuille'],
-          swapUForF: ['swap', 'Swap USDT → FTA', 'USDT', this.usdtDecimals, 'Échange via FITIA Core'],
-          swapFForU: ['swap', 'Swap FTA → USDT', 'FTA', this.ftaDecimals, 'Échange via FITIA Core']
+          depositUsdt: ['deposit', 'activityDepositToken', 'USDT', this.usdtDecimals, 'activityWalletToMining'],
+          depositFta: ['deposit', 'activityDepositToken', 'FTA', this.ftaDecimals, 'activityWalletToMining'],
+          withdrawUsdt: ['withdraw', 'activityWithdrawToken', 'USDT', this.usdtDecimals, 'activityMiningToWallet'],
+          withdrawFta: ['withdraw', 'activityWithdrawToken', 'FTA', this.ftaDecimals, 'activityMiningToWallet'],
+          withdrawPol: ['withdraw', 'activityWithdrawToken', 'POL', 18, 'activityMiningToWallet'],
+          swapUForF: ['swap', null, 'USDT', this.usdtDecimals, 'activitySwapCore'],
+          swapFForU: ['swap', null, 'FTA', this.ftaDecimals, 'activitySwapCore']
         };
         if (coreOperations[parsed.name]) {
-          const [type, title, token, decimals, description] = coreOperations[parsed.name];
-          return { ...result, type, title, token, description, amount: this.formatActivityAmount(args[0], decimals) };
+          const [type, titleKey, token, decimals, descriptionKey] = coreOperations[parsed.name];
+          const title = titleKey
+            ? this.activityText(titleKey, { token })
+            : `Swap ${parsed.name === 'swapUForF' ? 'USDT → FTA' : 'FTA → USDT'}`;
+          return {
+            ...result,
+            type,
+            title,
+            token,
+            description: this.t(descriptionKey),
+            amount: this.formatActivityAmount(args[0], decimals)
+          };
         }
         if (parsed.name === 'depositPol') {
-          return { ...result, type: 'deposit', title: 'Dépôt POL', token: 'POL', description: 'Portefeuille → Compte Minage', amount: this.formatActivityAmount(txRequest.value || 0, 18) };
+          return {
+            ...result,
+            type: 'deposit',
+            title: this.activityText('activityDepositToken', { token: 'POL' }),
+            token: 'POL',
+            description: this.t('activityWalletToMining'),
+            amount: this.formatActivityAmount(txRequest.value || 0, 18)
+          };
         }
         if (parsed.name === 'setReferrer') {
-          return { ...result, type: 'referral', title: 'Parrainage enregistré', description: `Parrain ${this.shortActivityAddress(args[0])}` };
+          return {
+            ...result,
+            type: 'referral',
+            title: this.t('activityReferralRecorded'),
+            description: `${this.t('activityReferrer')} ${this.shortActivityAddress(args[0])}`
+          };
         }
         if (parsed.name === 'setReferrerById') {
-          return { ...result, type: 'referral', title: 'Parrainage enregistré', description: `ID parrain #${args[0].toString()}` };
+          return {
+            ...result,
+            type: 'referral',
+            title: this.t('activityReferralRecorded'),
+            description: this.activityText('activityReferrerId', { id: args[0].toString() })
+          };
         }
         return result;
       }
@@ -1794,8 +1995,8 @@ class Application {
           return {
             ...result,
             type: 'purchase',
-            title: 'Achat de machine',
-            description: `Machine de type ${Number(args[0]) + 1}`,
+            title: this.t('activityMachinePurchase'),
+            description: this.activityText('activityMachineType', { number: Number(args[0]) + 1 }),
             token,
             amount: token === 'USDT' && priceRaw != null ? this.formatActivityAmount(priceRaw, this.usdtDecimals) : ''
           };
@@ -1806,8 +2007,8 @@ class Application {
           return {
             ...result,
             type: 'purchase',
-            title: 'Achat de batterie',
-            description: `Batterie de type ${Number(args[0]) + 1}`,
+            title: this.t('activityBatteryPurchase'),
+            description: this.activityText('activityBatteryType', { number: Number(args[0]) + 1 }),
             token,
             amount: token === 'USDT' && priceRaw != null ? this.formatActivityAmount(priceRaw, this.usdtDecimals) : ''
           };
@@ -1816,18 +2017,21 @@ class Application {
           return {
             ...result,
             type: 'mining',
-            title: 'Connexion de machine',
-            description: `Machine #${Number(args[0]) + 1} • Batterie type ${Number(args[1]) + 1}`
+            title: this.t('activityMachineConnection'),
+            description: this.activityText('activityMachineBatteryDetails', {
+              machine: Number(args[0]) + 1,
+              battery: Number(args[1]) + 1
+            })
           };
         }
         if (parsed.name === 'claimRewards') {
           return {
             ...result,
             type: 'claim',
-            title: 'Réclamation des récompenses',
-            description: 'Récompenses de minage FITIA',
+            title: this.t('activityClaimTitle'),
+            description: this.t('activityClaimDescription'),
             token: 'FTA',
-            amount: this.pendingBalance > 0 ? this.pendingBalance.toFixed(this.ftaDecimals) : ''
+            amount: this.formatPendingActivityAmount()
           };
         }
       }
@@ -3966,18 +4170,27 @@ class Application {
 
   sendChatMessage() {
     const input = document.getElementById('chat-input');
-    const msg = input.value.trim();
-    if (!msg) return;
+    const rawMessage = input.value.trim();
+    if (!rawMessage) return;
     input.value = '';
-    this.addChatBubble('user', msg);
-    this.chatHistory.push({ role: 'user', text: msg });
+
+    const sensitive = this.chatAssistant.containsSensitiveSecret(rawMessage);
+    const message = sensitive ? '' : rawMessage.slice(0, 500);
+    const visibleMessage = sensitive ? this.t('chatSensitiveHidden') : message;
+    const response = sensitive
+      ? this.chatAssistant.sensitiveResponse()
+      : this.chatAssistant.respond(message);
+
+    this.addChatBubble('user', visibleMessage);
+    this.chatHistory.push({ role: 'user', text: visibleMessage });
+    this.chatHistory = this.chatHistory.slice(-60);
     const typingId = this.showTyping();
     setTimeout(() => {
       this.removeTyping(typingId);
-      const response = this.generateLocalResponse(msg);
       this.addChatBubble('assistant', response);
       this.chatHistory.push({ role: 'assistant', text: response });
-    }, 500);
+      this.chatHistory = this.chatHistory.slice(-60);
+    }, 350);
   }
 
   addChatBubble(role, text) {
@@ -3992,7 +4205,7 @@ class Application {
   showTyping() {
     const container = document.getElementById('chat-messages');
     const typing = document.createElement('div');
-    const id = 'typing-' + Date.now();
+    const id = `typing-${Date.now()}-${++this.chatTypingSequence}`;
     typing.id = id;
     typing.className = 'chat-bubble assistant';
     typing.innerHTML = '● ● ●';
@@ -4006,45 +4219,13 @@ class Application {
   }
 
   getWelcomeMessage() {
-    const m = {
-      fr: "👋 Bienvenue sur FITIA PRO Autonome !\nVotre portefeuille Polygon est directement intégré et chiffré.\nPosez vos questions sur : Wallet, Minage, Swap, Sécurité ou Parrainage !",
-      en: "👋 Welcome to FITIA PRO Standalone!\nYour Polygon wallet is built-in and encrypted.\nAsk me about: Wallet, Mining, Swap, Security or Referral!",
-      de: "👋 Willkommen bei FITIA PRO! Frag mich zu: Wallet, Mining, Tausch, Sicherheit!",
-      zh: "👋 欢迎使用 FITIA PRO 独立版！内置加密钱包。问我：挖矿、兑换、钱包、安全！",
-      sg: "👋 Welcome to FITIA PRO Standalone! Ask about Wallet, Mining, Swap, Security!"
-    };
-    return m[this.currentLang] || m.fr;
+    return this.chatAssistant.getWelcomeMessage();
   }
 
   generateLocalResponse(msg) {
-    const m = msg.toLowerCase();
-    const power = this.currentRealPower || 0;
-    const pendingFta = (this.pendingBalance || 0) / (10 ** this.ftaDecimals);
-    const ftaP = this.ftaPriceUsd || 0;
-
-    if (m.includes('salut') || m.includes('bonjour') || m.includes('hello') || m.includes('hi')) {
-      return `👋 Bonjour ! Portefeuille actif : ${this.shortAddr(this.user)}.\nPuissance : ${this.formatHashrate(power)}.\nComment puis-je vous aider ?`;
-    }
-    if (m.includes('minage') || m.includes('mine') || m.includes('machine') || m.includes('batterie')) {
-      return `⛏️ Minage Autonome FITIA :\n1️⃣ Envoyez des USDT et un peu de POL (~0.05 POL pour les frais réseau) sur votre adresse FITIA (bouton Recevoir)\n2️⃣ Achetez une machine et une batterie dans Boutique (le dépôt se fait automatiquement !)\n3️⃣ Branchez la machine dans l'onglet Wallet\n4️⃣ Cliquez sur RÉCLAMER pour récolter vos FTA !\nEn attente : ${pendingFta.toFixed(6)} FTA`;
-    }
-    if (m.includes('swap') || m.includes('échange') || m.includes('echange')) {
-      return `💱 Swap intégré USDT ↔ FTA :\nTaux actuel : 1 FTA = ${ftaP > 0 ? ftaP.toFixed(6) : '...'} USDT (frais 4%).\nPlus besoin de MetaMask : la transaction est signée directement par votre portefeuille FITIA !`;
-    }
-    if (m.includes('wallet') || m.includes('portefeuille') || m.includes('solde') || m.includes('dépôt') || m.includes('depot') || m.includes('pol')) {
-      return `🔐 Portefeuille Intégré :\n• Votre adresse Polygon reçoit POL, USDT et FTA.\n• Gardez toujours ~0.05 POL pour payer les frais réseau Polygon.\n• Cliquez sur l'icône 🛡️ en haut pour sauvegarder vos 12 mots secrets ou changer votre code PIN.`;
-    }
-    if (m.includes('sécurité') || m.includes('securite') || m.includes('pin') || m.includes('12 mots') || m.includes('clé')) {
-      return `🛡️ Sécurité maximale :\n✅ Chiffrement AES-256-GCM par code PIN à 6 chiffres\n✅ Clé privée stockée uniquement sur votre téléphone\n✅ Sauvegardez vos 12 mots dans 🛡️ Sécurité afin de pouvoir restaurer votre portefeuille si vous changez de téléphone !`;
-    }
-    if (m.includes('communauté') || m.includes('whatsapp') || m.includes('groupe')) {
-      return `📱 Communautés officielles :\n👥 Groupe : ${CONFIG.WHATSAPP_GROUP}\n📢 Chaîne : ${CONFIG.WHATSAPP_CHANNEL}`;
-    }
-    if (m.includes('parrain')) {
-      return `👥 Parrainage :\nPartagez votre adresse (${this.shortAddr(this.user)}) ou votre ID pour recevoir des commissions sur les achats de vos filleuls !`;
-    }
-    return "Posez-moi une question sur : 'minage', 'portefeuille', 'swap', 'sécurité', '12 mots', 'parrainage' ou 'communauté' !";
+    return this.chatAssistant.respond(msg);
   }
+
 }
 
 // ─── Démarrage de l'application ────────────────────────────────────
