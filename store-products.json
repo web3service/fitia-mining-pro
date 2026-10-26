@@ -1,5 +1,26 @@
 {
   "version": 1,
   "enabled": false,
-  "products": []
+  "products": [
+    {
+      "id": "product-mvpwszmt-422259a2",
+      "active": true,
+      "sourceType": "own",
+      "category": "electronics",
+      "name": {
+        "fr": "friteuse à air"
+      },
+      "description": {},
+      "image": "assets/store/product-05d68810f190d9d2204cbc58.webp",
+      "sellerId": "fitia-store",
+      "sellerName": "FITIA STORE",
+      "sellerContact": "@Fitia Store",
+      "paymentAddress": "0xbcd8a903f41157a269615725ac66c8d9d0c8cc90",
+      "priceToken": "FTA",
+      "price": "617",
+      "shippingFee": "10",
+      "stock": 19381,
+      "deliveryEstimate": "3 à 5 jours"
+    }
+  ]
 }
