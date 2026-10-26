@@ -20,6 +20,16 @@
       "label": {
         "fr": "Promo"
       }
+    },
+    {
+      "id": "badge-mvom4lse-3d8aefb6",
+      "targetType": "battery",
+      "targetId": 0,
+      "variant": "badge",
+      "animated": true,
+      "label": {
+        "fr": "Promo"
+      }
     }
   ]
 }
