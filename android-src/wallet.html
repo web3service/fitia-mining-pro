@@ -356,16 +356,19 @@
           </div>
         </div>
         <div class="wallet-main-actions">
-          <button class="btn-wallet-main btn-wallet-send" onclick="App.openSend()">
-            <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            <span data-i18n="send">Envoyer</span>
-          </button>
-          <button class="btn-wallet-main btn-wallet-recv" onclick="App.openReceive()">
-            <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" transform="rotate(180 12 12)"/></svg>
-            <span data-i18n="receive">Recevoir</span>
-          </button>
           <button class="btn-wallet-main btn-wallet-sec" onclick="App.openSecurityModal()" title="Sécurité">🛡️</button>
         </div>
+      </div>
+
+      <div class="wallet-primary-actions" role="group" aria-label="Wallet actions">
+        <button type="button" class="btn-wallet-main btn-wallet-send wallet-primary-action" onclick="App.openSend()">
+          <span class="wallet-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="wallet-action-copy"><strong data-i18n="send">Envoyer</strong><small data-i18n="sendActionHint">Transférer des actifs</small></span>
+        </button>
+        <button type="button" class="btn-wallet-main btn-wallet-recv wallet-primary-action" onclick="App.openReceive()">
+          <span class="wallet-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 7 7 17M17 17H7V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="wallet-action-copy"><strong data-i18n="receive">Recevoir</strong><small data-i18n="receiveActionHint">Afficher mon QR code</small></span>
+        </button>
       </div>
 
       <button class="wallet-history-btn" onclick="App.openActivity('history')">
@@ -612,25 +615,41 @@
 <div id="modal-send" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h3 data-i18n="send">Envoyer</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
-    <select id="send-token-select" class="game-input" style="margin-bottom: 10px;" onchange="App.updateSendBalance()">
-      <option value="POL">POL (Polygon)</option>
-      <option value="USDT">USDT (Polygon ERC-20)</option>
-      <option value="FTA">FTA (Fitia ERC-20)</option>
-    </select>
+    <div id="send-token-select-wrap" class="send-token-select-wrap">
+      <input type="hidden" id="send-token-select" value="POL">
+      <button type="button" id="send-token-trigger" class="send-token-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="send-token-menu" onclick="App.toggleSendTokenMenu()">
+        <span class="send-token-current">
+          <img id="send-token-current-logo" src="assets/pol.svg" alt="POL logo" width="40" height="40" draggable="false">
+          <span class="send-token-current-copy"><strong id="send-token-current-symbol">POL</strong><small id="send-token-current-name">Polygon</small></span>
+        </span>
+        <svg class="send-token-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div id="send-token-menu" class="send-token-menu" role="listbox" aria-label="Token">
+        <button type="button" class="send-token-option selected" data-send-token="POL" role="option" aria-selected="true" onclick="App.selectSendToken('POL')">
+          <img src="assets/pol.svg" alt="" width="36" height="36" draggable="false" aria-hidden="true"><span><strong>POL</strong><small>Polygon Mainnet</small></span><span class="send-token-option-check" aria-hidden="true">✓</span>
+        </button>
+        <button type="button" class="send-token-option" data-send-token="USDT" role="option" aria-selected="false" onclick="App.selectSendToken('USDT')">
+          <img src="assets/usdt.svg" alt="" width="36" height="36" draggable="false" aria-hidden="true"><span><strong>USDT</strong><small>Tether USD · ERC-20</small></span><span class="send-token-option-check" aria-hidden="true">✓</span>
+        </button>
+        <button type="button" class="send-token-option" data-send-token="FTA" role="option" aria-selected="false" onclick="App.selectSendToken('FTA')">
+          <img src="assets/fta.png" alt="" width="36" height="36" draggable="false" aria-hidden="true"><span><strong>FTA</strong><small>FITIA · ERC-20</small></span><span class="send-token-option-check" aria-hidden="true">✓</span>
+        </button>
+      </div>
+    </div>
     <div class="send-bal-row">
       <span class="small-text"><span data-i18n="availWalletBal">Disponible portefeuille :</span> <strong id="send-bal">0</strong></span>
       <button type="button" class="btn-chip sm" onclick="App.fillMaxSend()">MAX</button>
     </div>
     <div class="send-addr-wrap">
-      <input type="text" id="send-to-address" class="game-input" placeholder="Adresse destinataire (0x...)" data-i18n-placeholder="recipientAddr" style="text-align:left; padding-right: 74px;">
+      <input type="text" id="send-to-address" class="game-input" placeholder="Adresse destinataire (0x...)" data-i18n-placeholder="recipientAddr" maxlength="42" autocomplete="off" spellcheck="false" style="text-align:left; padding-right: 74px;">
       <button type="button" class="btn-paste-inline" onclick="App.pasteRecipientAddr()">📋 <span data-i18n="paste">Paste</span></button>
     </div>
-    <input type="number" id="send-amount" class="game-input" placeholder="Montant" step="any" data-i18n-placeholder="amount">
+    <input type="text" inputmode="decimal" id="send-amount" class="game-input" placeholder="Montant" maxlength="40" autocomplete="off" data-i18n-placeholder="amount">
     <div class="send-fee-hint">
       <span data-i18n="networkFee">Frais réseau estimés</span>
       <span>~0.002 POL (Polygon)</span>
     </div>
-    <button class="btn-primary" style="margin-top:10px;" onclick="App.executeSend()" data-i18n="confirmSend">CONFIRMER L'ENVOI 🔒</button>
+    <button type="button" id="send-confirm-button" class="btn-primary send-confirm-button" style="margin-top:10px;" onclick="App.executeSend()" data-i18n="confirmSend">CONFIRMER L'ENVOI</button>
   </div>
 </div>
 

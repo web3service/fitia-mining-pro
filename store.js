@@ -34,8 +34,8 @@
       shippingMissing: 'Complete all required delivery fields and accept the payment notice.',
       notReady: 'Unlock your wallet before making a store payment.', contractBlocked: 'This seller address is not allowed for payment.',
       decimalsBlocked: 'The token configuration changed. Payment was stopped for your safety.',
-      paymentSent: 'Payment submitted. Share the receipt with the seller for fulfillment.',
-      paymentConfirmed: 'Payment confirmed on Polygon.', paymentPending: 'Transaction submitted; network confirmation is still pending.',
+      paymentSent: 'Payment submitted. Polygon confirmation is in progress.',
+      paymentConfirmed: 'Purchase successful: payment confirmed on Polygon.', paymentPending: 'Transaction submitted; network confirmation is still pending.',
       paymentFailed: 'The transaction failed on-chain. No successful payment was confirmed; check your wallet before trying again.',
       pending: 'PENDING', confirmed: 'CONFIRMED', submitted: 'SUBMITTED', failed: 'FAILED', orderRef: 'Order reference', seller: 'Seller',
       sellerContact: 'Seller contact', payment: 'Payment', transaction: 'Transaction', products: 'Products', deliveryTo: 'Delivery details',
@@ -67,8 +67,8 @@
       shippingMissing: 'Complétez tous les champs de livraison obligatoires et acceptez l’avis de paiement.',
       notReady: 'Déverrouillez votre wallet avant de payer dans STORE.', contractBlocked: 'Cette adresse vendeur n’est pas autorisée pour le paiement.',
       decimalsBlocked: 'La configuration du jeton a changé. Le paiement a été bloqué pour votre sécurité.',
-      paymentSent: 'Paiement transmis. Partagez le reçu au vendeur pour la préparation de la commande.',
-      paymentConfirmed: 'Paiement confirmé sur Polygon.', paymentPending: 'Transaction transmise ; confirmation réseau encore en attente.',
+      paymentSent: 'Paiement transmis. Confirmation Polygon en cours.',
+      paymentConfirmed: 'Achat réussi : paiement confirmé sur Polygon.', paymentPending: 'Transaction transmise ; confirmation réseau encore en attente.',
       paymentFailed: 'La transaction a échoué on-chain. Aucun paiement réussi n’est confirmé ; vérifiez votre wallet avant de réessayer.',
       pending: 'EN ATTENTE', confirmed: 'CONFIRMÉ', submitted: 'TRANSMIS', failed: 'ÉCHEC', orderRef: 'Référence de commande', seller: 'Vendeur',
       sellerContact: 'Contact vendeur', payment: 'Paiement', transaction: 'Transaction', products: 'Produits', deliveryTo: 'Informations de livraison',
@@ -660,7 +660,7 @@
         const tx = await contract.transfer(to, quote.totalUnits);
         if (!tx || !/^0x[a-fA-F0-9]{64}$/.test(tx.hash || '')) throw new Error('STORE_TRANSACTION_HASH');
         if (this.account !== paymentAccount) {
-          this.app.showToast(`${this.t('paymentSent')} ${tx.hash}`);
+          this.app.showToast(`${this.t('paymentSent')} ${tx.hash}`, false, 'pending');
           return;
         }
         const order = this.createOrder(quote, tx.hash.toLowerCase());
@@ -673,7 +673,7 @@
         this.clearCart(false);
         this.app.closeModals();
         this.showReceipt(order.id);
-        this.app.showToast(this.t('paymentSent'));
+        this.app.showToast(this.t('paymentSent'), false, 'pending');
         void this.trackPayment(order.id, tx);
       } catch (error) {
         const message = error instanceof StoreUiError ? error.message : '';
@@ -693,16 +693,24 @@
       let status = 'submitted';
       try {
         const receipt = await tx.wait();
-        if (!receipt || receipt.status === 0) {
+        const receiptStatus = Number(receipt?.status ?? -1);
+        if (receiptStatus === 0) {
           status = 'failed';
           this.app.showToast(this.t('paymentFailed'), true);
-        } else {
+        } else if (receiptStatus === 1) {
           status = 'confirmed';
           this.app.showToast(this.t('paymentConfirmed'));
           FitiaSecurity.Native.vibrate(35);
+        } else {
+          this.app.showToast(this.t('paymentPending'), false, 'pending');
         }
-      } catch (_) {
-        this.app.showToast(this.t('paymentPending'), true);
+      } catch (error) {
+        if (Number(error?.receipt?.status ?? -1) === 0) {
+          status = 'failed';
+          this.app.showToast(this.t('paymentFailed'), true);
+        } else {
+          this.app.showToast(this.t('paymentPending'), false, 'pending');
+        }
       }
       const order = this.orders.find((item) => item.id === orderId);
       if (order) {
@@ -713,7 +721,7 @@
       }
       if (this.currentReceiptId === orderId && document.getElementById('modal-store-receipt')?.classList.contains('active')) this.renderReceipt(orderId);
       if (document.getElementById('modal-store-orders')?.classList.contains('active')) this.renderOrders();
-      await this.app.updateData();
+      try { await this.app.updateData(); } catch (_) { /* Le statut du reçu reste inchangé. */ }
     }
 
     receiptRow(label, value) {

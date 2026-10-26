@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.19 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.20 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -459,7 +459,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.19\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.20\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -990,8 +990,8 @@ function httpRequest(port, method, reqPath) {
           async claimRewards() { throw { code: 'SERVER_ERROR', message: 'server response 403', shortMessage: 'server response 403' }; }
         };
         await App.claim();
-        assert.strictEqual(messages.at(-1).message, App.t('claimNotConfirmed'));
-        assert.strictEqual(messages.at(-1).isError, true);
+        assert.strictEqual(messages.at(-1).message, App.t('claimStillPending'));
+        assert.strictEqual(messages.at(-1).isError, false, 'Un 403 RPC ne doit pas être présenté comme un échec de transaction');
         assert.ok(messages.every((item) => !item.message.includes('403') && !item.message.includes('Contrat :')));
       } finally {
         App.mine = originals.mine;
@@ -1014,9 +1014,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 325,
-        versionName: '3.3.19',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.19/FITIA-PRO-Miner.apk',
+        versionCode: 326,
+        versionName: '3.3.20',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.20/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1059,7 +1059,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 325;
+        nativeState.appVersionCode = 326;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1921,6 +1921,153 @@ function httpRequest(port, method, reqPath) {
       App.requestPinVerification = origReqPin;
     });
 
+    await runTest('TRANSACTION-UX', 'Messages professionnels : 403 neutre, confirmation réelle et échec confirmé sans détail RPC', async () => {
+      const originals = { showToast: App.showToast, provider: App.provider };
+      const messages = [];
+      const hash = `0x${'cd'.repeat(32)}`;
+      const rpc403 = () => ({ code: 'SERVER_ERROR', message: 'contract: server response 403', shortMessage: 'contract: server response 403' });
+      App.showToast = (message, isError = false, tone = '') => messages.push({ message, isError, tone });
+      try {
+        App.provider = { getTransactionReceipt: async () => null };
+        const pendingTx = { hash, wait: async () => { throw rpc403(); } };
+        const pendingError = await App.waitForTransactionReceipt(pendingTx).catch((error) => error);
+        assert.strictEqual(pendingError.code, 'TRANSACTION_CONFIRMATION_PENDING');
+        App.showError(pendingError);
+        assert.strictEqual(messages.at(-1).message, App.t('transactionPendingCheck'));
+        assert.strictEqual(messages.at(-1).isError, false);
+        assert.strictEqual(messages.at(-1).tone, 'pending');
+        assert.ok(messages.every((item) => !/403|contract:|server response/i.test(item.message)));
+
+        App.provider = { getTransactionReceipt: async (requestedHash) => {
+          assert.strictEqual(requestedHash, hash);
+          return { status: 1, blockNumber: 62500020 };
+        } };
+        const confirmed = await App.waitForTransactionReceipt(pendingTx);
+        assert.strictEqual(confirmed.status, 1, 'Le reçu retrouvé par hash confirme réellement la transaction');
+
+        const failedTx = { hash, wait: async () => ({ status: 0 }) };
+        const failedError = await App.waitForTransactionReceipt(failedTx).catch((error) => error);
+        assert.strictEqual(failedError.code, 'TRANSACTION_FAILED');
+        App.showError(failedError);
+        assert.strictEqual(messages.at(-1).message, App.t('transactionFailed'));
+        assert.strictEqual(messages.at(-1).isError, true);
+
+        const sanitized = App.getErrorMessage({ shortMessage: 'execution reverted: internal contract detail' });
+        assert.strictEqual(sanitized, App.t('transactionNotConfirmed'));
+        assert.ok(!sanitized.includes('internal contract detail'));
+      } finally {
+        App.showToast = originals.showToast;
+        App.provider = originals.provider;
+      }
+    });
+
+    await runTest('SEND-UI', 'Boutons Envoyer/Recevoir professionnels et sélecteur POL/USDT/FTA avec logos locaux', async () => {
+      const document = e2eWin.document;
+      const primaryActions = Array.from(document.querySelectorAll('.wallet-primary-actions .wallet-primary-action'));
+      assert.strictEqual(primaryActions.length, 2);
+      assert.ok(primaryActions.every((button) => button.querySelector('.wallet-action-icon svg') && button.querySelector('.wallet-action-copy small')));
+      const tokenInput = document.getElementById('send-token-select');
+      assert.strictEqual(tokenInput.type, 'hidden');
+      const options = Array.from(document.querySelectorAll('[data-send-token]'));
+      assert.deepStrictEqual(options.map((option) => option.dataset.sendToken), ['POL', 'USDT', 'FTA']);
+      assert.deepStrictEqual(options.map((option) => option.querySelector('img').getAttribute('src')), ['assets/pol.svg', 'assets/usdt.svg', 'assets/fta.png']);
+      options.forEach((option) => assert.ok(fs.existsSync(path.join(ROOT, option.querySelector('img').getAttribute('src')))));
+
+      App.openSend();
+      document.getElementById('send-amount').value = '12';
+      App.selectSendToken('USDT');
+      assert.strictEqual(tokenInput.value, 'USDT');
+      assert.strictEqual(document.getElementById('send-amount').value, '', 'Le changement de token efface le montant par sécurité');
+      assert.strictEqual(document.getElementById('send-token-current-logo').getAttribute('src'), 'assets/usdt.svg');
+      assert.strictEqual(document.querySelector('[data-send-token="USDT"]').getAttribute('aria-selected'), 'true');
+      App.toggleSendTokenMenu();
+      assert.strictEqual(document.getElementById('send-token-trigger').getAttribute('aria-expanded'), 'true');
+      App.selectSendToken('FTA');
+      assert.strictEqual(document.getElementById('send-token-current-logo').getAttribute('src'), 'assets/fta.png');
+      assert.strictEqual(document.getElementById('send-token-trigger').getAttribute('aria-expanded'), 'false');
+      App.closeModals();
+      App.selectSendToken('POL');
+    });
+
+    await runTest('SEND-SECURITY', 'Montant exact, double-clic bloqué et changement de session pendant le PIN sans transfert', async () => {
+      const document = e2eWin.document;
+      const originals = {
+        user: App.user,
+        usdtToken: App.usdtToken,
+        requestPin: App.requestPinVerification,
+        ensurePolGas: App.ensurePolGas,
+        updateData: App.updateData,
+        showToast: App.showToast
+      };
+      const transfers = [];
+      const messages = [];
+      const recipient = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+      const hash = `0x${'ef'.repeat(32)}`;
+      let resolveReceipt;
+      const pinSecret = { privateKey: 'temporary-private', mnemonic: 'temporary-mnemonic' };
+      try {
+        App.usdtToken = {
+          balanceOf: async () => ethersLib.parseUnits('2', 6),
+          transfer: async (to, amount) => {
+            transfers.push({ to, amount });
+            return { hash, wait: () => new Promise((resolve) => { resolveReceipt = resolve; }) };
+          }
+        };
+        App.ensurePolGas = async () => true;
+        App.updateData = async () => {};
+        App.requestPinVerification = async () => ({ secret: pinSecret });
+        App.showToast = (message, isError = false, tone = '') => messages.push({ message, isError, tone });
+
+        App.openSend();
+        App.selectSendToken('USDT');
+        document.getElementById('send-to-address').value = recipient;
+        document.getElementById('send-amount').value = '1.234567';
+        const firstSend = App.executeSend();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await App.executeSend();
+        if (resolveReceipt) resolveReceipt({ status: 1, blockNumber: 62500021 });
+        await firstSend;
+
+        assert.strictEqual(transfers.length, 1, 'Le double-clic ne crée pas une seconde transaction');
+        assert.strictEqual(transfers[0].amount, 1234567n, 'Le montant signé conserve exactement les six décimales USDT');
+        assert.strictEqual(transfers[0].to, ethersLib.getAddress(recipient));
+        assert.strictEqual(pinSecret.privateKey, '');
+        assert.strictEqual(pinSecret.mnemonic, '');
+        assert.strictEqual(App.sendTransactionInProgress, false);
+        assert.strictEqual(document.getElementById('send-confirm-button').disabled, false);
+        assert.strictEqual(messages.at(-1).message, App.t('sentSuccess'));
+        assert.ok(messages.some((item) => item.message === App.t('sending') && item.tone === 'pending' && !item.isError));
+
+        const sessionSecret = { privateKey: 'temporary-private', mnemonic: 'temporary-mnemonic' };
+        App.openSend();
+        App.selectSendToken('USDT');
+        document.getElementById('send-to-address').value = recipient;
+        document.getElementById('send-amount').value = '1';
+        App.requestPinVerification = async () => {
+          App.user = `0x${'99'.repeat(20)}`;
+          return { secret: sessionSecret };
+        };
+        await App.executeSend();
+        assert.strictEqual(transfers.length, 1, 'Aucun transfert n’est signé après un changement de session pendant le PIN');
+        assert.strictEqual(messages.at(-1).message, App.t('walletSessionChanged'));
+        assert.strictEqual(messages.at(-1).isError, true);
+        assert.strictEqual(sessionSecret.privateKey, '');
+        assert.strictEqual(sessionSecret.mnemonic, '');
+      } finally {
+        App.user = originals.user;
+        App.usdtToken = originals.usdtToken;
+        App.requestPinVerification = originals.requestPin;
+        App.ensurePolGas = originals.ensurePolGas;
+        App.updateData = originals.updateData;
+        App.showToast = originals.showToast;
+        App.sendTransactionInProgress = false;
+        document.getElementById('send-confirm-button').disabled = false;
+        App.setLoader(false);
+        App.closeModals();
+        App.selectSendToken('POL');
+      }
+    });
+
     await runTest('ACTIVITY', 'Suivi central du signer : pending → confirmé, notification persistante et aucun secret stocké', async () => {
       const hash = `0x${'11'.repeat(32)}`;
       let confirmTransaction;
@@ -2229,11 +2376,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 325);
-      assert.strictEqual(updateManifest.versionName, '3.3.19');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.19/'));
+      assert.strictEqual(updateManifest.versionCode, 326);
+      assert.strictEqual(updateManifest.versionName, '3.3.20');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.20/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.19 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.20 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2251,8 +2398,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=325'), 'versionCode=325 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.19"'), 'versionName=3.3.19 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=326'), 'versionCode=326 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.20"'), 'versionName=3.3.20 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

@@ -96,13 +96,17 @@ async function createHarness(token = 'USDT', options = {}) {
     balanceOf: async () => symbol === 'USDT' ? win.ethers.parseUnits(String(options.balance ?? 100), 6) : win.ethers.parseUnits(String(options.balance ?? 100), 8),
     transfer: async (to, amount) => {
       transfers.push({ symbol, to, amount });
-      return { hash, wait: async () => ({ status: options.revert ? 0 : 1 }) };
+      return { hash, wait: async () => {
+        if (options.revertThrows) throw { code: 'CALL_EXCEPTION', receipt: { status: 0 } };
+        if (options.waitThrows) throw options.waitThrows;
+        return { status: options.revert ? 0 : 1 };
+      } };
     }
   });
   const app = {
     currentLang: 'en', user: BUYER, signer: {}, usdtDecimals: 6, ftaDecimals: 8,
     usdtToken: makeToken('USDT'), ftaToken: makeToken('FTA'),
-    showToast: (message, isError = false) => toasts.push({ message, isError }),
+    showToast: (message, isError = false, tone = '') => toasts.push({ message, isError, tone }),
     showError: (error) => errors.push(error),
     setLoader: (visible) => win.document.getElementById('loader').classList.toggle('hidden', !visible),
     closeModals: () => {
@@ -293,6 +297,34 @@ async function createHarness(token = 'USDT', options = {}) {
       assert.strictEqual(h.sharedTexts.length, 0);
       assert.ok(h.toasts.some((entry) => entry.message.includes('failed on-chain')));
     } finally { h.close(); }
+  });
+
+  await runTest('Sécurité : 403 réseau en attente et exception de revert réellement échouée', async () => {
+    const pendingHarness = await createHarness('USDT', { waitThrows: { code: 'SERVER_ERROR', message: 'server response 403' } });
+    try {
+      pendingHarness.center.addToCart('product-phone');
+      await pendingHarness.center.openCheckout();
+      pendingHarness.fillShipping();
+      await pendingHarness.center.pay({ preventDefault() {} });
+      await waitFor(() => pendingHarness.center.orders[0]?.status === 'submitted', 'submitted after RPC 403');
+      const pendingToast = pendingHarness.toasts.at(-1);
+      assert.ok(pendingToast.message.includes('confirmation is still pending'));
+      assert.strictEqual(pendingToast.isError, false);
+      assert.strictEqual(pendingToast.tone, 'pending');
+      assert.ok(!pendingToast.message.includes('403'));
+    } finally { pendingHarness.close(); }
+
+    const failedHarness = await createHarness('USDT', { revertThrows: true });
+    try {
+      failedHarness.center.addToCart('product-phone');
+      await failedHarness.center.openCheckout();
+      failedHarness.fillShipping();
+      await failedHarness.center.pay({ preventDefault() {} });
+      await waitFor(() => failedHarness.center.orders[0]?.status === 'failed', 'thrown revert status');
+      assert.ok(failedHarness.toasts.at(-1).message.includes('failed on-chain'));
+      assert.strictEqual(failedHarness.toasts.at(-1).isError, true);
+      assert.ok(failedHarness.win.document.getElementById('store-receipt-share').classList.contains('hidden'));
+    } finally { failedHarness.close(); }
   });
 
   await runTest('Sécurité : verrouillage ou changement de wallet pendant le PIN bloque le transfert', async () => {
