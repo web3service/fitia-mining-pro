@@ -11,7 +11,9 @@ const { JSDOM } = require(
 
 const ROOT = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
+const adminCss = fs.readFileSync(path.join(ROOT, 'admin/admin.css'), 'utf8');
 const script = fs.readFileSync(path.join(ROOT, 'admin/admin.js'), 'utf8');
+const effectsScript = fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8');
 let manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
 let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
@@ -68,6 +70,18 @@ async function waitFor(condition, label) {
 }
 
 (async () => {
+  assert.ok(html.includes('viewport-fit=cover'));
+  assert.ok(html.indexOf('src="/promotion-effects.js"') < html.indexOf('src="/admin/admin.js"'));
+  assert.deepStrictEqual(
+    Array.from(window.document.querySelectorAll('#promotion-variant option'), (option) => option.value),
+    ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge']
+  );
+  assert.ok(adminCss.includes('@media (max-width: 760px)'));
+  assert.ok(adminCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr))'));
+  assert.ok(adminCss.includes('height: 100dvh'));
+  assert.ok(adminCss.includes('input, select { min-height: 48px; font-size: 16px; }'));
+  assert.ok(adminCss.includes('.nav-short-label { display: inline; }'));
+  window.eval(effectsScript);
   window.eval(script);
   await waitFor(() => !window.document.getElementById('admin-view').classList.contains('hidden'), 'connexion');
   await waitFor(() => window.document.querySelectorAll('#announcements-list .announcement-row').length === initialAnnouncementCount, 'liste initiale');
@@ -109,13 +123,16 @@ async function waitFor(condition, label) {
   assert.strictEqual(manifest.announcements.length, initialAnnouncementCount);
 
   window.document.querySelector('[data-section="promotions"]').click();
-  assert.strictEqual(window.document.getElementById('page-title').textContent, 'Cartes cadeaux & badges');
+  assert.strictEqual(window.document.getElementById('page-title').textContent, 'Effets & décorations');
   window.document.querySelector('#section-promotions [data-new-promotion]').click();
   assert.ok(!window.document.getElementById('promotion-editor-modal').classList.contains('hidden'));
   const promotionLabel = '<img src=x data-promotion-xss> NOËL';
   window.document.getElementById('promotion-target-type').value = 'battery';
   window.document.getElementById('promotion-target-position').value = '2';
-  window.document.getElementById('promotion-variant').value = 'badge';
+  window.document.getElementById('promotion-variant').value = 'bells';
+  window.document.getElementById('promotion-variant').dispatchEvent(new window.Event('change', { bubbles: true }));
+  window.document.getElementById('promotion-animated').checked = false;
+  window.document.getElementById('promotion-animated').dispatchEvent(new window.Event('change', { bubbles: true }));
   window.document.getElementById('promotion-label-fr').value = promotionLabel;
   window.document.getElementById('promotion-label-en').value = 'MERRY CHRISTMAS';
   window.document.getElementById('promotion-starts-at').value = '2030-12-01T08:00';
@@ -123,29 +140,38 @@ async function waitFor(condition, label) {
   window.document.getElementById('promotion-label-fr').dispatchEvent(new window.Event('input', { bubbles: true }));
   assert.strictEqual(window.document.getElementById('promotion-preview-label').textContent, promotionLabel);
   assert.strictEqual(window.document.getElementById('promotion-preview-target').textContent, 'Batterie n°2');
+  assert.ok(window.document.querySelector('#promotion-preview-card .promotion-effect-bells svg'));
+  assert.ok(window.document.getElementById('promotion-preview-card').classList.contains('promotion-effect-static'));
+  assert.strictEqual(window.document.querySelector('#promotion-preview-card .promotion-effect-particles'), null);
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => promotionWrites.length === 1, 'création décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture éditeur décoration');
   assert.strictEqual(promotionManifest.promotions.length, 1);
   assert.strictEqual(promotionManifest.promotions[0].targetType, 'battery');
   assert.strictEqual(promotionManifest.promotions[0].targetId, 1);
-  assert.strictEqual(promotionManifest.promotions[0].variant, 'badge');
+  assert.strictEqual(promotionManifest.promotions[0].variant, 'bells');
+  assert.strictEqual(promotionManifest.promotions[0].animated, false);
   assert.strictEqual(promotionManifest.promotions[0].startsAt, '2030-12-01T08:00:00.000Z');
-  const promotionRow = window.document.querySelector('[data-promotion-id^="badge-"]');
+  const promotionRow = window.document.querySelector('[data-promotion-id^="bells-"]');
   assert.ok(promotionRow.textContent.includes(promotionLabel));
   assert.strictEqual(promotionRow.querySelector('[data-promotion-xss]'), null);
   assert.strictEqual(promotionRow.querySelector('script'), null);
   assert.notStrictEqual(window.__xss, true);
 
+  assert.ok(promotionRow.querySelector('.promotion-effect-bells svg'));
   promotionRow.querySelector('.button-quiet').click();
   window.document.getElementById('promotion-target-position').value = '3';
   window.document.getElementById('promotion-variant').value = 'gift';
+  window.document.getElementById('promotion-animated').checked = true;
+  window.document.getElementById('promotion-variant').dispatchEvent(new window.Event('change', { bubbles: true }));
+  assert.ok(window.document.querySelectorAll('#promotion-preview-card .promotion-particle').length > 0);
   window.document.getElementById('promotion-label-fr').value = 'CADEAU DE NOËL';
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => promotionWrites.length === 2, 'modification décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture modification décoration');
   assert.strictEqual(promotionManifest.promotions[0].targetId, 2);
   assert.strictEqual(promotionManifest.promotions[0].variant, 'gift');
+  assert.strictEqual(promotionManifest.promotions[0].animated, true);
 
   const promotionsEnabled = window.document.getElementById('promotions-enabled');
   promotionsEnabled.checked = false;

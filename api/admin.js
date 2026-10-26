@@ -98,12 +98,15 @@ function validatePromotionManifest(raw) {
     const targetType = cleanText(item.targetType, 16).toLowerCase();
     const targetId = item.targetId;
     const variant = cleanText(item.variant, 16).toLowerCase();
+    const animated = item.animated === undefined ? true : item.animated;
     const targetKey = `${targetType}:${targetId}`;
     if (!/^[a-z0-9._-]+$/.test(id) || ids.has(id)) throw new ApiError(400, 'Un identifiant de décoration est invalide ou dupliqué.', 'VALIDATION');
     if (!['machine', 'battery'].includes(targetType) || !Number.isSafeInteger(targetId) || targetId < 0 || targetId > 99) {
       throw new ApiError(400, 'La machine ou la batterie sélectionnée est invalide.', 'VALIDATION');
     }
-    if (!['gift', 'badge'].includes(variant)) throw new ApiError(400, 'Le style de décoration est invalide.', 'VALIDATION');
+    if (!['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge'].includes(variant) || typeof animated !== 'boolean') {
+      throw new ApiError(400, 'Le style ou le réglage d’animation de la décoration est invalide.', 'VALIDATION');
+    }
     if (targets.has(targetKey)) throw new ApiError(400, 'Un article ne peut avoir qu’une seule décoration.', 'VALIDATION');
     ids.add(id);
     targets.add(targetKey);
@@ -112,6 +115,7 @@ function validatePromotionManifest(raw) {
       targetType,
       targetId,
       variant,
+      animated,
       label: normalizeLocalizedText(item.label, 32, 'Le badge')
     };
     const startsAt = normalizeDate(item.startsAt, 'La date de début');

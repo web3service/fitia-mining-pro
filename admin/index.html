@@ -2,11 +2,13 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <title>FITIA PRO — Administration</title>
   <link rel="icon" type="image/png" href="/assets/icon-192.png">
   <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/promotion-effects.css">
+  <script src="/promotion-effects.js" defer></script>
   <script src="/admin/admin.js" defer></script>
 </head>
 <body>
@@ -37,13 +39,13 @@
       </div>
       <nav class="sidebar-nav" aria-label="Navigation principale">
         <button class="nav-button active" type="button" data-section="dashboard">
-          <span class="nav-icon" aria-hidden="true">⌂</span> Vue d’ensemble
+          <span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Vue d’ensemble</span><span class="nav-short-label">Accueil</span>
         </button>
         <button class="nav-button" type="button" data-section="announcements">
-          <span class="nav-icon" aria-hidden="true">◉</span> Événements &amp; annonces
+          <span class="nav-icon" aria-hidden="true">◉</span><span class="nav-label">Événements &amp; annonces</span><span class="nav-short-label">Annonces</span>
         </button>
         <button class="nav-button" type="button" data-section="promotions">
-          <span class="nav-icon" aria-hidden="true">◇</span> Cartes cadeaux &amp; badges
+          <span class="nav-icon" aria-hidden="true">◇</span><span class="nav-label">Cartes cadeaux &amp; effets</span><span class="nav-short-label">Effets</span>
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -136,12 +138,12 @@
 
         <section id="section-promotions" class="page-section hidden">
           <div class="section-heading">
-            <div><p class="eyebrow">Boutique du wallet</p><h2>Cartes cadeaux &amp; badges</h2><p class="muted">Décorez uniquement les machines et batteries que vous sélectionnez.</p></div>
+            <div><p class="eyebrow">Boutique du wallet</p><h2>Effets &amp; décorations</h2><p class="muted">Choisissez un effet animé pour les machines et batteries de vos événements.</p></div>
             <button class="button button-primary" type="button" data-new-promotion>Nouvelle décoration</button>
           </div>
 
           <div class="distribution-card">
-            <div><strong>Affichage des décorations</strong><p>Désactivez temporairement toutes les cartes cadeaux et tous les badges sans les supprimer.</p></div>
+            <div><strong>Affichage des décorations</strong><p>Désactivez temporairement tous les effets saisonniers sans les supprimer.</p></div>
             <label class="switch-control">
               <input id="promotions-enabled" type="checkbox" aria-label="Activer les décorations de la boutique">
               <span class="switch-track" aria-hidden="true"></span>
@@ -159,7 +161,7 @@
           <div id="promotions-empty" class="empty-state hidden">
             <img src="/assets/icon-192.png" width="52" height="52" alt="">
             <h3>Aucune décoration enregistrée</h3>
-            <p>Créez une carte cadeau ou un badge pour une machine ou une batterie.</p>
+            <p>Créez un cadeau, des cloches ou un effet saisonnier pour une machine ou une batterie.</p>
             <button class="button button-secondary" type="button" data-new-promotion>Créer une décoration</button>
           </div>
         </section>
@@ -246,9 +248,27 @@
               </div>
             </div>
             <div class="field-group">
-              <label for="promotion-variant">Présentation</label>
-              <select id="promotion-variant" required><option value="gift">Carte cadeau de Noël</option><option value="badge">Badge promotionnel</option></select>
+              <label for="promotion-variant">Effet de l’événement</label>
+              <select id="promotion-variant" required>
+                <optgroup label="Noël et hiver">
+                  <option value="gift">Cadeau emballé</option>
+                  <option value="bells">Cloches de Noël</option>
+                  <option value="snow">Neige et flocons</option>
+                </optgroup>
+                <optgroup label="Événements de l’année">
+                  <option value="confetti">Confettis et célébration</option>
+                  <option value="fireworks">Feux d’artifice — Nouvel An</option>
+                  <option value="hearts">Cœurs — Saint-Valentin</option>
+                  <option value="blossom">Fleurs — Printemps</option>
+                  <option value="halloween">Citrouille — Halloween</option>
+                </optgroup>
+                <option value="badge">Badge promotionnel</option>
+              </select>
             </div>
+            <label class="animation-control" for="promotion-animated">
+              <input id="promotion-animated" type="checkbox" checked>
+              <span><strong>Animer cette décoration</strong><small>Particules et mouvements légers, sans modifier l’achat.</small></span>
+            </label>
             <div class="localized-primary">
               <div class="field-group"><label for="promotion-label-fr">Texte en français <span>obligatoire · 32 caractères maximum</span></label><input id="promotion-label-fr" maxlength="32" required placeholder="JOYEUX NOËL"></div>
             </div>
@@ -283,7 +303,7 @@
               </div>
             </div>
             <p id="promotion-preview-schedule" class="preview-schedule">Affichage sans limite de date</p>
-            <p class="preview-note">Le texte est affiché sans HTML. La décoration disparaît automatiquement hors de sa période ou si l’article n’existe plus.</p>
+            <p class="preview-note">Aperçu animé identique au wallet. Les animations sont désactivées si le téléphone demande une réduction des mouvements. La décoration disparaît hors de sa période ou si l’article n’existe plus.</p>
           </aside>
         </div>
         <footer class="modal-footer">

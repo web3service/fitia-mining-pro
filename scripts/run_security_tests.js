@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.13 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.14 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -412,6 +412,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'activity.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'announcements.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'promotions.js'), 'utf8'));
 
   if (mockRpcUrl) {
@@ -448,7 +449,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.13\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.14\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -835,9 +836,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 319,
-        versionName: '3.3.13',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.13/FITIA-PRO-Miner.apk',
+        versionCode: 320,
+        versionName: '3.3.14',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.14/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -880,7 +881,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 319;
+        nativeState.appVersionCode = 320;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -992,7 +993,7 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
-    await runTest('APP-PROMOTIONS', 'Cartes cadeaux et badges ciblés, dates, traductions et achats strictement inchangés', async () => {
+    await runTest('APP-PROMOTIONS', 'Effets saisonniers ciblés, animations, dates, traductions et achats strictement inchangés', async () => {
       const center = App.promotionCenter;
       const originalFetch = e2eWin.fetch;
       const originals = {
@@ -1023,7 +1024,7 @@ function httpRequest(port, method, reqPath) {
           { ...activeGift, id: 'expired', targetId: 1, expiresAt: new Date(now - 86400000).toISOString() },
           { ...activeGift, id: 'bad-target', targetId: 100 },
           { ...activeGift, id: 'null-target', targetId: null },
-          { ...activeGift, id: 'bad-variant', variant: 'snow' },
+          { ...activeGift, id: 'bad-variant', variant: 'unknown-effect' },
           { ...activeGift, id: 'bad-date', expiresAt: 'date-invalide' }
         ]
       };
@@ -1045,6 +1046,9 @@ function httpRequest(port, method, reqPath) {
         const machineCards = e2eWin.document.querySelectorAll('#shop-list .rig-item');
         assert.strictEqual(machineCards.length, 2);
         assert.ok(machineCards[0].classList.contains('shop-promo-gift'));
+        assert.strictEqual(normalized[0].animated, true, 'Les décorations existantes restent animées par défaut');
+        assert.ok(machineCards[0].querySelector('.promotion-effect-gift svg'));
+        assert.ok(machineCards[0].querySelectorAll('.promotion-particle').length > 0);
         assert.strictEqual(machineCards[0].getAttribute('data-promotion-id'), 'gift-machine-test');
         assert.ok(machineCards[0].querySelector('.shop-promo-label').textContent.includes('<img src=x>'));
         assert.strictEqual(machineCards[0].querySelector('.shop-promo-label img'), null, 'Le texte administrateur ne crée aucun HTML');
@@ -1089,13 +1093,48 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(datedCard.classList.contains('shop-promo'), false);
         center.items = normalized;
 
+        const effectVariants = e2eWin.FitiaPromotionEffects.VARIANTS;
+        assert.deepStrictEqual(Array.from(effectVariants), ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge']);
+        const effectCard = e2eWin.document.createElement('div');
+        for (const variant of effectVariants) {
+          center.items = [{ ...normalized[0], id: `effect-${variant}`, variant, animated: true, startsAt: null, expiresAt: null }];
+          center.decorate(effectCard, 'machine', 0);
+          assert.ok(effectCard.classList.contains(`shop-promo-${variant}`));
+          const effectSvg = effectCard.querySelector(`.promotion-effect-${variant} svg`);
+          assert.ok(effectSvg, `Illustration locale ${variant}`);
+          assert.strictEqual(effectSvg.querySelector('script, image, foreignObject'), null);
+          const gradientIds = new Set(Array.from(effectSvg.querySelectorAll('defs [id]'), (element) => element.id));
+          effectSvg.querySelectorAll('[fill], [stroke]').forEach((element) => {
+            for (const attribute of ['fill', 'stroke']) {
+              const value = element.getAttribute(attribute) || '';
+              const match = value.match(/^url\(#(.+)\)$/);
+              if (match) assert.ok(gradientIds.has(match[1]), `Dégradé local ${variant}`);
+            }
+          });
+          assert.strictEqual(effectCard.querySelectorAll(':scope > .promotion-effect-decoration').length, 1);
+          assert.ok(effectCard.querySelectorAll('.promotion-particle').length > 0, `Particules ${variant}`);
+        }
+        center.items = [{ ...normalized[0], id: 'static-bells', variant: 'bells', animated: false, startsAt: null, expiresAt: null }];
+        center.decorate(effectCard, 'machine', 0);
+        assert.ok(effectCard.classList.contains('promotion-effect-static'));
+        assert.strictEqual(effectCard.querySelector('.promotion-effect-particles'), null, 'Le mode statique ne crée aucune particule');
+        assert.ok(effectCard.querySelector('.promotion-effect-bells svg'));
+        center.items = [];
+        center.decorate(effectCard, 'machine', 0);
+        assert.strictEqual(effectCard.querySelector('.promotion-effect-decoration'), null);
+        assert.strictEqual(effectCard.classList.contains('shop-promo-bells'), false);
+        center.items = normalized;
+
         const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
-        assert.strictEqual(published.enabled, true);
+        assert.strictEqual(typeof published.enabled, 'boolean');
         assert.deepStrictEqual(published.promotions, []);
         const walletSource = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8');
+        assert.ok(walletSource.indexOf('src="promotion-effects.js"') < walletSource.indexOf('src="promotions.js"'));
         assert.ok(walletSource.indexOf('src="promotions.js"') < walletSource.indexOf('src="app.js"'));
+        assert.ok(walletSource.includes('href="promotion-effects.css"'));
         const buildSource = fs.readFileSync(path.join(ROOT, 'scripts/build_apk.py'), 'utf8');
         assert.ok(buildSource.includes('"promotions.js"'), 'Le prochain paquet APK embarque le module local');
+        assert.ok(buildSource.includes('"promotion-effects.js"') && buildSource.includes('"promotion-effects.css"'), 'Les illustrations et animations sont embarquées localement');
       } finally {
         e2eWin.fetch = originalFetch;
         if (center.boundaryTimer !== null) e2eWin.clearTimeout(center.boundaryTimer);
@@ -1702,6 +1741,9 @@ function httpRequest(port, method, reqPath) {
       ].join(';'), apkPath], { encoding: 'utf8' });
       assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/announcements.js'), 'Le module annonces est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/promotions.js'), 'Le module décorations est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/promotion-effects.js'), 'Les illustrations saisonnières sont embarquées dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/promotion-effects.css'), 'Les animations saisonnières sont embarquées dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
       assert.ok(packagedFiles.includes('assets/www/assets/fta.png'), 'Le vrai logo FTA est embarqué dans l’APK');
       assert.ok(!packagedFiles.includes('assets/www/assets/fta.svg'), 'L’ancien dessin FTA n’est plus embarqué');
@@ -1715,11 +1757,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 319);
-      assert.strictEqual(updateManifest.versionName, '3.3.13');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.13/'));
+      assert.strictEqual(updateManifest.versionCode, 320);
+      assert.strictEqual(updateManifest.versionName, '3.3.14');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.14/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.13 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.14 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -1737,8 +1779,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=319'), 'versionCode=319 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.13"'), 'versionName=3.3.13 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=320'), 'versionCode=320 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.14"'), 'versionName=3.3.14 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

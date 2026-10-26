@@ -81,6 +81,11 @@ function clone(value) {
       assert.ok(page.response.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
       assert.ok(page.response.headers.get('content-security-policy').includes("script-src 'self'"));
       assert.strictEqual(page.response.headers.get('x-frame-options'), 'DENY');
+      for (const asset of ['/promotion-effects.js', '/promotion-effects.css']) {
+        const result = await request(localBase, asset);
+        assert.strictEqual(result.response.status, 200, asset);
+        assert.ok(result.text.includes('promotion-effect'), asset);
+      }
       for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/promotions.json', '/.git/HEAD']) {
         const result = await request(localBase, forbidden);
         assert.strictEqual(result.response.status, 404, forbidden);
@@ -202,10 +207,10 @@ function clone(value) {
       assert.strictEqual(result.response.status, 400);
     });
 
-    await runTest('Cartes cadeaux et badges : CSRF, ciblage, traductions, dates et doublons validés', async () => {
+    await runTest('Effets saisonniers : CSRF, variantes, animation, ciblage, traductions, dates et doublons validés', async () => {
       const loaded = await request(localBase, '/api/admin/promotions', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
-      assert.strictEqual(loaded.data.manifest.enabled, true);
+      assert.strictEqual(typeof loaded.data.manifest.enabled, 'boolean');
       assert.strictEqual(loaded.data.manifest.promotions.length, 0);
       const initialRevision = loaded.data.revision;
       const next = clone(loaded.data.manifest);
@@ -227,6 +232,7 @@ function clone(value) {
       });
       assert.strictEqual(saved.response.status, 200, saved.text);
       assert.strictEqual(saved.data.manifest.promotions[0].targetId, 0);
+      assert.strictEqual(saved.data.manifest.promotions[0].animated, true);
       assert.strictEqual(saved.data.manifest.promotions[0].label.fr, 'JOYEUX <b>NOËL</b>');
       const onDisk = JSON.parse(fs.readFileSync(promotionsFile, 'utf8'));
       assert.strictEqual(onDisk.promotions[0].id, 'gift-admin-test');
@@ -257,6 +263,25 @@ function clone(value) {
         method: 'PUT', cookie, csrf, body: { manifest: invalidDates, revision: saved.data.revision }
       });
       assert.strictEqual(result.response.status, 400);
+
+      const invalidAnimation = clone(saved.data.manifest);
+      invalidAnimation.promotions[0].animated = 'yes';
+      result = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidAnimation, revision: saved.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const variants = ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge'];
+      const seasonal = clone(saved.data.manifest);
+      seasonal.promotions = variants.map((variant, index) => ({
+        ...saved.data.manifest.promotions[0], id: `${variant}-admin-test`, targetId: index, variant, animated: index % 2 === 0
+      }));
+      const seasonalSaved = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: seasonal, revision: saved.data.revision }
+      });
+      assert.strictEqual(seasonalSaved.response.status, 200, seasonalSaved.text);
+      assert.deepStrictEqual(seasonalSaved.data.manifest.promotions.map((item) => item.variant), variants);
+      assert.strictEqual(seasonalSaved.data.manifest.promotions[1].animated, false);
 
       const stale = await request(localBase, '/api/admin/promotions', {
         method: 'PUT', cookie, csrf, body: { manifest: saved.data.manifest, revision: initialRevision }

@@ -185,7 +185,7 @@ async function request(base, action, options = {}) {
       assert.strictEqual(loaded.data.revision, 'sha-vercel-promotion-initial');
       const next = loaded.data.manifest;
       next.promotions.push({
-        id: 'gift-vercel-test', targetType: 'machine', targetId: 2, variant: 'gift',
+        id: 'gift-vercel-test', targetType: 'machine', targetId: 2, variant: 'gift', animated: false,
         label: { fr: 'JOYEUX NOËL', en: 'MERRY CHRISTMAS' }
       });
       const rejected = await request(baseB, 'promotions', {
@@ -198,6 +198,7 @@ async function request(base, action, options = {}) {
       assert.strictEqual(saved.response.status, 200, saved.text);
       assert.strictEqual(saved.data.revision, 'sha-vercel-promotion-write-1');
       assert.strictEqual(saved.data.manifest.promotions[0].targetId, 2);
+      assert.strictEqual(saved.data.manifest.promotions[0].animated, false);
       assert.strictEqual(githubPromotionManifest.promotions[0].id, 'gift-vercel-test');
       assert.strictEqual(githubPromotionWrites, 1);
       assert.strictEqual(githubWrites, 1);
@@ -209,6 +210,12 @@ async function request(base, action, options = {}) {
         method: 'PUT', cookie, csrf, body: { manifest: invalid, revision: saved.data.revision }
       });
       assert.strictEqual(invalidResult.response.status, 400);
+      invalid.promotions[0].targetId = 2;
+      invalid.promotions[0].animated = 'yes';
+      const invalidAnimation = await request(baseB, 'promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalid, revision: saved.data.revision }
+      });
+      assert.strictEqual(invalidAnimation.response.status, 400);
       assert.strictEqual(githubPromotionWrites, 1);
     });
 
