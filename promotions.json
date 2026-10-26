@@ -1,4 +1,15 @@
 {
   "enabled": false,
-  "promotions": []
+  "promotions": [
+    {
+      "id": "badge-mvolv38x-2ba615c5",
+      "targetType": "machine",
+      "targetId": 0,
+      "variant": "badge",
+      "animated": true,
+      "label": {
+        "fr": "Promo"
+      }
+    }
+  ]
 }
