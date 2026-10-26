@@ -2,7 +2,8 @@
   "enabled": true,
   "hiddenShopItems": {
     "machine": [
-      0
+      0,
+      7
     ],
     "battery": []
   },
