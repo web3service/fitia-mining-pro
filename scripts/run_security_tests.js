@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.21 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.22 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -473,7 +473,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.21\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.22\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -1122,9 +1122,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 327,
-        versionName: '3.3.21',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.21/FITIA-PRO-Miner.apk',
+        versionCode: 328,
+        versionName: '3.3.22',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.22/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1167,7 +1167,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 327;
+        nativeState.appVersionCode = 328;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1316,6 +1316,8 @@ function httpRequest(port, method, reqPath) {
           announcements: [
             safe,
             { ...safe, id: 'event-safe', title: { fr: 'Doublon' } },
+            { ...safe, id: 'disabled', enabled: false },
+            { ...safe, id: 'bad-enabled', enabled: 'false' },
             { ...safe, id: 'expired', expiresAt: '2026-01-01T00:00:00Z' },
             { ...safe, id: 'future', startsAt: '2027-01-01T00:00:00Z' },
             { ...safe, id: 'bad-category', category: 'unknown' },
@@ -1406,12 +1408,16 @@ function httpRequest(port, method, reqPath) {
       const originalFetch = e2eWin.fetch;
       const originals = {
         items: center.items,
+        hiddenShopItems: center.hiddenShopItems,
         lastFetchAt: center.lastFetchAt,
         lang: App.currentLang,
         machines: App.shopMachinesData,
         batteries: App.shopBatteriesData,
+        userMachines: App.userMachines,
+        batteryInventory: App.batteryInventory,
         view: App.shopViewMode,
         payMode: App.payMode,
+        ensurePolGas: App.ensurePolGas,
         buyMachine: App.buyMachine,
         buyBattery: App.buyBattery
       };
@@ -1480,6 +1486,46 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(App.buyBattery, originals.buyBattery);
         assert.strictEqual(App.shopMachinesData[0].price, 10);
         assert.strictEqual(App.shopBatteriesData[0].price, 5);
+
+        const visibilityManifest = { ...manifest, hiddenShopItems: { machine: [1], battery: [0] } };
+        e2eWin.fetch = async () => ({ ok: true, json: async () => visibilityManifest });
+        await center.refresh({ force: true });
+        App.shopViewMode = 'machines';
+        await App.renderShop();
+        let visibleMachines = e2eWin.document.querySelectorAll('#shop-list .rig-item');
+        assert.strictEqual(visibleMachines.length, 1, 'Seul le type de machine masqué disparaît');
+        assert.strictEqual(visibleMachines[0].querySelector('button').getAttribute('onclick'), 'App.buyMachine(0)');
+        assert.strictEqual(visibleMachines[0].querySelector('.rig-price').textContent, '10.00 $');
+        App.shopViewMode = 'batteries';
+        await App.renderShop();
+        assert.strictEqual(e2eWin.document.querySelectorAll('#shop-list .battery-shop-item').length, 0);
+        App.userMachines = [{ tid: 1, exp: Math.floor(Date.now() / 1000) + 86400 }];
+        App.batteryInventory = { 0: 2 };
+        App.renderUserMachines();
+        App.renderUserBatteries();
+        assert.strictEqual(e2eWin.document.querySelectorAll('#my-machines-list .asset-row').length, 1, 'Une machine possédée reste visible');
+        assert.strictEqual(e2eWin.document.querySelectorAll('#my-batteries-list .asset-row').length, 1, 'Une batterie possédée reste visible');
+        let gasChecks = 0;
+        const originalGasCheck = App.ensurePolGas;
+        App.ensurePolGas = async () => { gasChecks += 1; return false; };
+        await App.buyMachine(1);
+        await App.buyMachine('1');
+        await App.buyBattery(0);
+        App.ensurePolGas = originalGasCheck;
+        assert.strictEqual(gasChecks, 0, 'Un achat masqué est arrêté avant toute transaction');
+        App.userMachines = originals.userMachines;
+        App.batteryInventory = originals.batteryInventory;
+
+        e2eWin.fetch = async () => ({ ok: true, json: async () => ({ ...manifest, hiddenShopItems: { machine: [], battery: [] } }) });
+        await center.refresh({ force: true });
+        App.shopViewMode = 'machines';
+        await App.renderShop();
+        visibleMachines = e2eWin.document.querySelectorAll('#shop-list .rig-item');
+        assert.strictEqual(visibleMachines.length, 2, 'La réactivation restaure la machine sans relecture modifiée du contrat');
+        assert.strictEqual(App.shopMachinesData[1].price, 50);
+        App.shopViewMode = 'batteries';
+        await App.renderShop();
+        assert.strictEqual(e2eWin.document.querySelectorAll('#shop-list .battery-shop-item').length, 1);
 
         e2eWin.fetch = async (url) => {
           assert.ok(String(url).includes('/promotions.json'));
@@ -1551,10 +1597,14 @@ function httpRequest(port, method, reqPath) {
         if (center.boundaryTimer !== null) e2eWin.clearTimeout(center.boundaryTimer);
         center.boundaryTimer = null;
         center.items = originals.items;
+        center.hiddenShopItems = originals.hiddenShopItems;
         center.lastFetchAt = originals.lastFetchAt;
         center.fetchInFlight = false;
         App.shopMachinesData = originals.machines;
         App.shopBatteriesData = originals.batteries;
+        App.userMachines = originals.userMachines;
+        App.batteryInventory = originals.batteryInventory;
+        App.ensurePolGas = originals.ensurePolGas;
         App.shopViewMode = originals.view;
         App.payMode = originals.payMode;
         App.setLanguage(originals.lang);
@@ -1609,6 +1659,8 @@ function httpRequest(port, method, reqPath) {
       const amountInput = document.getElementById('deposit-amount');
       const originalToken = tokenInput.value;
       const originalAmount = amountInput.value;
+      const originalPower = App.currentRealPower;
+      const originalMachines = App.userMachines;
 
       try {
         App.setLanguage('fr');
@@ -1647,6 +1699,27 @@ function httpRequest(port, method, reqPath) {
         App.onTransferTokenChange('POL');
         assert.strictEqual(tokenInput.value, 'USDT', 'Un token non pris en charge est ignoré');
 
+        assert.strictEqual(document.getElementById('btn-pay-usdt').querySelector('img').getAttribute('src'), 'assets/usdt.svg');
+        assert.strictEqual(document.getElementById('btn-pay-fta').querySelector('img').getAttribute('src'), 'assets/fta.png');
+        assert.strictEqual(document.querySelectorAll('#view-shop .shop-tab svg').length, 2);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig').length, 3);
+        App.currentRealPower = 0.25;
+        App.userMachines = Array.from({ length: 4 }, (_, tid) => ({ tid, exp: Math.floor(Date.now() / 1000) + 86400 }));
+        App.renderActiveMachines();
+        assert.strictEqual(document.getElementById('mining-visualizer').dataset.activeMachines, '4');
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig:not(.hidden)').length, 3, 'Trois rigs fluides représentent le parc réel');
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig.is-active').length, 3);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig.is-active .rig-fan').length, 9);
+        assert.ok(document.getElementById('viz-machine-count').textContent.startsWith('4 • '), 'Le compteur conserve le nombre réel total');
+        App.currentRealPower = 0;
+        App.syncMiningScene(4);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig.is-active').length, 0, 'Aucune activité simulée lorsque la puissance réelle est nulle');
+        App.userMachines = [];
+        App.renderActiveMachines();
+        assert.strictEqual(document.getElementById('mining-visualizer').dataset.activeMachines, '0');
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig:not(.hidden)').length, 1);
+        assert.strictEqual(document.getElementById('viz-machine-count').textContent, '—');
+
         for (const [lang, depositLabel] of Object.entries({ en: 'DEPOSIT', de: 'EINZAHLEN', zh: '存入' })) {
           App.setLanguage(lang);
           assert.ok(!title.textContent.includes('FITIA Contract') && !title.textContent.includes('(FITIA)') && !title.textContent.includes('FITIA 合约'));
@@ -1657,6 +1730,9 @@ function httpRequest(port, method, reqPath) {
       } finally {
         App.onTransferTokenChange(originalToken);
         amountInput.value = originalAmount;
+        App.currentRealPower = originalPower;
+        App.userMachines = originalMachines;
+        App.renderActiveMachines();
         App.setLanguage(originalLang);
       }
     });
@@ -2491,11 +2567,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 327);
-      assert.strictEqual(updateManifest.versionName, '3.3.21');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.21/'));
+      assert.strictEqual(updateManifest.versionCode, 328);
+      assert.strictEqual(updateManifest.versionName, '3.3.22');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.22/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.21 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.22 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2513,8 +2589,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=327'), 'versionCode=327 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.21"'), 'versionName=3.3.21 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=328'), 'versionCode=328 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.22"'), 'versionName=3.3.22 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

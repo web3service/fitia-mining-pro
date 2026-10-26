@@ -264,9 +264,12 @@
       </div>
     </div>
 
-    <div class="visualizer-wrap">
-      <canvas id="mining-canvas"></canvas>
-      <div class="viz-label" id="viz-status">ATTENTE</div>
+    <div id="mining-visualizer" class="visualizer-wrap">
+      <canvas id="mining-canvas" aria-hidden="true"></canvas>
+      <div class="mining-scene-topline"><span>FITIA MINING</span><strong id="viz-machine-count">—</strong></div>
+      <div id="mining-rig-stage" class="mining-rig-stage" aria-hidden="true"></div>
+      <div class="mining-energy-track" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="viz-label" id="viz-status">STANDBY</div>
     </div>
 
     <div id="active-machines-section" class="card" style="margin-bottom:15px;">
@@ -316,7 +319,6 @@
     <div id="store-empty" class="store-empty hidden">
       <img src="assets/icon-192.png" width="60" height="60" alt="">
       <h3 data-store-i18n="emptyTitle">No products available</h3>
-      <p data-store-i18n="emptyMessage">New physical products will appear here.</p>
     </div>
   </div>
 
@@ -325,8 +327,8 @@
     <div class="shop-header">
       <h2 class="view-title" style="margin-bottom:0;" data-i18n="shopTitle">⛏️ Boutique</h2>
       <div class="toggle-pay">
-        <button id="btn-pay-usdt" class="toggle-btn active" onclick="App.setPayMode('USDT')">USDT</button>
-        <button id="btn-pay-fta" class="toggle-btn" onclick="App.setPayMode('FTA')">FTA</button>
+        <button id="btn-pay-usdt" class="toggle-btn active" onclick="App.setPayMode('USDT')" aria-pressed="true"><img src="assets/usdt.svg" alt="" width="18" height="18" aria-hidden="true"><span>USDT</span></button>
+        <button id="btn-pay-fta" class="toggle-btn" onclick="App.setPayMode('FTA')" aria-pressed="false"><img src="assets/fta.png" alt="" width="18" height="18" aria-hidden="true"><span>FTA</span></button>
       </div>
     </div>
     <div class="shop-balance-strip">
@@ -335,8 +337,8 @@
       <span><span data-i18n="availFta">Dispo FTA</span>: <strong id="shop-avail-fta">0.0000</strong></span>
     </div>
     <div class="shop-tabs">
-      <button class="shop-tab active" onclick="App.setShopView('machines', this)" data-i18n="machines">Machines</button>
-      <button class="shop-tab" onclick="App.setShopView('batteries', this)" data-i18n="batteries">Batteries</button>
+      <button class="shop-tab active" onclick="App.setShopView('machines', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="12" r="3.5"/><circle cx="16" cy="12" r="2.5"/><path d="M9 8.5v7M5.5 12h7M16 9.5v5M13.5 12h5"/></svg><span data-i18n="machines">Machines</span></button>
+      <button class="shop-tab" onclick="App.setShopView('batteries', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="15" rx="3"/><path d="M9 3h6v3M12 10v7M8.5 13.5h7"/></svg><span data-i18n="batteries">Batteries</span></button>
     </div>
     <div id="shop-list" class="grid-list"></div>
   </div>

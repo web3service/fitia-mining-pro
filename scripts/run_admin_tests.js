@@ -212,6 +212,7 @@ function clone(value) {
       next.announcements.push({
         id: 'event-admin-test',
         category: 'event',
+        enabled: false,
         title: { fr: 'Événement de test', en: 'Test event' },
         message: { fr: 'Message de test', en: 'Test message' },
         theme: 'aurora',
@@ -233,9 +234,19 @@ function clone(value) {
       assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].font, 'rounded');
       assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundImage, uploadedAssetPath);
       assert.deepStrictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].avatars, ['assets/avatars/team-1.svg', uploadedAssetPath]);
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].enabled, false);
       assert.ok(!fs.readdirSync(temporaryDirectory).some((name) => name.includes('.tmp-')));
-      manifest = result.data.manifest;
-      revision = result.data.revision;
+      const reactivation = clone(result.data.manifest);
+      reactivation.announcements[INITIAL_ANNOUNCEMENT_COUNT].enabled = true;
+      const reactivated = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: reactivation, revision: result.data.revision }
+      });
+      assert.strictEqual(reactivated.response.status, 200, reactivated.text);
+      assert.strictEqual(reactivated.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].enabled, true);
+      assert.strictEqual(reactivated.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundImage, uploadedAssetPath);
+      assert.deepStrictEqual(reactivated.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].avatars, ['assets/avatars/team-1.svg', uploadedAssetPath]);
+      manifest = reactivated.data.manifest;
+      revision = reactivated.data.revision;
     });
 
     await runTest('Validation des catégories, dates, doublons et limite de 12 annonces actives', async () => {
@@ -287,6 +298,25 @@ function clone(value) {
         method: 'PUT', cookie, csrf, body: { manifest: tooMany, revision }
       });
       assert.strictEqual(result.response.status, 400);
+      const invalidEnabled = clone(manifest);
+      invalidEnabled.announcements[0].enabled = 'yes';
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidEnabled, revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+      const disabledMany = { enabled: true, announcements: Array.from({ length: 13 }, (_, index) => ({
+        id: `disabled-${index}`, category: 'event', enabled: false, title: { fr: `Titre ${index}` }, message: { fr: 'Message' }
+      })) };
+      const disabledResult = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: disabledMany, revision }
+      });
+      assert.strictEqual(disabledResult.response.status, 200, 'Les annonces désactivées ne comptent pas parmi les 12 actives');
+      const restored = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest, revision: disabledResult.data.revision }
+      });
+      assert.strictEqual(restored.response.status, 200, restored.text);
+      manifest = restored.data.manifest;
+      revision = restored.data.revision;
     });
 
     await runTest('Effets saisonniers : CSRF, variantes, animation, ciblage, traductions, dates et doublons validés', async () => {
@@ -296,6 +326,7 @@ function clone(value) {
       assert.ok(Array.isArray(loaded.data.manifest.promotions));
       const initialRevision = loaded.data.revision;
       const next = clone(loaded.data.manifest);
+      next.hiddenShopItems = { machine: [3, 1], battery: [0] };
       next.promotions = [{
         id: 'gift-admin-test',
         targetType: 'machine',
@@ -316,6 +347,7 @@ function clone(value) {
       assert.strictEqual(saved.data.manifest.promotions[0].targetId, 0);
       assert.strictEqual(saved.data.manifest.promotions[0].animated, true);
       assert.strictEqual(saved.data.manifest.promotions[0].label.fr, 'JOYEUX <b>NOËL</b>');
+      assert.deepStrictEqual(saved.data.manifest.hiddenShopItems, { machine: [1, 3], battery: [0] });
       const onDisk = JSON.parse(fs.readFileSync(promotionsFile, 'utf8'));
       assert.strictEqual(onDisk.promotions[0].id, 'gift-admin-test');
       assert.strictEqual(onDisk.promotions[0].startsAt, '2030-12-01T00:00:00.000Z');
@@ -350,6 +382,13 @@ function clone(value) {
       invalidAnimation.promotions[0].animated = 'yes';
       result = await request(localBase, '/api/admin/promotions', {
         method: 'PUT', cookie, csrf, body: { manifest: invalidAnimation, revision: saved.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const invalidVisibility = clone(saved.data.manifest);
+      invalidVisibility.hiddenShopItems.machine = [100];
+      result = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidVisibility, revision: saved.data.revision }
       });
       assert.strictEqual(result.response.status, 400);
 

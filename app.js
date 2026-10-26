@@ -147,6 +147,7 @@ const i18n = {
     machineBought: "Achat réussi : machine confirmée.",
     batteryBought: "Achat réussi : batterie confirmée.",
     invalidId: "Sélectionnez une machine disponible",
+    shopItemUnavailable: "Cet article est temporairement indisponible dans la boutique",
     pluggingIn: "Connexion en cours...",
     pluggedIn: "Machine connectée !",
     invalidAmount: "Montant invalide",
@@ -460,6 +461,7 @@ const i18n = {
     machineBought: "Purchase successful: machine confirmed.",
     batteryBought: "Purchase successful: battery confirmed.",
     invalidId: "Select an available machine",
+    shopItemUnavailable: "This item is temporarily unavailable in the shop",
     pluggingIn: "Connecting...",
     pluggedIn: "Machine connected!",
     invalidAmount: "Invalid amount",
@@ -708,6 +710,7 @@ const i18n = {
     plugConsumptionHint: "1 Akku wird verwendet. Sichere Bestätigung auf Polygon.",
     noEligibleMachines: "Alle Ihre Maschinen sind derzeit aktiv.",
     invalidId: "Wählen Sie eine verfügbare Maschine",
+    shopItemUnavailable: "Dieser Artikel ist vorübergehend nicht in der Boutique verfügbar",
     pluggingIn: "Verbindung läuft...",
     pluggedIn: "Maschine verbunden!",
     errNoBattery: "Kein Akku dieses Typs auf Lager",
@@ -803,6 +806,7 @@ const i18n = {
     plugConsumptionHint: "将使用 1 块电池，并在 Polygon 上安全确认。",
     noEligibleMachines: "您的所有矿机都在运行中。",
     invalidId: "请选择可用矿机",
+    shopItemUnavailable: "此商品暂时未在商店中提供",
     pluggingIn: "正在连接...",
     pluggedIn: "矿机已连接！",
     errNoBattery: "没有此类型的库存电池",
@@ -882,6 +886,7 @@ const i18n = {
     plugConsumptionHint: "1 battery will be used. Secure confirmation on Polygon.",
     noEligibleMachines: "All your machines are currently active.",
     invalidId: "Select an available machine",
+    shopItemUnavailable: "This item is temporarily unavailable in the shop",
     pluggingIn: "Connecting...",
     pluggedIn: "Machine connected!",
     days: "days",
@@ -1053,7 +1058,8 @@ class Application {
     this.sessionBootstrapPromise = null;
 
     this.vizContext = null;
-    this.vizBars = [];
+    this.vizCanvas = null;
+    this.visualizerActiveCount = 0;
 
     // États d'onboarding / PIN
     this.pendingWalletSecret = null; // { address, privateKey, mnemonic }
@@ -2688,6 +2694,7 @@ class Application {
     const active = this.userMachines
       .map((m, idx) => ({ ...m, idx }))
       .filter((m) => m.exp > now);
+    this.syncMiningScene(active.length);
 
     if (!active.length) {
       container.innerHTML = `<p class="small-text" style="text-align:center;">${this.t('noActiveMachines')}</p>`;
@@ -3160,6 +3167,8 @@ class Application {
     this.payMode = mode;
     document.getElementById('btn-pay-usdt').classList.toggle('active', mode === 'USDT');
     document.getElementById('btn-pay-fta').classList.toggle('active', mode === 'FTA');
+    document.getElementById('btn-pay-usdt').setAttribute('aria-pressed', String(mode === 'USDT'));
+    document.getElementById('btn-pay-fta').setAttribute('aria-pressed', String(mode === 'FTA'));
     this.renderShop();
   }
 
@@ -3260,6 +3269,7 @@ class Application {
     const now = Math.floor(Date.now() / 1000);
 
     for (let i = 0; i < this.shopMachinesData.length; i++) {
+      if (!this.promotionCenter.isShopItemVisible('machine', i)) continue;
       const d = this.shopMachinesData[i];
       const isShopExpired = d.shopExpiry > 0 && now > d.shopExpiry;
       let expiryHtml = '';
@@ -3288,6 +3298,7 @@ class Application {
   _renderShopBatteriesHTML(container) {
     container.innerHTML = '';
     for (let i = 0; i < this.shopBatteriesData.length; i++) {
+      if (!this.promotionCenter.isShopItemVisible('battery', i)) continue;
       const d = this.shopBatteriesData[i];
       const div = document.createElement('div');
       div.className = 'battery-shop-item';
@@ -3309,6 +3320,7 @@ class Application {
 
   async buyMachine(typeId) {
     if (!this.user) return;
+    if (!this.promotionCenter.isShopItemVisible('machine', typeId)) return this.showToast(this.t('invalidId'), true);
     const mData = this.shopMachinesData[typeId];
     if (!mData) return this.showToast("Machine indisponible", true);
     if (mData.shopExpiry > 0 && Math.floor(Date.now() / 1000) > mData.shopExpiry) {
@@ -3343,6 +3355,7 @@ class Application {
 
   async buyBattery(typeId) {
     if (!this.user) return;
+    if (!this.promotionCenter.isShopItemVisible('battery', typeId)) return this.showToast(this.t('shopItemUnavailable'), true);
     const bData = this.shopBatteriesData[typeId];
     if (!bData) return;
     if (!(await this.ensurePolGas())) return;
@@ -4308,45 +4321,89 @@ class Application {
   //  VISUALISEUR, NAVIGATION, ERREURS & ASSISTANT CHAT
   // ═══════════════════════════════════════════════════════════════
   resizeCanvas() {
-    if (this.vizContext) {
-      const c = this.vizContext.canvas;
-      c.width = c.offsetWidth * 2;
-      c.height = c.offsetHeight * 2;
-    }
-  }
-
-  initVisualizer() {
-    const c = document.getElementById('mining-canvas');
-    if (!c || this.vizContext) return;
-    this.vizContext = c.getContext('2d');
-    this.resizeCanvas();
-    this.vizBars = [];
-    for (let i = 0; i < 20; i++) this.vizBars.push({ height: 0, targetHeight: 0 });
+    if (!this.vizContext || !this.vizCanvas) return;
+    const width = this.vizCanvas.clientWidth || this.vizCanvas.offsetWidth || 300;
+    const height = this.vizCanvas.clientHeight || this.vizCanvas.offsetHeight || 156;
+    this.vizCanvas.width = Math.max(1, Math.round(width * 2));
+    this.vizCanvas.height = Math.max(1, Math.round(height * 2));
     this.animateVisualizer();
   }
 
-  updateVisualizerIntensity(p) {
-    if (!this.vizContext) return;
-    const intensity = p > 0 ? Math.min((p * 500) + 18, 95) : 0;
-    this.vizBars.forEach((b) => {
-      b.targetHeight = (this.vizContext.canvas.height * (intensity / 100)) * Math.random();
+  getMiningRigVisual(index) {
+    const centers = [30, 62, 94];
+    const fans = centers.map((center, fanIndex) => `
+      <circle cx="${center}" cy="49" r="15" class="rig-fan-ring"/>
+      <g class="rig-fan rig-fan-${fanIndex}">
+        <ellipse cx="${center}" cy="41" rx="3.8" ry="8.5" class="rig-fan-blade"/>
+        <ellipse cx="${center}" cy="41" rx="3.8" ry="8.5" class="rig-fan-blade" transform="rotate(60 ${center} 49)"/>
+        <ellipse cx="${center}" cy="41" rx="3.8" ry="8.5" class="rig-fan-blade" transform="rotate(120 ${center} 49)"/>
+        <circle cx="${center}" cy="49" r="3.4" class="rig-fan-hub"/>
+      </g>`).join('');
+    return `<div class="mining-rig is-standby" data-rig-index="${index}">
+      <div class="mining-rig-aura"></div>
+      <svg viewBox="0 0 124 92" role="presentation">
+        <defs><linearGradient id="rig-shell-${index}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="0.52" stop-color="#182235"/><stop offset="1" stop-color="#0a1020"/></linearGradient></defs>
+        <rect x="13" y="80" width="98" height="5" rx="2.5" class="rig-base-shadow"/>
+        <rect x="4" y="10" width="116" height="70" rx="9" fill="url(#rig-shell-${index})" class="rig-shell"/>
+        <path d="M13 10h98a9 9 0 0 1 9 9v3H4v-3a9 9 0 0 1 9-9Z" class="rig-top"/>
+        <rect x="11" y="26" width="102" height="47" rx="6" class="rig-panel"/>
+        ${fans}
+        <text x="12" y="19" class="rig-brand">FITIA</text>
+        <circle cx="109" cy="16" r="2.2" class="rig-led"/>
+        <path d="M14 80v5M110 80v5" class="rig-feet"/>
+        <path d="M16 76h92" class="rig-circuit"/>
+      </svg>
+    </div>`;
+  }
+
+  initVisualizer() {
+    const canvas = document.getElementById('mining-canvas');
+    if (!canvas || this.vizContext) return;
+    this.vizCanvas = canvas;
+    this.vizContext = canvas.getContext('2d');
+    const stage = document.getElementById('mining-rig-stage');
+    if (stage && !stage.children.length) {
+      for (let index = 0; index < 3; index += 1) {
+        const template = document.createElement('template');
+        template.innerHTML = this.getMiningRigVisual(index).trim();
+        stage.appendChild(template.content.firstElementChild);
+      }
+    }
+    this.resizeCanvas();
+    this.syncMiningScene(this.visualizerActiveCount);
+  }
+
+  syncMiningScene(activeCount = this.visualizerActiveCount) {
+    this.visualizerActiveCount = Number.isSafeInteger(activeCount) && activeCount >= 0 ? activeCount : 0;
+    const count = this.visualizerActiveCount;
+    const isMining = count > 0 && this.currentRealPower > 0;
+    const wrap = document.getElementById('mining-visualizer');
+    wrap?.classList.toggle('is-mining', isMining);
+    if (wrap) wrap.dataset.activeMachines = String(count);
+    const visibleRigs = count > 0 ? Math.min(count, 3) : 1;
+    document.querySelectorAll('#mining-rig-stage .mining-rig').forEach((rig, index) => {
+      rig.classList.toggle('hidden', index >= visibleRigs);
+      rig.classList.toggle('is-active', isMining && index < visibleRigs);
+      rig.classList.toggle('is-standby', !isMining || index >= visibleRigs);
     });
+    const counter = document.getElementById('viz-machine-count');
+    if (counter) counter.textContent = count > 0 ? `${count} • ${this.formatHashrate(this.currentRealPower)}` : '—';
+  }
+
+  updateVisualizerIntensity(power) {
+    this.syncMiningScene(this.visualizerActiveCount);
   }
 
   animateVisualizer() {
-    if (!this.vizContext) return;
+    if (!this.vizContext || !this.vizCanvas) return;
     const ctx = this.vizContext;
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.fillStyle = "#F0B90B";
-    const w = ctx.canvas.width / 20;
-    this.vizBars.forEach((b, i) => {
-      b.height += (b.targetHeight - b.height) * 0.12;
-      const barH = Math.max(0, b.height);
-      ctx.fillRect(i * w + 2, ctx.canvas.height - barH, Math.max(2, w - 4), barH);
-      if (this.currentRealPower > 0) b.targetHeight += (Math.random() - 0.5) * 10;
-      else b.targetHeight *= 0.9;
-    });
-    requestAnimationFrame(() => this.animateVisualizer());
+    const { width, height } = this.vizCanvas;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(96, 165, 250, 0.055)';
+    for (let x = 0; x < width; x += 36) ctx.fillRect(x, 0, 1, height);
+    for (let y = 0; y < height; y += 28) ctx.fillRect(0, y, width, 1);
+    ctx.fillStyle = 'rgba(240, 185, 11, 0.08)';
+    ctx.fillRect(0, Math.max(0, height - 6), width, 2);
   }
 
   nav(viewId, btnEl) {

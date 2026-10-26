@@ -1,5 +1,9 @@
 {
   "enabled": true,
+  "hiddenShopItems": {
+    "machine": [],
+    "battery": []
+  },
   "promotions": [
     {
       "id": "badge-mvolv38x-2ba615c5",
