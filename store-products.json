@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "enabled": false,
+  "enabled": true,
   "products": [
     {
       "id": "product-mvpwszmt-422259a2",
