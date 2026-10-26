@@ -36,6 +36,10 @@
       "destination": "/api/admin?action=announcements"
     },
     {
+      "source": "/api/admin/announcement-assets",
+      "destination": "/api/admin?action=announcement-assets"
+    },
+    {
       "source": "/api/admin/promotions",
       "destination": "/api/admin?action=promotions"
     }

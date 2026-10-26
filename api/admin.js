@@ -1,4 +1,9 @@
 const crypto = require('crypto');
+const {
+  MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES,
+  normalizeAppearance,
+  validateImagePayload
+} = require('../announcement-assets');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -68,6 +73,9 @@ function validateAnnouncementManifest(raw) {
       title: normalizeLocalizedText(item.title, 80, 'Le titre'),
       message: normalizeLocalizedText(item.message, 180, 'Le message')
     };
+    const appearance = normalizeAppearance(item);
+    if (!appearance.ok) throw new ApiError(appearance.status, appearance.message, appearance.code);
+    Object.assign(normalized, appearance.value);
     const startsAt = normalizeDate(item.startsAt, 'La date de début');
     const expiresAt = normalizeDate(item.expiresAt, 'La date de fin');
     if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
@@ -179,13 +187,16 @@ function sendJson(res, status, payload, extraHeaders = {}) {
   res.end(body);
 }
 
-function readJson(req) {
+function readJson(req, maxBytes = MAX_BODY_BYTES) {
   if (req.body !== undefined && req.body !== null) {
     try {
-      const parsed = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body;
+      const serialized = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      if (Buffer.byteLength(serialized) > maxBytes) throw new ApiError(413, 'La requête est trop volumineuse.', 'TOO_LARGE');
+      const parsed = typeof req.body === 'string' ? JSON.parse(serialized || '{}') : req.body;
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('object');
       return Promise.resolve(parsed);
-    } catch (_) {
+    } catch (error) {
+      if (error instanceof ApiError) return Promise.reject(error);
       return Promise.reject(new ApiError(400, 'Le JSON est invalide.', 'JSON'));
     }
   }
@@ -194,7 +205,7 @@ function readJson(req) {
     let size = 0;
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
+      if (size > maxBytes) {
         reject(new ApiError(413, 'La requête est trop volumineuse.', 'TOO_LARGE'));
         req.destroy();
         return;
@@ -343,6 +354,25 @@ async function saveManifest(config, manifest, expectedRevision, kind = 'announce
   return (await loadManifest(config, kind)).revision;
 }
 
+async function saveAnnouncementAsset(config, payload) {
+  const validation = validateImagePayload(payload);
+  if (!validation.ok) throw new ApiError(validation.status, validation.message, validation.code);
+  const asset = validation.value;
+  const encodedPath = asset.path.split('/').map(encodeURIComponent).join('/');
+  const url = `${config.apiBase}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${encodedPath}`;
+  const existing = await githubRequest(config, `${url}?ref=${encodeURIComponent(config.branch)}`);
+  if (!existing.ok && existing.status !== 404) throw new ApiError(503, 'Impossible de vérifier le visuel sur GitHub.', 'GITHUB_READ');
+  if (existing.status === 404) {
+    const response = await githubRequest(config, url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Add FITIA announcement asset', content: asset.base64, branch: config.branch })
+    });
+    if (!response.ok) throw new ApiError(503, 'La publication du visuel sur GitHub a été refusée.', 'GITHUB_WRITE');
+  }
+  return { path: asset.path, contentType: asset.contentType, size: asset.size };
+}
+
 module.exports = async function adminHandler(req, res) {
   setSecurityHeaders(res);
   try {
@@ -382,6 +412,15 @@ module.exports = async function adminHandler(req, res) {
       const session = requireSession(req, res, config);
       if (!session || !requireCsrf(req, res, session)) return;
       sendJson(res, 200, { ok: true }, { 'Set-Cookie': 'fitia_admin_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0' });
+      return;
+    }
+
+    if (action === 'announcement-assets' && req.method === 'POST') {
+      const session = requireSession(req, res, config);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES);
+      const asset = await saveAnnouncementAsset(config, body);
+      sendJson(res, 201, { asset, ...sourceInfo(config) });
       return;
     }
 

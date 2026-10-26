@@ -112,7 +112,7 @@
           </div>
 
           <div class="distribution-card">
-            <div><strong>Diffusion des annonces</strong><p>Désactivez temporairement le canal distant sans supprimer son contenu. Les annonces locales de secours restent disponibles.</p></div>
+            <div><strong>Diffusion des annonces</strong><p>Lorsque le canal est désactivé, la section est masquée dans le wallet. Le contenu enregistré est conservé pour une réactivation ultérieure.</p></div>
             <label class="switch-control">
               <input id="manifest-enabled" type="checkbox" aria-label="Activer la diffusion des annonces">
               <span class="switch-track" aria-hidden="true"></span>
@@ -183,6 +183,15 @@
               <label for="item-category">Catégorie</label>
               <select id="item-category" required><option value="event">Événement</option><option value="information">Information</option><option value="referral">Parrainage</option><option value="security">Sécurité</option></select>
             </div>
+            <div class="field-group template-field">
+              <label for="item-template">Modèle d’annonce</label>
+              <select id="item-template">
+                <option value="custom">Contenu personnalisé</option>
+                <option value="maintenance-thanks">Remerciement — fin de maintenance</option>
+                <option value="update-thanks">Remerciement — mise à jour terminée</option>
+              </select>
+              <small class="field-hint">Le modèle préremplit le brouillon. Rien n’est publié sans votre validation.</small>
+            </div>
             <div class="localized-primary">
               <div class="field-group"><label for="item-title-fr">Titre en français <span>obligatoire</span></label><input id="item-title-fr" maxlength="80" required></div>
               <div class="field-group"><label for="item-message-fr">Message en français <span>obligatoire</span></label><textarea id="item-message-fr" rows="4" maxlength="180" required></textarea><small class="field-hint"><span id="message-count">0</span>/180 caractères</small></div>
@@ -198,6 +207,57 @@
               </div>
             </details>
 
+            <fieldset class="design-fieldset">
+              <legend>Personnalisation visuelle</legend>
+              <p class="field-hint">L’aperçu reprend le thème, la police, l’arrière-plan et les avatars de la bannière mobile.</p>
+              <div class="date-grid design-selects">
+                <div class="field-group">
+                  <label for="item-theme">Thème</label>
+                  <select id="item-theme">
+                    <option value="classic">Classique FITIA</option>
+                    <option value="aurora">Aurore bleue</option>
+                    <option value="gold">Or &amp; célébration</option>
+                    <option value="emerald">Émeraude</option>
+                    <option value="violet">Violet prestige</option>
+                    <option value="celebration">Confettis &amp; remerciements</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="item-font">Police</label>
+                  <select id="item-font">
+                    <option value="modern">Moderne</option>
+                    <option value="elegant">Élégante</option>
+                    <option value="rounded">Arrondie</option>
+                    <option value="mono">Technique</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="asset-field">
+                <div class="asset-field-heading"><div><strong>Image d’arrière-plan</strong><small>PNG, JPEG ou WebP · 1,5 Mo maximum</small></div><span id="item-background-status" class="asset-status">Aucune image</span></div>
+                <div class="asset-actions">
+                  <button id="item-background-upload" class="button button-quiet" type="button">Importer une image</button>
+                  <button id="item-background-remove" class="button button-danger hidden" type="button">Retirer</button>
+                  <input id="item-background-file" class="hidden" type="file" accept="image/png,image/jpeg,image/webp">
+                </div>
+              </div>
+
+              <div class="asset-field">
+                <div class="asset-field-heading"><div><strong>Avatars de l’équipe</strong><small>Jusqu’à 3 avatars, avec des visuels FITIA prêts à l’emploi</small></div><span id="item-avatar-count" class="asset-status">0/3</span></div>
+                <div id="item-avatar-presets" class="avatar-presets" aria-label="Avatars FITIA disponibles">
+                  <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/team-1.svg" aria-pressed="false" aria-label="Choisir l’avatar FITIA 1"><img src="/assets/avatars/team-1.svg" alt="" width="48" height="48"></button>
+                  <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/team-2.svg" aria-pressed="false" aria-label="Choisir l’avatar FITIA 2"><img src="/assets/avatars/team-2.svg" alt="" width="48" height="48"></button>
+                  <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/team-3.svg" aria-pressed="false" aria-label="Choisir l’avatar FITIA 3"><img src="/assets/avatars/team-3.svg" alt="" width="48" height="48"></button>
+                </div>
+                <div class="asset-actions">
+                  <button id="item-avatar-upload" class="button button-quiet" type="button">Importer un avatar</button>
+                  <input id="item-avatar-file" class="hidden" type="file" accept="image/png,image/jpeg,image/webp">
+                </div>
+                <div id="item-avatar-list" class="avatar-selection" aria-live="polite"></div>
+              </div>
+              <p id="asset-upload-status" class="field-hint" role="status"></p>
+            </fieldset>
+
             <div class="date-grid">
               <div class="field-group"><label for="item-starts-at">Début de diffusion <span>facultatif</span></label><input id="item-starts-at" type="datetime-local"></div>
               <div class="field-group"><label for="item-expires-at">Fin de diffusion <span>facultatif</span></label><input id="item-expires-at" type="datetime-local"></div>
@@ -209,9 +269,10 @@
             <p class="eyebrow">Aperçu dans le wallet</p>
             <div class="phone-preview">
               <div class="phone-preview-brand"><img src="/assets/icon-192.png" width="28" height="28" alt=""><strong>FITIA PRO</strong></div>
-              <div id="preview-slide" class="preview-slide preview-event">
-                <img src="/assets/icon-192.png" width="48" height="48" alt="">
-                <div><small id="preview-category">Événement</small><strong id="preview-title">Votre titre</strong><p id="preview-message">Votre message apparaîtra ici.</p></div>
+              <div id="preview-slide" class="preview-slide preview-event announcement-theme-classic announcement-font-modern">
+                <img id="preview-artwork" class="preview-artwork" src="/assets/icon-192.png" width="48" height="48" alt="">
+                <div class="preview-copy"><small id="preview-category">Événement</small><strong id="preview-title">Votre titre</strong><p id="preview-message">Votre message apparaîtra ici.</p></div>
+                <div id="preview-avatars" class="preview-avatars" aria-hidden="true"></div>
               </div>
             </div>
             <p id="preview-schedule" class="preview-schedule">Diffusion sans limite de date</p>

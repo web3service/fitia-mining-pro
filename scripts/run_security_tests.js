@@ -997,11 +997,17 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(carouselDelay, 8000, 'Chaque annonce reste huit secondes avant la rotation');
         center.stop();
 
+        const uploadedBackground = `assets/announcements/announcement-${'a'.repeat(24)}.webp`;
+        const uploadedAvatar = `assets/announcements/announcement-${'b'.repeat(24)}.png`;
         const safe = {
           id: 'event-safe',
           category: 'event',
           title: { fr: '<img src=x> Événement officiel', en: 'Safe official event' },
           message: { fr: 'Texte <script>alert(1)</script> uniquement', en: 'Plain text only' },
+          theme: 'celebration',
+          font: 'elegant',
+          backgroundImage: uploadedBackground,
+          avatars: ['assets/avatars/team-1.svg', uploadedAvatar],
           startsAt: '2026-10-01T00:00:00Z',
           expiresAt: '2026-12-31T23:59:59Z'
         };
@@ -1013,7 +1019,13 @@ function httpRequest(port, method, reqPath) {
             { ...safe, id: 'expired', expiresAt: '2026-01-01T00:00:00Z' },
             { ...safe, id: 'future', startsAt: '2027-01-01T00:00:00Z' },
             { ...safe, id: 'bad-category', category: 'unknown' },
-            { ...safe, id: 'bad-date', expiresAt: 'date-invalide' }
+            { ...safe, id: 'bad-date', expiresAt: 'date-invalide' },
+            { ...safe, id: 'bad-theme', theme: 'injected-theme' },
+            { ...safe, id: 'bad-font', font: 'url(https://evil.example/font)' },
+            { ...safe, id: 'bad-background', backgroundImage: 'https://evil.example/background.png' },
+            { ...safe, id: 'bad-avatar', avatars: ['https://evil.example/avatar.png'] },
+            { ...safe, id: 'duplicate-avatar', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-1.svg'] },
+            { ...safe, id: 'too-many-avatars', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg', uploadedAvatar] }
           ]
         };
         const normalized = center.normalizeManifest(manifest, now);
@@ -1031,10 +1043,40 @@ function httpRequest(port, method, reqPath) {
         assert.ok(e2eWin.document.querySelector('.announcement-title').textContent.includes('<img src=x>'), 'Le balisage reste du texte visible');
         assert.strictEqual(e2eWin.document.querySelector('#announcement-center script'), null, 'Aucun script distant ne peut être injecté');
         assert.strictEqual(e2eWin.document.querySelector('.announcement-copy img'), null, 'Aucune image injectée dans le texte');
+        const visualSlide = e2eWin.document.querySelector('.announcement-slide');
+        assert.ok(visualSlide.classList.contains('announcement-theme-celebration'));
+        assert.ok(visualSlide.classList.contains('announcement-font-elegant'));
+        assert.ok(visualSlide.classList.contains('has-background'));
+        assert.ok(visualSlide.style.getPropertyValue('--announcement-bg-image').includes(uploadedBackground));
+        assert.ok(visualSlide.style.getPropertyValue('--announcement-bg-image').includes('raw.githubusercontent.com'));
+        assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatars img').length, 2, 'Les avatars validés sont affichés');
+        assert.strictEqual(visualSlide.querySelector('.announcement-avatars img').getAttribute('src'), 'assets/avatars/team-1.svg', 'Les avatars FITIA restent embarqués');
+        assert.strictEqual(visualSlide.querySelector('.announcement-avatars').getAttribute('aria-hidden'), 'true');
 
         App.setLanguage('en');
         assert.strictEqual(e2eWin.document.querySelector('.announcement-title').textContent, 'Safe official event');
         App.setLanguage('fr');
+
+        e2eWin.fetch = async () => ({ ok: true, json: async () => ({ enabled: false, announcements: [safe] }) });
+        await center.refresh();
+        assert.strictEqual(center.channelEnabled, false);
+        assert.strictEqual(center.localFallback, false, 'Un manifeste désactivé ne doit pas réactiver les annonces locales');
+        assert.strictEqual(center.items.length, 0);
+        assert.ok(e2eWin.document.getElementById('announcement-center').classList.contains('hidden'), 'La section entière est masquée');
+        assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 0);
+        center.start();
+        assert.strictEqual(center.timer, null, 'La désactivation arrête aussi la rotation');
+
+        e2eWin.fetch = async () => { throw new Error('offline'); };
+        await center.refresh();
+        assert.ok(e2eWin.document.getElementById('announcement-center').classList.contains('hidden'), 'Une panne ne change pas le dernier état désactivé valide');
+
+        e2eWin.fetch = async () => ({ ok: true, json: async () => manifest });
+        await center.refresh();
+        assert.strictEqual(center.channelEnabled, true, 'La réactivation distante réouvre le canal');
+        assert.strictEqual(center.items.length, 1);
+        assert.ok(!e2eWin.document.getElementById('announcement-center').classList.contains('hidden'));
+        assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 1);
 
         e2eWin.fetch = async () => { throw new Error('offline'); };
         await center.refresh();
@@ -1049,6 +1091,8 @@ function httpRequest(port, method, reqPath) {
         App.setLanguage(originalLang);
         center.stop();
         center.localFallback = true;
+        center.channelEnabled = true;
+        center.lastFetchAt = 0;
         center.items = center.defaults();
         center.index = 0;
         center.fetchInFlight = false;

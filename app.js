@@ -2122,6 +2122,7 @@ class Application {
   // ═══════════════════════════════════════════════════════════════
   async updateData() {
     if (!this.user || !this.core || !this.mine) return;
+    void this.announcementCenter.refresh({ force: false });
     if (this.activity.hasPending()) this.activity.refreshPending(this.provider);
     try {
       // Lecture groupée parallèle pour une réactivité maximale sur mobile
