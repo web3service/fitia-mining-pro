@@ -17,7 +17,9 @@
         "de": "Hier finden Sie Neuigkeiten und wichtige Informationen zu FITIA PRO.",
         "zh": "在这里查看 FITIA PRO 的最新消息和重要信息。",
         "sg": "Find FITIA PRO news and important information here."
-      }
+      },
+      "theme": "classic",
+      "font": "modern"
     },
     {
       "id": "official-events",
@@ -35,7 +37,9 @@
         "de": "Die nächsten offiziellen Veranstaltungen werden hier angekündigt.",
         "zh": "最新官方活动将在这里公布。",
         "sg": "Upcoming official events will be announced here."
-      }
+      },
+      "theme": "classic",
+      "font": "modern"
     },
     {
       "id": "wallet-security",
@@ -53,7 +57,9 @@
         "de": "Teilen Sie niemals Ihre 12 Wörter, Ihren privaten Schlüssel oder Ihre PIN.",
         "zh": "切勿分享您的 12 个助记词、私钥或 PIN 码。",
         "sg": "Never share your 12 words, private key or PIN."
-      }
+      },
+      "theme": "classic",
+      "font": "modern"
     },
     {
       "id": "event-mvohwnvm-9e9e7b0b",
@@ -71,7 +77,9 @@
         "de": "Die nächsten offiziellen Veranstaltungen werden hier angekündigt.",
         "zh": "最新官方活动将在这里公布。",
         "sg": "Upcoming official events will be announced here."
-      }
+      },
+      "theme": "classic",
+      "font": "modern"
     },
     {
       "id": "information-mvoi2jrw-25ab433e",
@@ -81,7 +89,22 @@
       },
       "message": {
         "fr": "Événements FTA Promotionnel à ne pas manquer"
-      }
+      },
+      "theme": "classic",
+      "font": "modern"
+    },
+    {
+      "id": "information-mvoq3w03-c03b8486",
+      "category": "information",
+      "title": {
+        "fr": "FTA La Réservation"
+      },
+      "message": {
+        "fr": "💯 Décentralisée libre de droits"
+      },
+      "theme": "violet",
+      "font": "elegant",
+      "backgroundImage": "assets/announcements/announcement-b5c16d7e0818902e027a571d.webp"
     }
   ]
 }
