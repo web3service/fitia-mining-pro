@@ -25,7 +25,7 @@
     {
       "id": "official-events",
       "category": "event",
-      "enabled": true,
+      "enabled": false,
       "title": {
         "fr": "Événements FITIA",
         "en": "FITIA events",
