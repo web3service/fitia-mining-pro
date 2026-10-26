@@ -20,6 +20,8 @@ let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
 const writes = [];
 let promotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
+// La visibilité éditoriale réelle varie : ce scénario part d’un état connu sans la modifier dans le dépôt.
+promotionManifest.hiddenShopItems = { machine: [], battery: [] };
 const initialPromotionCount = promotionManifest.promotions.length;
 let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];

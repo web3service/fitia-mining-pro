@@ -266,10 +266,15 @@
 
     <div id="mining-visualizer" class="visualizer-wrap">
       <canvas id="mining-canvas" aria-hidden="true"></canvas>
-      <div class="mining-scene-topline"><span>FITIA MINING</span><strong id="viz-machine-count">—</strong></div>
+      <div class="mining-room-floor" aria-hidden="true"></div>
+      <div class="mining-scene-topline">
+        <span class="mining-scene-heading"><i aria-hidden="true"></i><span>FITIA MINING<small>GPU COMPUTE ARRAY</small></span></span>
+        <strong id="viz-machine-count">—</strong>
+      </div>
       <div id="mining-rig-stage" class="mining-rig-stage" aria-hidden="true"></div>
       <div class="mining-energy-track" aria-hidden="true"><span></span><span></span><span></span></div>
       <div class="viz-label" id="viz-status">STANDBY</div>
+      <div class="mining-bus-label" aria-hidden="true">POWER BUS</div>
     </div>
 
     <div id="active-machines-section" class="card" style="margin-bottom:15px;">
