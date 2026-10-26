@@ -67,7 +67,7 @@
     {
       "id": "event-mvohwnvm-9e9e7b0b",
       "category": "event",
-      "enabled": true,
+      "enabled": false,
       "title": {
         "fr": "Événements FTA",
         "en": "FITIA events",
