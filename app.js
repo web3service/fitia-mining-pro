@@ -144,8 +144,8 @@ const i18n = {
     buyingBattery: "Achat Batterie",
     autoDepositStep: "Dépôt automatique vers Compte Minage...",
     confirming: "Confirmation blockchain...",
-    machineBought: "Machine achetée ! ⛏️",
-    batteryBought: "Batterie achetée ! 🔋",
+    machineBought: "Achat réussi : machine confirmée.",
+    batteryBought: "Achat réussi : batterie confirmée.",
     invalidId: "Sélectionnez une machine disponible",
     pluggingIn: "Connexion en cours...",
     pluggedIn: "Machine connectée !",
@@ -156,6 +156,7 @@ const i18n = {
     claimed: "Réclamation confirmée",
     claimStillPending: "Réclamation en attente de confirmation sur Polygon.",
     claimNotConfirmed: "Réclamation non confirmée. Vérifiez votre historique avant de réessayer.",
+    claimFailed: "La réclamation a échoué. Vérifiez votre historique avant de réessayer.",
     days: "Jours",
     rig: "RIG",
     totalBal: "Solde Total Estimé",
@@ -194,6 +195,12 @@ const i18n = {
     swapExpired: "Le devis a expiré. Demandez un nouveau devis.",
     swapRejected: "Transaction annulée.",
     swapNotConfirmed: "Échange non confirmé. Vérifiez votre historique avant de réessayer.",
+    transactionPending: "Transaction en cours…",
+    transactionPendingCheck: "Transaction en cours de vérification. Consultez votre historique avant de réessayer.",
+    transactionNotConfirmed: "Transaction non confirmée. Vérifiez votre historique avant de réessayer.",
+    transactionFailed: "La transaction a échoué. Vérifiez votre historique avant de réessayer.",
+    walletSessionChanged: "La session du portefeuille a changé. Aucune nouvelle transaction n’a été envoyée.",
+    approvalPending: "Autorisation transmise. Confirmation en cours…",
     networkFee: "Frais réseau estimés",
     depositBtn: "DÉPOSER",
     withdrawBtn: "RETIRER",
@@ -208,14 +215,16 @@ const i18n = {
     copyAddrShort: "Copier",
     shareBtn: "Partager",
     availWalletBal: "Disponible portefeuille :",
-    sending: "Signature & envoi...",
-    sentSuccess: "Transfert envoyé avec succès !",
+    sending: "Transaction en cours…",
+    sentSuccess: "Transfert réussi !",
+    sendActionHint: "Transférer des actifs",
+    receiveActionHint: "Afficher mon QR code",
     addrCopied: "Adresse copiée !",
     secretCopied: "Copié ! Effacement automatique du presse-papiers dans 45s.",
     weakPinErr: "Code PIN trop simple (évitez 123456 ou 000000). Choisissez un code plus fort.",
     burnAddrBlocked: "⛔ Envoi vers l'adresse nulle (0x000...0) bloqué pour protéger vos fonds.",
     contractAddrBlocked: "⛔ Adresse de contrat détectée ! N'envoyez pas directement à l'adresse d'un contrat.",
-    confirmSend: "CONFIRMER L'ENVOI 🔒",
+    confirmSend: "CONFIRMER L’ENVOI",
     invalidAddr: "Adresse invalide",
     recipientAddr: "Adresse destinataire (0x...)",
     amount: "Montant",
@@ -448,8 +457,8 @@ const i18n = {
     buyingBattery: "Buying Battery",
     autoDepositStep: "Auto-depositing to Mining Account...",
     confirming: "Confirming on Polygon...",
-    machineBought: "Machine purchased! ⛏️",
-    batteryBought: "Battery purchased! 🔋",
+    machineBought: "Purchase successful: machine confirmed.",
+    batteryBought: "Purchase successful: battery confirmed.",
     invalidId: "Select an available machine",
     pluggingIn: "Connecting...",
     pluggedIn: "Machine connected!",
@@ -460,6 +469,7 @@ const i18n = {
     claimed: "Claim confirmed",
     claimStillPending: "Claim is still awaiting Polygon confirmation.",
     claimNotConfirmed: "Claim not confirmed. Check your history before trying again.",
+    claimFailed: "The claim failed. Check your history before trying again.",
     days: "Days",
     rig: "RIG",
     totalBal: "Estimated Total Balance",
@@ -498,6 +508,12 @@ const i18n = {
     swapExpired: "The quote expired. Request a new quote.",
     swapRejected: "Transaction cancelled.",
     swapNotConfirmed: "Swap not confirmed. Check your history before trying again.",
+    transactionPending: "Transaction in progress…",
+    transactionPendingCheck: "Transaction verification is in progress. Check your history before trying again.",
+    transactionNotConfirmed: "Transaction could not be confirmed. Check your history before trying again.",
+    transactionFailed: "The transaction failed. Check your history before trying again.",
+    walletSessionChanged: "The wallet session changed. No new transaction was sent.",
+    approvalPending: "Approval submitted. Confirmation in progress…",
     networkFee: "Est. Network Fee",
     depositBtn: "DEPOSIT",
     withdrawBtn: "WITHDRAW",
@@ -512,14 +528,16 @@ const i18n = {
     copyAddrShort: "Copy",
     shareBtn: "Share",
     availWalletBal: "Available in wallet:",
-    sending: "Signing & sending...",
-    sentSuccess: "Sent successfully!",
+    sending: "Transaction in progress…",
+    sentSuccess: "Transfer successful!",
+    sendActionHint: "Transfer assets",
+    receiveActionHint: "Show my QR code",
     addrCopied: "Address copied!",
     secretCopied: "Copied! Clipboard will auto-clear in 45s for security.",
     weakPinErr: "PIN is too simple (avoid 123456 or 000000). Choose a stronger PIN.",
     burnAddrBlocked: "⛔ Sending to burn address (0x000...0) is blocked to protect your funds.",
     contractAddrBlocked: "⛔ Contract address detected! Do not send tokens directly to a contract address.",
-    confirmSend: "CONFIRM SEND 🔒",
+    confirmSend: "CONFIRM SEND",
     invalidAddr: "Invalid address",
     recipientAddr: "Recipient address (0x...)",
     amount: "Amount",
@@ -993,6 +1011,7 @@ class Application {
     this.dexQuoteRequestId = 0;
     this.pendingDexQuote = null;
     this.swapTransactionInProgress = false;
+    this.sendTransactionInProgress = false;
     this.plugTransactionInProgress = false;
 
     this.usdtDecimals = 6;
@@ -1221,6 +1240,7 @@ class Application {
       if (!e.target.closest('#lang-selector')) {
         document.getElementById('lang-menu-content')?.classList.remove('open');
       }
+      if (!e.target.closest('#send-token-select-wrap')) this.closeSendTokenMenu();
     });
 
     // Verrouillage automatique (arrière-plan ET inactivité à l'écran)
@@ -1832,6 +1852,7 @@ class Application {
     this.pendingDexQuote = null;
     this.dexQuoteRequestId += 1;
     this.swapTransactionInProgress = false;
+    this.sendTransactionInProgress = false;
     this.plugTransactionInProgress = false;
     const plugMachineInput = document.getElementById('plug-machine-id');
     const plugBatteryInput = document.getElementById('plug-battery-type');
@@ -2725,10 +2746,10 @@ class Application {
       const allowance = await this.usdtToken.allowance(this.user, CONFIG.CORE);
       if (allowance < shortfall) {
         this.setLoader(true, "Approbation USDT...");
-        await (await this.usdtToken.approve(CONFIG.CORE, shortfall)).wait();
+        await this.waitForTransactionReceipt(await this.usdtToken.approve(CONFIG.CORE, shortfall), this.t('approvalPending'));
       }
       this.setLoader(true, this.t('autoDepositStep'));
-      await (await this.core.depositUsdt(shortfall)).wait();
+      await this.waitForTransactionReceipt(await this.core.depositUsdt(shortfall), this.t('depositing'));
       return true;
     } else {
       const currentCore = await this.core.fBal(this.user);
@@ -2746,10 +2767,10 @@ class Application {
       const allowance = await this.ftaToken.allowance(this.user, CONFIG.CORE);
       if (allowance < shortfall) {
         this.setLoader(true, "Approbation FTA...");
-        await (await this.ftaToken.approve(CONFIG.CORE, shortfall)).wait();
+        await this.waitForTransactionReceipt(await this.ftaToken.approve(CONFIG.CORE, shortfall), this.t('approvalPending'));
       }
       this.setLoader(true, this.t('autoDepositStep'));
-      await (await this.core.depositFta(shortfall)).wait();
+      await this.waitForTransactionReceipt(await this.core.depositFta(shortfall), this.t('depositing'));
       return true;
     }
   }
@@ -2805,10 +2826,10 @@ class Application {
         const allowance = await this.usdtToken.allowance(this.user, CONFIG.CORE);
         if (allowance < amountBN) {
           this.setLoader(true, "Approbation USDT...");
-          await (await this.usdtToken.approve(CONFIG.CORE, amountBN)).wait();
+          await this.waitForTransactionReceipt(await this.usdtToken.approve(CONFIG.CORE, amountBN), this.t('approvalPending'));
         }
         this.setLoader(true, this.t('confirming'));
-        await (await this.core.depositUsdt(amountBN)).wait();
+        await this.waitForTransactionReceipt(await this.core.depositUsdt(amountBN), this.t('depositing'));
       } else {
         const amountBN = ethers.parseUnits(amount.toFixed(this.ftaDecimals), this.ftaDecimals);
         const walletBal = await this.ftaToken.balanceOf(this.user);
@@ -2819,15 +2840,15 @@ class Application {
         const allowance = await this.ftaToken.allowance(this.user, CONFIG.CORE);
         if (allowance < amountBN) {
           this.setLoader(true, "Approbation FTA...");
-          await (await this.ftaToken.approve(CONFIG.CORE, amountBN)).wait();
+          await this.waitForTransactionReceipt(await this.ftaToken.approve(CONFIG.CORE, amountBN), this.t('approvalPending'));
         }
         this.setLoader(true, this.t('confirming'));
-        await (await this.core.depositFta(amountBN)).wait();
+        await this.waitForTransactionReceipt(await this.core.depositFta(amountBN), this.t('depositing'));
       }
       FitiaSecurity.Native.vibrate(30);
       this.showToast(this.t('depositSuccess'));
       document.getElementById('deposit-amount').value = '';
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
@@ -2846,15 +2867,15 @@ class Application {
     try {
       if (tokenType === 'USDT') {
         const amountBN = ethers.parseUnits(amount.toFixed(this.usdtDecimals), this.usdtDecimals);
-        await (await this.core.withdrawUsdt(amountBN)).wait();
+        await this.waitForTransactionReceipt(await this.core.withdrawUsdt(amountBN), this.t('withdrawing'));
       } else {
         const amountBN = ethers.parseUnits(amount.toFixed(this.ftaDecimals), this.ftaDecimals);
-        await (await this.core.withdrawFta(amountBN)).wait();
+        await this.waitForTransactionReceipt(await this.core.withdrawFta(amountBN), this.t('withdrawing'));
       }
       FitiaSecurity.Native.vibrate(30);
       this.showToast(this.t('withdrawSuccess'));
       document.getElementById('deposit-amount').value = '';
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
@@ -2866,13 +2887,67 @@ class Application {
   //  ENVOYER & RECEVOIR (QR CODE HORS-LIGNE + CONFIRMATION PIN)
   // ═══════════════════════════════════════════════════════════════
   openSend() {
+    if (!this.user || this.sendTransactionInProgress) return;
     document.getElementById('send-to-address').value = '';
     document.getElementById('send-amount').value = '';
+    this.closeSendTokenMenu();
     document.getElementById('modal-send').classList.add('active');
     this.updateSendBalance();
   }
 
+  getSendTokenMeta(token) {
+    const tokens = {
+      POL: { symbol: 'POL', name: 'Polygon', network: 'Polygon Mainnet', icon: 'assets/pol.svg' },
+      USDT: { symbol: 'USDT', name: 'Tether USD', network: 'ERC-20 · Polygon', icon: 'assets/usdt.svg' },
+      FTA: { symbol: 'FTA', name: 'FITIA', network: 'ERC-20 · Polygon', icon: 'assets/fta.png' }
+    };
+    return tokens[token] || tokens.POL;
+  }
+
+  renderSendTokenSelector() {
+    const input = document.getElementById('send-token-select');
+    const meta = this.getSendTokenMeta(input?.value);
+    if (input) input.value = meta.symbol;
+    const logo = document.getElementById('send-token-current-logo');
+    const symbol = document.getElementById('send-token-current-symbol');
+    const name = document.getElementById('send-token-current-name');
+    if (logo) { logo.src = meta.icon; logo.alt = `${meta.symbol} logo`; }
+    if (symbol) symbol.textContent = meta.symbol;
+    if (name) name.textContent = meta.name;
+    document.querySelectorAll('[data-send-token]').forEach((button) => {
+      const selected = button.dataset.sendToken === meta.symbol;
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-selected', String(selected));
+    });
+  }
+
+  closeSendTokenMenu() {
+    const menu = document.getElementById('send-token-menu');
+    const trigger = document.getElementById('send-token-trigger');
+    menu?.classList.remove('open');
+    trigger?.setAttribute('aria-expanded', 'false');
+  }
+
+  toggleSendTokenMenu() {
+    if (this.sendTransactionInProgress) return;
+    const menu = document.getElementById('send-token-menu');
+    const trigger = document.getElementById('send-token-trigger');
+    if (!menu || !trigger) return;
+    const open = !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+    trigger.setAttribute('aria-expanded', String(open));
+  }
+
+  selectSendToken(token) {
+    if (this.sendTransactionInProgress || !['POL', 'USDT', 'FTA'].includes(token)) return;
+    document.getElementById('send-token-select').value = token;
+    document.getElementById('send-amount').value = '';
+    this.closeSendTokenMenu();
+    this.updateSendBalance();
+  }
+
   updateSendBalance() {
+    this.renderSendTokenSelector();
     const token = document.getElementById('send-token-select').value;
     let val = this.balances.nativePol;
     let dec = 4;
@@ -2928,6 +3003,7 @@ class Application {
   }
 
   closeModals() {
+    this.closeSendTokenMenu();
     document.querySelectorAll('.modal:not(#modal-pin-confirm):not(#modal-secret-reveal):not(#modal-update)').forEach((m) => {
       m.classList.remove('active');
     });
@@ -2946,57 +3022,74 @@ class Application {
   }
 
   async executeSend() {
-    const toRaw = document.getElementById('send-to-address').value.trim();
-    const amtClean = document.getElementById('send-amount').value.trim().replace(',', '.');
-    const amtNum = Number(amtClean);
-    if (!ethers.isAddress(toRaw)) return this.showToast(this.t('invalidAddr'), true);
-    const to = ethers.getAddress(toRaw);
-
-    // Protection anti-perte de fonds : bloque l'adresse nulle et les adresses de contrats connues
-    if (to === ethers.ZeroAddress) {
-      return this.showToast(this.t('burnAddrBlocked'), true);
-    }
-    const knownContracts = [CONFIG.USDT, CONFIG.FTA, CONFIG.CORE, CONFIG.MINE].map((a) => a.toLowerCase());
-    if (knownContracts.includes(to.toLowerCase())) {
-      return this.showToast(this.t('contractAddrBlocked'), true);
-    }
-
-    if (!amtClean || !Number.isFinite(amtNum) || amtNum <= 0) return this.showToast(this.t('invalidAmount'), true);
-
-    const token = document.getElementById('send-token-select').value;
-    const avail = token === 'POL' ? this.balances.nativePol : (token === 'USDT' ? this.balances.walletUsdt : this.balances.walletFta);
-    if (amtNum > avail + 1e-9) {
-      return this.showToast(this.t('errInsufficientFunds'), true);
-    }
-    if (!(await this.ensurePolGas())) return;
-
-    // Demande le code PIN à 6 chiffres avant d'envoyer des fonds à l'extérieur
-    const verified = await this.requestPinVerification(`${this.t('send')} ${amtClean} ${token}`);
-    if (!verified) return;
-    // Efface immédiatement le secret déchiffré de la RAM après vérification d'identité
-    if (verified.secret) {
-      verified.secret.privateKey = '';
-      verified.secret.mnemonic = '';
-    }
-
-    this.setLoader(true, this.t('sending'));
+    if (this.sendTransactionInProgress) return;
+    this.sendTransactionInProgress = true;
+    const submitButton = document.getElementById('send-confirm-button');
+    if (submitButton) submitButton.disabled = true;
+    this.closeSendTokenMenu();
     try {
+      const paymentAccount = this.user;
+      const normalizedAccount = String(paymentAccount || '').toLowerCase();
+      const sessionIsCurrent = () => !!(paymentAccount && this.signer && this.user
+        && this.user.toLowerCase() === normalizedAccount);
+      if (!sessionIsCurrent()) return;
+
+      const toRaw = document.getElementById('send-to-address').value.trim();
+      const amtClean = document.getElementById('send-amount').value.trim().replace(',', '.');
+      const token = document.getElementById('send-token-select').value;
+      if (!['POL', 'USDT', 'FTA'].includes(token) || !ethers.isAddress(toRaw)) {
+        return this.showToast(this.t('invalidAddr'), true);
+      }
+      const to = ethers.getAddress(toRaw);
+
+      if (to === ethers.ZeroAddress) return this.showToast(this.t('burnAddrBlocked'), true);
+      const knownContracts = [
+        CONFIG.USDT, CONFIG.FTA, CONFIG.CORE, CONFIG.MINE,
+        CONFIG.WPOL, CONFIG.QUICKSWAP_ROUTER, CONFIG.QUICKSWAP_FACTORY
+      ].filter(Boolean).map((address) => address.toLowerCase());
+      if (knownContracts.includes(to.toLowerCase())) return this.showToast(this.t('contractAddrBlocked'), true);
+
+      const decimals = this.getSwapTokenDecimals(token);
+      const amountUnits = this.parseSwapInput(amtClean, decimals);
+      if (!amountUnits) return this.showToast(this.t('invalidAmount'), true);
+      if (!sessionIsCurrent()) throw this.createTransactionError('WALLET_SESSION_CHANGED');
+
+      // Contrôle du solde réel et comparaison en BigInt, sans arrondi flottant.
+      const availableUnits = token === 'POL'
+        ? BigInt(await this.provider.getBalance(paymentAccount))
+        : BigInt(await (token === 'USDT' ? this.usdtToken : this.ftaToken).balanceOf(paymentAccount));
+      if (availableUnits < amountUnits) return this.showToast(this.t('errInsufficientFunds'), true);
+      if (!sessionIsCurrent()) throw this.createTransactionError('WALLET_SESSION_CHANGED');
+      if (!(await this.ensurePolGas()) || !sessionIsCurrent()) {
+        if (!sessionIsCurrent()) throw this.createTransactionError('WALLET_SESSION_CHANGED');
+        return;
+      }
+
+      const verified = await this.requestPinVerification(`${this.t('send')} ${amtClean} ${token}`);
+      if (!verified) return;
+      if (verified.secret) {
+        verified.secret.privateKey = '';
+        verified.secret.mnemonic = '';
+      }
+      if (!sessionIsCurrent()) throw this.createTransactionError('WALLET_SESSION_CHANGED');
+
+      this.setLoader(true, this.t('sending'));
       let tx;
       if (token === 'POL') {
-        tx = await this.signer.sendTransaction({ to, value: ethers.parseEther(amtNum.toFixed(18).replace(/\.?0+$/, '') || '0') });
-      } else if (token === 'USDT') {
-        tx = await this.usdtToken.transfer(to, ethers.parseUnits(amtNum.toFixed(this.usdtDecimals), this.usdtDecimals));
+        tx = await this.signer.sendTransaction({ to, value: amountUnits });
       } else {
-        tx = await this.ftaToken.transfer(to, ethers.parseUnits(amtNum.toFixed(this.ftaDecimals), this.ftaDecimals));
+        tx = await (token === 'USDT' ? this.usdtToken : this.ftaToken).transfer(to, amountUnits);
       }
-      await tx.wait();
+      await this.waitForTransactionReceipt(tx, this.t('sending'));
       FitiaSecurity.Native.vibrate(35);
       this.showToast(this.t('sentSuccess'));
       this.closeModals();
-      await this.updateData();
-    } catch (e) {
-      this.showError(e);
+      await this.refreshAfterConfirmedTransaction();
+    } catch (error) {
+      this.showError(error);
     } finally {
+      this.sendTransactionInProgress = false;
+      if (submitButton) submitButton.disabled = false;
       this.setLoader(false);
     }
   }
@@ -3170,18 +3263,18 @@ class Application {
         const ok = await this.ensureCoreBalance('USDT', mData.priceRaw);
         if (!ok) { this.setLoader(false); return; }
         this.setLoader(true, `${this.t('buyingMachine')}...`);
-        await (await this.mine.buyMachine(typeId)).wait();
+        await this.waitForTransactionReceipt(await this.mine.buyMachine(typeId), this.t('buyingMachine'));
       } else {
         const reqFta = await this.computeRequiredFtaForUsdtPrice(mData.priceRaw);
         const ok = await this.ensureCoreBalance('FTA', reqFta);
         if (!ok) { this.setLoader(false); return; }
         this.setLoader(true, `${this.t('buyingMachine')} (FTA)...`);
-        await (await this.mine.buyMachineFTA(typeId)).wait();
+        await this.waitForTransactionReceipt(await this.mine.buyMachineFTA(typeId), this.t('buyingMachine'));
       }
       FitiaSecurity.Native.vibrate(35);
       this.showToast(this.t('machineBought'));
       this.shopMachinesData = [];
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
@@ -3201,18 +3294,18 @@ class Application {
         const ok = await this.ensureCoreBalance('USDT', bData.priceRaw);
         if (!ok) { this.setLoader(false); return; }
         this.setLoader(true, `${this.t('buyingBattery')}...`);
-        await (await this.mine.buyBattery(typeId)).wait();
+        await this.waitForTransactionReceipt(await this.mine.buyBattery(typeId), this.t('buyingBattery'));
       } else {
         const reqFta = await this.computeRequiredFtaForUsdtPrice(bData.priceRaw);
         const ok = await this.ensureCoreBalance('FTA', reqFta);
         if (!ok) { this.setLoader(false); return; }
         this.setLoader(true, `${this.t('buyingBattery')} (FTA)...`);
-        await (await this.mine.buyBatteryFTA(typeId)).wait();
+        await this.waitForTransactionReceipt(await this.mine.buyBatteryFTA(typeId), this.t('buyingBattery'));
       }
       FitiaSecurity.Native.vibrate(35);
       this.showToast(this.t('batteryBought'));
       this.shopBatteriesData = [];
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
@@ -3244,18 +3337,78 @@ class Application {
     try {
       if (!(await this.ensurePolGas())) return;
       this.setLoader(true, this.t('pluggingIn'));
-      await (await this.mine.plugInMachine(machineIndex, batteryTypeId)).wait();
+      await this.waitForTransactionReceipt(await this.mine.plugInMachine(machineIndex, batteryTypeId), this.t('pluggingIn'));
       FitiaSecurity.Native.vibrate(40);
       this.showToast(this.t('pluggedIn'));
       machineInput.value = '';
       this.renderPlugInterface();
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
       this.plugTransactionInProgress = false;
       this.setLoader(false);
       this.renderPlugInterface();
+    }
+  }
+
+  getTransactionHash(tx, error = null) {
+    const candidates = [
+      tx?.hash,
+      error?.transactionHash,
+      error?.hash,
+      error?.transaction?.hash,
+      error?.receipt?.transactionHash,
+      error?.receipt?.hash
+    ];
+    const hash = candidates.find((value) => /^0x[0-9a-f]{64}$/i.test(String(value || '')));
+    return hash ? String(hash) : '';
+  }
+
+  createTransactionError(code, tx = null, originalError = null) {
+    const error = new Error(code);
+    error.code = code;
+    const hash = this.getTransactionHash(tx, originalError);
+    if (hash) error.transactionHash = hash;
+    return error;
+  }
+
+  async waitForTransactionReceipt(tx, pendingMessage = null) {
+    if (!tx || typeof tx.wait !== 'function') throw this.createTransactionError('TRANSACTION_NOT_CONFIRMED', tx);
+    this.showToast(pendingMessage || this.t('transactionPending'), false, 'pending');
+    let receipt = null;
+    try {
+      receipt = await tx.wait();
+    } catch (error) {
+      const errorReceiptStatus = Number(error?.receipt?.status ?? -1);
+      if (errorReceiptStatus === 1) receipt = error.receipt;
+      else if (errorReceiptStatus === 0) throw this.createTransactionError('TRANSACTION_FAILED', tx, error);
+      else {
+        if (!this.isServerResponse403(error)) throw error;
+        const hash = this.getTransactionHash(tx, error);
+        if (hash && this.provider && typeof this.provider.getTransactionReceipt === 'function') {
+          try { receipt = await this.provider.getTransactionReceipt(hash); } catch (_) { receipt = null; }
+        }
+        if (!receipt) throw this.createTransactionError('TRANSACTION_CONFIRMATION_PENDING', tx, error);
+      }
+    }
+
+    if (!receipt) {
+      const hash = this.getTransactionHash(tx);
+      if (hash && this.provider && typeof this.provider.getTransactionReceipt === 'function') {
+        try { receipt = await this.provider.getTransactionReceipt(hash); } catch (_) { receipt = null; }
+      }
+    }
+    if (!receipt) throw this.createTransactionError('TRANSACTION_CONFIRMATION_PENDING', tx);
+    const status = Number(receipt.status ?? -1);
+    if (status === 0) throw this.createTransactionError('TRANSACTION_FAILED', tx);
+    if (status !== 1) throw this.createTransactionError('TRANSACTION_CONFIRMATION_PENDING', tx);
+    return receipt;
+  }
+
+  async refreshAfterConfirmedTransaction() {
+    try { await this.updateData(); } catch (_) {
+      // Une lecture RPC en échec ne change jamais le résultat déjà confirmé.
     }
   }
 
@@ -3299,7 +3452,7 @@ class Application {
 
     this.stopMiningCounter();
     this.setLoader(true, this.t('claiming'));
-    this.showToast(this.t('claiming'));
+    this.showToast(this.t('claiming'), false, 'pending');
     try {
       if (!(await this.ensurePolGas())) {
         if (this.currentRealPower > 0) this.startMiningCounter();
@@ -3308,12 +3461,18 @@ class Application {
       const tx = await this.mine.claimRewards();
       const receipt = await this.waitForClaimReceipt(tx);
       if (!receipt) {
-        this.showToast(this.t('claimStillPending'));
+        this.showToast(this.t('claimStillPending'), false, 'pending');
         if (this.currentRealPower > 0) this.startMiningCounter();
         return;
       }
-      if (Number(receipt.status ?? 1) === 0) {
-        this.showToast(this.t('claimNotConfirmed'), true);
+      const receiptStatus = Number(receipt.status ?? -1);
+      if (receiptStatus === 0) {
+        this.showToast(this.t('claimFailed'), true);
+        if (this.currentRealPower > 0) this.startMiningCounter();
+        return;
+      }
+      if (receiptStatus !== 1) {
+        this.showToast(this.t('claimStillPending'), false, 'pending');
         if (this.currentRealPower > 0) this.startMiningCounter();
         return;
       }
@@ -3328,7 +3487,7 @@ class Application {
       }
     } catch (e) {
       if (this.isServerResponse403(e)) {
-        this.showToast(this.t('claimNotConfirmed'), true);
+        this.showToast(this.t('claimStillPending'), false, 'pending');
       } else {
         this.showError(e);
       }
@@ -3417,13 +3576,13 @@ class Application {
     this.setLoader(true, this.t('linking'));
     try {
       if (parsed.type === 'address') {
-        await (await this.core.setReferrer(parsed.value)).wait();
+        await this.waitForTransactionReceipt(await this.core.setReferrer(parsed.value), this.t('linking'));
       } else {
-        await (await this.core.setReferrerById(parsed.value)).wait();
+        await this.waitForTransactionReceipt(await this.core.setReferrerById(parsed.value), this.t('linking'));
       }
       this.showToast(this.t('refLinked'));
       document.getElementById('ref-address-input').value = '';
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
@@ -3685,11 +3844,11 @@ class Application {
     if (allowance > 0n) {
       const resetTx = await this.usdtToken.approve(CONFIG.QUICKSWAP_ROUTER, 0n);
       this.showToast(this.t('swapApprovalPending'));
-      await resetTx.wait();
+      await this.waitForTransactionReceipt(resetTx, this.t('swapApprovalPending'));
     }
     const approvalTx = await this.usdtToken.approve(CONFIG.QUICKSWAP_ROUTER, amountIn);
     this.showToast(this.t('swapApprovalPending'));
-    await approvalTx.wait();
+    await this.waitForTransactionReceipt(approvalTx, this.t('swapApprovalPending'));
   }
 
   async getDexDeadline() {
@@ -3757,14 +3916,14 @@ class Application {
       const tx = isUsdtTo
         ? await this.core.swapUForF(amountBN, minOut, deadline)
         : await this.core.swapFForU(amountBN, minOut, deadline);
-      await tx.wait();
+      await this.waitForTransactionReceipt(tx, this.t('swapping'));
 
       FitiaSecurity.Native.vibrate(35);
       this.showToast(this.t('swapSuccess'));
       document.getElementById('swap-from-in').value = '';
       document.getElementById('swap-to-in').value = '';
       document.getElementById('swap-details').classList.add('hidden');
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
@@ -3809,15 +3968,15 @@ class Application {
       }
 
       this.showToast(this.t('swapPending'));
-      const receipt = await tx.wait();
-      if (!receipt || receipt.status !== 1) throw new Error('SWAP_NOT_CONFIRMED');
+      const receipt = await this.waitForTransactionReceipt(tx, this.t('swapPending'));
+      if (!receipt) throw new Error('SWAP_NOT_CONFIRMED');
       FitiaSecurity.Native.vibrate(35);
       this.showToast(this.t('swapSuccess'));
       this.pendingDexQuote = null;
       document.getElementById('swap-from-in').value = '';
       document.getElementById('swap-to-in').value = '';
       document.getElementById('swap-details').classList.add('hidden');
-      await this.updateData();
+      await this.refreshAfterConfirmedTransaction();
     } catch (e) {
       this.showError(e);
     } finally {
@@ -4174,6 +4333,9 @@ class Application {
     const shortMsg = e?.shortMessage || e?.reason || '';
     const errStr = ((e?.message || '') + ' ' + shortMsg + ' ' + (e?.code || '')).toLowerCase();
 
+    if (e?.code === 'TRANSACTION_CONFIRMATION_PENDING' || e?.code === 'TRANSACTION_NOT_CONFIRMED' || this.isServerResponse403(e)) return this.t('transactionPendingCheck');
+    if (e?.code === 'TRANSACTION_FAILED') return this.t('transactionFailed');
+    if (e?.code === 'WALLET_SESSION_CHANGED') return this.t('walletSessionChanged');
     if (e?.code === 'ACTION_REJECTED' || e?.code === 4001 || errStr.includes('user rejected') || errStr.includes('action_rejected')) return this.t('swapRejected');
     if (errStr.includes('insufficient_output_amount') || errStr.includes('insufficient output amount')) return this.t('swapSlippageError');
     if (errStr.includes('uniswapv2router') && errStr.includes('expired')) return this.t('swapExpired');
@@ -4188,18 +4350,22 @@ class Application {
     if (errStr.includes('running')) return this.t('errRunning');
     if (errStr.includes('nobat')) return this.t('errNoBattery');
     if (errStr.includes('maxm')) return this.t('errMaxMachine');
-    if (shortMsg) return 'Contrat : ' + shortMsg;
+    // Ne jamais exposer une réponse RPC ou un libellé technique de contrat aux utilisateurs.
+    if (shortMsg) return this.t('transactionNotConfirmed');
     return this.t('errGeneric');
   }
 
   showError(e) {
-    console.error("FITIA Tx Error:", e);
-    this.showToast(this.getErrorMessage(e), true);
+    console.error('FITIA transaction error:', e?.code || 'UNKNOWN');
+    const isPending = e?.code === 'TRANSACTION_CONFIRMATION_PENDING'
+      || e?.code === 'TRANSACTION_NOT_CONFIRMED'
+      || this.isServerResponse403(e);
+    this.showToast(this.getErrorMessage(e), !isPending, isPending ? 'pending' : '');
   }
 
-  showToast(msg, isError = false) {
+  showToast(msg, isError = false, tone = '') {
     const div = document.createElement('div');
-    div.className = 'toast' + (isError ? ' toast-error' : ' toast-success');
+    div.className = 'toast' + (isError ? ' toast-error' : tone === 'pending' ? ' toast-pending' : ' toast-success');
     div.textContent = msg;
     const container = document.getElementById('toast-container');
     container.appendChild(div);
