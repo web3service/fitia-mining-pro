@@ -49,7 +49,7 @@ function normalizeDate(value, fieldName) {
   return new Date(timestamp).toISOString();
 }
 
-function validateManifest(raw) {
+function validateAnnouncementManifest(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.enabled !== 'boolean' || !Array.isArray(raw.announcements)) {
     throw new ApiError(400, 'Le manifeste est invalide.', 'VALIDATION');
   }
@@ -83,6 +83,59 @@ function validateManifest(raw) {
   )).length;
   if (activeCount > 12) throw new ApiError(400, 'Douze annonces actives maximum.', 'VALIDATION');
   return { enabled: raw.enabled, announcements };
+}
+
+function validatePromotionManifest(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.enabled !== 'boolean' || !Array.isArray(raw.promotions)) {
+    throw new ApiError(400, 'Le manifeste des décorations est invalide.', 'VALIDATION');
+  }
+  if (raw.promotions.length > 50) throw new ApiError(400, 'Le maximum est de 50 décorations.', 'VALIDATION');
+  const ids = new Set();
+  const targets = new Set();
+  const promotions = raw.promotions.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new ApiError(400, 'Une décoration est invalide.', 'VALIDATION');
+    const id = cleanText(item.id, 64);
+    const targetType = cleanText(item.targetType, 16).toLowerCase();
+    const targetId = item.targetId;
+    const variant = cleanText(item.variant, 16).toLowerCase();
+    const targetKey = `${targetType}:${targetId}`;
+    if (!/^[a-z0-9._-]+$/.test(id) || ids.has(id)) throw new ApiError(400, 'Un identifiant de décoration est invalide ou dupliqué.', 'VALIDATION');
+    if (!['machine', 'battery'].includes(targetType) || !Number.isSafeInteger(targetId) || targetId < 0 || targetId > 99) {
+      throw new ApiError(400, 'La machine ou la batterie sélectionnée est invalide.', 'VALIDATION');
+    }
+    if (!['gift', 'badge'].includes(variant)) throw new ApiError(400, 'Le style de décoration est invalide.', 'VALIDATION');
+    if (targets.has(targetKey)) throw new ApiError(400, 'Un article ne peut avoir qu’une seule décoration.', 'VALIDATION');
+    ids.add(id);
+    targets.add(targetKey);
+    const normalized = {
+      id,
+      targetType,
+      targetId,
+      variant,
+      label: normalizeLocalizedText(item.label, 32, 'Le badge')
+    };
+    const startsAt = normalizeDate(item.startsAt, 'La date de début');
+    const expiresAt = normalizeDate(item.expiresAt, 'La date de fin');
+    if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
+      throw new ApiError(400, 'La date de fin doit être postérieure à la date de début.', 'VALIDATION');
+    }
+    if (startsAt) normalized.startsAt = startsAt;
+    if (expiresAt) normalized.expiresAt = expiresAt;
+    return normalized;
+  });
+  return { enabled: raw.enabled, promotions };
+}
+
+function validateManifest(raw, kind = 'announcements') {
+  return kind === 'promotions' ? validatePromotionManifest(raw) : validateAnnouncementManifest(raw);
+}
+
+function manifestFile(kind) {
+  return kind === 'promotions' ? 'promotions.json' : 'announcements.json';
+}
+
+function manifestName(kind) {
+  return kind === 'promotions' ? 'décorations' : 'annonces';
 }
 
 function parseCookies(req) {
@@ -251,38 +304,39 @@ async function githubRequest(config, url, init = {}) {
   }
 }
 
-async function loadManifest(config) {
-  const url = `${config.apiBase}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/announcements.json?ref=${encodeURIComponent(config.branch)}`;
+async function loadManifest(config, kind = 'announcements') {
+  const file = manifestFile(kind);
+  const url = `${config.apiBase}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${file}?ref=${encodeURIComponent(config.branch)}`;
   const response = await githubRequest(config, url);
-  if (!response.ok) throw new ApiError(503, 'Impossible de lire les annonces depuis GitHub.', 'GITHUB_READ');
+  if (!response.ok) throw new ApiError(503, `Impossible de lire les ${manifestName(kind)} depuis GitHub.`, 'GITHUB_READ');
   const data = await response.json();
   if (!data.sha || data.encoding !== 'base64' || !data.content) throw new ApiError(503, 'La réponse GitHub est invalide.', 'GITHUB_READ');
   try {
-    return { manifest: validateManifest(JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'))), revision: String(data.sha) };
+    return { manifest: validateManifest(JSON.parse(Buffer.from(data.content, 'base64').toString('utf8')), kind), revision: String(data.sha) };
   } catch (error) {
     if (error instanceof ApiError && error.status === 400) throw error;
     throw new ApiError(503, 'Le manifeste GitHub est illisible.', 'GITHUB_READ');
   }
 }
 
-async function saveManifest(config, manifest, expectedRevision) {
+async function saveManifest(config, manifest, expectedRevision, kind = 'announcements') {
   if (typeof expectedRevision !== 'string' || !expectedRevision || expectedRevision.length > 128) {
     throw new ApiError(400, 'La révision du manifeste est requise.', 'REVISION');
   }
-  const current = await loadManifest(config);
-  if (current.revision !== expectedRevision) throw new ApiError(409, 'Les annonces ont changé ailleurs. Rechargez avant de réessayer.', 'CONFLICT');
+  const current = await loadManifest(config, kind);
+  if (current.revision !== expectedRevision) throw new ApiError(409, `Les ${manifestName(kind)} ont changé ailleurs. Rechargez avant de réessayer.`, 'CONFLICT');
   const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
-  const url = `${config.apiBase}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/announcements.json`;
+  const url = `${config.apiBase}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${manifestFile(kind)}`;
   const response = await githubRequest(config, url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Update FITIA announcements', content: Buffer.from(serialized).toString('base64'), sha: current.revision, branch: config.branch })
+    body: JSON.stringify({ message: kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements', content: Buffer.from(serialized).toString('base64'), sha: current.revision, branch: config.branch })
   });
-  if (response.status === 409) throw new ApiError(409, 'Les annonces ont changé ailleurs. Rechargez avant de réessayer.', 'CONFLICT');
+  if (response.status === 409) throw new ApiError(409, `Les ${manifestName(kind)} ont changé ailleurs. Rechargez avant de réessayer.`, 'CONFLICT');
   if (!response.ok) throw new ApiError(503, 'La publication GitHub a été refusée. Vérifiez la configuration du serveur.', 'GITHUB_WRITE');
   const result = await response.json();
   if (result.content && result.content.sha) return String(result.content.sha);
-  return (await loadManifest(config)).revision;
+  return (await loadManifest(config, kind)).revision;
 }
 
 module.exports = async function adminHandler(req, res) {
@@ -327,20 +381,20 @@ module.exports = async function adminHandler(req, res) {
       return;
     }
 
-    if (action === 'announcements' && req.method === 'GET') {
+    if ((action === 'announcements' || action === 'promotions') && req.method === 'GET') {
       const session = requireSession(req, res, config);
       if (!session) return;
-      const result = await loadManifest(config);
+      const result = await loadManifest(config, action);
       sendJson(res, 200, { ...result, ...sourceInfo(config), serverTime: new Date().toISOString() });
       return;
     }
 
-    if (action === 'announcements' && req.method === 'PUT') {
+    if ((action === 'announcements' || action === 'promotions') && req.method === 'PUT') {
       const session = requireSession(req, res, config);
       if (!session || !requireCsrf(req, res, session)) return;
       const body = await readJson(req);
-      const manifest = validateManifest(body.manifest);
-      const revision = await saveManifest(config, manifest, body.revision);
+      const manifest = validateManifest(body.manifest, action);
+      const revision = await saveManifest(config, manifest, body.revision, action);
       sendJson(res, 200, { manifest, revision, ...sourceInfo(config), serverTime: new Date().toISOString() });
       return;
     }

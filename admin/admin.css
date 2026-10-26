@@ -137,7 +137,17 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
 #manifest-enabled-label { min-width: 54px; color: var(--muted); font-size: 0.72rem; }
 .list-toolbar { display: grid; grid-template-columns: minmax(200px, 1fr) auto auto; gap: 11px; margin-bottom: 18px; }
 .list-toolbar select { min-width: 165px; }
-.announcements-list { display: grid; gap: 11px; }
+.announcements-list, .promotions-list { display: grid; gap: 11px; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.promotion-notice { margin-bottom: 18px; padding: 16px 19px; border: 1px solid rgba(240, 185, 11, 0.2); border-radius: 13px; background: rgba(240, 185, 11, 0.055); }
+.promotion-notice strong { color: var(--gold-light); font-size: 0.8rem; }
+.promotion-notice p { margin: 6px 0 0; color: var(--muted); font-size: 0.73rem; line-height: 1.55; }
+.promotion-symbol { display: grid; width: 66px; min-height: 54px; place-items: center; padding: 7px; border: 1px solid rgba(251, 113, 133, 0.34); border-radius: 11px; background: linear-gradient(145deg, rgba(185, 28, 28, 0.28), rgba(20, 83, 45, 0.2)); color: #fecdd3; font-size: 0.56rem; font-weight: 850; letter-spacing: 0.07em; text-align: center; }
+.promotion-badge .promotion-symbol { border-color: rgba(52, 211, 153, 0.34); background: linear-gradient(145deg, rgba(20, 83, 45, 0.3), rgba(185, 28, 28, 0.14)); color: #a7f3d0; }
+.promotion-variant-gift { border-color: rgba(251, 113, 133, 0.28); background: rgba(185, 28, 28, 0.1); color: #fda4af; }
+.promotion-variant-badge { border-color: rgba(52, 211, 153, 0.28); background: rgba(20, 83, 45, 0.12); color: #6ee7b7; }
+#promotions-enabled-label { min-width: 54px; color: var(--muted); font-size: 0.72rem; }
+.promotion-position-hint { text-align: left; }
 .announcement-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 17px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); transition: border-color 0.15s, background 0.15s; }
 .announcement-row:hover { border-color: var(--border-strong); background: #121c2b; }
 .order-controls { display: grid; gap: 5px; }
@@ -201,6 +211,14 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
 .preview-security small { color: #fda4af; }
 .preview-schedule { margin: 16px 0 8px; color: #d9dfeb; font-size: 0.7rem; line-height: 1.5; }
 .preview-note { color: #718097; font-size: 0.65rem; line-height: 1.5; }
+.promotion-preview-card { position: relative; display: flex; min-height: 190px; align-items: center; flex-direction: column; justify-content: center; gap: 9px; overflow: hidden; padding: 42px 14px 15px; border: 1px solid rgba(240, 185, 11, 0.55); border-radius: 16px; background: linear-gradient(145deg, rgba(185, 28, 28, 0.28), rgba(20, 83, 45, 0.22) 54%, #182030); text-align: center; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35); }
+.promotion-preview-card.preview-badge { background: linear-gradient(145deg, rgba(20, 83, 45, 0.3), rgba(185, 28, 28, 0.16) 62%, #182030); }
+.promotion-preview-card > img { border-radius: 50%; }
+.promotion-preview-card > strong { font-size: 0.8rem; }
+.promotion-preview-card > small { color: var(--muted); font-size: 0.62rem; }
+.promotion-preview-label { position: absolute; top: 8px; left: 8px; max-width: calc(100% - 16px); padding: 4px 7px; border: 1px solid rgba(255, 226, 130, 0.52); border-radius: 6px; background: linear-gradient(135deg, #b91c1c, #7f1d1d); color: #fff7d6; font-size: 0.56rem; font-weight: 800; letter-spacing: 0.035em; line-height: 1.25; text-transform: uppercase; overflow-wrap: anywhere; }
+.preview-badge .promotion-preview-label { border-color: rgba(134, 239, 172, 0.45); background: linear-gradient(135deg, #166534, #14532d); color: #f0fdf4; }
+.promotion-preview-buy { width: 100%; margin-top: 4px; padding: 8px; border-radius: 8px; background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: #171203; font-size: 0.63rem; font-weight: 800; }
 
 .toast-container { position: fixed; z-index: 100; right: 20px; bottom: 20px; display: grid; width: min(360px, calc(100vw - 40px)); gap: 9px; }
 .toast { padding: 14px 16px; border: 1px solid var(--border-strong); border-radius: 12px; background: #172233; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32); font-size: 0.78rem; line-height: 1.45; animation: toast-in 0.2s ease-out; }

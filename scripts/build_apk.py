@@ -164,7 +164,7 @@ def collect_web_files():
         raise FileNotFoundError(f"Interface Android manquante : {wallet_html}")
     files.append(("wallet.html", wallet_html))
 
-    top_files = ["style.css", "activity.js", "announcements.js", "app.js", "wallet.js", "manifest.json"]
+    top_files = ["style.css", "activity.js", "announcements.js", "promotions.js", "app.js", "wallet.js", "manifest.json"]
     for tf in top_files:
         p = os.path.join(ROOT_DIR, tf)
         if os.path.isfile(p):

@@ -112,6 +112,59 @@ function validateManifest(raw) {
   return { enabled: raw.enabled, announcements };
 }
 
+function validatePromotionManifest(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.enabled !== 'boolean' || !Array.isArray(raw.promotions)) {
+    throw new ApiError(400, 'Le manifeste des décorations est invalide.', 'VALIDATION');
+  }
+  if (raw.promotions.length > 50) throw new ApiError(400, 'Le maximum est de 50 décorations.', 'VALIDATION');
+  const ids = new Set();
+  const targets = new Set();
+  const promotions = raw.promotions.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new ApiError(400, 'Une décoration est invalide.', 'VALIDATION');
+    const id = cleanText(item.id, 64);
+    const targetType = cleanText(item.targetType, 16).toLowerCase();
+    const targetId = item.targetId;
+    const variant = cleanText(item.variant, 16).toLowerCase();
+    const targetKey = `${targetType}:${targetId}`;
+    if (!/^[a-z0-9._-]+$/.test(id) || ids.has(id)) throw new ApiError(400, 'Un identifiant de décoration est invalide ou dupliqué.', 'VALIDATION');
+    if (!['machine', 'battery'].includes(targetType) || !Number.isSafeInteger(targetId) || targetId < 0 || targetId > 99) {
+      throw new ApiError(400, 'La machine ou la batterie sélectionnée est invalide.', 'VALIDATION');
+    }
+    if (!['gift', 'badge'].includes(variant)) throw new ApiError(400, 'Le style de décoration est invalide.', 'VALIDATION');
+    if (targets.has(targetKey)) throw new ApiError(400, 'Un article ne peut avoir qu’une seule décoration.', 'VALIDATION');
+    ids.add(id);
+    targets.add(targetKey);
+    const normalized = {
+      id,
+      targetType,
+      targetId,
+      variant,
+      label: normalizeLocalizedText(item.label, 32, 'Le badge')
+    };
+    const startsAt = normalizeDate(item.startsAt, 'La date de début');
+    const expiresAt = normalizeDate(item.expiresAt, 'La date de fin');
+    if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
+      throw new ApiError(400, 'La date de fin doit être postérieure à la date de début.', 'VALIDATION');
+    }
+    if (startsAt) normalized.startsAt = startsAt;
+    if (expiresAt) normalized.expiresAt = expiresAt;
+    return normalized;
+  });
+  return { enabled: raw.enabled, promotions };
+}
+
+function validateManifestKind(raw, kind = 'announcements') {
+  return kind === 'promotions' ? validatePromotionManifest(raw) : validateManifest(raw);
+}
+
+function manifestFile(kind) {
+  return kind === 'promotions' ? 'promotions.json' : 'announcements.json';
+}
+
+function manifestName(kind) {
+  return kind === 'promotions' ? 'décorations' : 'annonces';
+}
+
 function parseCookies(req) {
   const cookies = {};
   String(req.headers.cookie || '').split(';').forEach((part) => {
@@ -198,6 +251,7 @@ function createAdminServer(options = {}) {
   if (!localMode && !githubToken) throw new Error('FITIA_GITHUB_TOKEN est requis hors mode local.');
 
   const dataFile = path.resolve(options.dataFile || process.env.FITIA_ADMIN_DATA_FILE || path.join(ROOT, 'announcements.json'));
+  const promotionsFile = path.resolve(options.promotionsFile || process.env.FITIA_ADMIN_PROMOTIONS_FILE || path.join(ROOT, 'promotions.json'));
   const owner = options.owner || process.env.FITIA_ADMIN_GITHUB_OWNER || 'web3service';
   const repo = options.repo || process.env.FITIA_ADMIN_GITHUB_REPO || 'fitia-mining-pro';
   const branch = options.branch || process.env.FITIA_ADMIN_GITHUB_BRANCH || 'main';
@@ -282,10 +336,10 @@ function createAdminServer(options = {}) {
     return response;
   }
 
-  async function loadGitHub() {
-    const url = `${githubApiBase}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/announcements.json?ref=${encodeURIComponent(branch)}`;
+  async function loadGitHub(kind = 'announcements') {
+    const url = `${githubApiBase}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${manifestFile(kind)}?ref=${encodeURIComponent(branch)}`;
     const response = await githubRequest(url);
-    if (!response.ok) throw new ApiError(503, 'Impossible de lire les annonces depuis GitHub.', 'GITHUB_READ');
+    if (!response.ok) throw new ApiError(503, `Impossible de lire les ${manifestName(kind)} depuis GitHub.`, 'GITHUB_READ');
     const data = await response.json();
     if (!data.sha || data.encoding !== 'base64' || !data.content) {
       throw new ApiError(503, 'La réponse GitHub est invalide.', 'GITHUB_READ');
@@ -296,56 +350,58 @@ function createAdminServer(options = {}) {
     } catch (_) {
       throw new ApiError(503, 'Le manifeste GitHub est illisible.', 'GITHUB_READ');
     }
-    return { manifest: validateManifest(parsed), revision: String(data.sha) };
+    return { manifest: validateManifestKind(parsed, kind), revision: String(data.sha) };
   }
 
-  async function saveGitHub(manifest, revision) {
+  async function saveGitHub(manifest, revision, kind = 'announcements') {
     const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
-    const url = `${githubApiBase}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/announcements.json`;
+    const url = `${githubApiBase}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${manifestFile(kind)}`;
     const response = await githubRequest(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: 'Update FITIA announcements',
+        message: kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements',
         content: Buffer.from(serialized, 'utf8').toString('base64'),
         sha: revision,
         branch
       })
     });
-    if (response.status === 409) throw new ApiError(409, 'Les annonces ont changé ailleurs. Rechargez avant de réessayer.', 'CONFLICT');
+    if (response.status === 409) throw new ApiError(409, `Les ${manifestName(kind)} ont changé ailleurs. Rechargez avant de réessayer.`, 'CONFLICT');
     if (!response.ok) throw new ApiError(503, 'La publication GitHub a été refusée. Vérifiez la configuration du serveur.', 'GITHUB_WRITE');
     const result = await response.json();
     if (result.content && result.content.sha) return String(result.content.sha);
-    return (await loadGitHub()).revision;
+    return (await loadGitHub(kind)).revision;
   }
 
-  async function loadLocal() {
+  async function loadLocal(kind = 'announcements') {
+    const targetFile = kind === 'promotions' ? promotionsFile : dataFile;
     let serialized;
     try {
-      serialized = await fs.promises.readFile(dataFile, 'utf8');
+      serialized = await fs.promises.readFile(targetFile, 'utf8');
     } catch (_) {
-      throw new ApiError(503, 'Le fichier local des annonces est illisible.', 'LOCAL_READ');
+      throw new ApiError(503, `Le fichier local des ${manifestName(kind)} est illisible.`, 'LOCAL_READ');
     }
     let parsed;
     try {
       parsed = JSON.parse(serialized);
     } catch (_) {
-      throw new ApiError(503, 'Le fichier local des annonces est invalide.', 'LOCAL_READ');
+      throw new ApiError(503, `Le fichier local des ${manifestName(kind)} est invalide.`, 'LOCAL_READ');
     }
-    return { manifest: validateManifest(parsed), revision: sha256(serialized) };
+    return { manifest: validateManifestKind(parsed, kind), revision: sha256(serialized) };
   }
 
-  async function saveLocal(manifest) {
+  async function saveLocal(manifest, kind = 'announcements') {
+    const targetFile = kind === 'promotions' ? promotionsFile : dataFile;
     const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
-    const temporary = `${dataFile}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
-    await fs.promises.mkdir(path.dirname(dataFile), { recursive: true });
+    const temporary = `${targetFile}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
+    await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
     await fs.promises.writeFile(temporary, serialized, { encoding: 'utf8', mode: 0o600 });
-    await fs.promises.rename(temporary, dataFile);
+    await fs.promises.rename(temporary, targetFile);
     return sha256(serialized);
   }
 
-  async function loadManifest() {
-    return localMode ? loadLocal() : loadGitHub();
+  async function loadManifest(kind = 'announcements') {
+    return localMode ? loadLocal(kind) : loadGitHub(kind);
   }
 
   function enqueueMutation(task) {
@@ -354,17 +410,17 @@ function createAdminServer(options = {}) {
     return result;
   }
 
-  async function updateManifest(rawManifest, expectedRevision) {
-    const manifest = validateManifest(rawManifest);
+  async function updateManifest(rawManifest, expectedRevision, kind = 'announcements') {
+    const manifest = validateManifestKind(rawManifest, kind);
     if (typeof expectedRevision !== 'string' || !expectedRevision || expectedRevision.length > 128) {
       throw new ApiError(400, 'La révision du manifeste est requise.', 'REVISION');
     }
     return enqueueMutation(async () => {
-      const current = await loadManifest();
+      const current = await loadManifest(kind);
       if (current.revision !== expectedRevision) {
-        throw new ApiError(409, 'Les annonces ont changé ailleurs. Rechargez avant de réessayer.', 'CONFLICT');
+        throw new ApiError(409, `Les ${manifestName(kind)} ont changé ailleurs. Rechargez avant de réessayer.`, 'CONFLICT');
       }
-      const revision = localMode ? await saveLocal(manifest) : await saveGitHub(manifest, current.revision);
+      const revision = localMode ? await saveLocal(manifest, kind) : await saveGitHub(manifest, current.revision, kind);
       return { manifest, revision };
     });
   }
@@ -431,19 +487,21 @@ function createAdminServer(options = {}) {
       return;
     }
 
-    if (pathname === '/api/announcements' && req.method === 'GET') {
+    if ((pathname === '/api/announcements' || pathname === '/api/promotions') && req.method === 'GET') {
       const session = requireSession(req, res);
       if (!session) return;
-      const result = await loadManifest();
+      const kind = pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
+      const result = await loadManifest(kind);
       sendJson(res, 200, { ...result, ...sourceInfo(), serverTime: new Date().toISOString() });
       return;
     }
 
-    if (pathname === '/api/announcements' && req.method === 'PUT') {
+    if ((pathname === '/api/announcements' || pathname === '/api/promotions') && req.method === 'PUT') {
       const session = requireSession(req, res);
       if (!session || !requireCsrf(req, res, session)) return;
+      const kind = pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
       const body = await readJson(req);
-      const result = await updateManifest(body.manifest, body.revision);
+      const result = await updateManifest(body.manifest, body.revision, kind);
       sendJson(res, 200, { ...result, ...sourceInfo(), serverTime: new Date().toISOString() });
       return;
     }
@@ -500,4 +558,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createAdminServer, validateManifest, ApiError };
+module.exports = { createAdminServer, validateManifest, validatePromotionManifest, ApiError };

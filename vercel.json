@@ -34,6 +34,10 @@
     {
       "source": "/api/admin/announcements",
       "destination": "/api/admin?action=announcements"
+    },
+    {
+      "source": "/api/admin/promotions",
+      "destination": "/api/admin?action=promotions"
     }
   ],
   "headers": [

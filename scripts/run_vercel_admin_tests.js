@@ -71,36 +71,52 @@ async function request(base, action, options = {}) {
   let cookie = '';
   let csrf = '';
   let githubManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
+  const initialAnnouncementCount = githubManifest.announcements.length;
   let githubRevision = 'sha-vercel-initial';
   let githubWrites = 0;
+  let githubPromotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
+  let githubPromotionRevision = 'sha-vercel-promotion-initial';
+  let githubPromotionWrites = 0;
 
   global.fetch = async (url, init = {}) => {
     const target = String(url);
     if (!target.startsWith('https://api.github.com/')) return originalFetch(url, init);
+    const isPromotion = target.includes('/contents/promotions.json');
     assert.strictEqual(init.headers.Authorization, `Bearer ${TOKEN}`);
     if ((init.method || 'GET') === 'PUT') {
       const body = JSON.parse(init.body);
-      assert.strictEqual(body.sha, githubRevision);
+      assert.strictEqual(body.sha, isPromotion ? githubPromotionRevision : githubRevision);
       assert.strictEqual(body.branch, 'main');
-      githubManifest = JSON.parse(Buffer.from(body.content, 'base64').toString('utf8'));
-      githubWrites += 1;
-      githubRevision = `sha-vercel-write-${githubWrites}`;
-      return new Response(JSON.stringify({ content: { sha: githubRevision } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      assert.strictEqual(body.message, isPromotion ? 'Update FITIA promotions' : 'Update FITIA announcements');
+      const published = JSON.parse(Buffer.from(body.content, 'base64').toString('utf8'));
+      let nextRevision;
+      if (isPromotion) {
+        githubPromotionManifest = published;
+        githubPromotionWrites += 1;
+        githubPromotionRevision = `sha-vercel-promotion-write-${githubPromotionWrites}`;
+        nextRevision = githubPromotionRevision;
+      } else {
+        githubManifest = published;
+        githubWrites += 1;
+        githubRevision = `sha-vercel-write-${githubWrites}`;
+        nextRevision = githubRevision;
+      }
+      return new Response(JSON.stringify({ content: { sha: nextRevision } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
     return new Response(JSON.stringify({
-      sha: githubRevision,
+      sha: isPromotion ? githubPromotionRevision : githubRevision,
       encoding: 'base64',
-      content: Buffer.from(JSON.stringify(githubManifest)).toString('base64')
+      content: Buffer.from(JSON.stringify(isPromotion ? githubPromotionManifest : githubManifest)).toString('base64')
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
 
   try {
-    await runTest('Vercel sert /admin et réécrit les quatre routes API serverless', async () => {
+    await runTest('Vercel sert /admin et réécrit les cinq routes API serverless', async () => {
       const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
       const rewrites = new Map(config.rewrites.map((item) => [item.source, item.destination]));
       assert.strictEqual(rewrites.get('/admin'), '/admin/index.html');
       assert.strictEqual(rewrites.get('/admin/'), '/admin/index.html');
-      for (const action of ['login', 'session', 'logout', 'announcements']) {
+      for (const action of ['login', 'session', 'logout', 'announcements', 'promotions']) {
         assert.strictEqual(rewrites.get(`/api/admin/${action}`), `/api/admin?action=${action}`);
       }
       const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
@@ -140,7 +156,7 @@ async function request(base, action, options = {}) {
     await runTest('La fonction serverless publie avec CSRF, SHA et token uniquement côté serveur', async () => {
       const loaded = await request(baseB, 'announcements', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
-      assert.strictEqual(loaded.data.manifest.announcements.length, 4);
+      assert.strictEqual(loaded.data.manifest.announcements.length, initialAnnouncementCount);
       assert.strictEqual(loaded.data.revision, 'sha-vercel-initial');
       assert.ok(!loaded.text.includes(TOKEN));
 
@@ -157,9 +173,43 @@ async function request(base, action, options = {}) {
       });
       assert.strictEqual(saved.response.status, 200, saved.text);
       assert.strictEqual(saved.data.revision, 'sha-vercel-write-1');
-      assert.strictEqual(githubManifest.announcements[4].id, 'event-vercel-test');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].id, 'event-vercel-test');
       assert.strictEqual(githubWrites, 1);
       assert.ok(!saved.text.includes(TOKEN));
+    });
+
+    await runTest('La fonction serverless publie les décorations dans leur propre fichier avec CSRF et validation', async () => {
+      const loaded = await request(baseB, 'promotions', { cookie });
+      assert.strictEqual(loaded.response.status, 200, loaded.text);
+      assert.strictEqual(loaded.data.manifest.promotions.length, 0);
+      assert.strictEqual(loaded.data.revision, 'sha-vercel-promotion-initial');
+      const next = loaded.data.manifest;
+      next.promotions.push({
+        id: 'gift-vercel-test', targetType: 'machine', targetId: 2, variant: 'gift',
+        label: { fr: 'JOYEUX NOËL', en: 'MERRY CHRISTMAS' }
+      });
+      const rejected = await request(baseB, 'promotions', {
+        method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
+      });
+      assert.strictEqual(rejected.response.status, 403);
+      const saved = await request(baseB, 'promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: next, revision: loaded.data.revision }
+      });
+      assert.strictEqual(saved.response.status, 200, saved.text);
+      assert.strictEqual(saved.data.revision, 'sha-vercel-promotion-write-1');
+      assert.strictEqual(saved.data.manifest.promotions[0].targetId, 2);
+      assert.strictEqual(githubPromotionManifest.promotions[0].id, 'gift-vercel-test');
+      assert.strictEqual(githubPromotionWrites, 1);
+      assert.strictEqual(githubWrites, 1);
+      assert.ok(!saved.text.includes(TOKEN));
+
+      const invalid = saved.data.manifest;
+      invalid.promotions[0].targetId = -1;
+      const invalidResult = await request(baseB, 'promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalid, revision: saved.data.revision }
+      });
+      assert.strictEqual(invalidResult.response.status, 400);
+      assert.strictEqual(githubPromotionWrites, 1);
     });
 
     await runTest('Un cookie falsifié est rejeté et la déconnexion efface le cookie', async () => {

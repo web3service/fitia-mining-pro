@@ -7,6 +7,7 @@ const { createAdminServer } = require('../admin-server');
 
 const ROOT = path.resolve(__dirname, '..');
 const PASSWORD = 'test-admin-password-123';
+const INITIAL_ANNOUNCEMENT_COUNT = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8')).announcements.length;
 let passed = 0;
 let failed = 0;
 
@@ -57,8 +58,10 @@ function clone(value) {
   console.log('\n🛡️  TESTS DU PANNEAU D’ADMINISTRATION FITIA PRO\n' + '═'.repeat(68));
   const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'fitia-admin-tests-'));
   const dataFile = path.join(temporaryDirectory, 'announcements.json');
+  const promotionsFile = path.join(temporaryDirectory, 'promotions.json');
   fs.copyFileSync(path.join(ROOT, 'announcements.json'), dataFile);
-  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile });
+  fs.copyFileSync(path.join(ROOT, 'promotions.json'), promotionsFile);
+  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile });
   const localPort = await listen(localServer);
   const localBase = `http://127.0.0.1:${localPort}`;
   let githubServer = null;
@@ -74,10 +77,11 @@ function clone(value) {
       assert.strictEqual(page.response.status, 200);
       assert.ok(page.text.includes('FITIA PRO'));
       assert.ok(page.text.includes('id="announcement-form"'));
+      assert.ok(page.text.includes('id="promotion-form"'));
       assert.ok(page.response.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
       assert.ok(page.response.headers.get('content-security-policy').includes("script-src 'self'"));
       assert.strictEqual(page.response.headers.get('x-frame-options'), 'DENY');
-      for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/.git/HEAD']) {
+      for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/promotions.json', '/.git/HEAD']) {
         const result = await request(localBase, forbidden);
         assert.strictEqual(result.response.status, 404, forbidden);
       }
@@ -92,6 +96,10 @@ function clone(value) {
       assert.strictEqual(list.response.status, 401);
       const update = await request(localBase, '/api/admin/announcements', { method: 'PUT', body: {} });
       assert.strictEqual(update.response.status, 401);
+      const promotions = await request(localBase, '/api/admin/promotions', { cookie });
+      assert.strictEqual(promotions.response.status, 401);
+      const updatePromotions = await request(localBase, '/api/admin/promotions', { method: 'PUT', body: {} });
+      assert.strictEqual(updatePromotions.response.status, 401);
     });
 
     await runTest('Connexion par mot de passe, cookie HttpOnly et jeton CSRF temporaire', async () => {
@@ -116,8 +124,9 @@ function clone(value) {
     await runTest('Chargement du manifeste sans exposer de secret ni d’identifiant', async () => {
       const result = await request(localBase, '/api/admin/announcements', { cookie });
       assert.strictEqual(result.response.status, 200);
-      assert.strictEqual(result.data.manifest.enabled, true);
-      assert.strictEqual(result.data.manifest.announcements.length, 4);
+      const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
+      assert.strictEqual(result.data.manifest.enabled, published.enabled);
+      assert.strictEqual(result.data.manifest.announcements.length, INITIAL_ANNOUNCEMENT_COUNT);
       assert.ok(result.data.revision);
       assert.ok(!result.text.includes(PASSWORD));
       assert.ok(!result.text.includes('FITIA_GITHUB_TOKEN'));
@@ -152,10 +161,10 @@ function clone(value) {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision }
       });
       assert.strictEqual(result.response.status, 200, result.text);
-      assert.strictEqual(result.data.manifest.announcements.length, 5);
-      assert.strictEqual(result.data.manifest.announcements[4].startsAt, '2030-01-01T00:00:00.000Z');
+      assert.strictEqual(result.data.manifest.announcements.length, INITIAL_ANNOUNCEMENT_COUNT + 1);
+      assert.strictEqual(result.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].startsAt, '2030-01-01T00:00:00.000Z');
       const saved = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
-      assert.strictEqual(saved.announcements[4].title.en, 'Test event');
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].title.en, 'Test event');
       assert.ok(!fs.readdirSync(temporaryDirectory).some((name) => name.includes('.tmp-')));
       manifest = result.data.manifest;
       revision = result.data.revision;
@@ -170,15 +179,15 @@ function clone(value) {
       assert.strictEqual(result.response.status, 400);
 
       const invalidDates = clone(manifest);
-      invalidDates.announcements[4].startsAt = '2030-02-01T00:00:00.000Z';
-      invalidDates.announcements[4].expiresAt = '2030-01-01T00:00:00.000Z';
+      invalidDates.announcements[INITIAL_ANNOUNCEMENT_COUNT].startsAt = '2030-02-01T00:00:00.000Z';
+      invalidDates.announcements[INITIAL_ANNOUNCEMENT_COUNT].expiresAt = '2030-01-01T00:00:00.000Z';
       result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: invalidDates, revision }
       });
       assert.strictEqual(result.response.status, 400);
 
       const duplicate = clone(manifest);
-      duplicate.announcements[4].id = duplicate.announcements[0].id;
+      duplicate.announcements[INITIAL_ANNOUNCEMENT_COUNT].id = duplicate.announcements[0].id;
       result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: duplicate, revision }
       });
@@ -193,6 +202,69 @@ function clone(value) {
       assert.strictEqual(result.response.status, 400);
     });
 
+    await runTest('Cartes cadeaux et badges : CSRF, ciblage, traductions, dates et doublons validés', async () => {
+      const loaded = await request(localBase, '/api/admin/promotions', { cookie });
+      assert.strictEqual(loaded.response.status, 200, loaded.text);
+      assert.strictEqual(loaded.data.manifest.enabled, true);
+      assert.strictEqual(loaded.data.manifest.promotions.length, 0);
+      const initialRevision = loaded.data.revision;
+      const next = clone(loaded.data.manifest);
+      next.promotions.push({
+        id: 'gift-admin-test',
+        targetType: 'machine',
+        targetId: 0,
+        variant: 'gift',
+        label: { fr: 'JOYEUX <b>NOËL</b>', en: 'MERRY CHRISTMAS' },
+        startsAt: '2030-12-01T00:00:00.000Z',
+        expiresAt: '2030-12-31T23:59:59.000Z'
+      });
+      const withoutCsrf = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, body: { manifest: next, revision: initialRevision }
+      });
+      assert.strictEqual(withoutCsrf.response.status, 403);
+      const saved = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: next, revision: initialRevision }
+      });
+      assert.strictEqual(saved.response.status, 200, saved.text);
+      assert.strictEqual(saved.data.manifest.promotions[0].targetId, 0);
+      assert.strictEqual(saved.data.manifest.promotions[0].label.fr, 'JOYEUX <b>NOËL</b>');
+      const onDisk = JSON.parse(fs.readFileSync(promotionsFile, 'utf8'));
+      assert.strictEqual(onDisk.promotions[0].id, 'gift-admin-test');
+      assert.strictEqual(onDisk.promotions[0].startsAt, '2030-12-01T00:00:00.000Z');
+
+      const duplicate = clone(saved.data.manifest);
+      duplicate.promotions.push({ ...duplicate.promotions[0], id: 'gift-duplicate' });
+      let result = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: duplicate, revision: saved.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const invalidTarget = clone(saved.data.manifest);
+      invalidTarget.promotions[0].targetId = 100;
+      result = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidTarget, revision: saved.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+      invalidTarget.promotions[0].targetId = null;
+      result = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidTarget, revision: saved.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const invalidDates = clone(saved.data.manifest);
+      invalidDates.promotions[0].expiresAt = '2030-11-01T00:00:00.000Z';
+      result = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidDates, revision: saved.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const stale = await request(localBase, '/api/admin/promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: saved.data.manifest, revision: initialRevision }
+      });
+      assert.strictEqual(stale.response.status, 409);
+      assert.strictEqual(stale.data.code, 'CONFLICT');
+    });
+
     await runTest('Une révision obsolète ne peut pas écraser une modification concurrente', async () => {
       const result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest, revision: staleRevision }
@@ -203,7 +275,7 @@ function clone(value) {
 
     await runTest('Réorganisation, désactivation du canal et suppression conservent le manifeste', async () => {
       let next = clone(manifest);
-      const [eventItem] = next.announcements.splice(4, 1);
+      const [eventItem] = next.announcements.splice(INITIAL_ANNOUNCEMENT_COUNT, 1);
       next.announcements.unshift(eventItem);
       let result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision }
@@ -229,7 +301,7 @@ function clone(value) {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision }
       });
       assert.strictEqual(result.response.status, 200);
-      assert.strictEqual(result.data.manifest.announcements.length, 4);
+      assert.strictEqual(result.data.manifest.announcements.length, INITIAL_ANNOUNCEMENT_COUNT);
       assert.strictEqual(result.data.manifest.enabled, false);
       manifest = result.data.manifest;
       revision = result.data.revision;
@@ -260,27 +332,41 @@ function clone(value) {
       assert.ok(limited.response.headers.get('retry-after'));
     });
 
-    await runTest('Publication GitHub avec SHA, branche, contenu Base64 et token strictement serveur', async () => {
+    await runTest('Publication GitHub des annonces et décorations avec SHA et token strictement serveur', async () => {
       let githubManifest = { enabled: true, announcements: [] };
       let githubRevision = 'sha-initial';
       let writes = 0;
+      let githubPromotionManifest = { enabled: true, promotions: [] };
+      let githubPromotionRevision = 'sha-promotion-initial';
+      let promotionWrites = 0;
       const mockFetch = async (url, init = {}) => {
-        assert.ok(url.includes('/repos/web3service/fitia-mining-pro/contents/announcements.json'));
+        const isPromotion = String(url).includes('/contents/promotions.json');
+        assert.ok(String(url).includes(`/repos/web3service/fitia-mining-pro/contents/${isPromotion ? 'promotions.json' : 'announcements.json'}`));
         assert.strictEqual(init.headers.Authorization, 'Bearer test-token-not-real');
         if ((init.method || 'GET') === 'PUT') {
           const body = JSON.parse(init.body);
-          assert.strictEqual(body.sha, githubRevision);
+          assert.strictEqual(body.sha, isPromotion ? githubPromotionRevision : githubRevision);
           assert.strictEqual(body.branch, 'main');
-          assert.strictEqual(body.message, 'Update FITIA announcements');
-          githubManifest = JSON.parse(Buffer.from(body.content, 'base64').toString('utf8'));
-          writes += 1;
-          githubRevision = `sha-write-${writes}`;
-          return new Response(JSON.stringify({ content: { sha: githubRevision } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          assert.strictEqual(body.message, isPromotion ? 'Update FITIA promotions' : 'Update FITIA announcements');
+          const published = JSON.parse(Buffer.from(body.content, 'base64').toString('utf8'));
+          let nextRevision;
+          if (isPromotion) {
+            githubPromotionManifest = published;
+            promotionWrites += 1;
+            githubPromotionRevision = `sha-promotion-write-${promotionWrites}`;
+            nextRevision = githubPromotionRevision;
+          } else {
+            githubManifest = published;
+            writes += 1;
+            githubRevision = `sha-write-${writes}`;
+            nextRevision = githubRevision;
+          }
+          return new Response(JSON.stringify({ content: { sha: nextRevision } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
         return new Response(JSON.stringify({
-          sha: githubRevision,
+          sha: isPromotion ? githubPromotionRevision : githubRevision,
           encoding: 'base64',
-          content: Buffer.from(JSON.stringify(githubManifest)).toString('base64')
+          content: Buffer.from(JSON.stringify(isPromotion ? githubPromotionManifest : githubManifest)).toString('base64')
         }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       };
       githubServer = createAdminServer({
@@ -312,6 +398,23 @@ function clone(value) {
       assert.strictEqual(githubManifest.announcements[0].id, 'event-github-test');
       assert.strictEqual(writes, 1);
       assert.ok(!saved.text.includes('test-token-not-real'));
+
+      const loadedPromotions = await request(base, '/api/admin/promotions', { cookie: ghCookie });
+      assert.strictEqual(loadedPromotions.response.status, 200, loadedPromotions.text);
+      assert.strictEqual(loadedPromotions.data.revision, 'sha-promotion-initial');
+      const nextPromotions = loadedPromotions.data.manifest;
+      nextPromotions.promotions.push({
+        id: 'badge-github-test', targetType: 'battery', targetId: 1, variant: 'badge', label: { fr: 'OFFRE DE NOËL' }
+      });
+      const savedPromotions = await request(base, '/api/admin/promotions', {
+        method: 'PUT', cookie: ghCookie, csrf: ghCsrf,
+        body: { manifest: nextPromotions, revision: loadedPromotions.data.revision }
+      });
+      assert.strictEqual(savedPromotions.response.status, 200, savedPromotions.text);
+      assert.strictEqual(savedPromotions.data.revision, 'sha-promotion-write-1');
+      assert.strictEqual(githubPromotionManifest.promotions[0].id, 'badge-github-test');
+      assert.strictEqual(promotionWrites, 1);
+      assert.ok(!savedPromotions.text.includes('test-token-not-real'));
     });
   } finally {
     await close(localServer);

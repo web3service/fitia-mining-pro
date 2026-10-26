@@ -57,6 +57,15 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
+## 🎄 Cartes Cadeaux & Badges de la Boutique
+
+- **`promotions.json`** est indépendant des annonces et sélectionne précisément une machine ou une batterie par son numéro dans la boutique, en commençant à 1.
+- Les présentations `gift` et `badge`, les textes traduits et les dates facultatives sont gérés depuis le panneau d’administration. Les entrées futures, expirées, invalides ou sans article correspondant ne sont pas affichées.
+- Ce module est uniquement décoratif : les prix on-chain, les boutons et les transactions d’achat restent inchangés.
+- Le rendu exige le module local **`promotions.js`**, chargé avant `app.js` et ajouté aux fichiers du prochain paquet APK. Une publication JSON ne transforme pas l’APK déjà signé.
+
+---
+
 ## 📲 Mise à Jour dans l’Application & Signature Stable
 
 - **`update-current.json`** publie la version disponible pour FITIA PRO 3.3.7 et les versions suivantes, l’URL GitHub Release et le SHA-256 de l’APK. La version 3.3.9 est proposée directement aux installations 3.3.7 et 3.3.8, qui utilisent le même certificat.
@@ -74,7 +83,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ## 🛠️ Panneau d’administration FITIA PRO
 
-Une application Node.js séparée permet de gérer les événements et annonces du wallet : programmation, traductions, aperçu mobile, réorganisation et publication sécurisée de `announcements.json`.
+Une application Node.js séparée permet de gérer les événements, annonces, cartes cadeaux et badges du wallet : ciblage, programmation, traductions, aperçu mobile et publication sécurisée des manifestes indépendants.
 
 ```bash
 # Démarrer le serveur d’administration (configuration décrite dans ADMIN.md)
@@ -84,14 +93,14 @@ npm run admin
 npm run test:admin
 ```
 
-Consultez **`ADMIN.md`** pour les modes local et GitHub, les variables d’environnement et le déploiement **Vercel serverless** ou sur un serveur Node.js autonome. Le panneau reste séparé du wallet et ne nécessite aucune modification de l’APK.
+Consultez **`ADMIN.md`** pour les modes local et GitHub, les variables d’environnement et le déploiement **Vercel serverless** ou sur un serveur Node.js autonome. Le panneau reste séparé du wallet. Les annonces fonctionnent sans nouveau build ; les décorations de la boutique nécessitent un APK qui embarque leur module d’affichage.
 
 ---
 
 ## 🧪 Tests Automatisés & Recompilation APK
 
 ```bash
-# Lancer la suite complète d'audit sécurité & tests E2E (29 tests)
+# Lancer la suite complète d'audit sécurité & tests E2E (30 tests)
 npm test
 
 # Recompiler, aligner (4 octets) et signer l'APK Android (v2 + v3)

@@ -380,7 +380,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.Uint8Array = Uint8Array;
   win.ArrayBuffer = ArrayBuffer;
   win.fetch = async (url, opts) => {
-    if (String(url).includes('/announcements.json')) throw new Error('offline-sandbox');
+    if (String(url).includes('/announcements.json') || String(url).includes('/promotions.json')) throw new Error('offline-sandbox');
     // Bloque les appels prix externes (DexScreener/CoinGecko) en sandbox pour rapidité instantanée
     if (String(url).includes('dexscreener') || String(url).includes('coingecko')) {
       throw new Error('offline-sandbox');
@@ -412,6 +412,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'activity.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'announcements.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'promotions.js'), 'utf8'));
 
   if (mockRpcUrl) {
     win.FitiaSecurity.Rpc.connectBestProvider = async () => {
@@ -904,6 +905,7 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 5, 'Quatre annonces et le clone de boucle');
       assert.strictEqual(e2eWin.document.querySelector('#announcement-center .announcement-close'), null, 'La bannière permanente ne peut pas être fermée');
       while (center.fetchInFlight) await new Promise((resolve) => setTimeout(resolve, 0));
+      while (App.promotionCenter.fetchInFlight) await new Promise((resolve) => setTimeout(resolve, 0));
 
       try {
         center.stop();
@@ -974,9 +976,9 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(center.items.length, 1, 'Une panne réseau ne supprime pas les dernières annonces valides');
 
         const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
-        const publishedItems = center.normalizeManifest(published, now);
-        assert.strictEqual(publishedItems.length, 4);
-        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(['information', 'event', 'referral', 'security']));
+        const publishedItems = center.normalizeManifest({ ...published, enabled: true }, now);
+        assert.strictEqual(publishedItems.length, published.announcements.length, 'Le contenu éditorial valide est conservé sans supposer son activation ni son nombre');
+        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(published.announcements.map((item) => item.category)));
       } finally {
         e2eWin.fetch = originalFetch;
         App.setLanguage(originalLang);
@@ -987,6 +989,126 @@ function httpRequest(port, method, reqPath) {
         center.fetchInFlight = false;
         center.render();
         center.start();
+      }
+    });
+
+    await runTest('APP-PROMOTIONS', 'Cartes cadeaux et badges ciblés, dates, traductions et achats strictement inchangés', async () => {
+      const center = App.promotionCenter;
+      const originalFetch = e2eWin.fetch;
+      const originals = {
+        items: center.items,
+        lastFetchAt: center.lastFetchAt,
+        lang: App.currentLang,
+        machines: App.shopMachinesData,
+        batteries: App.shopBatteriesData,
+        view: App.shopViewMode,
+        payMode: App.payMode,
+        buyMachine: App.buyMachine,
+        buyBattery: App.buyBattery
+      };
+      const now = Date.now();
+      const activeGift = {
+        id: 'gift-machine-test', targetType: 'machine', targetId: 0, variant: 'gift',
+        label: { fr: '<img src=x> JOYEUX NOËL', en: 'MERRY CHRISTMAS' },
+        startsAt: new Date(now - 86400000).toISOString(), expiresAt: new Date(now + 86400000).toISOString()
+      };
+      const manifest = {
+        enabled: true,
+        promotions: [
+          activeGift,
+          { id: 'badge-battery-test', targetType: 'battery', targetId: 0, variant: 'badge', label: { fr: 'CADEAU', en: 'CHRISTMAS GIFT' } },
+          { id: 'missing-machine-test', targetType: 'machine', targetId: 9, variant: 'gift', label: { fr: 'ABSENT' } },
+          { ...activeGift, id: 'duplicate-target' },
+          { ...activeGift, id: 'future', targetId: 1, startsAt: new Date(now + 86400000).toISOString() },
+          { ...activeGift, id: 'expired', targetId: 1, expiresAt: new Date(now - 86400000).toISOString() },
+          { ...activeGift, id: 'bad-target', targetId: 100 },
+          { ...activeGift, id: 'null-target', targetId: null },
+          { ...activeGift, id: 'bad-variant', variant: 'snow' },
+          { ...activeGift, id: 'bad-date', expiresAt: 'date-invalide' }
+        ]
+      };
+
+      try {
+        assert.ok(center.initialized, 'Le centre de décorations est initialisé avec le wallet');
+        const normalized = center.normalizeManifest(manifest, now);
+        assert.strictEqual(normalized.length, 3, 'Doublons, dates et styles invalides sont rejetés');
+        assert.deepStrictEqual(Array.from(normalized, (item) => item.id), ['gift-machine-test', 'badge-battery-test', 'missing-machine-test']);
+        center.items = normalized;
+        App.shopMachinesData = [
+          { price: 10, power: 1000, priceRaw: 10000000n, shopExpiry: 0 },
+          { price: 50, power: 5000, priceRaw: 50000000n, shopExpiry: 0 }
+        ];
+        App.shopBatteriesData = [{ price: 5, days: 7, priceRaw: 5000000n }];
+        App.shopViewMode = 'machines';
+        App.payMode = 'USDT';
+        await App.renderShop();
+        const machineCards = e2eWin.document.querySelectorAll('#shop-list .rig-item');
+        assert.strictEqual(machineCards.length, 2);
+        assert.ok(machineCards[0].classList.contains('shop-promo-gift'));
+        assert.strictEqual(machineCards[0].getAttribute('data-promotion-id'), 'gift-machine-test');
+        assert.ok(machineCards[0].querySelector('.shop-promo-label').textContent.includes('<img src=x>'));
+        assert.strictEqual(machineCards[0].querySelector('.shop-promo-label img'), null, 'Le texte administrateur ne crée aucun HTML');
+        assert.strictEqual(machineCards[0].querySelector('.rig-price').textContent, '10.00 $');
+        assert.strictEqual(machineCards[0].querySelector('button').getAttribute('onclick'), 'App.buyMachine(0)');
+        assert.strictEqual(machineCards[0].querySelector('button').disabled, false);
+        assert.strictEqual(machineCards[1].querySelector('.shop-promo-label'), null);
+        assert.strictEqual(e2eWin.document.querySelector('[data-promotion-id="missing-machine-test"]'), null, 'Une machine absente ne produit aucune décoration');
+
+        App.setLanguage('en');
+        assert.strictEqual(e2eWin.document.querySelector('#shop-list .shop-promo-label').textContent, 'MERRY CHRISTMAS');
+        App.shopViewMode = 'batteries';
+        await App.renderShop();
+        const batteryCard = e2eWin.document.querySelector('#shop-list .battery-shop-item');
+        assert.ok(batteryCard.classList.contains('shop-promo-badge'));
+        assert.strictEqual(batteryCard.querySelector('.shop-promo-label').textContent, 'CHRISTMAS GIFT');
+        assert.strictEqual(batteryCard.querySelector('.battery-price').textContent, '5.00 $');
+        assert.strictEqual(batteryCard.querySelector('button').getAttribute('onclick'), 'App.buyBattery(0)');
+        assert.strictEqual(App.buyMachine, originals.buyMachine);
+        assert.strictEqual(App.buyBattery, originals.buyBattery);
+        assert.strictEqual(App.shopMachinesData[0].price, 10);
+        assert.strictEqual(App.shopBatteriesData[0].price, 5);
+
+        e2eWin.fetch = async (url) => {
+          assert.ok(String(url).includes('/promotions.json'));
+          return { ok: true, json: async () => manifest };
+        };
+        await center.refresh({ force: true });
+        assert.strictEqual(center.items.length, 3);
+        assert.notStrictEqual(center.boundaryTimer, null, 'La prochaine limite de date programme une réactualisation');
+        e2eWin.fetch = async () => { throw new Error('offline'); };
+        await center.refresh({ force: true });
+        assert.strictEqual(center.items.length, 3, 'Une panne réseau conserve les dernières décorations valides');
+
+        const datedCard = e2eWin.document.createElement('div');
+        center.items = [normalized[0]];
+        center.decorate(datedCard, 'machine', 0);
+        assert.ok(datedCard.querySelector('.shop-promo-label'));
+        center.items = [{ ...normalized[0], expiresAt: Date.now() - 1 }];
+        center.decorate(datedCard, 'machine', 0);
+        assert.strictEqual(datedCard.querySelector('.shop-promo-label'), null, 'Une décoration expirée disparaît au rendu suivant');
+        assert.strictEqual(datedCard.classList.contains('shop-promo'), false);
+        center.items = normalized;
+
+        const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
+        assert.strictEqual(published.enabled, true);
+        assert.deepStrictEqual(published.promotions, []);
+        const walletSource = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8');
+        assert.ok(walletSource.indexOf('src="promotions.js"') < walletSource.indexOf('src="app.js"'));
+        const buildSource = fs.readFileSync(path.join(ROOT, 'scripts/build_apk.py'), 'utf8');
+        assert.ok(buildSource.includes('"promotions.js"'), 'Le prochain paquet APK embarque le module local');
+      } finally {
+        e2eWin.fetch = originalFetch;
+        if (center.boundaryTimer !== null) e2eWin.clearTimeout(center.boundaryTimer);
+        center.boundaryTimer = null;
+        center.items = originals.items;
+        center.lastFetchAt = originals.lastFetchAt;
+        center.fetchInFlight = false;
+        App.shopMachinesData = originals.machines;
+        App.shopBatteriesData = originals.batteries;
+        App.shopViewMode = originals.view;
+        App.payMode = originals.payMode;
+        App.setLanguage(originals.lang);
+        await App.renderShop();
       }
     });
 
