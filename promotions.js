@@ -13,6 +13,7 @@
     constructor(app) {
       this.app = app;
       this.items = [];
+      this.hiddenShopItems = { machine: new Set(), battery: new Set() };
       this.initialized = false;
       this.fetchInFlight = false;
       this.lastFetchAt = 0;
@@ -79,6 +80,26 @@
         normalized.push({ id, targetType, targetId, variant, animated, label, startsAt, expiresAt });
       });
       return normalized;
+    }
+
+    normalizeHiddenShopItems(raw) {
+      const normalized = { machine: new Set(), battery: new Set() };
+      const source = raw?.hiddenShopItems;
+      if (!source || typeof source !== 'object' || Array.isArray(source)) return normalized;
+      TARGET_TYPES.forEach((targetType) => {
+        const values = source[targetType];
+        if (!Array.isArray(values)) return;
+        values.slice(0, 100).forEach((targetId) => {
+          if (Number.isSafeInteger(targetId) && targetId >= 0 && targetId <= 99) normalized[targetType].add(targetId);
+        });
+      });
+      return normalized;
+    }
+
+    isShopItemVisible(targetType, targetId) {
+      const normalizedId = Number(targetId);
+      if (!TARGET_TYPES.has(targetType) || !Number.isSafeInteger(normalizedId) || normalizedId < 0 || normalizedId > 99) return false;
+      return !this.hiddenShopItems[targetType].has(normalizedId);
     }
 
     localizedText(value) {
@@ -157,6 +178,7 @@
         if (!response.ok) throw new Error('PROMOTIONS_UNAVAILABLE');
         const raw = await response.json();
         this.items = this.normalizeManifest(raw);
+        this.hiddenShopItems = this.normalizeHiddenShopItems(raw);
         this.scheduleBoundaries(raw);
         this.lastFetchAt = Date.now();
         if (this.app.mine && !this.app.isLoadingShop) await this.app.renderShop();

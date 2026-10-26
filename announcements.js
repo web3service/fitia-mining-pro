@@ -162,7 +162,8 @@
       const currentTime = Number.isFinite(Number(now)) ? Number(now) : Date.now();
 
       raw.announcements.slice(0, 50).forEach((item) => {
-        if (normalized.length >= 12 || !item || typeof item !== 'object') return;
+        if (normalized.length >= 12 || !item || typeof item !== 'object' || item.enabled === false) return;
+        if (item.enabled !== undefined && typeof item.enabled !== 'boolean') return;
         const id = this.cleanText(item.id, 64);
         const category = this.cleanText(item.category, 20).toLowerCase();
         if (!/^[a-z0-9._-]+$/.test(id) || seenIds.has(id) || !acceptedCategories.has(category)) return;

@@ -128,7 +128,7 @@
           <div class="list-toolbar">
             <label class="search-field"><span class="sr-only">Rechercher une annonce</span><input id="search-input" type="search" placeholder="Rechercher un titre ou un message…"></label>
             <label><span class="sr-only">Filtrer par catégorie</span><select id="category-filter"><option value="all">Toutes les catégories</option><option value="event">Événements</option><option value="information">Informations</option><option value="referral">Parrainage</option><option value="security">Sécurité</option></select></label>
-            <label><span class="sr-only">Filtrer par statut</span><select id="status-filter"><option value="all">Tous les statuts</option><option value="active">Actives</option><option value="scheduled">Programmées</option><option value="expired">Expirées</option></select></label>
+            <label><span class="sr-only">Filtrer par statut</span><select id="status-filter"><option value="all">Tous les statuts</option><option value="active">Actives</option><option value="scheduled">Programmées</option><option value="expired">Expirées</option><option value="disabled">Désactivées</option></select></label>
           </div>
 
           <div id="list-error" class="alert alert-error hidden" role="alert"></div>
@@ -154,6 +154,14 @@
               <span class="switch-track" aria-hidden="true"></span>
               <span id="promotions-enabled-label">Activé</span>
             </label>
+          </div>
+
+          <div class="shop-visibility-panel">
+            <div class="shop-visibility-heading">
+              <div><strong>Visibilité des machines &amp; batteries</strong><p>Masquez un type dans la Boutique sans modifier son prix, son stock ni les actifs déjà possédés. Tout nouvel article est visible par défaut.</p></div>
+              <span class="source-badge">Réactivation en un geste</span>
+            </div>
+            <div id="shop-visibility-list" class="shop-visibility-list" aria-live="polite"></div>
           </div>
 
           <div class="promotion-notice">

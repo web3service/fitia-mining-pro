@@ -67,10 +67,13 @@ function validateAnnouncementManifest(raw) {
     const category = cleanText(item.category, 20).toLowerCase();
     if (!/^[a-z0-9._-]+$/.test(id) || ids.has(id)) throw new ApiError(400, 'Un identifiant est invalide ou dupliqué.', 'VALIDATION');
     if (!CATEGORIES.has(category)) throw new ApiError(400, 'Une catégorie est invalide.', 'VALIDATION');
+    const enabled = item.enabled === undefined ? true : item.enabled;
+    if (typeof enabled !== 'boolean') throw new ApiError(400, 'L’état d’une annonce est invalide.', 'VALIDATION');
     ids.add(id);
     const normalized = {
       id,
       category,
+      enabled,
       title: normalizeLocalizedText(item.title, 80, 'Le titre'),
       message: normalizeLocalizedText(item.message, 180, 'Le message')
     };
@@ -88,10 +91,34 @@ function validateAnnouncementManifest(raw) {
   });
   const now = Date.now();
   const activeCount = announcements.filter((item) => (
+    item.enabled !== false &&
     (!item.startsAt || Date.parse(item.startsAt) <= now) && (!item.expiresAt || Date.parse(item.expiresAt) > now)
   )).length;
   if (activeCount > 12) throw new ApiError(400, 'Douze annonces actives maximum.', 'VALIDATION');
   return { enabled: raw.enabled, announcements };
+}
+
+function normalizeHiddenShopItems(value) {
+  if (value === undefined) return { machine: [], battery: [] };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ApiError(400, 'La visibilité de la boutique est invalide.', 'VALIDATION');
+  }
+  const normalized = {};
+  for (const targetType of ['machine', 'battery']) {
+    const values = value[targetType] === undefined ? [] : value[targetType];
+    if (!Array.isArray(values) || values.length > 100) {
+      throw new ApiError(400, 'La liste des articles masqués est invalide.', 'VALIDATION');
+    }
+    const ids = new Set();
+    values.forEach((targetId) => {
+      if (!Number.isSafeInteger(targetId) || targetId < 0 || targetId > 99 || ids.has(targetId)) {
+        throw new ApiError(400, 'Un article masqué est invalide ou dupliqué.', 'VALIDATION');
+      }
+      ids.add(targetId);
+    });
+    normalized[targetType] = [...ids].sort((a, b) => a - b);
+  }
+  return normalized;
 }
 
 function validatePromotionManifest(raw) {
@@ -136,7 +163,7 @@ function validatePromotionManifest(raw) {
     if (expiresAt) normalized.expiresAt = expiresAt;
     return normalized;
   });
-  return { enabled: raw.enabled, promotions };
+  return { enabled: raw.enabled, hiddenShopItems: normalizeHiddenShopItems(raw.hiddenShopItems), promotions };
 }
 
 function validateManifest(raw, kind = 'announcements') {

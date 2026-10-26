@@ -15,7 +15,7 @@
     en: {
       tagline: 'Physical products, direct crypto payments.', privateDelivery: 'Delivery details stay off-chain',
       myOrders: 'My orders', refresh: 'Refresh', search: 'Search products…', allSources: 'All fulfillment',
-      ownStock: 'Own stock', emptyTitle: 'No products available', emptyMessage: 'New physical products will appear here.',
+      ownStock: 'Own stock', emptyTitle: 'No products available',
       cartTitle: 'Your cart', cartEmpty: 'Your cart is empty.', subtotal: 'Subtotal', delivery: 'Delivery', total: 'Total',
       checkout: 'DELIVERY & PAYMENT', clearCart: 'Clear cart', singleSeller: 'One seller, one crypto and one receiving address per payment.',
       checkoutTitle: 'Delivery & payment', fullName: 'Full name', phone: 'Phone', country: 'Country', city: 'City',
@@ -48,7 +48,7 @@
     fr: {
       tagline: 'Produits physiques, paiement direct en crypto.', privateDelivery: 'Livraison hors blockchain',
       myOrders: 'Mes commandes', refresh: 'Actualiser', search: 'Rechercher un produit…', allSources: 'Tous les modes',
-      ownStock: 'Stock propre', emptyTitle: 'Aucun produit disponible', emptyMessage: 'Les nouveaux produits physiques apparaîtront ici.',
+      ownStock: 'Stock propre', emptyTitle: 'Aucun produit disponible',
       cartTitle: 'Votre panier', cartEmpty: 'Votre panier est vide.', subtotal: 'Sous-total', delivery: 'Livraison', total: 'Total',
       checkout: 'LIVRAISON & PAIEMENT', clearCart: 'Vider le panier', singleSeller: 'Un vendeur, une crypto et une adresse de réception par paiement.',
       checkoutTitle: 'Livraison et paiement', fullName: 'Nom complet', phone: 'Téléphone', country: 'Pays', city: 'Ville',
@@ -83,6 +83,24 @@
   COPY.zh = COPY.en;
   COPY.sg = COPY.en;
 
+  const FILTER_ICON_PATHS = {
+    category_all: ['M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'],
+    category_electronics: ['M7 2h10v20H7zM10 5h4M11 18h2'],
+    category_fashion: ['M8 4 3 7l2 5 3-1v9h8v-9l3 1 2-5-5-3c-1 3-5 3-8 0Z'],
+    category_home: ['M3 11 12 3l9 8M5 10v10h14V10M9 20v-6h6v6'],
+    category_beauty: ['M12 3c1 4 3 6 7 7-4 1-6 3-7 7-1-4-3-6-7-7 4-1 6-3 7-7ZM19 16v5M16.5 18.5h5'],
+    category_sports: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM3.5 9c4 1 6 4 7 9M14 3c-1 4 1 7 6 9M5 18c2-4 5-6 10-6'],
+    category_toys: ['M4 9h16v11H4zM8 9V5h8v4M8 14h3M13 14h3M9 17h6'],
+    category_automotive: ['M4 14 6 8h12l2 6v5h-2v-2H6v2H4zM7 12h10M7 14h.01M17 14h.01'],
+    category_grocery: ['M4 9h16l-2 11H6zM8 9l4-6 4 6M9 12v5M15 12v5'],
+    category_jewelry: ['M7 4h10l4 5-9 12L3 9zM3 9h18M7 4l5 5 5-5M12 9v12'],
+    category_office: ['M4 7h16v13H4zM9 7V4h6v3M4 12h16M10 12v2h4v-2'],
+    category_other: ['M4 4h7l9 9-7 7-9-9zM8 8h.01'],
+    source_all: ['m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5'],
+    source_own: ['M3 10 12 4l9 6v10H3zM7 20v-7h10v7M8 8h8'],
+    source_dropshipping: ['M3 6h11v11H3zM14 10h4l3 3v4h-7zM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z']
+  };
+
   class StoreUiError extends Error {}
 
   class FitiaStoreCenter {
@@ -102,6 +120,7 @@
       this.refreshPromise = null;
       this.paymentInProgress = false;
       this.initialized = false;
+      this.filterEventsBound = false;
     }
 
     t(key) {
@@ -115,6 +134,150 @@
 
     storageSet(key, value) {
       try { localStorage.setItem(key, value); return true; } catch (_) { return false; }
+    }
+
+    createFilterVisual(filterId, value) {
+      const visual = document.createElement('span');
+      visual.className = 'store-filter-visual';
+      visual.setAttribute('aria-hidden', 'true');
+      if (filterId === 'store-token-filter') {
+        const tokens = value === 'all' ? ['USDT', 'FTA'] : [value];
+        tokens.forEach((token) => {
+          const image = document.createElement('img');
+          image.src = token === 'USDT' ? 'assets/usdt.svg' : 'assets/fta.png';
+          image.alt = '';
+          image.width = 20;
+          image.height = 20;
+          if (tokens.length > 1) image.classList.add('store-filter-dual-logo');
+          visual.appendChild(image);
+        });
+        if (tokens.length > 1) visual.classList.add('store-filter-dual');
+        return visual;
+      }
+      const kind = filterId === 'store-category-filter' ? 'category' : 'source';
+      const paths = FILTER_ICON_PATHS[`${kind}_${value}`] || FILTER_ICON_PATHS[`${kind}_all`] || FILTER_ICON_PATHS.category_other;
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('aria-hidden', 'true');
+      paths.forEach((data) => {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', data);
+        svg.appendChild(path);
+      });
+      visual.appendChild(svg);
+      return visual;
+    }
+
+    createFilterChevron() {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('class', 'store-filter-chevron');
+      svg.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'm7 9 5 5 5-5');
+      svg.appendChild(path);
+      return svg;
+    }
+
+    closeFilterSelectors() {
+      document.querySelectorAll('.store-filter-menu').forEach((menu) => menu.classList.add('hidden'));
+      document.querySelectorAll('.store-filter-trigger').forEach((trigger) => trigger.setAttribute('aria-expanded', 'false'));
+    }
+
+    setupFilterSelectors() {
+      ['store-category-filter', 'store-source-filter', 'store-token-filter'].forEach((filterId) => {
+        const select = document.getElementById(filterId);
+        if (!select) return;
+        if (!select.closest('.store-custom-select')) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'store-custom-select';
+          wrapper.dataset.filterId = filterId;
+          select.parentNode.insertBefore(wrapper, select);
+          wrapper.appendChild(select);
+          select.classList.add('store-filter-native');
+          select.setAttribute('aria-hidden', 'true');
+          select.tabIndex = -1;
+          const trigger = document.createElement('button');
+          trigger.type = 'button';
+          trigger.id = `${filterId}-trigger`;
+          trigger.className = 'store-filter-trigger';
+          trigger.setAttribute('aria-expanded', 'false');
+          trigger.dataset.filterLabel = select.getAttribute('aria-label') || filterId;
+          const menu = document.createElement('div');
+          menu.id = `${filterId}-menu`;
+          menu.className = 'store-filter-menu hidden';
+          trigger.setAttribute('aria-controls', menu.id);
+          wrapper.append(trigger, menu);
+          trigger.addEventListener('click', () => {
+            const shouldOpen = menu.classList.contains('hidden');
+            this.closeFilterSelectors();
+            if (shouldOpen) {
+              menu.classList.remove('hidden');
+              trigger.setAttribute('aria-expanded', 'true');
+            }
+          });
+          select.removeAttribute('onchange');
+          select.addEventListener('change', () => {
+            this.syncFilterSelector(select);
+            this.renderProducts();
+          });
+        }
+        this.syncFilterSelector(select);
+      });
+      if (this.filterEventsBound) return;
+      this.filterEventsBound = true;
+      document.addEventListener('click', (event) => {
+        if (!event.target?.closest?.('.store-custom-select')) this.closeFilterSelectors();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const openTrigger = document.querySelector('.store-filter-trigger[aria-expanded="true"]');
+        this.closeFilterSelectors();
+        openTrigger?.focus();
+      });
+    }
+
+    syncFilterSelector(select) {
+      const wrapper = select.closest('.store-custom-select');
+      if (!wrapper) return;
+      const trigger = wrapper.querySelector('.store-filter-trigger');
+      const menu = wrapper.querySelector('.store-filter-menu');
+      const options = Array.from(select.options);
+      const selected = options.find((option) => option.value === select.value) || options[0];
+      if (!selected) return;
+      trigger.textContent = '';
+      const current = document.createElement('span');
+      current.className = 'store-filter-current';
+      const label = document.createElement('span');
+      label.className = 'store-filter-current-label';
+      label.textContent = selected.textContent;
+      current.append(this.createFilterVisual(select.id, selected.value), label);
+      trigger.append(current, this.createFilterChevron());
+      trigger.setAttribute('aria-label', `${trigger.dataset.filterLabel}: ${selected.textContent}`);
+      menu.textContent = '';
+      options.forEach((option) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `store-filter-option${option.value === selected.value ? ' selected' : ''}`;
+        button.dataset.filterValue = option.value;
+        button.setAttribute('aria-pressed', String(option.value === selected.value));
+        const optionLabel = document.createElement('span');
+        optionLabel.textContent = option.textContent;
+        const check = document.createElement('span');
+        check.className = 'store-filter-check';
+        check.textContent = '✓';
+        check.setAttribute('aria-hidden', 'true');
+        button.append(this.createFilterVisual(select.id, option.value), optionLabel, check);
+        button.addEventListener('click', () => {
+          this.closeFilterSelectors();
+          if (select.value !== option.value) {
+            select.value = option.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          trigger.focus();
+        });
+        menu.appendChild(button);
+      });
     }
 
     applyLanguage() {
@@ -140,6 +303,7 @@
         });
         category.value = this.catalog.CATEGORIES.includes(selected) ? selected : 'all';
       }
+      this.setupFilterSelectors();
     }
 
     init() {

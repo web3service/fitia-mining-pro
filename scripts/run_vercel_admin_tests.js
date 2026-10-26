@@ -217,7 +217,7 @@ async function request(base, action, options = {}) {
 
       const next = loaded.data.manifest;
       next.announcements.push({
-        id: 'event-vercel-test', category: 'event', title: { fr: 'Test Vercel' }, message: { fr: 'Publication serverless' },
+        id: 'event-vercel-test', category: 'event', enabled: false, title: { fr: 'Test Vercel' }, message: { fr: 'Publication serverless' },
         theme: 'gold', font: 'elegant', backgroundImage: uploadedAssetPath, avatars: ['assets/avatars/team-2.svg']
       });
       const rejected = await request(baseB, 'announcements', {
@@ -230,6 +230,7 @@ async function request(base, action, options = {}) {
       assert.strictEqual(saved.response.status, 200, saved.text);
       assert.strictEqual(saved.data.revision, 'sha-vercel-write-1');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].id, 'event-vercel-test');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].enabled, false);
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].theme, 'gold');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].font, 'elegant');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundImage, uploadedAssetPath);
@@ -244,6 +245,7 @@ async function request(base, action, options = {}) {
       assert.ok(Array.isArray(loaded.data.manifest.promotions));
       assert.strictEqual(loaded.data.revision, 'sha-vercel-promotion-initial');
       const next = loaded.data.manifest;
+      next.hiddenShopItems = { machine: [2], battery: [1] };
       next.promotions = [{
         id: 'gift-vercel-test', targetType: 'machine', targetId: 2, variant: 'gift', animated: false,
         label: { fr: 'JOYEUX NOËL', en: 'MERRY CHRISTMAS' }
@@ -259,6 +261,8 @@ async function request(base, action, options = {}) {
       assert.strictEqual(saved.data.revision, 'sha-vercel-promotion-write-1');
       assert.strictEqual(saved.data.manifest.promotions[0].targetId, 2);
       assert.strictEqual(saved.data.manifest.promotions[0].animated, false);
+      assert.deepStrictEqual(saved.data.manifest.hiddenShopItems, { machine: [2], battery: [1] });
+      assert.deepStrictEqual(githubPromotionManifest.hiddenShopItems, { machine: [2], battery: [1] });
       assert.strictEqual(githubPromotionManifest.promotions[0].id, 'gift-vercel-test');
       assert.strictEqual(githubPromotionWrites, 1);
       assert.strictEqual(githubWrites, 1);
@@ -276,6 +280,12 @@ async function request(base, action, options = {}) {
         method: 'PUT', cookie, csrf, body: { manifest: invalid, revision: saved.data.revision }
       });
       assert.strictEqual(invalidAnimation.response.status, 400);
+      invalid.promotions[0].animated = false;
+      invalid.hiddenShopItems.machine = [100];
+      const invalidVisibility = await request(baseB, 'promotions', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalid, revision: saved.data.revision }
+      });
+      assert.strictEqual(invalidVisibility.response.status, 400);
       assert.strictEqual(githubPromotionWrites, 1);
     });
 

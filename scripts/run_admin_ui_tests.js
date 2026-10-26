@@ -145,22 +145,69 @@ async function waitFor(condition, label) {
   assert.strictEqual(newRow.querySelector('[data-injected]'), null);
   assert.strictEqual(newRow.querySelector('script'), null);
   assert.notStrictEqual(window.__xss, true);
+  assert.strictEqual(createdAnnouncement.enabled, true);
+
+  newRow.querySelector(`[data-announcement-toggle="${createdAnnouncementId}"]`).click();
+  await waitFor(() => writes.length === 2, 'désactivation individuelle');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin désactivation individuelle');
+  let disabledRow = window.document.querySelector(`[data-announcement-id="${createdAnnouncementId}"]`);
+  assert.strictEqual(manifest.announcements[initialAnnouncementCount].enabled, false);
+  assert.strictEqual(manifest.enabled, true, 'Le canal global reste activé');
+  assert.ok(disabledRow.classList.contains('is-disabled'));
+  assert.ok(disabledRow.textContent.includes('Désactivée'));
+  assert.strictEqual(manifest.announcements[initialAnnouncementCount].backgroundImage, createdAnnouncement.backgroundImage);
+  assert.deepStrictEqual(manifest.announcements[initialAnnouncementCount].avatars, createdAnnouncement.avatars);
+  assert.strictEqual(manifest.announcements[initialAnnouncementCount].startsAt, createdAnnouncement.startsAt);
+  disabledRow.querySelector('.button-quiet').click();
+  window.document.getElementById('announcement-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => writes.length === 3, 'modification annonce désactivée');
+  await waitFor(() => window.document.getElementById('editor-modal').classList.contains('hidden'), 'fermeture modification annonce désactivée');
+  assert.strictEqual(manifest.announcements[initialAnnouncementCount].enabled, false, 'La modification ne réactive pas silencieusement');
+  disabledRow = window.document.querySelector(`[data-announcement-id="${createdAnnouncementId}"]`);
+  disabledRow.querySelector(`[data-announcement-toggle="${createdAnnouncementId}"]`).click();
+  await waitFor(() => writes.length === 4, 'réactivation individuelle');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réactivation individuelle');
+  assert.strictEqual(manifest.announcements[initialAnnouncementCount].enabled, true);
+  assert.deepStrictEqual(manifest.announcements[initialAnnouncementCount].avatars, createdAnnouncement.avatars);
 
   const enabled = window.document.getElementById('manifest-enabled');
   enabled.checked = false;
   enabled.dispatchEvent(new window.Event('change', { bubbles: true }));
-  await waitFor(() => writes.length === 2, 'désactivation');
+  await waitFor(() => writes.length === 5, 'désactivation');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin désactivation');
   assert.strictEqual(manifest.enabled, false);
 
   const deleteButton = window.document.querySelector(`[data-announcement-id="${createdAnnouncementId}"] .button-danger`);
   deleteButton.click();
-  await waitFor(() => writes.length === 3, 'suppression');
+  await waitFor(() => writes.length === 6, 'suppression');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression');
   assert.strictEqual(manifest.announcements.length, initialAnnouncementCount);
 
   window.document.querySelector('[data-section="promotions"]').click();
   assert.strictEqual(window.document.getElementById('page-title').textContent, 'Effets & décorations');
+  assert.strictEqual(window.document.querySelectorAll('[data-shop-visibility-toggle]').length, 16);
+  let visibilityToggle = window.document.querySelector('[data-shop-visibility-toggle="machine:1"]');
+  assert.strictEqual(visibilityToggle.checked, true, 'Les produits existants sont visibles par défaut');
+  visibilityToggle.checked = false;
+  visibilityToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => promotionWrites.length === 1, 'masquage machine');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin masquage machine');
+  assert.deepStrictEqual(promotionManifest.hiddenShopItems.machine, [1]);
+  assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount);
+  visibilityToggle = window.document.querySelector('[data-shop-visibility-toggle="battery:0"]');
+  visibilityToggle.checked = false;
+  visibilityToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => promotionWrites.length === 2, 'masquage batterie indépendant');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin masquage batterie');
+  assert.deepStrictEqual(promotionManifest.hiddenShopItems.battery, [0]);
+  assert.deepStrictEqual(promotionManifest.hiddenShopItems.machine, [1]);
+  visibilityToggle = window.document.querySelector('[data-shop-visibility-toggle="machine:1"]');
+  visibilityToggle.checked = true;
+  visibilityToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => promotionWrites.length === 3, 'réactivation machine');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réactivation machine');
+  assert.deepStrictEqual(promotionManifest.hiddenShopItems.machine, []);
+  assert.deepStrictEqual(promotionManifest.hiddenShopItems.battery, [0]);
   window.document.querySelector('#section-promotions [data-new-promotion]').click();
   assert.ok(!window.document.getElementById('promotion-editor-modal').classList.contains('hidden'));
   const promotionLabel = '<img src=x data-promotion-xss> NOËL';
@@ -181,7 +228,7 @@ async function waitFor(condition, label) {
   assert.ok(window.document.getElementById('promotion-preview-card').classList.contains('promotion-effect-static'));
   assert.strictEqual(window.document.querySelector('#promotion-preview-card .promotion-effect-particles'), null);
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
-  await waitFor(() => promotionWrites.length === 1, 'création décoration');
+  await waitFor(() => promotionWrites.length === 4, 'création décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture éditeur décoration');
   assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount + 1);
   const createdPromotion = promotionManifest.promotions[initialPromotionCount];
@@ -206,7 +253,7 @@ async function waitFor(condition, label) {
   assert.ok(window.document.querySelectorAll('#promotion-preview-card .promotion-particle').length > 0);
   window.document.getElementById('promotion-label-fr').value = 'CADEAU DE NOËL';
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
-  await waitFor(() => promotionWrites.length === 2, 'modification décoration');
+  await waitFor(() => promotionWrites.length === 5, 'modification décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture modification décoration');
   assert.strictEqual(promotionManifest.promotions[initialPromotionCount].targetId, 2);
   assert.strictEqual(promotionManifest.promotions[initialPromotionCount].variant, 'gift');
@@ -215,12 +262,12 @@ async function waitFor(condition, label) {
   const promotionsEnabled = window.document.getElementById('promotions-enabled');
   promotionsEnabled.checked = false;
   promotionsEnabled.dispatchEvent(new window.Event('change', { bubbles: true }));
-  await waitFor(() => promotionWrites.length === 3, 'désactivation décorations');
+  await waitFor(() => promotionWrites.length === 6, 'désactivation décorations');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin désactivation décorations');
   assert.strictEqual(promotionManifest.enabled, false);
 
   window.document.querySelector(`[data-promotion-id="${createdPromotionId}"] .button-danger`).click();
-  await waitFor(() => promotionWrites.length === 4, 'suppression décoration');
+  await waitFor(() => promotionWrites.length === 7, 'suppression décoration');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression décoration');
   assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount);
 

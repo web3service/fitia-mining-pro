@@ -143,6 +143,26 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
 .promotion-notice { margin-bottom: 18px; padding: 16px 19px; border: 1px solid rgba(240, 185, 11, 0.2); border-radius: 13px; background: rgba(240, 185, 11, 0.055); }
 .promotion-notice strong { color: var(--gold-light); font-size: 0.8rem; }
 .promotion-notice p { margin: 6px 0 0; color: var(--muted); font-size: 0.73rem; line-height: 1.55; }
+.shop-visibility-panel { margin-bottom: 18px; padding: 18px; border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 14px; background: linear-gradient(145deg, rgba(59, 130, 246, 0.065), rgba(15, 23, 42, 0.2)); }
+.shop-visibility-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.shop-visibility-heading strong { color: #bfdbfe; font-size: 0.84rem; }
+.shop-visibility-heading p { max-width: 760px; margin: 6px 0 0; color: var(--muted); font-size: 0.72rem; line-height: 1.55; }
+.shop-visibility-heading .source-badge { flex: 0 0 auto; }
+.shop-visibility-list { display: grid; gap: 16px; }
+.shop-visibility-group h3 { margin: 0 0 9px; color: #d9dfeb; font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.shop-visibility-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.shop-visibility-item { display: flex; min-width: 0; min-height: 58px; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 11px; background: rgba(15, 23, 42, 0.62); }
+.shop-visibility-item.is-hidden { border-style: dashed; background: rgba(15, 23, 42, 0.32); }
+.shop-visibility-item > div { display: grid; min-width: 0; gap: 3px; }
+.shop-visibility-item strong { color: #e2e8f0; font-size: 0.7rem; overflow-wrap: anywhere; }
+.shop-visibility-item small { color: #6ee7b7; font-size: 0.59rem; line-height: 1.35; }
+.shop-visibility-item.is-hidden small { color: #94a3b8; }
+.shop-visibility-switch { min-width: 44px; min-height: 44px; justify-content: center; }
+.shop-visibility-switch .switch-track { width: 38px; height: 22px; }
+.shop-visibility-switch .switch-track::after { width: 14px; height: 14px; }
+.shop-visibility-switch input:checked + .switch-track::after { transform: translateX(16px); }
+.announcement-row.is-disabled { border-style: dashed; background: rgba(15, 23, 42, 0.48); }
+.announcement-toggle { min-width: 92px; }
 .promotion-symbol { display: grid; width: 66px; min-height: 54px; place-items: center; padding: 7px; border: 1px solid rgba(251, 113, 133, 0.34); border-radius: 11px; background: linear-gradient(145deg, rgba(185, 28, 28, 0.28), rgba(20, 83, 45, 0.2)); color: #fecdd3; font-size: 0.56rem; font-weight: 850; letter-spacing: 0.07em; text-align: center; }
 .promotion-badge .promotion-symbol { border-color: rgba(52, 211, 153, 0.34); background: linear-gradient(145deg, rgba(20, 83, 45, 0.3), rgba(185, 28, 28, 0.14)); color: #a7f3d0; }
 .promotion-variant-gift { border-color: rgba(251, 113, 133, 0.28); background: rgba(185, 28, 28, 0.1); color: #fda4af; }
@@ -172,7 +192,7 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
 .announcement-main > p { margin: 0; color: var(--muted); font-size: 0.77rem; line-height: 1.5; overflow-wrap: anywhere; }
 .announcement-dates { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; color: #718097; font-size: 0.66rem; }
 .announcement-languages { color: #718097; font-size: 0.65rem; }
-.announcement-actions { display: flex; align-items: center; gap: 6px; }
+.announcement-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .empty-state { padding: 55px 20px; border: 1px dashed var(--border-strong); border-radius: var(--radius); text-align: center; }
 .empty-state img { margin: 0 auto 18px; border-radius: 50%; opacity: 0.8; }
 .empty-state h3 { margin-bottom: 7px; font-size: 1rem; }
@@ -377,6 +397,10 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
   .announcement-meta { gap: 6px; }
   .category-badge, .status-pill { font-size: 0.59rem; }
   .promotion-notice { padding: 14px; }
+  .shop-visibility-panel { padding: 14px; }
+  .shop-visibility-heading { flex-direction: column; gap: 10px; }
+  .shop-visibility-grid { grid-template-columns: 1fr; }
+  .shop-visibility-item { min-height: 62px; padding: 9px 12px; }
   .empty-state { padding: 36px 16px; }
 }
 

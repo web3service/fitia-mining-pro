@@ -52,7 +52,8 @@
       }
     }
   };
-  const STATUS_LABELS = { active: 'Active', scheduled: 'Programmée', expired: 'Expirée' };
+  const STATUS_LABELS = { active: 'Active', scheduled: 'Programmée', expired: 'Expirée', disabled: 'Désactivée' };
+  const SHOP_ITEM_NAMES = ['STARTER', 'STANDARD', 'ADVANCED', 'PRO', 'ELITE', 'ULTRA', 'SUPREME', 'LEGEND'];
   const PROMOTION_VARIANT_LABELS = {
     gift: 'Cadeau emballé',
     bells: 'Cloches de Noël',
@@ -76,6 +77,7 @@
     lastSync: null,
     editingId: null,
     editingPromotionId: null,
+    editorEnabled: true,
     editorBackground: '',
     editorAvatars: [],
     editorAssetData: {},
@@ -122,6 +124,7 @@
   }
 
   function announcementStatus(item, now = Date.now()) {
+    if (item.enabled === false) return 'disabled';
     if (item.startsAt && Date.parse(item.startsAt) > now) return 'scheduled';
     if (item.expiresAt && Date.parse(item.expiresAt) <= now) return 'expired';
     return 'active';
@@ -342,7 +345,7 @@
 
   function renderDashboard() {
     const items = state.manifest.announcements;
-    const counts = { active: 0, scheduled: 0, expired: 0 };
+    const counts = { active: 0, scheduled: 0, expired: 0, disabled: 0 };
     items.forEach((item) => { counts[announcementStatus(item)] += 1; });
     byId('stat-active').textContent = String(counts.active);
     byId('stat-scheduled').textContent = String(counts.scheduled);
@@ -392,7 +395,7 @@
     visibleItems.forEach(({ item, index }) => {
       const status = announcementStatus(item);
       const row = document.createElement('article');
-      row.className = 'announcement-row';
+      row.className = `announcement-row${item.enabled === false ? ' is-disabled' : ''}`;
       row.dataset.announcementId = item.id;
 
       const order = document.createElement('div');
@@ -432,9 +435,17 @@
 
       const actions = document.createElement('div');
       actions.className = 'announcement-actions';
+      const toggle = makeButton(
+        item.enabled === false ? 'Réactiver' : 'Désactiver',
+        'button button-secondary action-button announcement-toggle',
+        () => toggleAnnouncement(item)
+      );
+      toggle.dataset.announcementToggle = item.id;
+      toggle.setAttribute('aria-pressed', String(item.enabled !== false));
       actions.append(
         makeButton('Modifier', 'button button-quiet action-button', () => openEditor(item)),
         makeButton('Dupliquer', 'button button-quiet action-button', () => openEditor(item, { duplicate: true })),
+        toggle,
         makeButton('Supprimer', 'button button-danger action-button', () => deleteAnnouncement(item))
       );
       row.append(order, main, actions);
@@ -451,6 +462,14 @@
     await saveManifest(next, 'Ordre des annonces mis à jour.');
   }
 
+  async function toggleAnnouncement(item) {
+    const next = clone(state.manifest);
+    const savedItem = next.announcements.find((candidate) => candidate.id === item.id);
+    if (!savedItem) return;
+    savedItem.enabled = savedItem.enabled === false;
+    await saveManifest(next, savedItem.enabled ? 'Annonce réactivée dans le wallet.' : 'Annonce désactivée et conservée dans l’admin.');
+  }
+
   async function deleteAnnouncement(item) {
     if (!window.confirm(`Supprimer « ${localized(item.title)} » ?`)) return;
     const next = clone(state.manifest);
@@ -462,8 +481,66 @@
     return `${item.targetType === 'machine' ? 'Machine' : 'Batterie'} n°${item.targetId + 1}`;
   }
 
+  function renderShopVisibility() {
+    const container = byId('shop-visibility-list');
+    container.textContent = '';
+    const hidden = state.promotionManifest.hiddenShopItems || { machine: [], battery: [] };
+    [
+      { type: 'machine', title: 'Machines', noun: 'Machine' },
+      { type: 'battery', title: 'Batteries', noun: 'Batterie' }
+    ].forEach((group) => {
+      const section = document.createElement('section');
+      section.className = 'shop-visibility-group';
+      const heading = document.createElement('h3');
+      heading.textContent = group.title;
+      const grid = document.createElement('div');
+      grid.className = 'shop-visibility-grid';
+      for (let targetId = 0; targetId < 8; targetId += 1) {
+        const isVisible = !hidden[group.type]?.includes(targetId);
+        const row = document.createElement('div');
+        row.className = `shop-visibility-item${isVisible ? '' : ' is-hidden'}`;
+        row.dataset.shopVisibility = `${group.type}:${targetId}`;
+        const copy = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = group.type === 'machine' ? `${targetId + 1} · ${SHOP_ITEM_NAMES[targetId]}` : `${group.noun} ${targetId + 1}`;
+        const status = document.createElement('small');
+        status.textContent = isVisible ? 'Visible dans la Boutique' : 'Masquée dans la Boutique';
+        copy.append(name, status);
+        const control = document.createElement('label');
+        control.className = 'switch-control shop-visibility-switch';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = isVisible;
+        input.dataset.shopVisibilityToggle = `${group.type}:${targetId}`;
+        input.setAttribute('aria-label', `${isVisible ? 'Masquer' : 'Réactiver'} ${group.noun.toLowerCase()} ${targetId + 1}`);
+        const track = document.createElement('span');
+        track.className = 'switch-track';
+        track.setAttribute('aria-hidden', 'true');
+        control.append(input, track);
+        input.addEventListener('change', () => toggleShopItemVisibility(group.type, targetId, input.checked));
+        row.append(copy, control);
+        grid.appendChild(row);
+      }
+      section.append(heading, grid);
+      container.appendChild(section);
+    });
+  }
+
+  async function toggleShopItemVisibility(targetType, targetId, visible) {
+    const next = clone(state.promotionManifest);
+    next.hiddenShopItems = next.hiddenShopItems || { machine: [], battery: [] };
+    const values = new Set(Array.isArray(next.hiddenShopItems[targetType]) ? next.hiddenShopItems[targetType] : []);
+    if (visible) values.delete(targetId);
+    else values.add(targetId);
+    next.hiddenShopItems[targetType] = [...values].sort((a, b) => a - b);
+    const label = `${targetType === 'machine' ? 'Machine' : 'Batterie'} ${targetId + 1}`;
+    const success = await savePromotions(next, visible ? `${label} réactivée dans la Boutique.` : `${label} masquée dans la Boutique.`);
+    if (!success) renderShopVisibility();
+  }
+
   function renderPromotions() {
     if (!state.promotionManifest) return;
+    renderShopVisibility();
     byId('promotions-enabled').checked = state.promotionManifest.enabled;
     byId('promotions-enabled-label').textContent = state.promotionManifest.enabled ? 'Activé' : 'Désactivé';
     const list = byId('promotions-list');
@@ -830,6 +907,7 @@
     state.editorAssetData = {};
     state.editorBackground = item?.backgroundImage || '';
     state.editorAvatars = Array.isArray(item?.avatars) ? [...item.avatars] : [];
+    state.editorEnabled = item?.enabled !== false;
     state.editingId = item && !duplicate ? item.id : null;
     byId('announcement-form').reset();
     byId('editor-error').textContent = '';
@@ -913,6 +991,7 @@
     const item = {
       id: state.editingId || generateId(category),
       category,
+      enabled: state.editorEnabled,
       title: readLocalizedField('title'),
       message: readLocalizedField('message'),
       theme: byId('item-theme').value,
