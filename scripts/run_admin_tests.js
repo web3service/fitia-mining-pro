@@ -60,9 +60,12 @@ function clone(value) {
   const dataFile = path.join(temporaryDirectory, 'announcements.json');
   const promotionsFile = path.join(temporaryDirectory, 'promotions.json');
   const assetDirectory = path.join(temporaryDirectory, 'assets', 'announcements');
+  const storeDataFile = path.join(temporaryDirectory, 'store-products.json');
+  const storeAssetDirectory = path.join(temporaryDirectory, 'assets', 'store');
   fs.copyFileSync(path.join(ROOT, 'announcements.json'), dataFile);
   fs.copyFileSync(path.join(ROOT, 'promotions.json'), promotionsFile);
-  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, assetDirectory });
+  fs.copyFileSync(path.join(ROOT, 'store-products.json'), storeDataFile);
+  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, assetDirectory, storeDataFile, storeAssetDirectory });
   const localPort = await listen(localServer);
   const localBase = `http://127.0.0.1:${localPort}`;
   let githubServer = null;
@@ -80,6 +83,7 @@ function clone(value) {
       assert.ok(page.text.includes('FITIA PRO'));
       assert.ok(page.text.includes('id="announcement-form"'));
       assert.ok(page.text.includes('id="promotion-form"'));
+      assert.ok(page.text.includes('id="store-product-form"'));
       assert.ok(page.response.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
       assert.ok(page.response.headers.get('content-security-policy').includes("script-src 'self'"));
       assert.strictEqual(page.response.headers.get('x-frame-options'), 'DENY');
@@ -94,7 +98,7 @@ function clone(value) {
         assert.ok(result.text.includes('<svg'), avatar);
         assert.ok(result.response.headers.get('content-type').includes('image/svg+xml'));
       }
-      for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/promotions.json', '/.git/HEAD']) {
+      for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/promotions.json', '/store-products.json', '/.git/HEAD']) {
         const result = await request(localBase, forbidden);
         assert.strictEqual(result.response.status, 404, forbidden);
       }
@@ -366,6 +370,45 @@ function clone(value) {
       });
       assert.strictEqual(stale.response.status, 409);
       assert.strictEqual(stale.data.code, 'CONFLICT');
+    });
+
+    await runTest('FITIA STORE local : CRUD, image produit et confidentialité du fichier catalogue', async () => {
+      const loaded = await request(localBase, '/api/admin/store-products', { cookie });
+      assert.strictEqual(loaded.response.status, 200, loaded.text);
+      const next = loaded.data.manifest;
+      next.enabled = true;
+      next.products.push({
+        id: 'product-local-test', active: true, sourceType: 'own', category: 'home',
+        name: { fr: 'Produit local', en: 'Local product' }, description: {}, image: '',
+        sellerId: 'seller-local', sellerName: 'Local seller', sellerContact: '',
+        paymentAddress: '0x1111111111111111111111111111111111111111', priceToken: 'FTA', price: '4.25', shippingFee: '0',
+        stock: 3, deliveryEstimate: '5 jours', customerAddress: 'NEVER_SAVE_THIS'
+      });
+      const rejected = await request(localBase, '/api/admin/store-products', {
+        method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
+      });
+      assert.strictEqual(rejected.response.status, 403);
+      const saved = await request(localBase, '/api/admin/store-products', {
+        method: 'PUT', cookie, csrf, body: { manifest: next, revision: loaded.data.revision }
+      });
+      assert.strictEqual(saved.response.status, 200, saved.text);
+      assert.strictEqual(saved.data.manifest.products[0].priceToken, 'FTA');
+      assert.strictEqual(saved.data.manifest.products[0].customerAddress, undefined);
+      const onDisk = fs.readFileSync(storeDataFile, 'utf8');
+      assert.ok(onDisk.includes('product-local-test'));
+      assert.ok(!onDisk.includes('NEVER_SAVE_THIS'));
+      const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const uploaded = await request(localBase, '/api/admin/store-assets', {
+        method: 'POST', cookie, csrf, body: { data: pngBase64, contentType: 'image/png' }
+      });
+      assert.strictEqual(uploaded.response.status, 201, uploaded.text);
+      assert.match(uploaded.data.asset.path, /^assets\/store\/product-[a-f0-9]{24}\.png$/);
+      const served = await request(localBase, `/${uploaded.data.asset.path}`);
+      assert.strictEqual(served.response.status, 200);
+      assert.strictEqual(served.response.headers.get('content-type'), 'image/png');
+      const script = await request(localBase, '/admin/store-admin.js');
+      assert.strictEqual(script.response.status, 200);
+      assert.ok(script.text.includes('createStoreAdmin'));
     });
 
     await runTest('Une révision obsolète ne peut pas écraser une modification concurrente', async () => {

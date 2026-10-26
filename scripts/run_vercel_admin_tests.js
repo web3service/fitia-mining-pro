@@ -80,19 +80,23 @@ async function request(base, action, options = {}) {
   let githubPromotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
   let githubPromotionRevision = 'sha-vercel-promotion-initial';
   let githubPromotionWrites = 0;
+  let githubStoreManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8'));
+  let githubStoreRevision = 'sha-vercel-store-initial';
+  let githubStoreWrites = 0;
 
   global.fetch = async (url, init = {}) => {
     const target = String(url);
     if (!target.startsWith('https://api.github.com/')) return originalFetch(url, init);
     const isPromotion = target.includes('/contents/promotions.json');
+    const isStore = target.includes('/contents/store-products.json');
     assert.strictEqual(init.headers.Authorization, `Bearer ${TOKEN}`);
-    const assetMatch = target.match(/\/contents\/(assets\/announcements\/announcement-[a-f0-9]{24}\.(?:png|jpg|webp))/);
+    const assetMatch = target.match(/\/contents\/(assets\/(?:announcements\/announcement|store\/product)-[a-f0-9]{24}\.(?:png|jpg|webp))/);
     if (assetMatch) {
       const assetPath = assetMatch[1];
       if ((init.method || 'GET') === 'PUT') {
         const body = JSON.parse(init.body);
         assert.strictEqual(body.branch, 'main');
-        assert.strictEqual(body.message, 'Add FITIA announcement asset');
+        assert.strictEqual(body.message, assetPath.startsWith('assets/store/') ? 'Add FITIA STORE product image' : 'Add FITIA announcement asset');
         assert.strictEqual(body.sha, undefined);
         githubAssets.set(assetPath, Buffer.from(body.content, 'base64'));
         githubAssetWrites += 1;
@@ -105,12 +109,19 @@ async function request(base, action, options = {}) {
     }
     if ((init.method || 'GET') === 'PUT') {
       const body = JSON.parse(init.body);
-      assert.strictEqual(body.sha, isPromotion ? githubPromotionRevision : githubRevision);
+      const expectedRevision = isStore ? githubStoreRevision : isPromotion ? githubPromotionRevision : githubRevision;
+      const expectedMessage = isStore ? 'Update FITIA STORE catalog' : isPromotion ? 'Update FITIA promotions' : 'Update FITIA announcements';
+      assert.strictEqual(body.sha, expectedRevision);
       assert.strictEqual(body.branch, 'main');
-      assert.strictEqual(body.message, isPromotion ? 'Update FITIA promotions' : 'Update FITIA announcements');
+      assert.strictEqual(body.message, expectedMessage);
       const published = JSON.parse(Buffer.from(body.content, 'base64').toString('utf8'));
       let nextRevision;
-      if (isPromotion) {
+      if (isStore) {
+        githubStoreManifest = published;
+        githubStoreWrites += 1;
+        githubStoreRevision = `sha-vercel-store-write-${githubStoreWrites}`;
+        nextRevision = githubStoreRevision;
+      } else if (isPromotion) {
         githubPromotionManifest = published;
         githubPromotionWrites += 1;
         githubPromotionRevision = `sha-vercel-promotion-write-${githubPromotionWrites}`;
@@ -123,20 +134,20 @@ async function request(base, action, options = {}) {
       }
       return new Response(JSON.stringify({ content: { sha: nextRevision } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
+    const manifest = isStore ? githubStoreManifest : isPromotion ? githubPromotionManifest : githubManifest;
+    const revision = isStore ? githubStoreRevision : isPromotion ? githubPromotionRevision : githubRevision;
     return new Response(JSON.stringify({
-      sha: isPromotion ? githubPromotionRevision : githubRevision,
-      encoding: 'base64',
-      content: Buffer.from(JSON.stringify(isPromotion ? githubPromotionManifest : githubManifest)).toString('base64')
+      sha: revision, encoding: 'base64', content: Buffer.from(JSON.stringify(manifest)).toString('base64')
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
 
   try {
-    await runTest('Vercel sert /admin et réécrit les six routes API serverless', async () => {
+    await runTest('Vercel sert /admin et réécrit les huit routes API serverless', async () => {
       const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
       const rewrites = new Map(config.rewrites.map((item) => [item.source, item.destination]));
       assert.strictEqual(rewrites.get('/admin'), '/admin/index.html');
       assert.strictEqual(rewrites.get('/admin/'), '/admin/index.html');
-      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions']) {
+      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'store-products', 'store-assets']) {
         assert.strictEqual(rewrites.get(`/api/admin/${action}`), `/api/admin?action=${action}`);
       }
       const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
@@ -266,6 +277,40 @@ async function request(base, action, options = {}) {
       });
       assert.strictEqual(invalidAnimation.response.status, 400);
       assert.strictEqual(githubPromotionWrites, 1);
+    });
+
+    await runTest('FITIA STORE publie catalogue et photos avec CSRF sans donnée client ni secret', async () => {
+      const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const uploaded = await request(baseB, 'store-assets', { method: 'POST', cookie, csrf, body: { data: pngBase64, contentType: 'image/png' } });
+      assert.strictEqual(uploaded.response.status, 201, uploaded.text);
+      assert.match(uploaded.data.asset.path, /^assets\/store\/product-[a-f0-9]{24}\.png$/);
+      const loaded = await request(baseB, 'store-products', { cookie });
+      assert.strictEqual(loaded.response.status, 200, loaded.text);
+      const next = loaded.data.manifest;
+      next.enabled = true;
+      next.products = [{
+        id: 'product-vercel-test', active: true, sourceType: 'dropshipping', category: 'electronics',
+        name: { en: 'Test phone', fr: 'Téléphone test' }, description: { en: 'Physical product' },
+        image: uploaded.data.asset.path, sellerId: 'seller-test', sellerName: 'FITIA Seller', sellerContact: '@fitia-seller',
+        paymentAddress: '0x1111111111111111111111111111111111111111', priceToken: 'USDT', price: '19.99', shippingFee: '1.01',
+        stock: 7, deliveryEstimate: '3-7 business days', customerAddress: 'NEVER_PERSIST_THIS'
+      }];
+      const rejected = await request(baseB, 'store-products', { method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision } });
+      assert.strictEqual(rejected.response.status, 403);
+      const saved = await request(baseB, 'store-products', { method: 'PUT', cookie, csrf, body: { manifest: next, revision: loaded.data.revision } });
+      assert.strictEqual(saved.response.status, 200, saved.text);
+      assert.strictEqual(saved.data.revision, 'sha-vercel-store-write-1');
+      assert.strictEqual(saved.data.manifest.products[0].sourceType, 'dropshipping');
+      assert.strictEqual(saved.data.manifest.products[0].image, uploaded.data.asset.path);
+      assert.strictEqual(saved.data.manifest.products[0].customerAddress, undefined);
+      assert.ok(!saved.text.includes('NEVER_PERSIST_THIS'));
+      assert.ok(!saved.text.includes(TOKEN));
+      assert.strictEqual(githubStoreWrites, 1);
+      const invalid = saved.data.manifest;
+      invalid.products[0].paymentAddress = '0x0000000000000000000000000000000000000000';
+      const invalidResult = await request(baseB, 'store-products', { method: 'PUT', cookie, csrf, body: { manifest: invalid, revision: saved.data.revision } });
+      assert.strictEqual(invalidResult.response.status, 400);
+      assert.strictEqual(githubStoreWrites, 1);
     });
 
     await runTest('Un cookie falsifié est rejeté et la déconnexion efface le cookie', async () => {

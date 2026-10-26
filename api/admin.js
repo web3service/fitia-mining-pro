@@ -4,6 +4,7 @@ const {
   normalizeAppearance,
   validateImagePayload
 } = require('../announcement-assets');
+const { validateManifest: validateStoreCatalog } = require('../store-catalog');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -139,14 +140,20 @@ function validatePromotionManifest(raw) {
 }
 
 function validateManifest(raw, kind = 'announcements') {
+  if (kind === 'store') {
+    try { return validateStoreCatalog(raw); }
+    catch (error) { throw new ApiError(error.status || 400, error.message, error.code || 'VALIDATION'); }
+  }
   return kind === 'promotions' ? validatePromotionManifest(raw) : validateAnnouncementManifest(raw);
 }
 
 function manifestFile(kind) {
+  if (kind === 'store') return 'store-products.json';
   return kind === 'promotions' ? 'promotions.json' : 'announcements.json';
 }
 
 function manifestName(kind) {
+  if (kind === 'store') return 'produits FITIA STORE';
   return kind === 'promotions' ? 'décorations' : 'annonces';
 }
 
@@ -345,7 +352,7 @@ async function saveManifest(config, manifest, expectedRevision, kind = 'announce
   const response = await githubRequest(config, url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements', content: Buffer.from(serialized).toString('base64'), sha: current.revision, branch: config.branch })
+    body: JSON.stringify({ message: kind === 'store' ? 'Update FITIA STORE catalog' : kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements', content: Buffer.from(serialized).toString('base64'), sha: current.revision, branch: config.branch })
   });
   if (response.status === 409) throw new ApiError(409, `Les ${manifestName(kind)} ont changé ailleurs. Rechargez avant de réessayer.`, 'CONFLICT');
   if (!response.ok) throw new ApiError(503, 'La publication GitHub a été refusée. Vérifiez la configuration du serveur.', 'GITHUB_WRITE');
@@ -354,8 +361,8 @@ async function saveManifest(config, manifest, expectedRevision, kind = 'announce
   return (await loadManifest(config, kind)).revision;
 }
 
-async function saveAnnouncementAsset(config, payload) {
-  const validation = validateImagePayload(payload);
+async function saveAnnouncementAsset(config, payload, kind = 'announcement') {
+  const validation = validateImagePayload(payload, { kind });
   if (!validation.ok) throw new ApiError(validation.status, validation.message, validation.code);
   const asset = validation.value;
   const encodedPath = asset.path.split('/').map(encodeURIComponent).join('/');
@@ -366,7 +373,7 @@ async function saveAnnouncementAsset(config, payload) {
     const response = await githubRequest(config, url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Add FITIA announcement asset', content: asset.base64, branch: config.branch })
+      body: JSON.stringify({ message: asset.path.startsWith('assets/store/') ? 'Add FITIA STORE product image' : 'Add FITIA announcement asset', content: asset.base64, branch: config.branch })
     });
     if (!response.ok) throw new ApiError(503, 'La publication du visuel sur GitHub a été refusée.', 'GITHUB_WRITE');
   }
@@ -415,29 +422,31 @@ module.exports = async function adminHandler(req, res) {
       return;
     }
 
-    if (action === 'announcement-assets' && req.method === 'POST') {
+    if ((action === 'announcement-assets' || action === 'store-assets') && req.method === 'POST') {
       const session = requireSession(req, res, config);
       if (!session || !requireCsrf(req, res, session)) return;
       const body = await readJson(req, MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES);
-      const asset = await saveAnnouncementAsset(config, body);
+      const asset = await saveAnnouncementAsset(config, body, action === 'store-assets' ? 'store' : 'announcement');
       sendJson(res, 201, { asset, ...sourceInfo(config) });
       return;
     }
 
-    if ((action === 'announcements' || action === 'promotions') && req.method === 'GET') {
+    if ((action === 'announcements' || action === 'promotions' || action === 'store-products') && req.method === 'GET') {
       const session = requireSession(req, res, config);
       if (!session) return;
-      const result = await loadManifest(config, action);
+      const kind = action === 'store-products' ? 'store' : action;
+      const result = await loadManifest(config, kind);
       sendJson(res, 200, { ...result, ...sourceInfo(config), serverTime: new Date().toISOString() });
       return;
     }
 
-    if ((action === 'announcements' || action === 'promotions') && req.method === 'PUT') {
+    if ((action === 'announcements' || action === 'promotions' || action === 'store-products') && req.method === 'PUT') {
       const session = requireSession(req, res, config);
       if (!session || !requireCsrf(req, res, session)) return;
-      const body = await readJson(req);
-      const manifest = validateManifest(body.manifest, action);
-      const revision = await saveManifest(config, manifest, body.revision, action);
+      const kind = action === 'store-products' ? 'store' : action;
+      const body = await readJson(req, action === 'store-products' ? 2 * 1024 * 1024 : MAX_BODY_BYTES);
+      const manifest = validateManifest(body.manifest, kind);
+      const revision = await saveManifest(config, manifest, body.revision, kind);
       sendJson(res, 200, { manifest, revision, ...sourceInfo(config), serverTime: new Date().toISOString() });
       return;
     }

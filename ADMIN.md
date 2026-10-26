@@ -76,6 +76,14 @@ Chaque enregistrement vérifie la révision SHA actuelle avant la publication. S
 
 La branche configurée doit autoriser cette écriture. Chaque enregistrement ne modifie que le manifeste concerné : le panneau ne change ni le code du wallet, ni l’APK, ni les releases.
 
+## FITIA STORE
+
+La section **FITIA STORE** gère `store-products.json` et les photos de `assets/store/`. Chaque fiche accepte un produit en stock propre ou en dropshipping, un prix en USDT ou FTA, un stock public, un délai de livraison et l’adresse Polygon de réception du vendeur.
+
+Le catalogue est public : n’y enregistrez aucune donnée de client. Le wallet ne transmet pas les adresses postales à GitHub, Vercel ou Polygon. Après le paiement direct au vendeur, l’acheteur partage explicitement un reçu contenant la référence, le hash de transaction et ses informations de livraison. L’historique local ne conserve que le récapitulatif du paiement, sans coordonnées postales.
+
+Les routes d’administration associées sont `/api/admin/store-products` et `/api/admin/store-assets`. Elles utilisent la même session, la même protection CSRF et la même vérification de révision que les autres manifestes. Le stock public doit être actualisé par le vendeur après les ventes et auprès du fournisseur dropshipping.
+
 ## Variables d’environnement
 
 | Variable | Rôle | Défaut |
@@ -85,6 +93,8 @@ La branche configurée doit autoriser cette écriture. Chaque enregistrement ne 
 | `FITIA_ADMIN_LOCAL_MODE` | `1` pour utiliser le fichier local | actif si aucun token |
 | `FITIA_ADMIN_DATA_FILE` | Annonces utilisées en mode local | `announcements.json` |
 | `FITIA_ADMIN_PROMOTIONS_FILE` | Décorations utilisées en mode local | `promotions.json` |
+| `FITIA_ADMIN_STORE_DATA_FILE` | Catalogue STORE utilisé en mode local | `store-products.json` |
+| `FITIA_ADMIN_STORE_ASSET_DIRECTORY` | Photos STORE utilisées en mode local | `assets/store/` |
 | `FITIA_ADMIN_GITHUB_OWNER` | Propriétaire du dépôt | `web3service` |
 | `FITIA_ADMIN_GITHUB_REPO` | Nom du dépôt | `fitia-mining-pro` |
 | `FITIA_ADMIN_GITHUB_BRANCH` | Branche publiée | `main` |
@@ -121,6 +131,6 @@ npm install --prefix /tmp/test-deps --no-package-lock --no-audit --no-fund jsdom
 npm run test:admin
 ```
 
-La suite comprend 13 contrôles du serveur autonome, un test d’interface et 6 contrôles Vercel : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, décorations ciblées, limitation des tentatives, sessions serverless, publication GitHub simulée et prévention XSS.
+La suite comprend 15 contrôles du serveur autonome, un test d’interface et 8 contrôles Vercel : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, décorations ciblées, catalogue et photos STORE, limitation des tentatives, sessions serverless, publication GitHub simulée et prévention XSS. Les paiements et la confidentialité STORE sont vérifiés séparément avec `npm run test:store`.
 
 Le workflow **Test FITIA admin panel** exécute ces contrôles sur les pull requests concernées et sur `main`.

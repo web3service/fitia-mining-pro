@@ -86,6 +86,7 @@
     section: 'dashboard'
   };
 
+  let storeAdmin = null;
   const byId = (id) => document.getElementById(id);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const localized = (value) => value?.fr || value?.en || '';
@@ -202,6 +203,7 @@
     state.promotionManifest = null;
     state.promotionRevision = '';
     state.editingPromotionId = null;
+    if (storeAdmin) storeAdmin.reset();
     state.csrfToken = '';
     byId('admin-view').classList.add('hidden');
     byId('login-view').classList.remove('hidden');
@@ -220,10 +222,12 @@
     if (!options.quiet) setLoading(true, 'Chargement du contenu…');
     byId('list-error').classList.add('hidden');
     byId('promotions-list-error').classList.add('hidden');
+    byId('store-list-error').classList.add('hidden');
     try {
-      const [announcementResult, promotionResult] = await Promise.allSettled([
+      const [announcementResult, promotionResult, storeResult] = await Promise.allSettled([
         api('/api/admin/announcements'),
-        api('/api/admin/promotions')
+        api('/api/admin/promotions'),
+        storeAdmin.load()
       ]);
       const errors = [];
       if (announcementResult.status === 'fulfilled') {
@@ -248,7 +252,13 @@
           byId('promotions-list-error').classList.remove('hidden');
         }
       }
-      if (announcementResult.status === 'fulfilled' || promotionResult.status === 'fulfilled') state.lastSync = new Date();
+      if (storeResult.status === 'fulfilled') {
+        if (announcementResult.status !== 'fulfilled' && promotionResult.status !== 'fulfilled') updateSource(storeResult.value);
+      } else {
+        errors.push(storeResult.reason);
+        storeAdmin.showError(storeResult.reason);
+      }
+      if (announcementResult.status === 'fulfilled' || promotionResult.status === 'fulfilled' || storeResult.status === 'fulfilled') state.lastSync = new Date();
       renderAll();
       setConnection(errors.length ? 'offline' : 'online');
       const visibleErrors = errors.filter((error) => error.code !== 'AUTH_REQUIRED');
@@ -327,6 +337,7 @@
       renderAnnouncements();
     }
     if (state.promotionManifest) renderPromotions();
+    if (storeAdmin) storeAdmin.render();
   }
 
   function renderDashboard() {
@@ -524,7 +535,8 @@
     byId('section-dashboard').classList.toggle('hidden', section !== 'dashboard');
     byId('section-announcements').classList.toggle('hidden', section !== 'announcements');
     byId('section-promotions').classList.toggle('hidden', section !== 'promotions');
-    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations' };
+    byId('section-store').classList.toggle('hidden', section !== 'store');
+    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', store: 'FITIA STORE' };
     byId('page-title').textContent = titles[section] || titles.dashboard;
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.classList.toggle('active', button.dataset.section === section);
@@ -747,8 +759,8 @@
     if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 30000000) {
       throw new Error('Les dimensions de cette image ne sont pas prises en charge.');
     }
-    const maxWidth = kind === 'background' ? 1280 : 256;
-    const maxHeight = kind === 'background' ? 720 : 256;
+    const maxWidth = kind === 'background' ? 1280 : kind === 'product' ? 900 : 256;
+    const maxHeight = kind === 'background' ? 720 : kind === 'product' ? 900 : 256;
     const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -986,6 +998,7 @@
     byId('promotion-form').addEventListener('submit', submitPromotionEditor);
     byId('promotion-form').addEventListener('input', updatePromotionPreview);
     byId('promotion-form').addEventListener('change', updatePromotionPreview);
+    storeAdmin.bindEvents();
     ['search-input', 'category-filter', 'status-filter'].forEach((id) => {
       byId(id).addEventListener('input', () => state.manifest && renderAnnouncements());
       byId(id).addEventListener('change', () => state.manifest && renderAnnouncements());
@@ -1006,6 +1019,7 @@
       if (event.key !== 'Escape') return;
       if (!byId('editor-modal').classList.contains('hidden')) closeEditor();
       if (!byId('promotion-editor-modal').classList.contains('hidden')) closePromotionEditor();
+      if (!byId('store-editor-modal').classList.contains('hidden')) storeAdmin.closeEditor();
     });
   }
 
@@ -1023,8 +1037,15 @@
         renderAnnouncements();
       }
       if (state.promotionManifest && !state.promotionSaving) renderPromotions();
+      if (storeAdmin.loaded && !storeAdmin.saving) storeAdmin.render();
     }, 60000);
   }
+
+  storeAdmin = window.FitiaStoreAdmin.create({
+    byId, api, clone, generateId, showToast, setLoading, setConnection, updateSource,
+    makeButton, optimizeImage, fromInputDate, toInputDate,
+    getMode: () => state.mode
+  });
 
   init();
 })();

@@ -10,6 +10,7 @@ const {
   normalizeAppearance,
   validateImagePayload
 } = require('./announcement-assets');
+const { validateManifest: validateStoreCatalog } = require('./store-catalog');
 
 const ROOT = __dirname;
 const ADMIN_DIR = path.join(ROOT, 'admin');
@@ -166,14 +167,20 @@ function validatePromotionManifest(raw) {
 }
 
 function validateManifestKind(raw, kind = 'announcements') {
+  if (kind === 'store') {
+    try { return validateStoreCatalog(raw); }
+    catch (error) { throw new ApiError(error.status || 400, error.message, error.code || 'VALIDATION'); }
+  }
   return kind === 'promotions' ? validatePromotionManifest(raw) : validateManifest(raw);
 }
 
 function manifestFile(kind) {
+  if (kind === 'store') return 'store-products.json';
   return kind === 'promotions' ? 'promotions.json' : 'announcements.json';
 }
 
 function manifestName(kind) {
+  if (kind === 'store') return 'produits FITIA STORE';
   return kind === 'promotions' ? 'décorations' : 'annonces';
 }
 
@@ -265,6 +272,7 @@ function createAdminServer(options = {}) {
   const dataFile = path.resolve(options.dataFile || process.env.FITIA_ADMIN_DATA_FILE || path.join(ROOT, 'announcements.json'));
   const promotionsFile = path.resolve(options.promotionsFile || process.env.FITIA_ADMIN_PROMOTIONS_FILE || path.join(ROOT, 'promotions.json'));
   const assetDirectory = path.resolve(options.assetDirectory || process.env.FITIA_ADMIN_ASSET_DIRECTORY || path.join(ROOT, 'assets', 'announcements'));
+  const storeAssetDirectory = path.resolve(options.storeAssetDirectory || process.env.FITIA_ADMIN_STORE_ASSET_DIRECTORY || path.join(ROOT, 'assets', 'store'));
   const owner = options.owner || process.env.FITIA_ADMIN_GITHUB_OWNER || 'web3service';
   const repo = options.repo || process.env.FITIA_ADMIN_GITHUB_REPO || 'fitia-mining-pro';
   const branch = options.branch || process.env.FITIA_ADMIN_GITHUB_BRANCH || 'main';
@@ -373,7 +381,7 @@ function createAdminServer(options = {}) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements',
+        message: kind === 'store' ? 'Update FITIA STORE catalog' : kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements',
         content: Buffer.from(serialized, 'utf8').toString('base64'),
         sha: revision,
         branch
@@ -387,7 +395,7 @@ function createAdminServer(options = {}) {
   }
 
   async function loadLocal(kind = 'announcements') {
-    const targetFile = kind === 'promotions' ? promotionsFile : dataFile;
+    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'promotions' ? promotionsFile : dataFile;
     let serialized;
     try {
       serialized = await fs.promises.readFile(targetFile, 'utf8');
@@ -404,7 +412,7 @@ function createAdminServer(options = {}) {
   }
 
   async function saveLocal(manifest, kind = 'announcements') {
-    const targetFile = kind === 'promotions' ? promotionsFile : dataFile;
+    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'promotions' ? promotionsFile : dataFile;
     const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
     const temporary = `${targetFile}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
     await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
@@ -422,14 +430,15 @@ function createAdminServer(options = {}) {
     const response = await githubRequest(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Add FITIA announcement asset', content: asset.base64, branch })
+      body: JSON.stringify({ message: asset.path.startsWith('assets/store/') ? 'Add FITIA STORE product image' : 'Add FITIA announcement asset', content: asset.base64, branch })
     });
     if (!response.ok) throw new ApiError(503, 'La publication du visuel sur GitHub a été refusée.', 'GITHUB_WRITE');
   }
 
   async function saveLocalAsset(asset) {
-    const targetFile = path.join(assetDirectory, path.basename(asset.path));
-    await fs.promises.mkdir(assetDirectory, { recursive: true });
+    const directory = asset.path.startsWith('assets/store/') ? storeAssetDirectory : assetDirectory;
+    const targetFile = path.join(directory, path.basename(asset.path));
+    await fs.promises.mkdir(directory, { recursive: true });
     try {
       const stat = await fs.promises.stat(targetFile);
       if (stat.isFile()) return;
@@ -449,8 +458,8 @@ function createAdminServer(options = {}) {
     return localMode ? loadLocal(kind) : loadGitHub(kind);
   }
 
-  async function publishAsset(payload) {
-    const validation = validateImagePayload(payload);
+  async function publishAsset(payload, kind = 'announcement') {
+    const validation = validateImagePayload(payload, { kind });
     if (!validation.ok) throw new ApiError(validation.status, validation.message, validation.code);
     const asset = validation.value;
     await enqueueMutation(() => (localMode ? saveLocalAsset(asset) : saveGitHubAsset(asset)));
@@ -479,8 +488,10 @@ function createAdminServer(options = {}) {
     ['/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/admin.css', { file: path.join(ADMIN_DIR, 'admin.css'), type: 'text/css; charset=utf-8' }],
     ['/admin/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
+    ['/admin/store-admin.js', { file: path.join(ADMIN_DIR, 'store-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.js', { file: path.join(ROOT, 'promotion-effects.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.css', { file: path.join(ROOT, 'promotion-effects.css'), type: 'text/css; charset=utf-8' }],
+    ['/store-catalog.js', { file: path.join(ROOT, 'store-catalog.js'), type: 'application/javascript; charset=utf-8' }],
     ['/assets/icon-192.png', { file: path.join(ROOT, 'assets/icon-192.png'), type: 'image/png' }],
     ['/assets/avatars/team-1.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-1.svg'), type: 'image/svg+xml' }],
     ['/assets/avatars/team-2.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-2.svg'), type: 'image/svg+xml' }],
@@ -539,29 +550,29 @@ function createAdminServer(options = {}) {
       return;
     }
 
-    if (pathname === '/api/announcement-assets' && req.method === 'POST') {
+    if ((pathname === '/api/announcement-assets' || pathname === '/api/store-assets') && req.method === 'POST') {
       const session = requireSession(req, res);
       if (!session || !requireCsrf(req, res, session)) return;
       const body = await readJson(req, MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES);
-      const asset = await publishAsset(body);
+      const asset = await publishAsset(body, pathname.endsWith('/store-assets') ? 'store' : 'announcement');
       sendJson(res, 201, { asset, ...sourceInfo() });
       return;
     }
 
-    if ((pathname === '/api/announcements' || pathname === '/api/promotions') && req.method === 'GET') {
+    if ((pathname === '/api/announcements' || pathname === '/api/promotions' || pathname === '/api/store-products') && req.method === 'GET') {
       const session = requireSession(req, res);
       if (!session) return;
-      const kind = pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
+      const kind = pathname.endsWith('/store-products') ? 'store' : pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
       const result = await loadManifest(kind);
       sendJson(res, 200, { ...result, ...sourceInfo(), serverTime: new Date().toISOString() });
       return;
     }
 
-    if ((pathname === '/api/announcements' || pathname === '/api/promotions') && req.method === 'PUT') {
+    if ((pathname === '/api/announcements' || pathname === '/api/promotions' || pathname === '/api/store-products') && req.method === 'PUT') {
       const session = requireSession(req, res);
       if (!session || !requireCsrf(req, res, session)) return;
-      const kind = pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
-      const body = await readJson(req);
+      const kind = pathname.endsWith('/store-products') ? 'store' : pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
+      const body = await readJson(req, kind === 'store' ? 2 * 1024 * 1024 : MAX_BODY_BYTES);
       const result = await updateManifest(body.manifest, body.revision, kind);
       sendJson(res, 200, { ...result, ...sourceInfo(), serverTime: new Date().toISOString() });
       return;
@@ -584,10 +595,11 @@ function createAdminServer(options = {}) {
         return;
       }
       let staticFile = staticFiles.get(pathname);
-      const uploadedAsset = /^\/assets\/announcements\/(announcement-[a-f0-9]{24}\.(png|jpg|webp))$/.exec(pathname);
+      const uploadedAsset = /^\/assets\/(announcements|store)\/((?:announcement|product)-[a-f0-9]{24}\.(png|jpg|webp))$/.exec(pathname);
       if (uploadedAsset) {
         const types = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
-        staticFile = { file: path.join(assetDirectory, uploadedAsset[1]), type: types[uploadedAsset[2]] };
+        const directory = uploadedAsset[1] === 'store' ? storeAssetDirectory : assetDirectory;
+        staticFile = { file: path.join(directory, uploadedAsset[2]), type: types[uploadedAsset[3]] };
       }
       if (!staticFile) {
         sendJson(res, 404, { error: 'Page introuvable.', code: 'NOT_FOUND' });
