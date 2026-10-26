@@ -128,6 +128,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           npm test
+          npm run test:admin
 
       - name: Remove restored private key
         if: always()
