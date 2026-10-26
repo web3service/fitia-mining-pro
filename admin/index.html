@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/admin/admin.css">
   <link rel="stylesheet" href="/promotion-effects.css">
   <script src="/promotion-effects.js" defer></script>
+  <script src="/admin/store-admin.js" defer></script>
   <script src="/admin/admin.js" defer></script>
 </head>
 <body>
@@ -46,6 +47,9 @@
         </button>
         <button class="nav-button" type="button" data-section="promotions">
           <span class="nav-icon" aria-hidden="true">◇</span><span class="nav-label">Cartes cadeaux &amp; effets</span><span class="nav-short-label">Effets</span>
+        </button>
+        <button class="nav-button" type="button" data-section="store">
+          <span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">FITIA STORE</span><span class="nav-short-label">Store</span>
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -100,6 +104,7 @@
               <div class="quick-actions">
                 <button class="button button-secondary" type="button" data-new-event>Nouvel événement</button>
                 <button class="button button-secondary" type="button" data-new-promotion>Nouvelle décoration</button>
+                <button class="button button-secondary" type="button" data-new-store-product>Nouveau produit STORE</button>
               </div>
             </article>
           </div>
@@ -163,6 +168,48 @@
             <h3>Aucune décoration enregistrée</h3>
             <p>Créez un cadeau, des cloches ou un effet saisonnier pour une machine ou une batterie.</p>
             <button class="button button-secondary" type="button" data-new-promotion>Créer une décoration</button>
+          </div>
+        </section>
+
+        <section id="section-store" class="page-section hidden">
+          <div class="section-heading">
+            <div><p class="eyebrow">Produits physiques</p><h2>FITIA STORE</h2><p class="muted">Vendez vos propres produits ou des articles expédiés par un fournisseur, avec paiement en USDT ou FTA.</p></div>
+            <button class="button button-primary" type="button" data-new-store-product>Nouveau produit</button>
+          </div>
+
+          <div class="distribution-card">
+            <div><strong>Affichage de FITIA STORE</strong><p>Désactivez temporairement la boutique sans supprimer les produits enregistrés.</p></div>
+            <label class="switch-control">
+              <input id="store-enabled" type="checkbox" aria-label="Activer FITIA STORE">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span id="store-enabled-label">Désactivé</span>
+            </label>
+          </div>
+
+          <div class="promotion-notice store-privacy-notice">
+            <strong>Catalogue public, livraison privée</strong>
+            <p>Les fiches produits et les adresses crypto de réception sont publiques. N’enregistrez jamais ici d’adresse postale de client. Le wallet transmet les informations de livraison uniquement dans le reçu partagé par l’acheteur avec le vendeur.</p>
+          </div>
+
+          <div class="stats-grid store-stats-grid" aria-label="Statistiques FITIA STORE">
+            <article class="stat-card"><span>Produits</span><strong id="store-stat-total">0</strong><small>Fiches enregistrées</small></article>
+            <article class="stat-card stat-active"><span>En vente</span><strong id="store-stat-active">0</strong><small>Disponibles maintenant</small></article>
+            <article class="stat-card"><span>Unités</span><strong id="store-stat-stock">0</strong><small>Stock public affiché</small></article>
+          </div>
+
+          <div class="list-toolbar store-list-toolbar">
+            <label class="search-field"><span class="sr-only">Rechercher un produit</span><input id="store-search" type="search" placeholder="Rechercher un produit ou un vendeur…"></label>
+            <label><span class="sr-only">Filtrer par approvisionnement</span><select id="store-source-filter"><option value="all">Tous les approvisionnements</option><option value="own">Stock propre</option><option value="dropshipping">Dropshipping</option></select></label>
+            <label><span class="sr-only">Filtrer par crypto</span><select id="store-token-filter"><option value="all">USDT et FTA</option><option value="USDT">USDT</option><option value="FTA">FTA</option></select></label>
+          </div>
+
+          <div id="store-list-error" class="alert alert-error hidden" role="alert"></div>
+          <div id="store-products-list" class="announcements-list store-admin-list"></div>
+          <div id="store-products-empty" class="empty-state hidden">
+            <img src="/assets/icon-192.png" width="52" height="52" alt="">
+            <h3>Aucun produit trouvé</h3>
+            <p>Ajoutez un produit physique ou modifiez les filtres.</p>
+            <button class="button button-secondary" type="button" data-new-store-product>Créer un produit</button>
           </div>
         </section>
       </main>
@@ -370,6 +417,99 @@
         <footer class="modal-footer">
           <button class="button button-quiet" type="button" data-close-promotion-editor>Annuler</button>
           <button id="save-promotion" class="button button-primary" type="submit">Publier la décoration</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div id="store-editor-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="store-editor-title">
+    <div class="modal-backdrop" data-close-store-editor></div>
+    <div class="modal-card store-editor-card">
+      <form id="store-product-form">
+        <header class="modal-header">
+          <div><p class="eyebrow">Catalogue FITIA STORE</p><h2 id="store-editor-title">Nouveau produit</h2></div>
+          <button class="icon-button" type="button" data-close-store-editor aria-label="Fermer">×</button>
+        </header>
+        <div class="modal-body">
+          <div class="editor-fields">
+            <div class="date-grid">
+              <div class="field-group"><label for="store-source-type">Approvisionnement</label><select id="store-source-type" required><option value="own">Mes produits / stock propre</option><option value="dropshipping">Dropshipping / fournisseur</option></select></div>
+              <div class="field-group"><label for="store-category">Catégorie</label><select id="store-category" required><option value="electronics">Électronique</option><option value="fashion">Mode</option><option value="home">Maison</option><option value="beauty">Beauté</option><option value="sports">Sports</option><option value="toys">Jouets</option><option value="automotive">Automobile</option><option value="grocery">Épicerie</option><option value="jewelry">Bijoux</option><option value="office">Bureau</option><option value="other">Autres</option></select></div>
+            </div>
+            <label class="animation-control" for="store-active"><input id="store-active" type="checkbox" checked><span><strong>Produit visible</strong><small>Masquez-le temporairement sans le supprimer du catalogue.</small></span></label>
+
+            <div class="localized-primary">
+              <div class="field-group"><label for="store-name-fr">Nom en français <span>obligatoire</span></label><input id="store-name-fr" maxlength="100" required></div>
+              <div class="field-group"><label for="store-description-fr">Description en français <span>facultatif</span></label><textarea id="store-description-fr" rows="4" maxlength="600"></textarea></div>
+            </div>
+            <details class="translations-panel">
+              <summary>Autres langues <span>anglais recommandé</span></summary>
+              <div class="translations-grid">
+                <div class="translation-fields"><h3>Anglais</h3><label for="store-name-en">Nom</label><input id="store-name-en" maxlength="100"><label for="store-description-en">Description</label><textarea id="store-description-en" rows="3" maxlength="600"></textarea></div>
+                <div class="translation-fields"><h3>Allemand</h3><label for="store-name-de">Nom</label><input id="store-name-de" maxlength="100"><label for="store-description-de">Description</label><textarea id="store-description-de" rows="3" maxlength="600"></textarea></div>
+                <div class="translation-fields"><h3>Chinois</h3><label for="store-name-zh">Nom</label><input id="store-name-zh" maxlength="100"><label for="store-description-zh">Description</label><textarea id="store-description-zh" rows="3" maxlength="600"></textarea></div>
+                <div class="translation-fields"><h3>Sango</h3><label for="store-name-sg">Nom</label><input id="store-name-sg" maxlength="100"><label for="store-description-sg">Description</label><textarea id="store-description-sg" rows="3" maxlength="600"></textarea></div>
+              </div>
+            </details>
+
+            <fieldset class="design-fieldset">
+              <legend>Photo du produit</legend>
+              <div class="asset-field">
+                <div class="asset-field-heading"><div><strong>Visuel carré ou rectangulaire</strong><small>PNG, JPEG ou WebP · optimisé à 900 × 900 maximum</small></div><span id="store-image-status" class="asset-status">Logo FITIA par défaut</span></div>
+                <div class="asset-actions">
+                  <button id="store-image-upload" class="button button-quiet" type="button">Importer une photo</button>
+                  <button id="store-image-remove" class="button button-danger hidden" type="button">Retirer</button>
+                  <input id="store-image-file" class="hidden" type="file" accept="image/png,image/jpeg,image/webp">
+                </div>
+                <p id="store-image-upload-status" class="field-hint" role="status"></p>
+              </div>
+            </fieldset>
+
+            <fieldset class="design-fieldset">
+              <legend>Vendeur et réception du paiement</legend>
+              <p class="field-hint">Ces informations sont publiques. Utilisez une adresse Polygon qui reçoit réellement USDT et FTA, jamais l’adresse d’un contrat de jeton.</p>
+              <div class="date-grid">
+                <div class="field-group"><label for="store-seller-id">Identifiant vendeur stable</label><input id="store-seller-id" maxlength="64" pattern="[a-z0-9][a-z0-9._-]{2,63}" value="fitia-store" required><small class="field-hint">Minuscules, chiffres, points ou tirets. Les produits d’un même panier doivent partager vendeur, crypto et adresse.</small></div>
+                <div class="field-group"><label for="store-seller-name">Nom public du vendeur</label><input id="store-seller-name" maxlength="80" value="FITIA STORE" required></div>
+              </div>
+              <div class="field-group"><label for="store-payment-address">Adresse Polygon de réception</label><input id="store-payment-address" class="mono-input" minlength="42" maxlength="42" placeholder="0x…" autocomplete="off" spellcheck="false" required></div>
+              <div class="field-group"><label for="store-seller-contact">Contact public pour la commande <span>recommandé</span></label><input id="store-seller-contact" maxlength="160" placeholder="@vendeur ou contact professionnel"><small class="field-hint">Recopié dans le reçu que l’acheteur partage au vendeur. Ne saisissez aucune donnée client.</small></div>
+            </fieldset>
+
+            <div class="date-grid store-price-grid">
+              <div class="field-group"><label for="store-price-token">Crypto de paiement</label><select id="store-price-token" required><option value="USDT">USDT</option><option value="FTA">FTA</option></select></div>
+              <div class="field-group"><label for="store-price">Prix unitaire</label><input id="store-price" inputmode="decimal" autocomplete="off" placeholder="0.00" required></div>
+              <div class="field-group"><label for="store-shipping-fee">Livraison par unité <span>même crypto</span></label><input id="store-shipping-fee" inputmode="decimal" autocomplete="off" value="0" required></div>
+              <div class="field-group"><label for="store-stock">Stock public affiché</label><input id="store-stock" type="number" min="0" max="1000000" step="1" value="1" required><small class="field-hint">Actualisez-le après les ventes et auprès du fournisseur.</small></div>
+            </div>
+            <div class="field-group"><label for="store-delivery-estimate">Délai de livraison indicatif</label><input id="store-delivery-estimate" maxlength="80" placeholder="Ex. 3 à 7 jours ouvrés" required></div>
+            <div class="date-grid">
+              <div class="field-group"><label for="store-starts-at">Début de vente <span>facultatif</span></label><input id="store-starts-at" type="datetime-local"></div>
+              <div class="field-group"><label for="store-expires-at">Fin de vente <span>facultatif</span></label><input id="store-expires-at" type="datetime-local"></div>
+            </div>
+            <p id="store-editor-error" class="form-error" role="alert"></p>
+          </div>
+
+          <aside class="preview-panel">
+            <p class="eyebrow">Aperçu dans FITIA STORE</p>
+            <div class="phone-preview store-phone-preview">
+              <div class="phone-preview-brand"><img src="/assets/icon-192.png" width="28" height="28" alt=""><strong>FITIA STORE</strong></div>
+              <div class="store-preview-card">
+                <img id="store-preview-image" src="/assets/icon-192.png" width="180" height="180" alt="">
+                <span id="store-preview-source" class="store-preview-source">STOCK PROPRE</span>
+                <strong id="store-preview-name">Nom du produit</strong>
+                <p id="store-preview-description">Description du produit</p>
+                <small id="store-preview-seller">Vendeur</small>
+                <b id="store-preview-price">0 USDT</b>
+                <span class="store-preview-buy">AJOUTER AU PANIER</span>
+              </div>
+            </div>
+            <p class="preview-note">Le prix et le stock définitifs sont relus depuis le catalogue avant chaque paiement.</p>
+          </aside>
+        </div>
+        <footer class="modal-footer">
+          <button class="button button-quiet" type="button" data-close-store-editor>Annuler</button>
+          <button id="save-store-product" class="button button-primary" type="submit">Publier le produit</button>
         </footer>
       </form>
     </div>

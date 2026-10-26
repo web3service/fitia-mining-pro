@@ -1028,6 +1028,7 @@ class Application {
     this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'en';
     this.announcementCenter = new FitiaAnnouncementCenter(this);
     this.promotionCenter = new FitiaPromotionCenter(this);
+    this.storeCenter = new FitiaStoreCenter(this);
 
     this.chatInitialized = false;
     this.chatHistory = [];
@@ -1102,6 +1103,7 @@ class Application {
     this.setLanguage(this.currentLang);
     this.announcementCenter.init();
     this.promotionCenter.init();
+    this.storeCenter.init();
     this.setupLifecycleListeners();
 
     // Masquer les bannières de téléchargement APK lorsqu'on est déjà dans l'APK Android installé
@@ -1313,6 +1315,7 @@ class Application {
     }
     if (this.announcementCenter?.initialized) this.announcementCenter.render();
     this.activity?.render();
+    this.storeCenter?.render();
     if (this.user) {
       this.renderShop();
       this.renderActiveMachines();
@@ -1812,6 +1815,7 @@ class Application {
     FitiaSecurity.Native.setScreenSecure(true);
     this.cancelPinVerification();
     this.closeModals();
+    this.storeCenter?.setAccount(null);
     this.closeRevealModal();
     this.stopMiningCounter();
     this.announcementCenter.stop();
@@ -2070,6 +2074,7 @@ class Application {
     this.signer = FitiaSecurity.Rpc.createSigner(secret.privateKey, this.provider);
     this.user = secret.address;
     this.activity.setAccount(this.user);
+    this.storeCenter.setAccount(this.user);
     this.installActivityTracking();
     this.lastUserActivityAt = Date.now();
     // Efface immédiatement la copie de secret passée en paramètre
@@ -2894,6 +2899,7 @@ class Application {
     document.querySelectorAll('.modal:not(#modal-pin-confirm):not(#modal-secret-reveal):not(#modal-update)').forEach((m) => {
       m.classList.remove('active');
     });
+    this.storeCenter?.onModalsClosed();
   }
 
   async copyReceiveAddress() {
@@ -4010,6 +4016,7 @@ class Application {
     this.user = null;
     this.myReferralCode = '';
     this.signer = null;
+    this.storeCenter?.setAccount(null);
     this.plugTransactionInProgress = false;
     document.getElementById('plug-machine-id').value = '';
     document.getElementById('plug-battery-type').value = '';
@@ -4080,6 +4087,10 @@ class Application {
       this.announcementCenter.stop();
     }
     if (viewId === 'shop') this.promotionCenter.refresh();
+    if (viewId === 'store') {
+      this.storeCenter.render();
+      void this.storeCenter.refresh({ force: false });
+    }
   }
 
   setLoader(show) {

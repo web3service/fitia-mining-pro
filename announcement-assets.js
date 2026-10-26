@@ -72,7 +72,8 @@ function detectImage(bytes) {
   return null;
 }
 
-function validateImagePayload(payload) {
+function validateImagePayload(payload, options = {}) {
+  const imageKind = options.kind === 'store' ? 'store' : 'announcement';
   if (!payload || typeof payload !== 'object' || typeof payload.data !== 'string') {
     return { ok: false, status: 400, code: 'IMAGE_DATA', message: 'Image base64 requise.' };
   }
@@ -102,7 +103,9 @@ function validateImagePayload(payload) {
       base64: data,
       contentType: detected.contentType,
       size: bytes.length,
-      path: `assets/announcements/announcement-${digest}.${detected.extension}`
+      path: imageKind === 'store'
+        ? `assets/store/product-${digest}.${detected.extension}`
+        : `assets/announcements/announcement-${digest}.${detected.extension}`
     }
   };
 }

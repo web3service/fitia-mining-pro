@@ -286,7 +286,44 @@
 
   </div>
 
-  <!-- ═══ SHOP ═══ -->
+  <!-- ═══ FITIA STORE — PRODUITS PHYSIQUES ═══ -->
+  <div id="view-store" class="view">
+    <section class="store-hero">
+      <div class="store-hero-copy">
+        <span class="store-eyebrow">FITIA MARKETPLACE</span>
+        <h2>FITIA STORE</h2>
+        <p data-store-i18n="tagline">Physical products, direct crypto payments.</p>
+      </div>
+      <button type="button" id="store-cart-button" class="store-round-button" onclick="App.storeCenter.openCart()" aria-label="Open cart">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zM7.16 14.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03L21.7 4H5.21L4.27 2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7.42c-.14 0-.25-.11-.26-.25z"/></svg>
+        <span id="store-cart-count" class="store-cart-badge hidden">0</span>
+      </button>
+    </section>
+    <div class="store-assurance">
+      <span>USDT</span><span>FTA</span><small data-store-i18n="privateDelivery">Delivery details stay off-chain</small>
+    </div>
+    <div class="store-actions-row">
+      <button type="button" class="store-text-button" onclick="App.storeCenter.openOrders()" data-store-i18n="myOrders">My orders</button>
+      <button type="button" class="store-text-button" onclick="App.storeCenter.manualRefresh()" data-store-i18n="refresh">Refresh</button>
+    </div>
+    <div class="store-filter-panel">
+      <label class="store-search-label"><span class="sr-only">Search products</span><input id="store-search-input" type="search" maxlength="100" data-store-i18n-placeholder="search" placeholder="Search products…" oninput="App.storeCenter.renderProducts()"></label>
+      <div class="store-filter-grid">
+        <select id="store-category-filter" aria-label="Product category" onchange="App.storeCenter.renderProducts()"><option value="all">All categories</option></select>
+        <select id="store-source-filter" aria-label="Fulfillment type" onchange="App.storeCenter.renderProducts()"><option value="all" data-store-i18n="allSources">All sellers</option><option value="own" data-store-i18n="ownStock">Own stock</option><option value="dropshipping">Dropshipping</option></select>
+        <select id="store-token-filter" aria-label="Payment token" onchange="App.storeCenter.renderProducts()"><option value="all">USDT + FTA</option><option value="USDT">USDT</option><option value="FTA">FTA</option></select>
+      </div>
+    </div>
+    <p id="store-catalog-status" class="store-catalog-status" role="status"></p>
+    <div id="store-product-grid" class="store-product-grid"></div>
+    <div id="store-empty" class="store-empty hidden">
+      <img src="assets/icon-192.png" width="60" height="60" alt="">
+      <h3 data-store-i18n="emptyTitle">No products available</h3>
+      <p data-store-i18n="emptyMessage">New physical products will appear here.</p>
+    </div>
+  </div>
+
+  <!-- ═══ SHOP MINAGE ═══ -->
   <div id="view-shop" class="view">
     <div class="shop-header">
       <h2 class="view-title" style="margin-bottom:0;" data-i18n="shopTitle">⛏️ Boutique</h2>
@@ -563,6 +600,7 @@
 <!-- ═══ NAVIGATION BASSE ═══ -->
 <nav class="bottom-nav">
   <button class="nav-item active" data-nav="dashboard" onclick="App.nav('dashboard', this)"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span data-i18n="home">Accueil</span></button>
+  <button class="nav-item" data-nav="store" onclick="App.nav('store', this)"><svg viewBox="0 0 24 24"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg><span>STORE</span></button>
   <button class="nav-item" data-nav="shop" onclick="App.nav('shop', this)"><svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11z"/></svg><span data-i18n="shop">Boutique</span></button>
   <button class="nav-item" data-nav="my-rigs" onclick="App.nav('my-rigs', this)"><svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg><span data-i18n="assets">Wallet</span></button>
   <button class="nav-item" data-nav="swap" onclick="App.nav('swap', this)"><svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg><span data-i18n="swapNav">Swap</span></button>
@@ -614,6 +652,68 @@
       <button class="btn-primary" onclick="App.copyReceiveAddress()">📋 <span data-i18n="copyAddrBtn">Copier l'adresse</span></button>
       <button class="btn-secondary-outline" style="margin-top:0;" onclick="App.shareReceiveAddress()">📤 <span data-i18n="shareBtn">Partager</span></button>
     </div>
+  </div>
+</div>
+
+<!-- FITIA STORE — Panier -->
+<div id="modal-store-cart" class="modal">
+  <div class="modal-content modal-scrollable store-modal-content">
+    <div class="modal-header"><h3 data-store-i18n="cartTitle">Your cart</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
+    <p id="store-cart-seller" class="store-modal-subtitle"></p>
+    <div id="store-cart-items" class="store-cart-items"></div>
+    <p id="store-cart-empty" class="store-empty-copy" data-store-i18n="cartEmpty">Your cart is empty.</p>
+    <div id="store-cart-totals" class="store-totals hidden">
+      <div><span data-store-i18n="subtotal">Subtotal</span><strong id="store-cart-subtotal">0</strong></div>
+      <div><span data-store-i18n="delivery">Delivery</span><strong id="store-cart-shipping">0</strong></div>
+      <div class="store-grand-total"><span data-store-i18n="total">Total</span><strong id="store-cart-total">0</strong></div>
+    </div>
+    <button type="button" id="store-cart-checkout" class="btn-primary" onclick="App.storeCenter.openCheckout()" data-store-i18n="checkout">DELIVERY & PAYMENT</button>
+    <button type="button" id="store-cart-clear" class="btn-secondary-outline" onclick="App.storeCenter.clearCart(true)" data-store-i18n="clearCart">Clear cart</button>
+    <p class="store-privacy-copy" data-store-i18n="singleSeller">One seller, one crypto and one receiving address per payment.</p>
+  </div>
+</div>
+
+<!-- FITIA STORE — Livraison et paiement -->
+<div id="modal-store-checkout" class="modal">
+  <div class="modal-content modal-scrollable store-modal-content">
+    <div class="modal-header"><h3 data-store-i18n="checkoutTitle">Delivery & payment</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
+    <div id="store-checkout-summary" class="store-checkout-summary"></div>
+    <form id="store-checkout-form" autocomplete="off">
+      <div class="store-form-grid">
+        <label><span data-store-i18n="fullName">Full name</span><input id="store-shipping-name" class="game-input" maxlength="80" autocomplete="off" required></label>
+        <label><span data-store-i18n="phone">Phone</span><input id="store-shipping-phone" class="game-input" type="tel" maxlength="32" autocomplete="off" required></label>
+        <label><span data-store-i18n="country">Country</span><input id="store-shipping-country" class="game-input" maxlength="60" autocomplete="off" required></label>
+        <label><span data-store-i18n="city">City</span><input id="store-shipping-city" class="game-input" maxlength="80" autocomplete="off" required></label>
+      </div>
+      <label class="store-form-field"><span data-store-i18n="postalAddress">Full postal address</span><textarea id="store-shipping-address" class="game-input" rows="3" maxlength="240" autocomplete="off" required></textarea></label>
+      <label class="store-form-field"><span data-store-i18n="deliveryNotes">Delivery note (optional)</span><textarea id="store-shipping-notes" class="game-input" rows="2" maxlength="300" autocomplete="off"></textarea></label>
+      <label class="store-consent"><input id="store-checkout-consent" type="checkbox" required><span data-store-i18n="consent">I understand that the crypto payment is irreversible and that I must share the order receipt with the seller for delivery.</span></label>
+      <p class="store-privacy-copy" data-store-i18n="shippingPrivacy">These details remain on this phone and are never written to Polygon or the public catalog. They are included only in the receipt you choose to share.</p>
+      <p id="store-checkout-error" class="store-form-error" role="alert"></p>
+      <button type="submit" id="store-pay-button" class="btn-primary" data-store-i18n="payNow">PAY WITH PIN</button>
+    </form>
+  </div>
+</div>
+
+<!-- FITIA STORE — Reçu à transmettre au vendeur -->
+<div id="modal-store-receipt" class="modal">
+  <div class="modal-content modal-scrollable store-modal-content">
+    <div class="modal-header"><h3 data-store-i18n="receiptTitle">Order receipt</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
+    <div id="store-receipt-status" class="store-receipt-status"></div>
+    <div id="store-receipt-content" class="store-receipt-content"></div>
+    <p class="store-privacy-copy" data-store-i18n="shareRequired">Share this receipt with the seller so they can verify the transaction and ship your order.</p>
+    <button type="button" id="store-receipt-share" class="btn-primary" onclick="App.storeCenter.shareCurrentReceipt()" data-store-i18n="shareReceipt">SHARE WITH SELLER</button>
+    <button type="button" class="btn-secondary-outline" onclick="App.closeModals()" data-store-i18n="done">Done</button>
+  </div>
+</div>
+
+<!-- FITIA STORE — Commandes locales -->
+<div id="modal-store-orders" class="modal">
+  <div class="modal-content modal-scrollable store-modal-content">
+    <div class="modal-header"><h3 data-store-i18n="ordersTitle">My orders</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
+    <p class="store-privacy-copy" data-store-i18n="ordersPrivacy">Only payment summaries are kept on this phone. Delivery addresses are not saved in order history.</p>
+    <div id="store-orders-list" class="store-orders-list"></div>
+    <p id="store-orders-empty" class="store-empty-copy" data-store-i18n="ordersEmpty">No store orders yet.</p>
   </div>
 </div>
 
@@ -896,6 +996,8 @@
 <script src="announcements.js"></script>
 <script src="promotion-effects.js"></script>
 <script src="promotions.js"></script>
+<script src="store-catalog.js"></script>
+<script src="store.js"></script>
 <script src="assistant.js"></script>
 <script src="app.js"></script>
 </body>

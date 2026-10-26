@@ -14,6 +14,7 @@ const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
 const adminCss = fs.readFileSync(path.join(ROOT, 'admin/admin.css'), 'utf8');
 const script = fs.readFileSync(path.join(ROOT, 'admin/admin.js'), 'utf8');
 const effectsScript = fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8');
+const storeAdminScript = fs.readFileSync(path.join(ROOT, 'admin/store-admin.js'), 'utf8');
 let manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
 let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
@@ -23,6 +24,9 @@ const initialPromotionCount = promotionManifest.promotions.length;
 let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];
 let failPromotions = false;
+let storeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8'));
+let storeRevision = 'revision-store-initiale';
+const storeWrites = [];
 const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
 const { window } = dom;
 Object.defineProperty(window, 'crypto', { value: crypto.webcrypto });
@@ -59,6 +63,17 @@ window.fetch = async (url, options = {}) => {
     promotionWrites.push(body);
     return response({ manifest: promotionManifest, revision: promotionRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
+  if (url === '/api/admin/store-products' && (!options.method || options.method === 'GET')) {
+    return response({ manifest: storeManifest, revision: storeRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
+  }
+  if (url === '/api/admin/store-products' && options.method === 'PUT') {
+    const body = JSON.parse(options.body);
+    assert.strictEqual(body.revision, storeRevision);
+    storeManifest = body.manifest;
+    storeRevision = `revision-store-${storeWrites.length + 1}`;
+    storeWrites.push(body);
+    return response({ manifest: storeManifest, revision: storeRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
+  }
   throw new Error(`Requête inattendue ${options.method || 'GET'} ${url}`);
 };
 
@@ -83,6 +98,7 @@ async function waitFor(condition, label) {
   assert.ok(adminCss.includes('input, select { min-height: 48px; font-size: 16px; }'));
   assert.ok(adminCss.includes('.nav-short-label { display: inline; }'));
   window.eval(effectsScript);
+  window.eval(storeAdminScript);
   window.eval(script);
   await waitFor(() => !window.document.getElementById('admin-view').classList.contains('hidden'), 'connexion');
   await waitFor(() => window.document.querySelectorAll('#announcements-list .announcement-row').length === initialAnnouncementCount, 'liste initiale');
@@ -208,13 +224,57 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression décoration');
   assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount);
 
+  window.document.querySelector('[data-section="store"]').click();
+  assert.strictEqual(window.document.getElementById('page-title').textContent, 'FITIA STORE');
+  window.document.querySelector('#section-store [data-new-store-product]').click();
+  assert.ok(!window.document.getElementById('store-editor-modal').classList.contains('hidden'));
+  const storeProductName = '<img src=x data-store-xss> Téléphone test';
+  window.document.getElementById('store-name-fr').value = storeProductName;
+  window.document.getElementById('store-name-en').value = 'Test phone';
+  window.document.getElementById('store-description-fr').value = 'Produit physique dropshipping';
+  window.document.getElementById('store-source-type').value = 'dropshipping';
+  window.document.getElementById('store-category').value = 'electronics';
+  window.document.getElementById('store-seller-id').value = 'seller-test';
+  window.document.getElementById('store-seller-name').value = 'Vendeur test';
+  window.document.getElementById('store-seller-contact').value = '@seller-test';
+  window.document.getElementById('store-payment-address').value = '0x1111111111111111111111111111111111111111';
+  window.document.getElementById('store-price-token').value = 'USDT';
+  window.document.getElementById('store-price').value = '19.99';
+  window.document.getElementById('store-shipping-fee').value = '1.01';
+  window.document.getElementById('store-stock').value = '7';
+  window.document.getElementById('store-delivery-estimate').value = '3 à 7 jours';
+  window.document.getElementById('store-name-fr').dispatchEvent(new window.Event('input', { bubbles: true }));
+  assert.strictEqual(window.document.getElementById('store-preview-name').textContent, storeProductName);
+  window.document.getElementById('store-product-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => storeWrites.length === 1, 'création produit STORE');
+  await waitFor(() => window.document.getElementById('store-editor-modal').classList.contains('hidden'), 'fermeture éditeur STORE');
+  assert.strictEqual(storeManifest.products.length, 1);
+  const createdStoreProduct = storeManifest.products[0];
+  assert.strictEqual(createdStoreProduct.sourceType, 'dropshipping');
+  assert.strictEqual(createdStoreProduct.price, '19.99');
+  assert.strictEqual(createdStoreProduct.shippingFee, '1.01');
+  assert.strictEqual(createdStoreProduct.stock, 7);
+  const storeRow = window.document.querySelector(`[data-store-product-id="${createdStoreProduct.id}"]`);
+  assert.ok(storeRow.textContent.includes(storeProductName));
+  assert.strictEqual(storeRow.querySelector('[data-store-xss]'), null);
+  assert.strictEqual(storeRow.querySelector('script'), null);
+  const storeEnabled = window.document.getElementById('store-enabled');
+  storeEnabled.checked = true;
+  storeEnabled.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => storeWrites.length === 2, 'activation STORE');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin activation STORE');
+  assert.strictEqual(storeManifest.enabled, true);
+  window.document.querySelector(`[data-store-product-id="${createdStoreProduct.id}"] .button-danger`).click();
+  await waitFor(() => storeWrites.length === 3, 'suppression produit STORE');
+  assert.strictEqual(storeManifest.products.length, 0);
+
   manifest.announcements[0].title.fr = 'Annonce rechargée malgré la panne';
   failPromotions = true;
   window.document.getElementById('refresh-button').click();
   await waitFor(() => !window.document.getElementById('promotions-list-error').classList.contains('hidden'), 'panne indépendante des décorations');
   assert.ok(window.document.querySelector('#announcements-list .announcement-row').textContent.includes('Annonce rechargée malgré la panne'));
   assert.strictEqual(window.document.getElementById('promotions-list-error').textContent, 'Canal décorations indisponible');
-  console.log('  ✅ UI admin : modèles, thèmes, avatars, aperçu, CRUD, activation, panne isolée et blocage XSS validés');
+  console.log('  ✅ UI admin : annonces, décorations et FITIA STORE — CRUD, aperçu, activation, panne isolée et blocage XSS validés');
   window.close();
 })().catch((error) => {
   console.error(error);
