@@ -8,8 +8,6 @@ const path = require('path');
 const PORT = Number(process.env.PORT || 8080);
 const HOST = '0.0.0.0';
 const ROOT = __dirname;
-const DOWNLOAD_MAINTENANCE = true;
-const APK_PATH = '/FITIA-PRO-Miner.apk';
 
 const ALLOWED_ROOT_FILES = new Set([
   '/index.html',
@@ -50,17 +48,6 @@ const server = http.createServer((req, res) => {
     const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     let pathname = decodeURIComponent(parsedUrl.pathname);
     if (pathname === '/') pathname = '/index.html';
-
-    if (DOWNLOAD_MAINTENANCE && pathname === APK_PATH) {
-      res.writeHead(503, {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'no-store',
-        'Retry-After': '3600'
-      });
-      res.end(req.method === 'HEAD' ? undefined : 'Téléchargement temporairement indisponible pendant la mise à jour.');
-      return;
-    }
 
     if (!isAllowedRequestPath(pathname)) {
       res.writeHead(403, {

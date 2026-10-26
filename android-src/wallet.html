@@ -755,16 +755,22 @@
         <strong id="my-ref-id-label" class="ref-code-value">—</strong>
         <p class="ref-code-hint" data-i18n="refCodeHint">Ce code personnel ne donne accès à aucun fonds.</p>
       </div>
+      <div class="ref-link-panel">
+        <span class="ref-code-label" data-i18n="yourRefLink">Votre lien de parrainage</span>
+        <strong id="my-ref-link-label" class="ref-link-value">—</strong>
+        <p class="ref-code-hint" data-i18n="refLinkHint">Le lien ouvre FITIA PRO si elle est installée. Sinon, utilisez le code ci-dessus.</p>
+      </div>
       <div class="ref-actions">
-        <button type="button" class="ref-action-btn ref-action-secondary" onclick="App.copyMyReferralCode()">
+        <button type="button" class="ref-action-btn ref-action-secondary" onclick="App.copyMyReferralLink()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
-          <span data-i18n="copyRefCode">Copier le code</span>
+          <span data-i18n="copyRefLink">Copier le lien</span>
         </button>
         <button type="button" class="ref-action-btn ref-action-primary" onclick="App.shareMyReferral()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5"></path></svg>
           <span data-i18n="shareRef">Partager</span>
         </button>
       </div>
+      <button type="button" class="ref-code-copy" onclick="App.copyMyReferralCode()" data-i18n="copyRefCode">Copier le code</button>
 
       <div class="ref-bind-block">
         <strong class="ref-bind-title" data-i18n="refBindTitle">Vous avez un code ?</strong>

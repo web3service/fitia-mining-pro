@@ -122,7 +122,7 @@ h1 span, .security-copy h2 span { color: var(--gold); }
   cursor: not-allowed;
 }
 .button-primary.button-disabled:hover { transform: none; background: rgba(255,255,255,.055); }
-.maintenance-notice {
+.release-notice {
   max-width: 570px;
   display: flex;
   align-items: flex-start;
@@ -136,8 +136,8 @@ h1 span, .security-copy h2 span { color: var(--gold); }
   font-size: .76rem;
   line-height: 1.6;
 }
-.maintenance-notice strong { color: var(--gold); margin-right: 4px; }
-.maintenance-notice > span { flex-shrink: 0; }
+.release-notice strong { color: var(--gold); margin-right: 4px; }
+.release-notice > span { flex-shrink: 0; }
 .hero-meta { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 24px; color: var(--muted); font-size: .73rem; }
 .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
 .hero-meta i { color: var(--green); font-style: normal; font-weight: 900; }

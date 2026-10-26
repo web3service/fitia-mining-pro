@@ -94,6 +94,15 @@
       return '';
     },
 
+    consumeReferralDeepLink() {
+      try {
+        if (global.FitiaNative && typeof global.FitiaNative.consumeReferralDeepLink === 'function') {
+          return String(global.FitiaNative.consumeReferralDeepLink() || '');
+        }
+      } catch (_) {}
+      return '';
+    },
+
     downloadAndInstallUpdate(url, expectedSha256) {
       try {
         if (global.FitiaNative && typeof global.FitiaNative.downloadAndInstallUpdate === 'function') {
