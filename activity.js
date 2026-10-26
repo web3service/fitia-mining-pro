@@ -11,6 +11,36 @@
   const VALID_STATUSES = new Set(['pending', 'success', 'failed']);
   const HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/;
   const ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
+  const DEFAULT_TEXT = {
+    activityDefaultTitle: 'Polygon transaction',
+    activityPendingMessage: 'Waiting for on-chain confirmation…',
+    activitySuccessMessage: 'On-chain response: transaction confirmed.',
+    activityFailedMessage: 'On-chain response: transaction failed. Contract reason unavailable.',
+    activityPendingNotification: 'Transaction pending',
+    activitySuccessNotification: 'On-chain response: success',
+    activityFailureNotification: 'On-chain response: failure',
+    activityTxSuccess: 'On-chain response: success (status 1).',
+    activityTxFailure: 'On-chain response: failure (status 0).',
+    activityTxUnconfirmed: 'On-chain response: transaction not confirmed.',
+    activityTxReplaced: 'Transaction replaced or cancelled before confirmation.',
+    activityContractPrefix: 'Contract:',
+    activityReasonUnavailableReceipt: 'Contract reason unavailable in the receipt.',
+    activityReasonUnavailable: 'Contract reason unavailable.',
+    activityOperation: 'operation',
+    activityOperations: 'operations',
+    activityNoResults: 'No results',
+    activityNoTransactions: 'No transactions recorded',
+    activityChangeFilter: 'Change the filter to display other transactions.',
+    activityHistoryEmpty: 'Your next transactions initiated in FITIA PRO will appear here.',
+    activityNoNotifications: 'No notifications',
+    activityNotificationsEmpty: 'Transaction submissions, confirmations and failures will appear here.',
+    activityPendingCount: '{count} pending',
+    activityUpToDate: 'Up to date',
+    activityStatusPending: 'Pending',
+    activityStatusSuccess: 'Confirmed',
+    activityStatusFailed: 'Failed',
+    activityReceiptBlock: 'On-chain receipt • Block #{block}'
+  };
 
   class FitiaActivityCenter {
     constructor(options = {}) {
@@ -21,6 +51,26 @@
       this.watched = new Set();
       this.explorer = this.safeExplorer(options.explorer);
       this.formatError = typeof options.formatError === 'function' ? options.formatError : null;
+      this.translate = typeof options.translate === 'function' ? options.translate : null;
+      this.language = typeof options.language === 'function' ? options.language : null;
+    }
+
+    t(key, values = {}) {
+      let text = '';
+      try {
+        if (this.translate) text = this.translate(key);
+      } catch (_) { /* Le repli anglais reste disponible. */ }
+      if (!text || text === key) text = DEFAULT_TEXT[key] || key;
+      return Object.entries(values).reduce(
+        (result, [name, value]) => result.split(`{${name}}`).join(String(value)),
+        String(text)
+      );
+    }
+
+    locale() {
+      let lang = 'en';
+      try { lang = this.language ? this.language() : 'en'; } catch (_) { /* Anglais par défaut. */ }
+      return { fr: 'fr-FR', de: 'de-DE', zh: 'zh-CN', sg: 'en-SG', en: 'en-US' }[lang] || 'en-US';
     }
 
     safeExplorer(value) {
@@ -51,14 +101,14 @@
       const updatedAt = Number(raw.updatedAt);
       const status = VALID_STATUSES.has(raw.status) ? raw.status : 'pending';
       const defaultContractMessage = status === 'pending'
-        ? 'En attente de la réponse on-chain…'
+        ? this.t('activityPendingMessage')
         : status === 'success'
-          ? 'Réponse on-chain : transaction confirmée.'
-          : 'Réponse on-chain : transaction échouée. Motif du contrat indisponible.';
+          ? this.t('activitySuccessMessage')
+          : this.t('activityFailedMessage');
       return {
         hash: String(raw.hash).toLowerCase(),
         type: this.cleanText(raw.type || 'other', 30),
-        title: this.cleanText(raw.title || 'Transaction Polygon', 100),
+        title: this.cleanText(raw.title || this.t('activityDefaultTitle'), 100),
         description: this.cleanText(raw.description || '', 220),
         amount: this.cleanText(raw.amount || '', 60),
         token: this.cleanText(raw.token || '', 16),
@@ -162,7 +212,7 @@
         hash: tx?.hash,
         to: metadata.to || tx?.to || '',
         status: 'pending',
-        contractMessage: 'En attente de la réponse on-chain…',
+        contractMessage: this.t('activityPendingMessage'),
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
@@ -185,7 +235,7 @@
       }
       this.state.transactions = this.state.transactions.slice(0, MAX_TRANSACTIONS);
       this.save();
-      if (isNew) this.notify('pending', 'Transaction en attente', this.entryMessage(entry), entry.hash);
+      if (isNew) this.notify('pending', this.t('activityPendingNotification'), this.entryMessage(entry), entry.hash);
       else this.render();
 
       if (typeof tx?.wait === 'function') this.watch(tx, entry.hash);
@@ -219,24 +269,22 @@
     }
 
     buildContractMessage(status, receipt = null, error = null) {
-      if (status === 'success') return 'Réponse on-chain : succès (statut 1).';
+      if (status === 'success') return this.t('activityTxSuccess');
       const parts = [
         receipt && error?.code !== 'TRANSACTION_REPLACED'
-          ? 'Réponse on-chain : échec (statut 0).'
-          : 'Réponse on-chain : transaction non confirmée.'
+          ? this.t('activityTxFailure')
+          : this.t('activityTxUnconfirmed')
       ];
       if (error?.code === 'TRANSACTION_REPLACED') {
-        parts.push('Transaction remplacée ou annulée avant confirmation.');
+        parts.push(this.t('activityTxReplaced'));
       } else {
         const detail = this.contractErrorDetail(error);
         if (detail) {
-          parts.push(`Contrat : ${detail.replace(/[.]+$/, '')}.`);
+          parts.push(`${this.t('activityContractPrefix')} ${detail.replace(/[.]+$/, '')}.`);
           const friendly = this.friendlyContractError(error);
-          if (friendly && friendly !== detail && friendly !== `Contrat : ${detail}`) parts.push(friendly);
+          if (friendly && friendly !== detail && friendly !== `${this.t('activityContractPrefix')} ${detail}`) parts.push(friendly);
         } else {
-          parts.push(receipt
-            ? 'Motif du contrat indisponible dans le reçu.'
-            : 'Motif du contrat indisponible.');
+          parts.push(this.t(receipt ? 'activityReasonUnavailableReceipt' : 'activityReasonUnavailable'));
         }
       }
       return parts.join(' ');
@@ -284,7 +332,7 @@
       this.save();
       this.notify(
         status,
-        status === 'success' ? 'Réponse on-chain : succès' : 'Réponse on-chain : échec',
+        this.t(status === 'success' ? 'activitySuccessNotification' : 'activityFailureNotification'),
         `${this.entryMessage(entry)} • ${entry.contractMessage}`,
         entry.hash
       );
@@ -363,7 +411,7 @@
 
     formatDate(timestamp) {
       try {
-        return new Intl.DateTimeFormat('fr-FR', {
+        return new Intl.DateTimeFormat(this.locale(), {
           day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
         }).format(new Date(Number(timestamp)));
       } catch (_) {
@@ -383,14 +431,6 @@
       empty.appendChild(this.element('div', 'activity-empty-icon', icon));
       empty.appendChild(this.element('strong', '', title));
       empty.appendChild(this.element('p', '', message));
-      const addressUrl = this.addressUrl();
-      if (addressUrl) {
-        const link = this.element('a', 'activity-explorer-empty', 'Voir l’adresse sur PolygonScan ↗');
-        link.href = addressUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        empty.appendChild(link);
-      }
       return empty;
     }
 
@@ -413,7 +453,7 @@
       const pending = this.state.transactions.filter((entry) => entry.status === 'pending').length;
       const pendingBadge = document.getElementById('wallet-pending-count');
       if (pendingBadge) {
-        pendingBadge.textContent = pending ? `${pending} en attente` : 'À jour';
+        pendingBadge.textContent = pending ? this.t('activityPendingCount', { count: pending }) : this.t('activityUpToDate');
         pendingBadge.classList.toggle('has-pending', pending > 0);
       }
     }
@@ -437,14 +477,14 @@
       list.innerHTML = '';
       const entries = this.state.transactions.filter((entry) => this.filter === 'all' || entry.status === this.filter);
       const count = document.getElementById('activity-history-count');
-      if (count) count.textContent = `${entries.length} opération${entries.length > 1 ? 's' : ''}`;
+      if (count) {
+        count.textContent = `${entries.length} ${this.t(entries.length === 1 ? 'activityOperation' : 'activityOperations')}`;
+      }
       if (!entries.length) {
         const filtered = this.state.transactions.length > 0;
         list.appendChild(this.emptyMessage(
-          filtered ? 'Aucun résultat' : 'Aucune opération enregistrée',
-          filtered
-            ? 'Modifiez le filtre pour afficher les autres transactions.'
-            : 'Vos prochaines transactions initiées depuis FITIA PRO apparaîtront ici.',
+          this.t(filtered ? 'activityNoResults' : 'activityNoTransactions'),
+          this.t(filtered ? 'activityChangeFilter' : 'activityHistoryEmpty'),
           filtered ? '⌕' : '◷'
         ));
         return;
@@ -454,7 +494,11 @@
         send: '↗', approval: '✓', deposit: '↓', withdraw: '↑', purchase: '🛒',
         mining: '⚡', claim: '🎁', referral: '👥', swap: '⇄', other: '•'
       };
-      const statusLabels = { pending: 'En attente', success: 'Confirmée', failed: 'Échouée' };
+      const statusLabels = {
+        pending: this.t('activityStatusPending'),
+        success: this.t('activityStatusSuccess'),
+        failed: this.t('activityStatusFailed')
+      };
       entries.forEach((entry) => {
         const item = this.element('article', `activity-item status-${entry.status}`);
         const symbol = this.element('div', `activity-type-icon type-${entry.type}`, icons[entry.type] || icons.other);
@@ -471,15 +515,10 @@
           main.appendChild(this.element('div', `activity-contract-message status-${entry.status}`, entry.contractMessage));
         }
         if (entry.blockNumber != null) {
-          main.appendChild(this.element('div', 'activity-block', `Reçu on-chain • Bloc #${entry.blockNumber}`));
+          main.appendChild(this.element('div', 'activity-block', this.t('activityReceiptBlock', { block: entry.blockNumber })));
         }
         main.appendChild(this.element('div', 'activity-meta', `${this.formatDate(entry.createdAt)} • ${this.shortHash(entry.hash)}`));
-        const link = this.element('button', 'activity-tx-link', '↗');
-        link.type = 'button';
-        link.title = 'Voir la transaction sur PolygonScan';
-        link.setAttribute('aria-label', `Voir ${entry.title} sur PolygonScan`);
-        link.addEventListener('click', () => this.openTransaction(entry.hash));
-        item.append(symbol, main, link);
+        item.append(symbol, main);
         list.appendChild(item);
       });
     }
@@ -492,8 +531,8 @@
       if (markAll) markAll.disabled = this.getUnreadCount() === 0;
       if (!this.state.notifications.length) {
         list.appendChild(this.emptyMessage(
-          'Aucune notification',
-          'Les envois, confirmations et échecs de transactions seront signalés ici.',
+          this.t('activityNoNotifications'),
+          this.t('activityNotificationsEmpty'),
           '♪'
         ));
         return;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.15 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.16 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -415,6 +415,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'announcements.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'promotions.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'assistant.js'), 'utf8'));
 
   if (mockRpcUrl) {
     win.FitiaSecurity.Rpc.connectBestProvider = async () => {
@@ -450,7 +451,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.15\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.16\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -619,6 +620,14 @@ function httpRequest(port, method, reqPath) {
       App.setLoader(true, 'Connexion directe à Polygon...');
       assert.strictEqual(e2eWin.document.getElementById('loader').textContent.trim(), '', 'Le loader reste silencieux');
       App.setLoader(false);
+
+      assert.strictEqual(App.currentLang, 'en', 'Une nouvelle installation utilise l’anglais par défaut');
+      assert.strictEqual(e2eWin.localStorage.getItem('fitia_lang'), 'en');
+      assert.strictEqual(e2eWin.document.documentElement.lang, 'en');
+      assert.strictEqual(e2eWin.document.querySelector('[data-i18n="createNewWallet"]').textContent.trim(), 'CREATE NEW WALLET');
+      assert.strictEqual(e2eWin.document.getElementById('auth-step-import').querySelector('[data-i18n="importTitle"]').textContent.trim(), 'Import a Wallet');
+      assert.strictEqual(e2eWin.document.getElementById('btn-import-continue').textContent.trim(), 'SET MY 6-DIGIT PIN');
+      assert.strictEqual(e2eWin.document.getElementById('chat-input').placeholder, 'Ask your question…');
 
       const authScreen = e2eWin.document.getElementById('auth-screen');
       const welcomeStep = e2eWin.document.getElementById('auth-step-welcome');
@@ -837,10 +846,10 @@ function httpRequest(port, method, reqPath) {
         };
         const firstClaim = App.claim();
         await new Promise((resolve) => setTimeout(resolve, 0));
-        assert.strictEqual(messages[0].message, 'Réclamation en attente…', 'Le clic affiche immédiatement la réclamation en attente');
+        assert.strictEqual(messages[0].message, App.t('claiming'), 'Le clic affiche immédiatement la réclamation en attente');
         resolveReceipt({ status: 1, blockNumber: 62500010 });
         await firstClaim;
-        assert.strictEqual(messages.at(-1).message, 'Réclamation confirmée');
+        assert.strictEqual(messages.at(-1).message, App.t('claimed'));
         assert.strictEqual(messages.at(-1).isError, false);
 
         messages.length = 0;
@@ -860,7 +869,7 @@ function httpRequest(port, method, reqPath) {
         };
         App.updateData = async () => { throw { message: 'server response 403' }; };
         await App.claim();
-        assert.deepStrictEqual(messages.map((item) => item.message), ['Réclamation en attente…', 'Réclamation confirmée']);
+        assert.deepStrictEqual(messages.map((item) => item.message), [App.t('claiming'), App.t('claimed')]);
         assert.ok(messages.every((item) => !item.message.includes('403') && !item.message.includes('server response')));
 
         messages.length = 0;
@@ -868,7 +877,7 @@ function httpRequest(port, method, reqPath) {
         App.provider = { async getTransactionReceipt() { return null; } };
         await App.claim();
         assert.strictEqual(messages.at(-1).message, App.t('claimStillPending'));
-        assert.ok(!messages.some((item) => item.message === 'Réclamation confirmée'), 'Aucune confirmation inventée sans reçu');
+        assert.ok(!messages.some((item) => item.message === App.t('claimed')), 'Aucune confirmation inventée sans reçu');
         assert.ok(messages.every((item) => !item.message.includes('403')));
 
         messages.length = 0;
@@ -900,9 +909,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 321,
-        versionName: '3.3.15',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.15/FITIA-PRO-Miner.apk',
+        versionCode: 322,
+        versionName: '3.3.16',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.16/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -945,7 +954,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 321;
+        nativeState.appVersionCode = 322;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -956,6 +965,83 @@ function httpRequest(port, method, reqPath) {
         App.availableUpdate = null;
         App.updateCheckInFlight = false;
         e2eWin.document.getElementById('modal-update').classList.remove('active');
+      }
+    });
+
+    await runTest('APP-ASSISTANT', 'Assistant local multilingue, réponses réelles, repli fiable et protection des secrets', async () => {
+      const original = {
+        lang: App.currentLang,
+        pendingBalance: App.pendingBalance,
+        chatHistory: App.chatHistory,
+        bubbles: e2eWin.document.getElementById('chat-messages').innerHTML,
+        input: e2eWin.document.getElementById('chat-input').value
+      };
+      try {
+        App.setLanguage('en');
+        App.pendingBalance = 4000;
+        assert.ok(App.getWelcomeMessage().toLowerCase().includes('never share your recovery phrase'));
+        const cases = [
+          ['How do I create a new wallet?', ['create new wallet', '12 words']],
+          ['How can I import my wallet?', ['import', 'private key']],
+          ['Why do I need POL?', ['network fees', 'gas']],
+          ['How do I buy and connect a machine?', ['shop', 'battery']],
+          ['How do I claim my mining rewards?', ['claim', 'confirmation']],
+          ['How do I deposit and withdraw?', ['deposit', 'withdraw']],
+          ['What is slippage?', ['minimum received', 'price']],
+          ['Why is my transaction pending?', ['polygon confirmation', 'history']],
+          ['Where is my referral code?', ['settings', 'referral']],
+          ['What happens if I forget my PIN?', ['recovery phrase', 'new pin']],
+          ['How do I change the language?', ['language selector', 'english']]
+        ];
+        for (const [question, fragments] of cases) {
+          const response = App.generateLocalResponse(question);
+          for (const fragment of fragments) {
+            assert.ok(response.toLowerCase().includes(fragment), `${question} → réponse utile contenant ${fragment}`);
+          }
+        }
+        const pendingAnswer = App.generateLocalResponse('How much FTA can I claim?');
+        assert.ok(pendingAnswer.includes('0.00004 FTA'), 'L’assistant convertit les unités brutes comme le tableau de bord');
+        assert.ok(!pendingAnswer.includes('4000 FTA'));
+
+        App.setLanguage('fr');
+        const frenchAnswer = App.generateLocalResponse('Comment réclamer mes récompenses ?');
+        assert.ok(frenchAnswer.includes('RÉCLAMER') && frenchAnswer.includes('confirmation on-chain'));
+        App.setLanguage('en');
+
+        const fallback = App.generateLocalResponse('Who will win the championship next year?');
+        assert.ok(fallback.includes('don’t have enough reliable information'), 'Une question inconnue ne fabrique pas de réponse');
+        assert.ok(fallback.includes('Rephrase your question'));
+
+        const fakePrivateKey = `0x${'12'.repeat(32)}`;
+        const fakeMnemonic = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
+        assert.strictEqual(App.chatAssistant.containsSensitiveSecret(fakePrivateKey), true);
+        assert.strictEqual(App.chatAssistant.containsSensitiveSecret(fakeMnemonic), true);
+        assert.strictEqual(App.chatAssistant.containsSensitiveSecret('What is a private key?'), false);
+
+        const walletSource = fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'), 'utf8');
+        const buildSource = fs.readFileSync(path.join(ROOT, 'scripts', 'build_apk.py'), 'utf8');
+        assert.ok(walletSource.indexOf('src="assistant.js"') > 0);
+        assert.ok(walletSource.indexOf('src="assistant.js"') < walletSource.indexOf('src="app.js"'), 'L’assistant est chargé avant l’application');
+        assert.ok(buildSource.includes('"assistant.js"'), 'Le build Android embarque explicitement l’assistant hors ligne');
+
+        const messages = e2eWin.document.getElementById('chat-messages');
+        const input = e2eWin.document.getElementById('chat-input');
+        App.chatHistory = [];
+        messages.innerHTML = '';
+        input.value = fakePrivateKey;
+        App.sendChatMessage();
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        assert.ok(!messages.textContent.includes(fakePrivateKey), 'Le secret n’est pas affiché dans le chat');
+        assert.ok(!JSON.stringify(App.chatHistory).includes(fakePrivateKey), 'Le secret n’est pas conservé dans l’historique du chat');
+        assert.ok(messages.textContent.includes('[Sensitive information hidden]'));
+        assert.ok(messages.textContent.includes('Never share your recovery phrase'));
+        assert.strictEqual(input.maxLength, 500);
+      } finally {
+        App.setLanguage(original.lang);
+        App.pendingBalance = original.pendingBalance;
+        App.chatHistory = original.chatHistory;
+        e2eWin.document.getElementById('chat-messages').innerHTML = original.bubbles;
+        e2eWin.document.getElementById('chat-input').value = original.input;
       }
     });
 
@@ -973,6 +1059,7 @@ function httpRequest(port, method, reqPath) {
       while (App.promotionCenter.fetchInFlight) await new Promise((resolve) => setTimeout(resolve, 0));
 
       try {
+        App.setLanguage('fr');
         center.stop();
         center.select(1);
         assert.strictEqual(center.index, 1);
@@ -1138,6 +1225,7 @@ function httpRequest(port, method, reqPath) {
       };
 
       try {
+        App.setLanguage('fr');
         assert.ok(center.initialized, 'Le centre de décorations est initialisé avec le wallet');
         const normalized = center.normalizeManifest(manifest, now);
         assert.strictEqual(normalized.length, 3, 'Doublons, dates et styles invalides sont rejetés');
@@ -1762,8 +1850,8 @@ function httpRequest(port, method, reqPath) {
       await new Promise((resolve) => setTimeout(resolve, 30));
       assert.strictEqual(App.activity.state.transactions[0].status, 'success');
       assert.strictEqual(App.activity.state.transactions[0].blockNumber, 62500001);
-      assert.strictEqual(App.activity.state.transactions[0].contractMessage, 'Réponse on-chain : succès (statut 1).');
-      assert.ok(App.activity.state.notifications[0].message.includes('statut 1'), 'La notification reprend la réponse on-chain');
+      assert.strictEqual(App.activity.state.transactions[0].contractMessage, 'On-chain response: success (status 1).');
+      assert.ok(App.activity.state.notifications[0].message.includes('status 1'), 'La notification reprend la réponse on-chain');
       assert.strictEqual(App.activity.getUnreadCount(), 2, 'La confirmation crée une notification non lue');
       App.openActivity('notifications');
       assert.ok(e2eWin.document.getElementById('modal-activity').classList.contains('active'));
@@ -1771,25 +1859,28 @@ function httpRequest(port, method, reqPath) {
       App.activity.setTab('history');
       assert.ok(!e2eWin.document.getElementById('activity-history-panel').classList.contains('hidden'));
       assert.ok(e2eWin.document.querySelector('#activity-history-list .activity-item'));
+      assert.strictEqual(e2eWin.document.querySelector('#activity-history-list .activity-tx-link'), null, 'Aucun bouton PolygonScan dans les transactions');
+      assert.strictEqual(e2eWin.document.querySelector('#activity-history-list a'), null, 'Aucun lien externe dans l’historique');
+      assert.ok(!e2eWin.document.getElementById('modal-activity').textContent.includes('PolygonScan'), 'Aucun renvoi PolygonScan visible dans le centre d’activité');
       App.closeModals();
     });
 
     await runTest('ACTIVITY', 'Décodage des envois, approbations, dépôts, retraits, achats, minage, claims, parrainages et swaps', async () => {
       const destination = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
       const cases = [
-        [{ to: destination, data: '0x', value: 1000000000000000000n }, 'send', 'Envoi de POL'],
-        [{ to: App.usdtToken.target, data: App.usdtToken.interface.encodeFunctionData('transfer', [destination, 1000000n]) }, 'send', 'Envoi de USDT'],
-        [{ to: App.ftaToken.target, data: App.ftaToken.interface.encodeFunctionData('approve', [App.core.target, 100000000n]) }, 'approval', 'Autorisation FTA'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositUsdt', [1000000n]) }, 'deposit', 'Dépôt USDT'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositFta', [100000000n]) }, 'deposit', 'Dépôt FTA'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositPol'), value: 1000000000000000000n }, 'deposit', 'Dépôt POL'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('withdrawUsdt', [1000000n]) }, 'withdraw', 'Retrait USDT'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('withdrawFta', [100000000n]) }, 'withdraw', 'Retrait FTA'],
-        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('buyMachine', [0n]) }, 'purchase', 'Achat de machine'],
-        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('buyBatteryFTA', [1n]) }, 'purchase', 'Achat de batterie'],
-        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('plugInMachine', [0n, 1n]) }, 'mining', 'Connexion de machine'],
-        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('claimRewards') }, 'claim', 'Réclamation des récompenses'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('setReferrer', [destination]) }, 'referral', 'Parrainage enregistré'],
+        [{ to: destination, data: '0x', value: 1000000000000000000n }, 'send', 'Send POL'],
+        [{ to: App.usdtToken.target, data: App.usdtToken.interface.encodeFunctionData('transfer', [destination, 1000000n]) }, 'send', 'Send USDT'],
+        [{ to: App.ftaToken.target, data: App.ftaToken.interface.encodeFunctionData('approve', [App.core.target, 100000000n]) }, 'approval', 'FTA approval'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositUsdt', [1000000n]) }, 'deposit', 'Deposit USDT'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositFta', [100000000n]) }, 'deposit', 'Deposit FTA'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('depositPol'), value: 1000000000000000000n }, 'deposit', 'Deposit POL'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('withdrawUsdt', [1000000n]) }, 'withdraw', 'Withdraw USDT'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('withdrawFta', [100000000n]) }, 'withdraw', 'Withdraw FTA'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('buyMachine', [0n]) }, 'purchase', 'Machine purchase'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('buyBatteryFTA', [1n]) }, 'purchase', 'Battery purchase'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('plugInMachine', [0n, 1n]) }, 'mining', 'Machine connection'],
+        [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('claimRewards') }, 'claim', 'Mining reward claim'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('setReferrer', [destination]) }, 'referral', 'Referral recorded'],
         [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapUForF', [1000000n, 1n, 9999999999n]) }, 'swap', 'Swap USDT → FTA'],
         [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapFForU', [100000000n, 1n, 9999999999n]) }, 'swap', 'Swap FTA → USDT'],
         [{
@@ -1807,6 +1898,26 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(metadata.type, expectedType, expectedTitle);
         assert.strictEqual(metadata.title, expectedTitle);
       });
+
+      const original = { lang: App.currentLang, pendingBalance: App.pendingBalance };
+      try {
+        App.setLanguage('en');
+        const claimRequest = { to: App.mine.target, data: App.mine.interface.encodeFunctionData('claimRewards') };
+        App.pendingBalance = 4000;
+        const claim = App.describeActivityTransaction(claimRequest);
+        assert.strictEqual(claim.title, 'Mining reward claim');
+        assert.strictEqual(claim.token, 'FTA');
+        assert.strictEqual(claim.amount, '0.00004', '4000 unités brutes à 8 décimales correspondent à 0.00004 FTA');
+        App.pendingBalance = 8000;
+        assert.strictEqual(claim.amount, '0.00004', 'Le montant enregistré reste figé après l’envoi de la transaction');
+        App.pendingBalance = 4;
+        assert.strictEqual(App.describeActivityTransaction(claimRequest).amount, '0.00000004');
+        App.pendingBalance = 0;
+        assert.strictEqual(App.describeActivityTransaction(claimRequest).amount, '', 'Aucun montant de réclamation inventé');
+      } finally {
+        App.pendingBalance = original.pendingBalance;
+        App.setLanguage(original.lang);
+      }
     });
 
     await runTest('ACTIVITY', 'Reprise après redémarrage, succès/échec on-chain et isolation par adresse', async () => {
@@ -1816,8 +1927,8 @@ function httpRequest(port, method, reqPath) {
       const center = new e2eWin.FitiaActivityCenter({ explorer: 'https://polygonscan.com' });
       center.setAccount(account);
       const never = () => new Promise(() => {});
-      center.track({ hash: successHash, wait: never }, { title: 'Dépôt USDT', type: 'deposit', amount: '5', token: 'USDT' });
-      center.track({ hash: failedHash, wait: never }, { title: 'Retrait FTA', type: 'withdraw', amount: '2', token: 'FTA' });
+      center.track({ hash: successHash, wait: never }, { title: 'Deposit USDT', type: 'deposit', amount: '5', token: 'USDT' });
+      center.track({ hash: failedHash, wait: never }, { title: 'Withdraw FTA', type: 'withdraw', amount: '2', token: 'FTA' });
 
       const restored = new e2eWin.FitiaActivityCenter({ explorer: 'https://polygonscan.com' });
       restored.setAccount(account);
@@ -1829,10 +1940,10 @@ function httpRequest(port, method, reqPath) {
       });
       assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === successHash).status, 'success');
       assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === failedHash).status, 'failed');
-      assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === successHash).contractMessage, 'Réponse on-chain : succès (statut 1).');
+      assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === successHash).contractMessage, 'On-chain response: success (status 1).');
       assert.strictEqual(
         restored.state.transactions.find((tx) => tx.hash === failedHash).contractMessage,
-        'Réponse on-chain : échec (statut 0). Motif du contrat indisponible dans le reçu.',
+        'On-chain response: failure (status 0). Contract reason unavailable in the receipt.',
         'Un reçu sans motif ne fabrique aucune réponse du contrat'
       );
       assert.strictEqual(restored.state.transactions.find((tx) => tx.hash === failedHash).blockNumber, 62500002);
@@ -1846,6 +1957,8 @@ function httpRequest(port, method, reqPath) {
 
       restored.setAccount(`0x${'66'.repeat(20)}`);
       assert.strictEqual(restored.state.transactions.length, 0, 'Une autre adresse ne voit pas cet historique');
+      assert.strictEqual(e2eWin.document.querySelector('#activity-history-list .activity-explorer-empty'), null, 'L’état vide ne propose aucun lien PolygonScan');
+      assert.strictEqual(e2eWin.document.querySelector('#activity-history-list a'), null);
       restored.setAccount(account);
       assert.strictEqual(restored.state.transactions.length, 2, 'L’historique de la première adresse demeure intact');
       App.activity.setAccount(App.user);
@@ -1867,32 +1980,32 @@ function httpRequest(port, method, reqPath) {
         message: 'Réponse RPC sensible à ne jamais stocker',
         receipt: { status: 0, blockNumber: 62500003 }
       };
-      center.track({ hash: revertHash, wait: async () => { throw revertError; } }, { title: 'Connexion de machine', type: 'mining' });
+      center.track({ hash: revertHash, wait: async () => { throw revertError; } }, { title: 'Machine connection', type: 'mining' });
       center.track({
         hash: replacedHash,
         wait: async () => { throw { code: 'TRANSACTION_REPLACED', reason: 'cancelled', message: 'Détail RPC sensible' }; }
-      }, { title: 'Envoi de POL', type: 'send' });
+      }, { title: 'Send POL', type: 'send' });
       await new Promise((resolve) => setTimeout(resolve, 40));
 
       const reverted = center.state.transactions.find((tx) => tx.hash === revertHash);
       const replaced = center.state.transactions.find((tx) => tx.hash === replacedHash);
       assert.strictEqual(reverted.status, 'failed');
-      assert.ok(reverted.contractMessage.includes('échec (statut 0)'));
-      assert.ok(reverted.contractMessage.includes('Contrat : NoM.'), 'Le nom exact du custom error est affiché');
+      assert.ok(reverted.contractMessage.includes('failure (status 0)'));
+      assert.ok(reverted.contractMessage.includes('Contract: NoM.'), 'Le nom exact du custom error est affiché');
       assert.ok(reverted.contractMessage.includes('Aucune machine disponible.'), 'La traduction existante accompagne la réponse brute');
-      assert.ok(replaced.contractMessage.includes('transaction non confirmée'));
-      assert.ok(replaced.contractMessage.includes('Transaction remplacée ou annulée avant confirmation.'));
-      assert.ok(!replaced.contractMessage.includes('statut 0'), 'Aucun statut de reçu inventé pour une transaction remplacée');
+      assert.ok(replaced.contractMessage.includes('transaction not confirmed'));
+      assert.ok(replaced.contractMessage.includes('Transaction replaced or cancelled before confirmation.'));
+      assert.ok(!replaced.contractMessage.includes('status 0'), 'Aucun statut de reçu inventé pour une transaction remplacée');
       const serialized = e2eWin.localStorage.getItem(center.storageKey());
       assert.ok(serialized.includes('NoM'));
       assert.ok(!serialized.includes('RPC sensible') && !serialized.includes('Détail RPC'), 'Les détails RPC sensibles ne sont pas persistés');
 
       center.setTab('history');
       const rendered = e2eWin.document.getElementById('activity-history-list').textContent;
-      assert.ok(rendered.includes('Contrat : NoM.'));
-      assert.ok(rendered.includes('Bloc #62500003'));
+      assert.ok(rendered.includes('Contract: NoM.'));
+      assert.ok(rendered.includes('Block #62500003'));
       assert.strictEqual(e2eWin.document.querySelector('#activity-history-list img'), null, 'Les réponses du contrat restent du texte sûr');
-      center.track({ hash: revertHash, wait: async () => { throw revertError; } }, { title: 'Connexion de machine', type: 'mining' });
+      center.track({ hash: revertHash, wait: async () => { throw revertError; } }, { title: 'Machine connection', type: 'mining' });
       assert.strictEqual(
         center.state.transactions.find((tx) => tx.hash === revertHash).contractMessage,
         reverted.contractMessage,
@@ -1907,8 +2020,8 @@ function httpRequest(port, method, reqPath) {
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
-      assert.ok(legacy.contractMessage.includes('Motif du contrat indisponible.'));
-      assert.ok(!legacy.contractMessage.includes('statut 0'), 'Une ancienne entrée sans reçu conserve un message prudent');
+      assert.ok(legacy.contractMessage.includes('Contract reason unavailable.'));
+      assert.ok(!legacy.contractMessage.includes('status 0'), 'Une ancienne entrée sans reçu conserve un message prudent');
       App.activity.setAccount(App.user);
     });
 
@@ -1968,6 +2081,7 @@ function httpRequest(port, method, reqPath) {
         'print("\\n".join(zipfile.ZipFile(sys.argv[1]).namelist()))'
       ].join(';'), apkPath], { encoding: 'utf8' });
       assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/assistant.js'), 'Le moteur local de l’assistant est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/announcements.js'), 'Le module annonces est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/promotions.js'), 'Le module décorations est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/promotion-effects.js'), 'Les illustrations saisonnières sont embarquées dans l’APK');
@@ -1988,11 +2102,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 321);
-      assert.strictEqual(updateManifest.versionName, '3.3.15');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.15/'));
+      assert.strictEqual(updateManifest.versionCode, 322);
+      assert.strictEqual(updateManifest.versionName, '3.3.16');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.16/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.15 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.16 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2010,8 +2124,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=321'), 'versionCode=321 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.15"'), 'versionName=3.3.15 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=322'), 'versionCode=322 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.16"'), 'versionName=3.3.16 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
