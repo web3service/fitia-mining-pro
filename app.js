@@ -725,6 +725,7 @@ class Application {
     const savedLang = localStorage.getItem('fitia_lang');
     this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'fr';
     this.announcementCenter = new FitiaAnnouncementCenter(this);
+    this.promotionCenter = new FitiaPromotionCenter(this);
 
     this.chatInitialized = false;
     this.chatHistory = [];
@@ -779,6 +780,7 @@ class Application {
   async init() {
     this.setLanguage(this.currentLang);
     this.announcementCenter.init();
+    this.promotionCenter.init();
     this.setupLifecycleListeners();
 
     // Masquer les bannières de téléchargement APK lorsqu'on est déjà dans l'APK Android installé
@@ -1703,6 +1705,7 @@ class Application {
     this.announcementCenter.render();
     this.announcementCenter.start();
     this.announcementCenter.refresh();
+    this.promotionCenter.refresh({ force: true });
 
     const short = this.shortAddr(this.user);
     document.getElementById('wallet-card-addr').textContent = short;
@@ -2550,6 +2553,7 @@ class Application {
         <button class="btn-primary" style="padding:8px;font-size:0.75rem;" ${isShopExpired ? 'disabled' : ''} onclick="App.buyMachine(${i})">
           ${isShopExpired ? this.t('shopExpiredLabel') : `${this.t('buy')} (${this.payMode})`}
         </button>`;
+      this.promotionCenter.decorate(div, 'machine', i);
       container.appendChild(div);
     }
   }
@@ -2571,6 +2575,7 @@ class Application {
         <div class="battery-name">${d.days} ${this.t('days')}</div>
         <div class="battery-price">${this.formatPriceDisplay(d.price)}</div>
         <button class="btn-primary" style="padding:8px;font-size:0.75rem" onclick="App.buyBattery(${i})">${this.t('buy')} (${this.payMode})</button>`;
+      this.promotionCenter.decorate(div, 'battery', i);
       container.appendChild(div);
     }
   }
@@ -3489,6 +3494,7 @@ class Application {
     } else {
       this.announcementCenter.stop();
     }
+    if (viewId === 'shop') this.promotionCenter.refresh();
   }
 
   setLoader(show) {

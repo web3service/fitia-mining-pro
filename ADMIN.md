@@ -1,6 +1,6 @@
 # FITIA PRO — Panneau d’administration
 
-Le panneau d’administration est une application Node.js séparée du wallet et de la vitrine publique. Il gère le fichier `announcements.json` déjà lu par le centre d’annonces de l’application.
+Le panneau d’administration est une application Node.js séparée du wallet et de la vitrine publique. Il gère indépendamment `announcements.json` pour les annonces et `promotions.json` pour les cartes cadeaux et badges de la boutique.
 
 ## Fonctions
 
@@ -12,9 +12,22 @@ Le panneau d’administration est une application Node.js séparée du wallet et
 - aperçu mobile avant enregistrement ;
 - recherche, filtres et réorganisation de l’ordre d’affichage ;
 - activation ou désactivation du canal distant ;
-- détection des modifications concurrentes grâce à la révision du manifeste.
+- détection des modifications concurrentes grâce à la révision du manifeste ;
+- sélection d’une machine ou d’une batterie par son numéro visible dans la boutique ;
+- présentations `gift` (carte cadeau de Noël) et `badge` (badge promotionnel) ;
+- textes de décoration traduits, aperçu mobile, programmation et activation globale.
 
 Le wallet accepte jusqu’à 12 annonces actives simultanément. Le serveur conserve jusqu’à 50 entrées, y compris les annonces programmées ou expirées.
+
+## Cartes cadeaux et badges de la boutique
+
+La numérotation commence à **1** : `1` désigne le premier article du contrat, `2` le deuxième, etc. L’API conserve cet emplacement sous forme d’indice technique commençant à zéro. Un article ne peut posséder qu’une seule décoration et le serveur accepte au maximum 50 décorations.
+
+Les dates `startsAt` et `expiresAt` sont facultatives. Le wallet ignore les entrées futures, expirées ou invalides. Une décoration dont l’article n’existe plus n’est simplement affichée nulle part. Les textes sont limités à 32 caractères et insérés comme texte, jamais comme HTML.
+
+Ce canal est **strictement visuel** : il ne change ni les prix lus sur la blockchain, ni les boutons, ni les transactions d’achat. Une promotion tarifaire réelle reste une opération distincte du propriétaire du contrat. Les annonces et les décorations possèdent des fichiers, des révisions et des publications indépendants.
+
+L’administration peut publier `promotions.json` sans reconstruire l’APK, mais l’affichage exige une version du wallet qui embarque `promotions.js`. L’APK signé existant n’est pas modifié par une publication JSON.
 
 ## Sécurité
 
@@ -34,9 +47,11 @@ Le mode local modifie uniquement le fichier configuré sur le serveur. Il ne pub
 
 ```bash
 cp announcements.json /tmp/fitia-admin-announcements.json
+cp promotions.json /tmp/fitia-admin-promotions.json
 export FITIA_ADMIN_PASSWORD='remplacer-par-un-mot-de-passe-long'
 export FITIA_ADMIN_LOCAL_MODE=1
 export FITIA_ADMIN_DATA_FILE=/tmp/fitia-admin-announcements.json
+export FITIA_ADMIN_PROMOTIONS_FILE=/tmp/fitia-admin-promotions.json
 npm run admin
 ```
 
@@ -44,7 +59,7 @@ Ouvrez ensuite `http://localhost:8090`. Le port d’écoute est `0.0.0.0:8090` a
 
 ## 2. Publication dans l’application
 
-Le mode GitHub lit et met à jour `announcements.json` avec l’API Contents de GitHub. Le wallet récupère ensuite le manifeste depuis la branche `main` lors de son prochain rafraîchissement.
+Le mode GitHub lit et met à jour `announcements.json` ou `promotions.json` avec l’API Contents de GitHub. Le wallet récupère ensuite chaque manifeste depuis la branche `main` lors de son prochain rafraîchissement.
 
 Configurez côté serveur un secret GitHub limité au dépôt et autorisant **Contents: Read and write**. Ne placez jamais ce secret dans le code, le navigateur, Git ou une conversation.
 
@@ -59,7 +74,7 @@ npm run admin
 
 Chaque enregistrement vérifie la révision SHA actuelle avant la publication. Si une autre personne a modifié le manifeste entre-temps, le panneau refuse d’écraser son travail et demande un rechargement.
 
-La branche configurée doit autoriser cette écriture. Seul `announcements.json` est modifié : le panneau ne change ni le code du wallet, ni l’APK, ni les releases.
+La branche configurée doit autoriser cette écriture. Chaque enregistrement ne modifie que le manifeste concerné : le panneau ne change ni le code du wallet, ni l’APK, ni les releases.
 
 ## Variables d’environnement
 
@@ -68,7 +83,8 @@ La branche configurée doit autoriser cette écriture. Seul `announcements.json`
 | `FITIA_ADMIN_PASSWORD` | Mot de passe de connexion, 12 à 256 caractères | obligatoire |
 | `FITIA_GITHUB_TOKEN` | Secret GitHub côté serveur pour la publication | vide |
 | `FITIA_ADMIN_LOCAL_MODE` | `1` pour utiliser le fichier local | actif si aucun token |
-| `FITIA_ADMIN_DATA_FILE` | Fichier utilisé en mode local | `announcements.json` |
+| `FITIA_ADMIN_DATA_FILE` | Annonces utilisées en mode local | `announcements.json` |
+| `FITIA_ADMIN_PROMOTIONS_FILE` | Décorations utilisées en mode local | `promotions.json` |
 | `FITIA_ADMIN_GITHUB_OWNER` | Propriétaire du dépôt | `web3service` |
 | `FITIA_ADMIN_GITHUB_REPO` | Nom du dépôt | `fitia-mining-pro` |
 | `FITIA_ADMIN_GITHUB_BRANCH` | Branche publiée | `main` |
@@ -105,6 +121,6 @@ npm install --prefix /tmp/test-deps --no-package-lock --no-audit --no-fund jsdom
 npm run test:admin
 ```
 
-La suite comprend 12 contrôles du serveur autonome, un test d’interface et 5 contrôles Vercel : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, limitation des tentatives, sessions serverless, publication GitHub simulée et prévention XSS.
+La suite comprend 13 contrôles du serveur autonome, un test d’interface et 6 contrôles Vercel : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, décorations ciblées, limitation des tentatives, sessions serverless, publication GitHub simulée et prévention XSS.
 
 Le workflow **Test FITIA admin panel** exécute ces contrôles sur les pull requests concernées et sur `main`.

@@ -42,6 +42,9 @@
         <button class="nav-button" type="button" data-section="announcements">
           <span class="nav-icon" aria-hidden="true">◉</span> Événements &amp; annonces
         </button>
+        <button class="nav-button" type="button" data-section="promotions">
+          <span class="nav-icon" aria-hidden="true">◇</span> Cartes cadeaux &amp; badges
+        </button>
       </nav>
       <div class="sidebar-footer">
         <span id="sidebar-mode" class="source-badge">Mode local</span>
@@ -92,7 +95,10 @@
               <p class="eyebrow">Action rapide</p>
               <h3>Programmer un événement</h3>
               <p class="muted">Ajoutez les dates de début et de fin pour automatiser sa visibilité dans le wallet.</p>
-              <button class="button button-secondary" type="button" data-new-event>Nouvel événement</button>
+              <div class="quick-actions">
+                <button class="button button-secondary" type="button" data-new-event>Nouvel événement</button>
+                <button class="button button-secondary" type="button" data-new-promotion>Nouvelle décoration</button>
+              </div>
             </article>
           </div>
         </section>
@@ -125,6 +131,36 @@
             <h3>Aucune annonce trouvée</h3>
             <p>Modifiez les filtres ou créez une nouvelle annonce.</p>
             <button class="button button-secondary" type="button" data-new-announcement>Créer une annonce</button>
+          </div>
+        </section>
+
+        <section id="section-promotions" class="page-section hidden">
+          <div class="section-heading">
+            <div><p class="eyebrow">Boutique du wallet</p><h2>Cartes cadeaux &amp; badges</h2><p class="muted">Décorez uniquement les machines et batteries que vous sélectionnez.</p></div>
+            <button class="button button-primary" type="button" data-new-promotion>Nouvelle décoration</button>
+          </div>
+
+          <div class="distribution-card">
+            <div><strong>Affichage des décorations</strong><p>Désactivez temporairement toutes les cartes cadeaux et tous les badges sans les supprimer.</p></div>
+            <label class="switch-control">
+              <input id="promotions-enabled" type="checkbox" aria-label="Activer les décorations de la boutique">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span id="promotions-enabled-label">Activé</span>
+            </label>
+          </div>
+
+          <div class="promotion-notice">
+            <strong>Décoration visuelle uniquement</strong>
+            <p>Les prix réels, les boutons et les transactions d’achat restent inchangés. Numérotation de la boutique : 1 = premier article, 2 = deuxième article, etc.</p>
+          </div>
+
+          <div id="promotions-list-error" class="alert alert-error hidden" role="alert"></div>
+          <div id="promotions-list" class="promotions-list"></div>
+          <div id="promotions-empty" class="empty-state hidden">
+            <img src="/assets/icon-192.png" width="52" height="52" alt="">
+            <h3>Aucune décoration enregistrée</h3>
+            <p>Créez une carte cadeau ou un badge pour une machine ou une batterie.</p>
+            <button class="button button-secondary" type="button" data-new-promotion>Créer une décoration</button>
           </div>
         </section>
       </main>
@@ -183,6 +219,76 @@
         <footer class="modal-footer">
           <button class="button button-quiet" type="button" data-close-editor>Annuler</button>
           <button id="save-announcement" class="button button-primary" type="submit">Publier l’annonce</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div id="promotion-editor-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="promotion-editor-title">
+    <div class="modal-backdrop" data-close-promotion-editor></div>
+    <div class="modal-card">
+      <form id="promotion-form">
+        <header class="modal-header">
+          <div><p class="eyebrow">Décoration de la boutique</p><h2 id="promotion-editor-title">Nouvelle décoration</h2></div>
+          <button class="icon-button" type="button" data-close-promotion-editor aria-label="Fermer">×</button>
+        </header>
+        <div class="modal-body">
+          <div class="editor-fields">
+            <div class="date-grid">
+              <div class="field-group">
+                <label for="promotion-target-type">Article</label>
+                <select id="promotion-target-type" required><option value="machine">Machine de minage</option><option value="battery">Batterie</option></select>
+              </div>
+              <div class="field-group">
+                <label for="promotion-target-position">Numéro dans la boutique</label>
+                <input id="promotion-target-position" type="number" min="1" max="100" step="1" value="1" required>
+                <small class="field-hint promotion-position-hint">1 = premier article affiché</small>
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="promotion-variant">Présentation</label>
+              <select id="promotion-variant" required><option value="gift">Carte cadeau de Noël</option><option value="badge">Badge promotionnel</option></select>
+            </div>
+            <div class="localized-primary">
+              <div class="field-group"><label for="promotion-label-fr">Texte en français <span>obligatoire · 32 caractères maximum</span></label><input id="promotion-label-fr" maxlength="32" required placeholder="JOYEUX NOËL"></div>
+            </div>
+
+            <details class="translations-panel">
+              <summary>Autres langues <span>anglais recommandé</span></summary>
+              <div class="translations-grid">
+                <div class="translation-fields"><h3>Anglais</h3><label for="promotion-label-en">Texte du badge</label><input id="promotion-label-en" maxlength="32" placeholder="MERRY CHRISTMAS"></div>
+                <div class="translation-fields"><h3>Allemand</h3><label for="promotion-label-de">Texte du badge</label><input id="promotion-label-de" maxlength="32"></div>
+                <div class="translation-fields"><h3>Chinois</h3><label for="promotion-label-zh">Texte du badge</label><input id="promotion-label-zh" maxlength="32"></div>
+                <div class="translation-fields"><h3>Sango</h3><label for="promotion-label-sg">Texte du badge</label><input id="promotion-label-sg" maxlength="32"></div>
+              </div>
+            </details>
+
+            <div class="date-grid">
+              <div class="field-group"><label for="promotion-starts-at">Début d’affichage <span>facultatif</span></label><input id="promotion-starts-at" type="datetime-local"></div>
+              <div class="field-group"><label for="promotion-expires-at">Fin d’affichage <span>facultatif</span></label><input id="promotion-expires-at" type="datetime-local"></div>
+            </div>
+            <p id="promotion-editor-error" class="form-error" role="alert"></p>
+          </div>
+
+          <aside class="preview-panel">
+            <p class="eyebrow">Aperçu dans la boutique</p>
+            <div class="phone-preview">
+              <div class="phone-preview-brand"><img src="/assets/icon-192.png" width="28" height="28" alt=""><strong>FITIA PRO</strong></div>
+              <div id="promotion-preview-card" class="promotion-preview-card preview-gift">
+                <span id="promotion-preview-label" class="promotion-preview-label">JOYEUX NOËL</span>
+                <img src="/assets/icon-192.png" width="48" height="48" alt="">
+                <strong id="promotion-preview-target">Machine n°1</strong>
+                <small>Prix réel inchangé</small>
+                <span class="promotion-preview-buy">ACHETER</span>
+              </div>
+            </div>
+            <p id="promotion-preview-schedule" class="preview-schedule">Affichage sans limite de date</p>
+            <p class="preview-note">Le texte est affiché sans HTML. La décoration disparaît automatiquement hors de sa période ou si l’article n’existe plus.</p>
+          </aside>
+        </div>
+        <footer class="modal-footer">
+          <button class="button button-quiet" type="button" data-close-promotion-editor>Annuler</button>
+          <button id="save-promotion" class="button button-primary" type="submit">Publier la décoration</button>
         </footer>
       </form>
     </div>

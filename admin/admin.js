@@ -16,9 +16,13 @@
     branch: null,
     manifest: null,
     revision: '',
+    promotionManifest: null,
+    promotionRevision: '',
     lastSync: null,
     editingId: null,
+    editingPromotionId: null,
     saving: false,
+    promotionSaving: false,
     section: 'dashboard'
   };
 
@@ -98,6 +102,7 @@
       ? 'Fichier local du serveur d’administration'
       : `${state.project} / announcements.json (${state.branch})`;
     byId('save-announcement').textContent = isLocal ? 'Enregistrer en local' : 'Publier l’annonce';
+    byId('save-promotion').textContent = isLocal ? 'Enregistrer en local' : 'Publier la décoration';
   }
 
   async function api(pathname, options = {}) {
@@ -134,6 +139,9 @@
   function showLogin() {
     state.manifest = null;
     state.revision = '';
+    state.promotionManifest = null;
+    state.promotionRevision = '';
+    state.editingPromotionId = null;
     state.csrfToken = '';
     byId('admin-view').classList.add('hidden');
     byId('login-view').classList.remove('hidden');
@@ -149,23 +157,42 @@
   }
 
   async function loadData(options = {}) {
-    if (!options.quiet) setLoading(true, 'Chargement des annonces…');
+    if (!options.quiet) setLoading(true, 'Chargement du contenu…');
     byId('list-error').classList.add('hidden');
+    byId('promotions-list-error').classList.add('hidden');
     try {
-      const data = await api('/api/admin/announcements');
-      state.manifest = data.manifest;
-      state.revision = data.revision;
-      state.lastSync = new Date();
-      updateSource(data);
-      renderAll();
-      setConnection('online');
-    } catch (error) {
-      setConnection('offline');
-      if (error.code !== 'AUTH_REQUIRED') {
-        byId('list-error').textContent = error.message;
-        byId('list-error').classList.remove('hidden');
-        showToast(error.message, 'error');
+      const [announcementResult, promotionResult] = await Promise.allSettled([
+        api('/api/admin/announcements'),
+        api('/api/admin/promotions')
+      ]);
+      const errors = [];
+      if (announcementResult.status === 'fulfilled') {
+        state.manifest = announcementResult.value.manifest;
+        state.revision = announcementResult.value.revision;
+        updateSource(announcementResult.value);
+      } else {
+        errors.push(announcementResult.reason);
+        if (announcementResult.reason.code !== 'AUTH_REQUIRED') {
+          byId('list-error').textContent = announcementResult.reason.message;
+          byId('list-error').classList.remove('hidden');
+        }
       }
+      if (promotionResult.status === 'fulfilled') {
+        state.promotionManifest = promotionResult.value.manifest;
+        state.promotionRevision = promotionResult.value.revision;
+        if (announcementResult.status !== 'fulfilled') updateSource(promotionResult.value);
+      } else {
+        errors.push(promotionResult.reason);
+        if (promotionResult.reason.code !== 'AUTH_REQUIRED') {
+          byId('promotions-list-error').textContent = promotionResult.reason.message;
+          byId('promotions-list-error').classList.remove('hidden');
+        }
+      }
+      if (announcementResult.status === 'fulfilled' || promotionResult.status === 'fulfilled') state.lastSync = new Date();
+      renderAll();
+      setConnection(errors.length ? 'offline' : 'online');
+      const visibleErrors = errors.filter((error) => error.code !== 'AUTH_REQUIRED');
+      if (visibleErrors.length) showToast(visibleErrors.map((error) => error.message).join(' · '), 'error');
     } finally {
       if (!options.quiet) setLoading(false);
     }
@@ -202,11 +229,44 @@
     }
   }
 
+  async function savePromotions(nextManifest, successMessage) {
+    if (state.promotionSaving || !state.promotionManifest) return false;
+    state.promotionSaving = true;
+    setLoading(true, state.mode === 'github' ? 'Publication dans le wallet…' : 'Enregistrement local…');
+    try {
+      const data = await api('/api/admin/promotions', {
+        method: 'PUT',
+        body: { manifest: nextManifest, revision: state.promotionRevision }
+      });
+      state.promotionManifest = data.manifest;
+      state.promotionRevision = data.revision;
+      state.lastSync = new Date();
+      updateSource(data);
+      renderAll();
+      setConnection('online');
+      showToast(successMessage);
+      return true;
+    } catch (error) {
+      if (error.code !== 'AUTH_REQUIRED') {
+        showToast(error.message, 'error');
+        byId('promotions-list-error').textContent = error.message;
+        byId('promotions-list-error').classList.remove('hidden');
+      }
+      if (error.code === 'CONFLICT') await loadData({ quiet: true });
+      return false;
+    } finally {
+      state.promotionSaving = false;
+      setLoading(false);
+    }
+  }
+
   function renderAll() {
-    if (!state.manifest) return;
-    renderDashboard();
-    renderDistribution();
-    renderAnnouncements();
+    if (state.manifest) {
+      renderDashboard();
+      renderDistribution();
+      renderAnnouncements();
+    }
+    if (state.promotionManifest) renderPromotions();
   }
 
   function renderDashboard() {
@@ -327,14 +387,184 @@
     await saveManifest(next, 'Annonce supprimée.');
   }
 
+  function promotionTargetLabel(item) {
+    return `${item.targetType === 'machine' ? 'Machine' : 'Batterie'} n°${item.targetId + 1}`;
+  }
+
+  function renderPromotions() {
+    if (!state.promotionManifest) return;
+    byId('promotions-enabled').checked = state.promotionManifest.enabled;
+    byId('promotions-enabled-label').textContent = state.promotionManifest.enabled ? 'Activé' : 'Désactivé';
+    const list = byId('promotions-list');
+    list.textContent = '';
+    const items = state.promotionManifest.promotions;
+    byId('promotions-empty').classList.toggle('hidden', items.length > 0);
+    items.forEach((item) => {
+      const status = announcementStatus(item);
+      const row = document.createElement('article');
+      row.className = `announcement-row promotion-row promotion-${item.variant}`;
+      row.dataset.promotionId = item.id;
+
+      const symbol = document.createElement('div');
+      symbol.className = 'promotion-symbol';
+      symbol.textContent = item.variant === 'gift' ? 'CADEAU' : 'BADGE';
+      symbol.setAttribute('aria-hidden', 'true');
+
+      const main = document.createElement('div');
+      main.className = 'announcement-main';
+      const meta = document.createElement('div');
+      meta.className = 'announcement-meta';
+      const variant = document.createElement('span');
+      variant.className = `category-badge promotion-variant-${item.variant}`;
+      variant.textContent = item.variant === 'gift' ? 'Carte cadeau de Noël' : 'Badge promotionnel';
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-pill status-${status}`;
+      statusBadge.textContent = STATUS_LABELS[status];
+      const languages = document.createElement('span');
+      languages.className = 'announcement-languages';
+      languages.textContent = Object.keys(item.label).join(' · ').toUpperCase();
+      meta.append(variant, statusBadge, languages);
+      const title = document.createElement('h3');
+      title.textContent = promotionTargetLabel(item);
+      const label = document.createElement('p');
+      label.textContent = localized(item.label);
+      const dates = document.createElement('div');
+      dates.className = 'announcement-dates';
+      const start = document.createElement('span');
+      start.textContent = item.startsAt ? `Début : ${formatDate(item.startsAt)}` : 'Début : immédiat';
+      const end = document.createElement('span');
+      end.textContent = item.expiresAt ? `Fin : ${formatDate(item.expiresAt)}` : 'Fin : aucune';
+      dates.append(start, end);
+      main.append(meta, title, label, dates);
+
+      const actions = document.createElement('div');
+      actions.className = 'announcement-actions';
+      actions.append(
+        makeButton('Modifier', 'button button-quiet action-button', () => openPromotionEditor(item)),
+        makeButton('Supprimer', 'button button-danger action-button', () => deletePromotion(item))
+      );
+      row.append(symbol, main, actions);
+      list.appendChild(row);
+    });
+  }
+
+  async function deletePromotion(item) {
+    if (!window.confirm(`Supprimer la décoration de ${promotionTargetLabel(item)} ?`)) return;
+    const next = clone(state.promotionManifest);
+    next.promotions = next.promotions.filter((candidate) => candidate.id !== item.id);
+    await savePromotions(next, 'Décoration supprimée.');
+  }
+
   function setSection(section) {
     state.section = section;
     byId('section-dashboard').classList.toggle('hidden', section !== 'dashboard');
     byId('section-announcements').classList.toggle('hidden', section !== 'announcements');
-    byId('page-title').textContent = section === 'dashboard' ? 'Vue d’ensemble' : 'Événements & annonces';
+    byId('section-promotions').classList.toggle('hidden', section !== 'promotions');
+    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Cartes cadeaux & badges' };
+    byId('page-title').textContent = titles[section] || titles.dashboard;
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.classList.toggle('active', button.dataset.section === section);
     });
+  }
+
+  function fillPromotionLabels(values = {}) {
+    LANGUAGES.forEach((lang) => { byId(`promotion-label-${lang}`).value = values[lang] || ''; });
+  }
+
+  function readPromotionLabels() {
+    const values = {};
+    LANGUAGES.forEach((lang) => {
+      const value = byId(`promotion-label-${lang}`).value.trim();
+      if (value) values[lang] = value;
+    });
+    return values;
+  }
+
+  function openPromotionEditor(item = null) {
+    state.editingPromotionId = item?.id || null;
+    byId('promotion-form').reset();
+    byId('promotion-editor-error').textContent = '';
+    byId('promotion-target-type').value = item?.targetType || 'machine';
+    byId('promotion-target-position').value = String(item ? item.targetId + 1 : 1);
+    byId('promotion-variant').value = item?.variant || 'gift';
+    fillPromotionLabels(item?.label || {});
+    byId('promotion-starts-at').value = item ? toInputDate(item.startsAt) : '';
+    byId('promotion-expires-at').value = item ? toInputDate(item.expiresAt) : '';
+    byId('promotion-editor-title').textContent = item ? 'Modifier la décoration' : 'Nouvelle décoration';
+    updatePromotionPreview();
+    byId('promotion-editor-modal').classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    byId('promotion-label-fr').focus();
+  }
+
+  function closePromotionEditor() {
+    byId('promotion-editor-modal').classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    state.editingPromotionId = null;
+    byId('promotion-editor-error').textContent = '';
+  }
+
+  function updatePromotionPreview() {
+    const variant = byId('promotion-variant').value;
+    const targetType = byId('promotion-target-type').value;
+    const position = Number(byId('promotion-target-position').value) || 1;
+    byId('promotion-preview-card').className = `promotion-preview-card preview-${variant}`;
+    byId('promotion-preview-label').textContent = byId('promotion-label-fr').value.trim() || byId('promotion-label-en').value.trim() || 'JOYEUX NOËL';
+    byId('promotion-preview-target').textContent = `${targetType === 'machine' ? 'Machine' : 'Batterie'} n°${position}`;
+    const startsAt = fromInputDate(byId('promotion-starts-at').value);
+    const expiresAt = fromInputDate(byId('promotion-expires-at').value);
+    let schedule = 'Affichage sans limite de date';
+    if (startsAt && expiresAt) schedule = `Du ${formatDate(startsAt)} au ${formatDate(expiresAt)}`;
+    else if (startsAt) schedule = `À partir du ${formatDate(startsAt)}`;
+    else if (expiresAt) schedule = `Jusqu’au ${formatDate(expiresAt)}`;
+    byId('promotion-preview-schedule').textContent = schedule;
+  }
+
+  async function submitPromotionEditor(event) {
+    event.preventDefault();
+    const startsAt = fromInputDate(byId('promotion-starts-at').value);
+    const expiresAt = fromInputDate(byId('promotion-expires-at').value);
+    if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
+      byId('promotion-editor-error').textContent = 'La date de fin doit être postérieure à la date de début.';
+      return;
+    }
+    const position = Number(byId('promotion-target-position').value);
+    if (!Number.isSafeInteger(position) || position < 1 || position > 100) {
+      byId('promotion-editor-error').textContent = 'Choisissez un numéro d’article entier entre 1 et 100.';
+      return;
+    }
+    const targetType = byId('promotion-target-type').value;
+    const targetId = position - 1;
+    const duplicate = state.promotionManifest.promotions.find((candidate) => (
+      candidate.targetType === targetType && candidate.targetId === targetId && candidate.id !== state.editingPromotionId
+    ));
+    if (duplicate) {
+      byId('promotion-editor-error').textContent = 'Cet article possède déjà une décoration. Modifiez-la ou choisissez un autre article.';
+      return;
+    }
+    const variant = byId('promotion-variant').value;
+    const item = {
+      id: state.editingPromotionId || generateId(variant),
+      targetType,
+      targetId,
+      variant,
+      label: readPromotionLabels()
+    };
+    if (startsAt) item.startsAt = startsAt;
+    if (expiresAt) item.expiresAt = expiresAt;
+    const next = clone(state.promotionManifest);
+    if (state.editingPromotionId) {
+      const index = next.promotions.findIndex((candidate) => candidate.id === state.editingPromotionId);
+      if (index < 0) {
+        byId('promotion-editor-error').textContent = 'Cette décoration n’existe plus. Rechargez la liste.';
+        return;
+      }
+      next.promotions[index] = item;
+    } else {
+      next.promotions.push(item);
+    }
+    const success = await savePromotions(next, state.editingPromotionId ? 'Décoration mise à jour.' : 'Nouvelle décoration enregistrée.');
+    if (success) closePromotionEditor();
   }
 
   function fillLocalizedField(field, values = {}) {
@@ -461,10 +691,17 @@
     document.querySelectorAll('[data-new-event]').forEach((button) => {
       button.addEventListener('click', () => openEditor(null, { category: 'event' }));
     });
+    document.querySelectorAll('[data-new-promotion]').forEach((button) => {
+      button.addEventListener('click', () => openPromotionEditor());
+    });
     document.querySelectorAll('[data-close-editor]').forEach((button) => button.addEventListener('click', closeEditor));
+    document.querySelectorAll('[data-close-promotion-editor]').forEach((button) => button.addEventListener('click', closePromotionEditor));
     byId('announcement-form').addEventListener('submit', submitEditor);
     byId('announcement-form').addEventListener('input', updatePreview);
     byId('item-category').addEventListener('change', updatePreview);
+    byId('promotion-form').addEventListener('submit', submitPromotionEditor);
+    byId('promotion-form').addEventListener('input', updatePromotionPreview);
+    byId('promotion-form').addEventListener('change', updatePromotionPreview);
     ['search-input', 'category-filter', 'status-filter'].forEach((id) => {
       byId(id).addEventListener('input', () => state.manifest && renderAnnouncements());
       byId(id).addEventListener('change', () => state.manifest && renderAnnouncements());
@@ -475,8 +712,16 @@
       const success = await saveManifest(next, next.enabled ? 'Diffusion des annonces activée.' : 'Diffusion des annonces désactivée.');
       if (!success) renderDistribution();
     });
+    byId('promotions-enabled').addEventListener('change', async (event) => {
+      const next = clone(state.promotionManifest);
+      next.enabled = event.target.checked;
+      const success = await savePromotions(next, next.enabled ? 'Décorations activées.' : 'Décorations désactivées.');
+      if (!success) renderPromotions();
+    });
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !byId('editor-modal').classList.contains('hidden')) closeEditor();
+      if (event.key !== 'Escape') return;
+      if (!byId('editor-modal').classList.contains('hidden')) closeEditor();
+      if (!byId('promotion-editor-modal').classList.contains('hidden')) closePromotionEditor();
     });
   }
 
@@ -493,6 +738,7 @@
         renderDashboard();
         renderAnnouncements();
       }
+      if (state.promotionManifest && !state.promotionSaving) renderPromotions();
     }, 60000);
   }
 

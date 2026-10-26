@@ -1439,6 +1439,61 @@ main::-webkit-scrollbar { display: none; }
 .battery-name { font-weight: 700; font-size: 0.9rem; }
 .battery-price { color: var(--primary); font-weight: 800; font-family: 'JetBrains Mono', monospace; }
 
+/* Décorations de boutique publiées depuis l'administration. */
+.shop-promo {
+  position: relative;
+  overflow: hidden;
+  padding-top: 36px;
+  border-color: rgba(240, 185, 11, 0.58);
+  box-shadow: 0 0 0 1px rgba(240, 185, 11, 0.12), 0 8px 22px rgba(0, 0, 0, 0.44);
+}
+.shop-promo-gift {
+  background: linear-gradient(145deg, rgba(185, 28, 28, 0.28), rgba(20, 83, 45, 0.22) 54%, #182030);
+}
+.shop-promo-gift::after {
+  position: absolute;
+  top: 28px;
+  bottom: 0;
+  left: 17px;
+  width: 9px;
+  border-right: 1px solid rgba(255, 226, 130, 0.16);
+  border-left: 1px solid rgba(255, 226, 130, 0.16);
+  background: rgba(240, 185, 11, 0.09);
+  content: "";
+  pointer-events: none;
+}
+.shop-promo-badge {
+  background: linear-gradient(145deg, rgba(20, 83, 45, 0.3), rgba(185, 28, 28, 0.16) 62%, #182030);
+}
+.shop-promo-label {
+  position: absolute;
+  z-index: 4;
+  top: 7px;
+  left: 7px;
+  max-width: calc(100% - 76px);
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 226, 130, 0.52);
+  border-radius: 6px;
+  background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+  color: #fff7d6;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  line-height: 1.25;
+  text-align: left;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.shop-promo-badge .shop-promo-label {
+  border-color: rgba(134, 239, 172, 0.45);
+  background: linear-gradient(135deg, #166534, #14532d);
+  color: #f0fdf4;
+}
+.shop-promo .rig-price,
+.shop-promo .battery-price,
+.shop-promo .btn-primary { position: relative; z-index: 2; }
+
 .real-battery { position: relative; width: 50px; height: 24px; margin: 4px auto; flex-shrink: 0; }
 .battery-body { width: 44px; height: 22px; background: linear-gradient(180deg, #cbd5e1, #94a3b8); border-radius: 4px; border: 1px solid #64748b; position: relative; overflow: hidden; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.25); }
 .battery-cap { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 4px; height: 10px; background: #475569; border-radius: 1px 2px 2px 1px; border: 1px solid #334155; }

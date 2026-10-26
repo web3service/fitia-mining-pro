@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.12 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.13 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -380,7 +380,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.Uint8Array = Uint8Array;
   win.ArrayBuffer = ArrayBuffer;
   win.fetch = async (url, opts) => {
-    if (String(url).includes('/announcements.json')) throw new Error('offline-sandbox');
+    if (String(url).includes('/announcements.json') || String(url).includes('/promotions.json')) throw new Error('offline-sandbox');
     // Bloque les appels prix externes (DexScreener/CoinGecko) en sandbox pour rapidité instantanée
     if (String(url).includes('dexscreener') || String(url).includes('coingecko')) {
       throw new Error('offline-sandbox');
@@ -412,6 +412,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'activity.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'announcements.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'promotions.js'), 'utf8'));
 
   if (mockRpcUrl) {
     win.FitiaSecurity.Rpc.connectBestProvider = async () => {
@@ -447,7 +448,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.12\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.13\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -834,15 +835,15 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 318,
-        versionName: '3.3.12',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.12/FITIA-PRO-Miner.apk',
+        versionCode: 319,
+        versionName: '3.3.13',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.13/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
-      nativeState.appVersionCode = 317;
+      nativeState.appVersionCode = 318;
       nativeState.updateDownloads = [];
-      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '318');
+      e2eWin.localStorage.setItem('fitia_update_dismissed_code', '319');
       e2eWin.fetch = async () => ({ ok: true, json: async () => update });
 
       try {
@@ -879,7 +880,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 318;
+        nativeState.appVersionCode = 319;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -904,6 +905,7 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 5, 'Quatre annonces et le clone de boucle');
       assert.strictEqual(e2eWin.document.querySelector('#announcement-center .announcement-close'), null, 'La bannière permanente ne peut pas être fermée');
       while (center.fetchInFlight) await new Promise((resolve) => setTimeout(resolve, 0));
+      while (App.promotionCenter.fetchInFlight) await new Promise((resolve) => setTimeout(resolve, 0));
 
       try {
         center.stop();
@@ -974,9 +976,9 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(center.items.length, 1, 'Une panne réseau ne supprime pas les dernières annonces valides');
 
         const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
-        const publishedItems = center.normalizeManifest(published, now);
-        assert.strictEqual(publishedItems.length, 4);
-        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(['information', 'event', 'referral', 'security']));
+        const publishedItems = center.normalizeManifest({ ...published, enabled: true }, now);
+        assert.strictEqual(publishedItems.length, published.announcements.length, 'Le contenu éditorial valide est conservé sans supposer son activation ni son nombre');
+        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(published.announcements.map((item) => item.category)));
       } finally {
         e2eWin.fetch = originalFetch;
         App.setLanguage(originalLang);
@@ -987,6 +989,126 @@ function httpRequest(port, method, reqPath) {
         center.fetchInFlight = false;
         center.render();
         center.start();
+      }
+    });
+
+    await runTest('APP-PROMOTIONS', 'Cartes cadeaux et badges ciblés, dates, traductions et achats strictement inchangés', async () => {
+      const center = App.promotionCenter;
+      const originalFetch = e2eWin.fetch;
+      const originals = {
+        items: center.items,
+        lastFetchAt: center.lastFetchAt,
+        lang: App.currentLang,
+        machines: App.shopMachinesData,
+        batteries: App.shopBatteriesData,
+        view: App.shopViewMode,
+        payMode: App.payMode,
+        buyMachine: App.buyMachine,
+        buyBattery: App.buyBattery
+      };
+      const now = Date.now();
+      const activeGift = {
+        id: 'gift-machine-test', targetType: 'machine', targetId: 0, variant: 'gift',
+        label: { fr: '<img src=x> JOYEUX NOËL', en: 'MERRY CHRISTMAS' },
+        startsAt: new Date(now - 86400000).toISOString(), expiresAt: new Date(now + 86400000).toISOString()
+      };
+      const manifest = {
+        enabled: true,
+        promotions: [
+          activeGift,
+          { id: 'badge-battery-test', targetType: 'battery', targetId: 0, variant: 'badge', label: { fr: 'CADEAU', en: 'CHRISTMAS GIFT' } },
+          { id: 'missing-machine-test', targetType: 'machine', targetId: 9, variant: 'gift', label: { fr: 'ABSENT' } },
+          { ...activeGift, id: 'duplicate-target' },
+          { ...activeGift, id: 'future', targetId: 1, startsAt: new Date(now + 86400000).toISOString() },
+          { ...activeGift, id: 'expired', targetId: 1, expiresAt: new Date(now - 86400000).toISOString() },
+          { ...activeGift, id: 'bad-target', targetId: 100 },
+          { ...activeGift, id: 'null-target', targetId: null },
+          { ...activeGift, id: 'bad-variant', variant: 'snow' },
+          { ...activeGift, id: 'bad-date', expiresAt: 'date-invalide' }
+        ]
+      };
+
+      try {
+        assert.ok(center.initialized, 'Le centre de décorations est initialisé avec le wallet');
+        const normalized = center.normalizeManifest(manifest, now);
+        assert.strictEqual(normalized.length, 3, 'Doublons, dates et styles invalides sont rejetés');
+        assert.deepStrictEqual(Array.from(normalized, (item) => item.id), ['gift-machine-test', 'badge-battery-test', 'missing-machine-test']);
+        center.items = normalized;
+        App.shopMachinesData = [
+          { price: 10, power: 1000, priceRaw: 10000000n, shopExpiry: 0 },
+          { price: 50, power: 5000, priceRaw: 50000000n, shopExpiry: 0 }
+        ];
+        App.shopBatteriesData = [{ price: 5, days: 7, priceRaw: 5000000n }];
+        App.shopViewMode = 'machines';
+        App.payMode = 'USDT';
+        await App.renderShop();
+        const machineCards = e2eWin.document.querySelectorAll('#shop-list .rig-item');
+        assert.strictEqual(machineCards.length, 2);
+        assert.ok(machineCards[0].classList.contains('shop-promo-gift'));
+        assert.strictEqual(machineCards[0].getAttribute('data-promotion-id'), 'gift-machine-test');
+        assert.ok(machineCards[0].querySelector('.shop-promo-label').textContent.includes('<img src=x>'));
+        assert.strictEqual(machineCards[0].querySelector('.shop-promo-label img'), null, 'Le texte administrateur ne crée aucun HTML');
+        assert.strictEqual(machineCards[0].querySelector('.rig-price').textContent, '10.00 $');
+        assert.strictEqual(machineCards[0].querySelector('button').getAttribute('onclick'), 'App.buyMachine(0)');
+        assert.strictEqual(machineCards[0].querySelector('button').disabled, false);
+        assert.strictEqual(machineCards[1].querySelector('.shop-promo-label'), null);
+        assert.strictEqual(e2eWin.document.querySelector('[data-promotion-id="missing-machine-test"]'), null, 'Une machine absente ne produit aucune décoration');
+
+        App.setLanguage('en');
+        assert.strictEqual(e2eWin.document.querySelector('#shop-list .shop-promo-label').textContent, 'MERRY CHRISTMAS');
+        App.shopViewMode = 'batteries';
+        await App.renderShop();
+        const batteryCard = e2eWin.document.querySelector('#shop-list .battery-shop-item');
+        assert.ok(batteryCard.classList.contains('shop-promo-badge'));
+        assert.strictEqual(batteryCard.querySelector('.shop-promo-label').textContent, 'CHRISTMAS GIFT');
+        assert.strictEqual(batteryCard.querySelector('.battery-price').textContent, '5.00 $');
+        assert.strictEqual(batteryCard.querySelector('button').getAttribute('onclick'), 'App.buyBattery(0)');
+        assert.strictEqual(App.buyMachine, originals.buyMachine);
+        assert.strictEqual(App.buyBattery, originals.buyBattery);
+        assert.strictEqual(App.shopMachinesData[0].price, 10);
+        assert.strictEqual(App.shopBatteriesData[0].price, 5);
+
+        e2eWin.fetch = async (url) => {
+          assert.ok(String(url).includes('/promotions.json'));
+          return { ok: true, json: async () => manifest };
+        };
+        await center.refresh({ force: true });
+        assert.strictEqual(center.items.length, 3);
+        assert.notStrictEqual(center.boundaryTimer, null, 'La prochaine limite de date programme une réactualisation');
+        e2eWin.fetch = async () => { throw new Error('offline'); };
+        await center.refresh({ force: true });
+        assert.strictEqual(center.items.length, 3, 'Une panne réseau conserve les dernières décorations valides');
+
+        const datedCard = e2eWin.document.createElement('div');
+        center.items = [normalized[0]];
+        center.decorate(datedCard, 'machine', 0);
+        assert.ok(datedCard.querySelector('.shop-promo-label'));
+        center.items = [{ ...normalized[0], expiresAt: Date.now() - 1 }];
+        center.decorate(datedCard, 'machine', 0);
+        assert.strictEqual(datedCard.querySelector('.shop-promo-label'), null, 'Une décoration expirée disparaît au rendu suivant');
+        assert.strictEqual(datedCard.classList.contains('shop-promo'), false);
+        center.items = normalized;
+
+        const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
+        assert.strictEqual(published.enabled, true);
+        assert.deepStrictEqual(published.promotions, []);
+        const walletSource = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8');
+        assert.ok(walletSource.indexOf('src="promotions.js"') < walletSource.indexOf('src="app.js"'));
+        const buildSource = fs.readFileSync(path.join(ROOT, 'scripts/build_apk.py'), 'utf8');
+        assert.ok(buildSource.includes('"promotions.js"'), 'Le prochain paquet APK embarque le module local');
+      } finally {
+        e2eWin.fetch = originalFetch;
+        if (center.boundaryTimer !== null) e2eWin.clearTimeout(center.boundaryTimer);
+        center.boundaryTimer = null;
+        center.items = originals.items;
+        center.lastFetchAt = originals.lastFetchAt;
+        center.fetchInFlight = false;
+        App.shopMachinesData = originals.machines;
+        App.shopBatteriesData = originals.batteries;
+        App.shopViewMode = originals.view;
+        App.payMode = originals.payMode;
+        App.setLanguage(originals.lang);
+        await App.renderShop();
       }
     });
 
@@ -1593,11 +1715,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 318);
-      assert.strictEqual(updateManifest.versionName, '3.3.12');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.12/'));
+      assert.strictEqual(updateManifest.versionCode, 319);
+      assert.strictEqual(updateManifest.versionName, '3.3.13');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.13/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.12 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.13 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -1615,8 +1737,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=318'), 'versionCode=318 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.12"'), 'versionName=3.3.12 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=319'), 'versionCode=319 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.13"'), 'versionName=3.3.13 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
