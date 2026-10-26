@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.22 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.23 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -473,7 +473,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.22\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.23\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -1122,9 +1122,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 328,
-        versionName: '3.3.22',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.22/FITIA-PRO-Miner.apk',
+        versionCode: 329,
+        versionName: '3.3.23',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.23/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1167,7 +1167,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 328;
+        nativeState.appVersionCode = 329;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1386,8 +1386,14 @@ function httpRequest(port, method, reqPath) {
 
         const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
         const publishedItems = center.normalizeManifest({ ...published, enabled: true }, now);
-        assert.strictEqual(publishedItems.length, published.announcements.length, 'Le contenu éditorial valide est conservé sans supposer son activation ni son nombre');
-        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(published.announcements.map((item) => item.category)));
+        const expectedPublished = published.announcements.filter((item) => {
+          if (item.enabled === false) return false;
+          const startsAt = item.startsAt ? Date.parse(item.startsAt) : null;
+          const expiresAt = item.expiresAt ? Date.parse(item.expiresAt) : null;
+          return (startsAt === null || startsAt <= now) && (expiresAt === null || expiresAt > now);
+        }).slice(0, 12);
+        assert.deepStrictEqual(Array.from(publishedItems, (item) => item.id), expectedPublished.map((item) => item.id), 'Seules les annonces réellement activées et dans leur période sont publiées');
+        assert.deepStrictEqual(new Set(publishedItems.map((item) => item.category)), new Set(expectedPublished.map((item) => item.category)));
       } finally {
         e2eWin.fetch = originalFetch;
         App.setLanguage(originalLang);
@@ -1703,13 +1709,25 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(document.getElementById('btn-pay-fta').querySelector('img').getAttribute('src'), 'assets/fta.png');
         assert.strictEqual(document.querySelectorAll('#view-shop .shop-tab svg').length, 2);
         assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig').length, 3);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .rig-gpu').length, 9, 'Chaque rig embarque trois GPU détaillés');
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .rig-control-screen').length, 3);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .rig-power-cable').length, 3);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .rig-airflow').length, 3);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .rig-heatsink-fin').length, 81);
+        const miningStyles = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
+        assert.ok(!miningStyles.includes('@keyframes mining-rig-float'), 'Les rigs restent posés au lieu de flotter artificiellement');
+        assert.ok(miningStyles.includes('.mining-rig.is-active .rig-airflow'), 'La ventilation animée est câblée à l’état actif');
+        assert.ok(miningStyles.includes('.mining-rig.is-active .rig-cable-flow'), 'Le flux d’alimentation est câblé à l’état actif');
         App.currentRealPower = 0.25;
         App.userMachines = Array.from({ length: 4 }, (_, tid) => ({ tid, exp: Math.floor(Date.now() / 1000) + 86400 }));
         App.renderActiveMachines();
         assert.strictEqual(document.getElementById('mining-visualizer').dataset.activeMachines, '4');
-        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig:not(.hidden)').length, 3, 'Trois rigs fluides représentent le parc réel');
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig:not(.hidden)').length, 3, 'Trois rigs détaillés représentent le parc réel');
+        assert.strictEqual(document.getElementById('mining-rig-stage').dataset.visibleRigs, '3');
         assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig.is-active').length, 3);
         assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig.is-active .rig-fan').length, 9);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig.is-active .rig-gpu').length, 9);
+        assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig.is-active .rig-cable-flow').length, 3);
         assert.ok(document.getElementById('viz-machine-count').textContent.startsWith('4 • '), 'Le compteur conserve le nombre réel total');
         App.currentRealPower = 0;
         App.syncMiningScene(4);
@@ -2567,11 +2585,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 328);
-      assert.strictEqual(updateManifest.versionName, '3.3.22');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.22/'));
+      assert.strictEqual(updateManifest.versionCode, 329);
+      assert.strictEqual(updateManifest.versionName, '3.3.23');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.23/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.22 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.23 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2589,8 +2607,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=328'), 'versionCode=328 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.22"'), 'versionName=3.3.22 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=329'), 'versionCode=329 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.23"'), 'versionName=3.3.23 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

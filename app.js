@@ -4330,28 +4330,61 @@ class Application {
   }
 
   getMiningRigVisual(index) {
-    const centers = [30, 62, 94];
-    const fans = centers.map((center, fanIndex) => `
-      <circle cx="${center}" cy="49" r="15" class="rig-fan-ring"/>
-      <g class="rig-fan rig-fan-${fanIndex}">
-        <ellipse cx="${center}" cy="41" rx="3.8" ry="8.5" class="rig-fan-blade"/>
-        <ellipse cx="${center}" cy="41" rx="3.8" ry="8.5" class="rig-fan-blade" transform="rotate(60 ${center} 49)"/>
-        <ellipse cx="${center}" cy="41" rx="3.8" ry="8.5" class="rig-fan-blade" transform="rotate(120 ${center} 49)"/>
-        <circle cx="${center}" cy="49" r="3.4" class="rig-fan-hub"/>
-      </g>`).join('');
+    const gpuRows = [50, 76, 102].map((y, row) => {
+      const cx = 43;
+      const cy = y + 9;
+      const blades = Array.from({ length: 6 }, (_, blade) => `
+        <path d="M${cx} ${cy - 1.8} C${cx - 4.8} ${cy - 4.2} ${cx - 4.1} ${cy - 8} ${cx - 1.1} ${cy - 8.2} C${cx + 1.4} ${cy - 6.4} ${cx + 2.1} ${cy - 3.4} ${cx} ${cy - 1.8}Z"
+          class="rig-fan-blade" fill="url(#rig-fan-metal-${index})" transform="rotate(${blade * 60} ${cx} ${cy})"/>`).join('');
+      const fins = Array.from({ length: 9 }, (_, fin) => `<path d="M${62 + fin * 5} ${y + 3}v12" class="rig-heatsink-fin"/>`).join('');
+      return `<g class="rig-gpu rig-gpu-${row}">
+        <path d="M25 ${y} 31 ${y - 4}h89l-7 4Z" class="rig-gpu-top"/>
+        <path d="M113 ${y}l7-4v17l-4 4v-14Z" class="rig-gpu-side"/>
+        <path d="M25 ${y}h88v3h3v14H25Z" fill="url(#rig-gpu-metal-${index})" class="rig-gpu-shell"/>
+        <path d="M27 ${y + 15}h87" class="rig-pcb-edge"/>
+        <path d="M61 ${y + 17}h19v3H61Zm23 0h12v3H84Z" class="rig-pcie-connector"/>
+        ${fins}
+        <circle cx="${cx}" cy="${cy}" r="10.4" class="rig-fan-outer"/>
+        <circle cx="${cx}" cy="${cy}" r="8.9" class="rig-fan-ring"/>
+        <g class="rig-fan rig-fan-${row}">${blades}<circle cx="${cx}" cy="${cy}" r="2.4" class="rig-fan-hub"/><circle cx="${cx}" cy="${cy}" r=".8" class="rig-fan-screw"/></g>
+        <path d="M57 ${y + 3}v12M109 ${y + 3}v12" class="rig-gpu-separator"/>
+        <circle cx="111" cy="${y + 4}" r="1" class="rig-gpu-led"/>
+        <circle cx="28" cy="${y + 3}" r=".8" class="rig-screw"/>
+        <circle cx="28" cy="${y + 14}" r=".8" class="rig-screw"/>
+      </g>`;
+    }).join('');
     return `<div class="mining-rig is-standby" data-rig-index="${index}">
       <div class="mining-rig-aura"></div>
-      <svg viewBox="0 0 124 92" role="presentation">
-        <defs><linearGradient id="rig-shell-${index}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="0.52" stop-color="#182235"/><stop offset="1" stop-color="#0a1020"/></linearGradient></defs>
-        <rect x="13" y="80" width="98" height="5" rx="2.5" class="rig-base-shadow"/>
-        <rect x="4" y="10" width="116" height="70" rx="9" fill="url(#rig-shell-${index})" class="rig-shell"/>
-        <path d="M13 10h98a9 9 0 0 1 9 9v3H4v-3a9 9 0 0 1 9-9Z" class="rig-top"/>
-        <rect x="11" y="26" width="102" height="47" rx="6" class="rig-panel"/>
-        ${fans}
-        <text x="12" y="19" class="rig-brand">FITIA</text>
-        <circle cx="109" cy="16" r="2.2" class="rig-led"/>
-        <path d="M14 80v5M110 80v5" class="rig-feet"/>
-        <path d="M16 76h92" class="rig-circuit"/>
+      <svg viewBox="0 0 150 150" role="presentation">
+        <defs>
+          <linearGradient id="rig-frame-metal-${index}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8998aa"/><stop offset=".18" stop-color="#36465a"/><stop offset=".55" stop-color="#131d2b"/><stop offset=".82" stop-color="#55657a"/><stop offset="1" stop-color="#1a2535"/></linearGradient>
+          <linearGradient id="rig-gpu-metal-${index}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#35465b"/><stop offset=".16" stop-color="#1d2a3b"/><stop offset=".62" stop-color="#0a111d"/><stop offset="1" stop-color="#202e40"/></linearGradient>
+          <linearGradient id="rig-fan-metal-${index}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b7c4d3"/><stop offset=".35" stop-color="#64758b"/><stop offset=".7" stop-color="#26364b"/><stop offset="1" stop-color="#8b9bad"/></linearGradient>
+          <linearGradient id="rig-screen-glass-${index}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#102b3b"/><stop offset=".55" stop-color="#07141f"/><stop offset="1" stop-color="#123043"/></linearGradient>
+        </defs>
+        <ellipse cx="76" cy="136" rx="62" ry="7" class="rig-ground-shadow"/>
+        <path d="M127 33 139 27v92l-12 9Z" class="rig-case-side"/>
+        <path d="M17 34 30 27h109l-12 7Z" class="rig-case-top"/>
+        <path d="M127 34v94M139 28v91" class="rig-rear-rail"/>
+        <path d="M125 57C136 55 133 69 139 70M125 84c10-2 8 13 14 14M125 109c9 0 7 10 12 12" class="rig-power-cable"/>
+        <path d="M125 57C136 55 133 69 139 70M125 84c10-2 8 13 14 14M125 109c9 0 7 10 12 12" class="rig-cable-flow"/>
+        <path d="M118 55C132 48 139 48 145 40M118 81c14-7 21-7 27-15M118 107c14-7 21-7 27-15" class="rig-airflow"/>
+        <rect x="18" y="34" width="108" height="94" rx="2" class="rig-case-back"/>
+        <path d="M22 47h100M22 73h100M22 99h100M22 125h100" class="rig-shelf"/>
+        ${gpuRows}
+        <rect x="25" y="37" width="50" height="9" rx="1.5" fill="url(#rig-screen-glass-${index})" class="rig-control-screen"/>
+        <path d="M28 39h12M28 42h8" class="rig-screen-text"/>
+        <path d="M50 43v-3M54 43v-5M58 43v-2M62 43v-4" class="rig-load-bar"/>
+        <rect x="66" y="38" width="1.5" height="7" class="rig-screen-scan"/>
+        <rect x="82" y="37" width="34" height="9" rx="1.5" class="rig-psu"/>
+        <path d="M86 39v5M90 39v5M94 39v5M98 39v5M102 39v5" class="rig-psu-vent"/>
+        <circle cx="111" cy="41.5" r="1.4" class="rig-led"/>
+        <path d="M18 34v94M126 34v94M18 34h108M18 128h108" fill="none" stroke="url(#rig-frame-metal-${index})" class="rig-front-rail"/>
+        <path d="M18 128v7M126 128v7M139 120v7" class="rig-feet"/>
+        <path d="M13 135h118l10-6" class="rig-base"/>
+        <circle cx="20" cy="36" r="1.2" class="rig-frame-screw"/><circle cx="124" cy="36" r="1.2" class="rig-frame-screw"/>
+        <circle cx="20" cy="126" r="1.2" class="rig-frame-screw"/><circle cx="124" cy="126" r="1.2" class="rig-frame-screw"/>
+        <text x="75" y="146" text-anchor="middle" class="rig-unit-label">FITIA  /  UNIT 0${index + 1}</text>
       </svg>
     </div>`;
   }
@@ -4381,6 +4414,8 @@ class Application {
     wrap?.classList.toggle('is-mining', isMining);
     if (wrap) wrap.dataset.activeMachines = String(count);
     const visibleRigs = count > 0 ? Math.min(count, 3) : 1;
+    const stage = document.getElementById('mining-rig-stage');
+    if (stage) stage.dataset.visibleRigs = String(visibleRigs);
     document.querySelectorAll('#mining-rig-stage .mining-rig').forEach((rig, index) => {
       rig.classList.toggle('hidden', index >= visibleRigs);
       rig.classList.toggle('is-active', isMining && index < visibleRigs);
