@@ -3,13 +3,6 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "framework": null,
-  "redirects": [
-    {
-      "source": "/FITIA-PRO-Miner.apk",
-      "destination": "/?maintenance=1",
-      "permanent": false
-    }
-  ],
   "rewrites": [
     {
       "source": "/admin",

@@ -74,16 +74,21 @@ const i18n = {
     refDesc: "Saisissez le code ou l’adresse Polygon de votre parrain.",
     refAlreadyBound: "Parrain associé :",
     yourRefCode: "Votre code de parrainage",
+    yourRefLink: "Votre lien de parrainage",
     refCodeHint: "Ce code personnel ne donne accès à aucun fonds.",
+    refLinkHint: "Le lien ouvre FITIA PRO si elle est installée. Sinon, utilisez le code ci-dessus.",
     copyRefCode: "Copier le code",
     refCodeCopied: "Code de parrainage copié !",
+    copyRefLink: "Copier le lien",
+    refLinkCopied: "Lien de parrainage copié !",
     shareRef: "Partager",
     refBindTitle: "Vous avez un code ?",
     refInputLabel: "Code ou adresse du parrain",
     refInputHint: "Formats acceptés : FITIA-001042, #1042, 1042 ou adresse Polygon.",
     invalidRefCode: "Code de parrainage ou adresse invalide",
+    refDeepLinkReady: "Code de parrainage ajouté. Vérifiez-le puis appuyez sur ASSOCIER.",
     refShareTitle: "FITIA PRO — Programme de parrainage",
-    refShareMessage: "Rejoignez FITIA PRO et utilisez mon code de parrainage : {code}\n\nDans l’application, ouvrez Paramètres puis Programme de parrainage pour l’associer.",
+    refShareMessage: "Rejoignez FITIA PRO avec mon lien de parrainage : {link}\n\nSi le lien ne s’ouvre pas, utilisez mon code {code} dans Paramètres, puis Programme de parrainage.",
     bindRef: "ASSOCIER",
     power: "PUISSANCE",
     ftaSec: "Hashrate",
@@ -373,16 +378,21 @@ const i18n = {
     refDesc: "Enter your referrer’s code or Polygon address.",
     refAlreadyBound: "Linked referrer:",
     yourRefCode: "Your referral code",
+    yourRefLink: "Your referral link",
     refCodeHint: "This personal code does not give access to your funds.",
+    refLinkHint: "The link opens FITIA PRO when installed. Otherwise, use the code above.",
     copyRefCode: "Copy code",
     refCodeCopied: "Referral code copied!",
+    copyRefLink: "Copy link",
+    refLinkCopied: "Referral link copied!",
     shareRef: "Share",
     refBindTitle: "Have a referral code?",
     refInputLabel: "Referrer code or address",
     refInputHint: "Accepted formats: FITIA-001042, #1042, 1042 or a Polygon address.",
     invalidRefCode: "Invalid referral code or address",
+    refDeepLinkReady: "Referral code added. Review it, then tap LINK.",
     refShareTitle: "FITIA PRO — Referral program",
-    refShareMessage: "Join FITIA PRO and use my referral code: {code}\n\nIn the app, open Settings then Referral program to link it.",
+    refShareMessage: "Join FITIA PRO with my referral link: {link}\n\nIf the link does not open, use my code {code} in Settings, then Referral program.",
     bindRef: "LINK",
     power: "POWER",
     ftaSec: "Hashrate",
@@ -631,16 +641,21 @@ const i18n = {
     refDesc: "Geben Sie den Code oder die Polygon-Adresse Ihres Empfehlers ein.",
     refAlreadyBound: "Verbundener Empfehler:",
     yourRefCode: "Ihr Empfehlungscode",
+    yourRefLink: "Ihr Empfehlungslink",
     refCodeHint: "Dieser persönliche Code gewährt keinen Zugriff auf Ihr Guthaben.",
+    refLinkHint: "Der Link öffnet FITIA PRO, sofern installiert. Verwenden Sie andernfalls den Code oben.",
     copyRefCode: "Code kopieren",
     refCodeCopied: "Empfehlungscode kopiert!",
+    copyRefLink: "Link kopieren",
+    refLinkCopied: "Empfehlungslink kopiert!",
     shareRef: "Teilen",
     refBindTitle: "Haben Sie einen Empfehlungscode?",
     refInputLabel: "Code oder Adresse des Empfehlers",
     refInputHint: "Akzeptierte Formate: FITIA-001042, #1042, 1042 oder eine Polygon-Adresse.",
     invalidRefCode: "Ungültiger Empfehlungscode oder ungültige Adresse",
+    refDeepLinkReady: "Empfehlungscode hinzugefügt. Prüfen Sie ihn und tippen Sie auf VERKNÜPFEN.",
     refShareTitle: "FITIA PRO — Empfehlungsprogramm",
-    refShareMessage: "Treten Sie FITIA PRO bei und verwenden Sie meinen Empfehlungscode: {code}\n\nÖffnen Sie in der App Einstellungen und dann Empfehlungsprogramm, um ihn zu verknüpfen.",
+    refShareMessage: "Treten Sie FITIA PRO über meinen Empfehlungslink bei: {link}\n\nFalls sich der Link nicht öffnet, verwenden Sie meinen Code {code} unter Einstellungen und dann Empfehlungsprogramm.",
     bindRef: "VERKNÜPFEN",
     enterRefAddr: "FITIA-001042, #1042 oder 0x...",
     power: "LEISTUNG",
@@ -721,16 +736,21 @@ const i18n = {
     refDesc: "输入推荐人的推荐码或 Polygon 地址。",
     refAlreadyBound: "已绑定推荐人：",
     yourRefCode: "您的推荐码",
+    yourRefLink: "您的推荐链接",
     refCodeHint: "此个人推荐码不会授予任何人访问您资金的权限。",
+    refLinkHint: "安装 FITIA PRO 后，该链接会打开应用。否则，请使用上方的推荐码。",
     copyRefCode: "复制推荐码",
     refCodeCopied: "推荐码已复制！",
+    copyRefLink: "复制链接",
+    refLinkCopied: "推荐链接已复制！",
     shareRef: "分享",
     refBindTitle: "您有推荐码吗？",
     refInputLabel: "推荐码或推荐人地址",
     refInputHint: "支持格式：FITIA-001042、#1042、1042 或 Polygon 地址。",
     invalidRefCode: "推荐码或地址无效",
+    refDeepLinkReady: "已添加推荐码。请确认后点击“绑定”。",
     refShareTitle: "FITIA PRO — 推荐计划",
-    refShareMessage: "加入 FITIA PRO 并使用我的推荐码：{code}\n\n在应用中打开“设置”，然后打开“推荐计划”进行绑定。",
+    refShareMessage: "通过我的推荐链接加入 FITIA PRO：{link}\n\n如果链接无法打开，请在应用设置中的推荐计划里使用我的推荐码 {code}。",
     bindRef: "绑定",
     enterRefAddr: "FITIA-001042、#1042 或 0x...",
     power: "算力",
@@ -810,16 +830,21 @@ const i18n = {
     refDesc: "Enter your referrer’s code or Polygon address.",
     refAlreadyBound: "Linked referrer:",
     yourRefCode: "Your referral code",
+    yourRefLink: "Your referral link",
     refCodeHint: "This personal code does not give access to your funds.",
+    refLinkHint: "The link opens FITIA PRO when installed. Otherwise, use the code above.",
     copyRefCode: "Copy code",
     refCodeCopied: "Referral code copied!",
+    copyRefLink: "Copy link",
+    refLinkCopied: "Referral link copied!",
     shareRef: "Share",
     refBindTitle: "Have a referral code?",
     refInputLabel: "Referrer code or address",
     refInputHint: "Accepted formats: FITIA-001042, #1042, 1042 or a Polygon address.",
     invalidRefCode: "Invalid referral code or address",
+    refDeepLinkReady: "Referral code added. Review it, then tap LINK.",
     refShareTitle: "FITIA PRO — Referral program",
-    refShareMessage: "Join FITIA PRO and use my referral code: {code}\n\nIn the app, open Settings then Referral program to link it.",
+    refShareMessage: "Join FITIA PRO with my referral link: {link}\n\nIf the link does not open, use my code {code} in Settings, then Referral program.",
     bindRef: "LINK",
     enterRefAddr: "FITIA-001042, #1042 or 0x...",
     plugMachine: "Machine & battery connection",
@@ -1796,6 +1821,8 @@ class Application {
     this.myReferralCode = '';
     const referralCodeLabel = document.getElementById('my-ref-id-label');
     if (referralCodeLabel) referralCodeLabel.textContent = '—';
+    const referralLinkLabel = document.getElementById('my-ref-link-label');
+    if (referralLinkLabel) referralLinkLabel.textContent = '—';
     this.core = null;
     this.mine = null;
     this.usdtToken = null;
@@ -2119,6 +2146,7 @@ class Application {
     await this.fetchMarketPrices();
     await this.cacheBatteryDurations();
     await this.updateData();
+    await this.consumePendingReferralDeepLink();
 
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     this.refreshInterval = setInterval(() => this.updateData(), 15000);
@@ -2438,6 +2466,10 @@ class Application {
       referralCodeLabel.textContent = this.myReferralCode || '—';
       referralCodeLabel.classList.toggle('ref-code-address', !brandedReferralCode);
       referralCodeLabel.title = this.myReferralCode;
+      const referralLinkLabel = document.getElementById('my-ref-link-label');
+      const referralLink = this.getMyReferralLink();
+      referralLinkLabel.textContent = referralLink || '—';
+      referralLinkLabel.title = referralLink;
       if (myRefAddr && myRefAddr !== ethers.ZeroAddress) {
         document.getElementById('current-referrer-status').textContent = `${this.t('refAlreadyBound')} ${this.shortAddr(myRefAddr)}`;
         document.getElementById('ref-form-wrap')?.classList.add('hidden');
@@ -3328,6 +3360,11 @@ class Application {
     return this.myReferralCode || this.user || '';
   }
 
+  getMyReferralLink() {
+    const code = this.getMyReferralCode();
+    return code ? `fitiapro://parrainage/${encodeURIComponent(code)}` : '';
+  }
+
   async copyMyReferralCode() {
     if (!this.user) return;
     const code = this.getMyReferralCode();
@@ -3336,13 +3373,39 @@ class Application {
     this.showToast(copied ? this.t('refCodeCopied') : this.t('errGeneric'), !copied);
   }
 
+  async copyMyReferralLink() {
+    if (!this.user) return;
+    const link = this.getMyReferralLink();
+    if (!link) return;
+    const copied = await FitiaSecurity.Native.copyText(link);
+    this.showToast(copied ? this.t('refLinkCopied') : this.t('errGeneric'), !copied);
+  }
+
   async shareMyReferral() {
     if (!this.user) return;
     const code = this.getMyReferralCode();
-    if (!code) return;
-    const message = this.t('refShareMessage').replace('{code}', code);
+    const link = this.getMyReferralLink();
+    if (!code || !link) return;
+    const message = this.t('refShareMessage').replace('{link}', link).replace('{code}', code);
     const shared = await FitiaSecurity.Native.shareText(this.t('refShareTitle'), message);
     if (!shared) this.showToast(this.t('errGeneric'), true);
+  }
+
+  async consumePendingReferralDeepLink() {
+    if (!this.user || !this.signer || !document.getElementById('auth-screen')?.classList.contains('hidden')) return false;
+    if (document.getElementById('modal-pin-confirm')?.classList.contains('active')) return false;
+    if (document.getElementById('modal-secret-reveal')?.classList.contains('active')) return false;
+    if (document.getElementById('modal-update')?.classList.contains('active')) return false;
+
+    const code = FitiaSecurity.Native.consumeReferralDeepLink();
+    if (!code || !this.parseReferralInput(code)) return false;
+    await this.openSecurityModal();
+    const form = document.getElementById('ref-form-wrap');
+    const input = document.getElementById('ref-address-input');
+    if (!form || !input || form.classList.contains('hidden')) return true;
+    input.value = code;
+    this.showToast(this.t('refDeepLinkReady'));
+    return true;
   }
 
   async bindReferrer() {

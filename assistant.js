@@ -203,8 +203,8 @@
       ));
 
       add('referral', 80, ['referral', 'referrer', 'invite', 'parrain', 'parrainage', 'inviter'], (app) => this.copy(
-        `Open Settings → Referral program to copy or share your code${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, view your linked referrer, or link a referrer using a FITIA code, numeric ID or Polygon address. A referral code never gives access to your funds.`,
-        `Ouvrez Paramètres → Programme de parrainage pour copier ou partager votre code${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, voir votre parrain ou associer un parrain avec un code FITIA, un identifiant numérique ou une adresse Polygon. Un code de parrainage ne donne jamais accès à vos fonds.`
+        `Open Settings → Referral program to copy or share your referral link or backup code${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, view your linked referrer, or link a referrer using a FITIA code, numeric ID or Polygon address. A referral link or code never gives access to your funds.`,
+        `Ouvrez Paramètres → Programme de parrainage pour copier ou partager votre lien ou code de secours${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, voir votre parrain ou associer un parrain avec un code FITIA, un identifiant numérique ou une adresse Polygon. Un lien ou code de parrainage ne donne jamais accès à vos fonds.`
       ));
 
       add('pin-security', 75, ['pin', 'biometric', 'auto lock', 'change pin', 'code pin', 'biometrie', 'verrouillage'], () => this.copy(

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.17 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.18 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -105,7 +105,8 @@ function createMockAndroidBridge() {
     appVersionCode: 0,
     appVersionName: '',
     updateDownloads: [],
-    sharedTexts: []
+    sharedTexts: [],
+    pendingReferralCode: ''
   };
 
   return {
@@ -113,6 +114,11 @@ function createMockAndroidBridge() {
     isNativeApk: () => true,
     getAppVersionCode: () => state.appVersionCode,
     getAppVersionName: () => state.appVersionName,
+    consumeReferralDeepLink: () => {
+      const code = state.pendingReferralCode;
+      state.pendingReferralCode = '';
+      return code;
+    },
     downloadAndInstallUpdate: (url, expectedSha256) => {
       state.updateDownloads.push({ url: String(url), expectedSha256: String(expectedSha256) });
       return true;
@@ -453,7 +459,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.17\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.18\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -717,7 +723,7 @@ function httpRequest(port, method, reqPath) {
       App.closeModals();
     });
 
-    await runTest('UI-REFERRAL', 'Code FITIA professionnel, copie, partage et compatibilité des liaisons on-chain', async () => {
+    await runTest('UI-REFERRAL', 'Lien direct gratuit, code de secours, préremplissage sécurisé et compatibilité on-chain', async () => {
       const document = e2eWin.document;
       const settingsModal = document.getElementById('modal-security');
       await App.openSecurityModal();
@@ -726,12 +732,13 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(document.querySelectorAll('.referral-card').length, 1, 'Une seule carte Parrainage dans le wallet');
       const referralCard = settingsModal.querySelector('.referral-card');
       assert.ok(referralCard, 'La carte Parrainage est dans la modale Paramètres');
-      ['my-ref-id-label', 'current-referrer-status', 'ref-form-wrap', 'ref-address-input'].forEach((id) => {
+      ['my-ref-id-label', 'my-ref-link-label', 'current-referrer-status', 'ref-form-wrap', 'ref-address-input'].forEach((id) => {
         assert.ok(referralCard.querySelector(`#${id}`), `Élément Parrainage conservé : ${id}`);
       });
       assert.ok(referralCard.querySelector('.ref-brand-logo[src="assets/fta.png"]'), 'Le logo FITIA local identifie le programme');
-      assert.ok(referralCard.querySelector('button[onclick="App.copyMyReferralCode()"]'), 'La copie directe du code est disponible');
-      assert.ok(referralCard.querySelector('button[onclick="App.shareMyReferral()"]'), 'Le partage du code de parrainage reste disponible');
+      assert.ok(referralCard.querySelector('button[onclick="App.copyMyReferralCode()"]'), 'La copie directe du code de secours est disponible');
+      assert.ok(referralCard.querySelector('button[onclick="App.copyMyReferralLink()"]'), 'La copie directe du lien de parrainage est disponible');
+      assert.ok(referralCard.querySelector('button[onclick="App.shareMyReferral()"]'), 'Le partage du lien de parrainage reste disponible');
       assert.ok(referralCard.querySelector('button[onclick="App.bindReferrer()"]'), 'La liaison du parrain reste disponible');
       assert.strictEqual(App.formatReferralCode(1042), 'FITIA-001042');
       assert.strictEqual(App.formatReferralCode(42), 'FITIA-000042');
@@ -739,8 +746,12 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(App.formatReferralCode(0), '', 'Sans UID, le format FITIA ne fabrique pas un faux code');
       assert.strictEqual(document.getElementById('my-ref-id-label').textContent, 'FITIA-001042', 'L’UID on-chain 1042 est présenté sous sa forme professionnelle');
       assert.strictEqual(App.getMyReferralCode(), 'FITIA-001042');
+      const expectedLink = 'fitiapro://parrainage/FITIA-001042';
+      assert.strictEqual(App.getMyReferralLink(), expectedLink);
+      assert.strictEqual(document.getElementById('my-ref-link-label').textContent, expectedLink);
       App.myReferralCode = '';
       assert.strictEqual(App.getMyReferralCode(), App.user, 'Sans code UID, le partage utilise l’adresse complète et non raccourcie');
+      assert.strictEqual(App.getMyReferralLink(), `fitiapro://parrainage/${App.user}`, 'Le lien de secours conserve aussi l’adresse complète');
       App.myReferralCode = 'FITIA-001042';
 
       for (const [input, expected] of [['FITIA-001042', 1042n], ['fitia-1042', 1042n], ['#1042', 1042n], ['1042', 1042n]]) {
@@ -758,10 +769,30 @@ function httpRequest(port, method, reqPath) {
       await App.copyMyReferralCode();
       assert.strictEqual(e2eWin.FitiaNative._state.clipboard, 'FITIA-001042', 'La copie utilise le code complet');
       assert.notStrictEqual(e2eWin.FitiaNative._state.lastClearDelayMs, 45000, 'Le code public n’utilise pas le presse-papiers sensible');
+      await App.copyMyReferralLink();
+      assert.strictEqual(e2eWin.FitiaNative._state.clipboard, expectedLink, 'La copie utilise le lien direct sans domaine payant');
       await App.shareMyReferral();
       const shared = e2eWin.FitiaNative._state.sharedTexts.at(-1);
-      assert.ok(shared?.text.includes('FITIA-001042'), 'Le partage contient le code professionnel complet');
+      assert.ok(shared?.text.includes(expectedLink), 'Le partage contient le lien direct complet');
+      assert.ok(shared?.text.includes('FITIA-001042'), 'Le partage conserve le code manuel de secours');
+      assert.ok(!shared?.text.includes('vercel.app'), 'Le partage ne contient aucun domaine Vercel');
       assert.ok(shared?.text.includes(App.user) === false, 'Le partage privilégie le code et ne duplique pas l’adresse');
+
+      App.closeModals();
+      e2eWin.FitiaNative._state.pendingReferralCode = 'FITIA-002042';
+      const deepLinkOpened = await App.consumePendingReferralDeepLink();
+      assert.strictEqual(deepLinkOpened, true, 'Un lien reçu ouvre les réglages après déverrouillage');
+      assert.ok(settingsModal.classList.contains('active'));
+      assert.strictEqual(document.getElementById('ref-address-input').value, 'FITIA-002042', 'Le code reçu est prérempli sans transaction automatique');
+      assert.strictEqual(e2eWin.FitiaNative._state.pendingReferralCode, '', 'Le lien consommé ne reste pas dans le pont natif');
+      document.getElementById('ref-address-input').value = '';
+
+      const androidManifest = fs.readFileSync(path.join(ROOT, 'android-src/AndroidManifest.xml'), 'utf8');
+      const androidActivity = fs.readFileSync(path.join(ROOT, 'android-src/java/com/fitia/miningpro/MainActivity.java'), 'utf8');
+      assert.ok(androidManifest.includes('android:scheme="fitiapro"'));
+      assert.ok(androidManifest.includes('android:host="parrainage"'));
+      assert.ok(androidActivity.includes('consumeReferralDeepLink()'));
+      assert.ok(androidActivity.includes('FITIA-[0-9]{1,78}'), 'Le pont natif valide strictement le code reçu');
 
       const originals = { core: App.core, ensurePolGas: App.ensurePolGas, updateData: App.updateData };
       const calls = [];
@@ -911,9 +942,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 323,
-        versionName: '3.3.17',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.17/FITIA-PRO-Miner.apk',
+        versionCode: 324,
+        versionName: '3.3.18',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.18/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -956,7 +987,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 323;
+        nativeState.appVersionCode = 324;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2034,6 +2065,7 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(App.user, null);
       assert.strictEqual(App.myReferralCode, '', 'Le code de parrainage en mémoire est purgé au verrouillage');
       assert.strictEqual(e2eWin.document.getElementById('my-ref-id-label').textContent, '—');
+      assert.strictEqual(e2eWin.document.getElementById('my-ref-link-label').textContent, '—', 'Le lien de parrainage est purgé au verrouillage');
       assert.strictEqual(App.revealedSecretText, '');
       assert.strictEqual(e2eWin.FitiaNative._state.screenSecure, true, 'FLAG_SECURE réactivé au verrouillage');
     });
@@ -2051,17 +2083,23 @@ function httpRequest(port, method, reqPath) {
       assert.ok(htmlStr.includes('id="projet"'), 'La page publique présente le projet');
       assert.ok(htmlStr.includes('<html lang="en">'), 'La page publique est déclarée en anglais');
       assert.ok(htmlStr.includes('Explore the project'), 'Le contenu de présentation est traduit en anglais');
-      assert.ok(htmlStr.includes('Update in progress'), 'Le mode maintenance est visible en anglais sur la vitrine');
+      assert.ok(htmlStr.includes('Official release available.'), 'La disponibilité du téléchargement est visible en anglais');
+      assert.ok(!htmlStr.includes('Update in progress'), 'L’ancien message de maintenance est retiré');
       assert.ok(!htmlStr.includes('Mise à jour en cours'), 'Ancien libellé français de maintenance supprimé');
-      assert.ok(!htmlStr.includes('href="FITIA-PRO-Miner.apk"'), 'Aucun lien APK actif pendant la maintenance');
+      assert.strictEqual(htmlStr.split('href="FITIA-PRO-Miner.apk"').length - 1, 2, 'Les deux boutons publics téléchargent directement l’APK');
+      assert.ok(!htmlStr.includes('button-disabled'), 'Aucun bouton de téléchargement désactivé');
       assert.ok(!htmlStr.includes('id="auth-screen"'), 'Le wallet n’est plus exposé sur la page publique');
 
       const apkHead = await httpRequest(8080, 'HEAD', '/FITIA-PRO-Miner.apk');
-      assert.strictEqual(apkHead.statusCode, 503);
-      assert.strictEqual(apkHead.headers['retry-after'], '3600');
+      assert.strictEqual(apkHead.statusCode, 200);
+      assert.strictEqual(apkHead.headers['content-type'], 'application/vnd.android.package-archive');
+      assert.strictEqual(Number(apkHead.headers['content-length']), fs.statSync(path.join(ROOT, 'FITIA-PRO-Miner.apk')).size);
       const apkGet = await httpRequest(8080, 'GET', '/FITIA-PRO-Miner.apk');
-      assert.strictEqual(apkGet.statusCode, 503);
-      assert.ok(apkGet.body.toString('utf8').includes('temporairement indisponible'));
+      assert.strictEqual(apkGet.statusCode, 200);
+      assert.ok(apkGet.body.equals(fs.readFileSync(path.join(ROOT, 'FITIA-PRO-Miner.apk'))), 'Le serveur public fournit exactement l’APK signé');
+      assert.ok(apkGet.headers['content-disposition'].includes('attachment'));
+      const vercelConfig = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+      assert.ok(!(vercelConfig.redirects || []).some((rule) => rule.source === '/FITIA-PRO-Miner.apk'), 'Vercel ne redirige plus le téléchargement vers la maintenance');
 
       for (const forbiddenPath of ['/.git/HEAD', '/server.js', '/scripts/build_apk.py', '/android-src/AndroidManifest.xml', '/android-src/wallet.html', '/contracts/FitiaMiningV3_Mine.sol', '/app.js', '/activity.js', '/wallet.js', '/style.css', '/vendor/ethers.umd.min.js']) {
         const r = await httpRequest(8080, 'GET', forbiddenPath);
@@ -2107,11 +2145,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 323);
-      assert.strictEqual(updateManifest.versionName, '3.3.17');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.17/'));
+      assert.strictEqual(updateManifest.versionCode, 324);
+      assert.strictEqual(updateManifest.versionName, '3.3.18');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.18/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.17 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.18 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2129,8 +2167,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=323'), 'versionCode=323 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.17"'), 'versionName=3.3.17 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=324'), 'versionCode=324 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.18"'), 'versionName=3.3.18 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
@@ -2138,6 +2176,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');
         assert.ok(manifestTree.includes('networkSecurityConfig'), 'networkSecurityConfig référencé');
+        assert.ok(manifestTree.includes('fitiapro') && manifestTree.includes('parrainage'), 'Le lien de parrainage Android est présent dans l’APK');
+        assert.ok(manifestTree.includes('BROWSABLE'), 'Le lien de parrainage peut être ouvert depuis une application externe');
 
         const netSecTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'res/xml/network_security_config.xml'], { encoding: 'utf8' });
         assert.ok(netSecTree.includes('cleartextTrafficPermitted=false'), 'cleartextTrafficPermitted=false vérifié');

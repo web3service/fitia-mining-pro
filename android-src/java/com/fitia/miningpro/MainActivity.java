@@ -71,6 +71,7 @@ public class MainActivity extends Activity {
     private Runnable pendingClipClear = null;
     private boolean updateDownloadInProgress = false;
     private boolean pendingUpdateInstall = false;
+    private String pendingReferralCode = "";
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -225,11 +226,44 @@ public class MainActivity extends Activity {
             }
         });
 
+        captureReferralIntent(getIntent());
         if (savedInstanceState == null) {
             webView.loadUrl(START_URL);
         } else {
             webView.restoreState(savedInstanceState);
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        captureReferralIntent(intent);
+        if (webView != null) {
+            webView.evaluateJavascript(
+                "if(window.App&&App.consumePendingReferralDeepLink){App.consumePendingReferralDeepLink();}",
+                null
+            );
+        }
+    }
+
+    // Le lien public transporte uniquement un code de parrainage validé, jamais un secret.
+    private synchronized void captureReferralIntent(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())) return;
+        Uri uri = intent.getData();
+        if (uri == null
+            || !"fitiapro".equalsIgnoreCase(uri.getScheme())
+            || !"parrainage".equalsIgnoreCase(uri.getHost())
+            || uri.getPathSegments().size() != 1) return;
+        String code = uri.getLastPathSegment();
+        if (code == null || !code.matches("(?i)^(?:FITIA-[0-9]{1,78}|0x[0-9a-f]{40})$")) return;
+        pendingReferralCode = code;
+    }
+
+    private synchronized String consumePendingReferralCode() {
+        String code = pendingReferralCode;
+        pendingReferralCode = "";
+        return code;
     }
 
     // ─── Clé Matérielle AndroidKeyStore (TEE / Non-Exportable) ─────
@@ -599,6 +633,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String getAppVersionName() {
             return MainActivity.this.getAppVersionName();
+        }
+
+        @JavascriptInterface
+        public String consumeReferralDeepLink() {
+            return MainActivity.this.consumePendingReferralCode();
         }
 
         @JavascriptInterface
