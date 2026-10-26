@@ -890,12 +890,22 @@
       if (!validUrl) throw new Error('INVALID_RPC_URL');
       const start = performance.now();
       const prov = this.createStaticProvider(validUrl);
-      const block = await Promise.race([
-        prov.getBlockNumber(),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('TIMEOUT')), timeoutMs))
-      ]);
-      const latencyMs = Math.round(performance.now() - start);
-      return { ok: true, block, latencyMs, provider: prov };
+      let timeout = null;
+      try {
+        const block = await Promise.race([
+          prov.getBlockNumber(),
+          new Promise((_, rej) => {
+            timeout = setTimeout(() => rej(new Error('TIMEOUT')), timeoutMs);
+          })
+        ]);
+        const latencyMs = Math.round(performance.now() - start);
+        return { ok: true, block, latencyMs, provider: prov };
+      } catch (error) {
+        prov.destroy();
+        throw error;
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
     },
 
     async connectBestProvider(preferredUrl = null) {
@@ -905,16 +915,26 @@
 
       const ordered = [...rpcs].sort((a, b) => (a.url === targetFirst ? -1 : b.url === targetFirst ? 1 : 0));
 
-      for (const item of ordered) {
+      // Teste les nœuds en parallèle : un RPC injoignable ne retarde plus les
+      // autres. Le premier nœud valide selon l'ordre de préférence est conservé.
+      const attempts = await Promise.all(ordered.map(async (item) => {
         try {
           const res = await this.pingRpc(item.url, 4500);
-          if (res.ok && res.block > 0) {
-            this.currentRpcUrl = item.url;
-            this.provider = res.provider;
-            FitiaVault.saveSettings({ preferredRpcUrl: item.url });
-            return { provider: res.provider, url: item.url, latencyMs: res.latencyMs, block: res.block };
-          }
+          if (res.ok && res.block > 0) return { item, res };
+          res.provider?.destroy();
         } catch (_) {}
+        return null;
+      }));
+      const selectedIndex = attempts.findIndex(Boolean);
+      if (selectedIndex >= 0) {
+        attempts.forEach((attempt, index) => {
+          if (attempt && index !== selectedIndex) attempt.res.provider?.destroy();
+        });
+        const { item, res } = attempts[selectedIndex];
+        this.currentRpcUrl = item.url;
+        this.provider = res.provider;
+        FitiaVault.saveSettings({ preferredRpcUrl: item.url });
+        return { provider: res.provider, url: item.url, latencyMs: res.latencyMs, block: res.block };
       }
 
       const fallbackUrl = ordered[0].url;

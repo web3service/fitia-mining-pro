@@ -1049,6 +1049,8 @@ class Application {
     this.backgroundedAt = 0;
     this.availableUpdate = null;
     this.updateCheckInFlight = false;
+    this.sessionGeneration = 0;
+    this.sessionBootstrapPromise = null;
 
     this.vizContext = null;
     this.vizBars = [];
@@ -1833,6 +1835,9 @@ class Application {
 
   // ─── Verrouiller le portefeuille (efface la clé de la RAM) ───────
   lockWallet(silent = false) {
+    // Invalide immédiatement les synchronisations réseau de l'ancienne session.
+    this.sessionGeneration += 1;
+    this.sessionBootstrapPromise = null;
     // 1) Purge immédiate et atomique de toutes les clés & secrets en RAM
     this.pendingWalletSecret = null;
     this.revealedSecretText = '';
@@ -2114,29 +2119,44 @@ class Application {
   // ═══════════════════════════════════════════════════════════════
   //  ACTIVATION DE LA SESSION BLOCKCHAIN POLYGON (SANS WALLET EXTERNE)
   // ═══════════════════════════════════════════════════════════════
-  async activateUnlockedSession(secret) {
-    const conn = await FitiaSecurity.Rpc.connectBestProvider();
-    this.provider = conn.provider;
-    this.lastRpcLatency = conn.latencyMs;
-
-    this.signer = FitiaSecurity.Rpc.createSigner(secret.privateKey, this.provider);
-    this.user = secret.address;
-    this.activity.setAccount(this.user);
-    this.storeCenter.setAccount(this.user);
-    this.installActivityTracking();
-    this.lastUserActivityAt = Date.now();
-    // Efface immédiatement la copie de secret passée en paramètre
-    secret.privateKey = '';
-    secret.mnemonic = '';
-
+  configureSessionContracts() {
     this.core = new ethers.Contract(CONFIG.CORE, CORE_ABI, this.signer);
     this.mine = new ethers.Contract(CONFIG.MINE, MINE_ABI, this.signer);
     this.usdtToken = new ethers.Contract(CONFIG.USDT, ERC20_ABI, this.signer);
     this.ftaToken = new ethers.Contract(CONFIG.FTA, ERC20_ABI, this.signer);
     this.quickswapRouter = new ethers.Contract(CONFIG.QUICKSWAP_ROUTER, QUICKSWAP_ROUTER_ABI, this.signer);
     this.quickswapFactory = new ethers.Contract(CONFIG.QUICKSWAP_FACTORY, QUICKSWAP_FACTORY_ABI, this.provider);
+  }
 
-    // Bascule l'affichage vers l'application principale (autorise les captures du tableau de bord public)
+  applyConnectedProvider(conn) {
+    if (!conn?.provider || !this.signer) return;
+    this.provider = conn.provider;
+    this.lastRpcLatency = conn.latencyMs;
+    this.signer = this.signer.connect(conn.provider);
+    this.installActivityTracking();
+    this.configureSessionContracts();
+  }
+
+  async activateUnlockedSession(secret) {
+    const generation = ++this.sessionGeneration;
+
+    // Crée la session localement, sans attendre de réseau. Les lectures Polygon
+    // commencent seulement après la sélection d'un nœud en arrière-plan.
+    this.provider = FitiaSecurity.Rpc.createStaticProvider(FitiaSecurity.DEFAULT_POLYGON_RPCS[0].url);
+    this.lastRpcLatency = null;
+    this.signer = FitiaSecurity.Rpc.createSigner(secret.privateKey, this.provider);
+    this.user = secret.address;
+    this.activity.setAccount(this.user);
+    this.storeCenter.setAccount(this.user);
+    this.installActivityTracking();
+    this.lastUserActivityAt = Date.now();
+    // Efface immédiatement la copie de secret passée en paramètre.
+    secret.privateKey = '';
+    secret.mnemonic = '';
+    this.configureSessionContracts();
+
+    // L'interface devient utilisable sans dépendre de la disponibilité du RPC,
+    // des contrats ou des services de prix externes.
     FitiaSecurity.Native.setScreenSecure(false);
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('app-shell').classList.remove('hidden');
@@ -2144,37 +2164,66 @@ class Application {
     this.announcementCenter.render();
     this.announcementCenter.start();
     this.announcementCenter.refresh();
-    this.promotionCenter.refresh({ force: true });
-
-    const short = this.shortAddr(this.user);
-    document.getElementById('wallet-card-addr').textContent = short;
-
-    // Décimales dynamiques du token FTA + paramètres de frais du Core
-    try {
-      const [ftaDec, claimFeeRaw, devFeeRaw, c0, c1, c2] = await Promise.all([
-        this.ftaToken.decimals().catch(() => 8),
-        this.core.claimFee().catch(() => 0n),
-        this.core.devFee().catch(() => 0n),
-        this.core.comRates(0).catch(() => 0n),
-        this.core.comRates(1).catch(() => 0n),
-        this.core.comRates(2).catch(() => 0n)
-      ]);
-      this.ftaDecimals = Number(ftaDec);
-      this.claimFeePercent = Number(claimFeeRaw);
-      this.totalFeeRateFta = Number(devFeeRaw) + Number(c0) + Number(c1) + Number(c2);
-    } catch (_) { /* valeurs par défaut sécurisées */ }
-
-    await this.fetchMarketPrices();
-    await this.cacheBatteryDurations();
-    await this.updateData();
-    await this.consumePendingReferralDeepLink();
+    document.getElementById('wallet-card-addr').textContent = this.shortAddr(this.user);
 
     if (this.refreshInterval) clearInterval(this.refreshInterval);
-    this.refreshInterval = setInterval(() => this.updateData(), 15000);
-
+    this.refreshInterval = setInterval(() => {
+      if (this.sessionGeneration === generation && this.user) void this.updateData();
+    }, 15000);
     this.initVisualizer();
     window.addEventListener('resize', () => this.resizeCanvas());
-    setTimeout(() => this.checkForUpdates(false), 1200);
+    setTimeout(() => {
+      if (this.sessionGeneration === generation && this.user) this.checkForUpdates(false);
+    }, 1200);
+
+    // Le déverrouillage local est terminé : ne jamais laisser le loader couvrir
+    // le tableau de bord pendant la synchronisation blockchain.
+    this.setLoader(false);
+    this.sessionBootstrapPromise = this.completeUnlockedSessionActivation(generation);
+    void this.sessionBootstrapPromise;
+  }
+
+  async completeUnlockedSessionActivation(generation) {
+    const sessionIsCurrent = () => this.sessionGeneration === generation && !!this.user && !!this.signer;
+    try {
+      const conn = await FitiaSecurity.Rpc.connectBestProvider();
+      if (!sessionIsCurrent()) return;
+      this.applyConnectedProvider(conn);
+      this.promotionCenter.refresh({ force: true });
+
+      const loadContractParameters = async () => {
+        try {
+          const [ftaDec, claimFeeRaw, devFeeRaw, c0, c1, c2] = await Promise.all([
+            this.ftaToken.decimals().catch(() => 8),
+            this.core.claimFee().catch(() => 0n),
+            this.core.devFee().catch(() => 0n),
+            this.core.comRates(0).catch(() => 0n),
+            this.core.comRates(1).catch(() => 0n),
+            this.core.comRates(2).catch(() => 0n)
+          ]);
+          if (!sessionIsCurrent()) return;
+          this.ftaDecimals = Number(ftaDec);
+          this.claimFeePercent = Number(claimFeeRaw);
+          this.totalFeeRateFta = Number(devFeeRaw) + Number(c0) + Number(c1) + Number(c2);
+        } catch (_) { /* valeurs par défaut sécurisées */ }
+      };
+
+      // Ces tâches sont indépendantes et aucune ne doit retenir l'ouverture.
+      await Promise.allSettled([
+        loadContractParameters(),
+        this.fetchMarketPrices(),
+        this.cacheBatteryDurations()
+      ]);
+      if (!sessionIsCurrent()) return;
+      await this.updateData();
+      if (!sessionIsCurrent()) return;
+      await this.consumePendingReferralDeepLink();
+    } catch (error) {
+      if (!sessionIsCurrent()) return;
+      console.error('Synchronisation Polygon initiale:', error?.code || 'RPC_UNAVAILABLE');
+      // Une nouvelle lecture pourra réussir au prochain cycle sans bloquer le wallet.
+      await this.updateData();
+    }
   }
 
   // ─── Vérification préalable du gaz POL sur Polygon ───────────────
@@ -2189,16 +2238,26 @@ class Application {
   }
 
   // ─── Récupération du prix POL ────────────────────────────────────
-  async fetchMarketPrices() {
+  async fetchJsonWithTimeout(url, timeoutMs = 4000) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const r = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0');
-      const d = await r.json();
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error('MARKET_UNAVAILABLE');
+      return await response.json();
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async fetchMarketPrices(timeoutMs = 4000) {
+    try {
+      const d = await this.fetchJsonWithTimeout('https://api.dexscreener.com/latest/dex/tokens/0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0', timeoutMs);
       if (d.pairs?.length) this.polPriceUsd = parseFloat(d.pairs[0].priceUsd) || 0;
     } catch (_) {}
     if (!this.polPriceUsd) {
       try {
-        const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=polygon-ecosystem-token,matic-network&vs_currencies=usd');
-        const d = await r.json();
+        const d = await this.fetchJsonWithTimeout('https://api.coingecko.com/api/v3/simple/price?ids=polygon-ecosystem-token,matic-network&vs_currencies=usd', timeoutMs);
         this.polPriceUsd = d['polygon-ecosystem-token']?.usd || d['matic-network']?.usd || 0;
       } catch (_) {}
     }
