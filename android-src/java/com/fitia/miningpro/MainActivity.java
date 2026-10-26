@@ -293,14 +293,15 @@ public class MainActivity extends Activity {
     private String hardwareSeal(String plaintext) {
         try {
             SecretKey key = ensureHardwareKeyExists();
-            if (key == null) return plaintext;
+            if (key == null) return "";
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key);
             byte[] iv = cipher.getIV();
             byte[] ct = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
             return "AKS1:" + Base64.encodeToString(iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(ct, Base64.NO_WRAP);
         } catch (Exception e) {
-            return plaintext;
+            // Ne jamais réécrire un coffre sans sa couche AndroidKeyStore.
+            return "";
         }
     }
 

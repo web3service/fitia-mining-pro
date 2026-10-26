@@ -8,13 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
 <title>FITIA PRO MINER</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https://app.fitia.pro 'unsafe-inline'; base-uri 'self'; object-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'self'; form-action 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://*; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="promotion-effects.css">
 <script src="vendor/ethers.umd.min.js"></script>
@@ -383,7 +380,7 @@
 
       <!-- POL -->
       <div class="wallet-token-row">
-        <img src="https://i.ibb.co/NdCLLsck/IMG-20260302-131520-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/pol.svg'" class="token-img-lg" alt="POL">
+        <img src="assets/pol.svg" class="token-img-lg" alt="POL">
         <div class="token-info">
           <span class="token-name">POL <small class="token-tag">Polygon Gas</small></span>
           <span class="token-bal" id="bal-pol">0.0000</span>
@@ -397,7 +394,7 @@
 
       <!-- USDT (On-Chain Wallet) -->
       <div class="wallet-token-row">
-        <img src="https://i.ibb.co/BRGx1GN/IMG-20260228-134642-512-x-512-pixel.webp" onerror="this.onerror=null;this.src='assets/usdt.svg'" class="token-img-lg" alt="USDT">
+        <img src="assets/usdt.svg" class="token-img-lg" alt="USDT">
         <div class="token-info">
           <span class="token-name">USDT <small class="token-tag">ERC-20</small></span>
           <span class="token-bal" id="bal-wallet-usdt">0.00</span>

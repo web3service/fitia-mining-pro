@@ -121,13 +121,19 @@
     },
 
     hardwareSeal(str) {
+      const value = String(str);
       try {
         if (global.FitiaNative && typeof global.FitiaNative.sealVault === 'function') {
-          const out = global.FitiaNative.sealVault(String(str));
-          if (out) return out;
+          const out = global.FitiaNative.sealVault(value);
+          // Sur Android, une sortie vide, identique ou sans enveloppe AKS1 est un échec.
+          if (typeof out === 'string' && out.startsWith('AKS1:') && out !== value) return out;
+          return null;
         }
-      } catch (_) {}
-      return String(str);
+      } catch (_) {
+        return null;
+      }
+      // Le navigateur conserve les deux couches WebCrypto ; l'APK exige aussi le TEE.
+      return this.isNativeApk() ? null : value;
     },
 
     hardwareUnseal(str) {
@@ -599,6 +605,11 @@
 
       // Couche 3 : Scellement matériel AndroidKeyStore TEE (sur APK Android)
       const sealedPayload = NativeHelper.hardwareSeal(JSON.stringify(envelope));
+      if (!sealedPayload) {
+        const err = new Error('Secure hardware storage is unavailable. Your wallet was not changed.');
+        err.code = 'HARDWARE_SEAL_FAILED';
+        throw err;
+      }
       localStorage.setItem(VAULT_STORAGE_KEY, sealedPayload);
       localStorage.removeItem(LEGACY_VAULT_KEY);
       await VaultIDB.set(VAULT_STORAGE_KEY, sealedPayload);
@@ -733,6 +744,11 @@
       const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, nonExtractableBioKey, encoded);
 
       const sealedCt = NativeHelper.hardwareSeal(bytesToB64(new Uint8Array(ct)));
+      if (!sealedCt) {
+        const err = new Error('Secure hardware storage is unavailable. Biometric unlock was not changed.');
+        err.code = 'HARDWARE_SEAL_FAILED';
+        throw err;
+      }
 
       await VaultIDB.set('fitia_bio_crypto_key_v2', nonExtractableBioKey);
       await VaultIDB.set('fitia_bio_record_v2', {
@@ -824,23 +840,24 @@
         const parsed = new URL(String(urlInput || '').trim());
         if (parsed.protocol !== 'https:') return null;
         if (parsed.username || parsed.password) return null;
-        const h = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-        // Bloque les adresses locales/privées IPv4 & IPv6 (protection anti-SSRF complète)
+        const h = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+        const labels = h.split('.');
+        const isIpLiteral = h.includes(':') || labels.every((label) => /^(?:0x[0-9a-f]+|\d+)$/i.test(label));
+        // Un RPC personnalisé doit utiliser un nom DNS public. Refuser tous les
+        // littéraux IP élimine aussi les formes IPv6 mappées, compactes et hexadécimales.
         if (
-          h === 'localhost' ||
-          h === '::1' ||
-          h === '0.0.0.0' ||
-          h.startsWith('0.') ||
-          h.startsWith('127.') ||
-          h.startsWith('10.') ||
-          h.startsWith('192.168.') ||
-          h.startsWith('169.254.') ||
-          /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
-          h.startsWith('fe80:') ||
-          h.startsWith('fc') ||
-          h.startsWith('fd') ||
+          !h ||
+          !h.includes('.') ||
+          isIpLiteral ||
+          h.endsWith('.localhost') ||
           h.endsWith('.local') ||
-          h.endsWith('.internal')
+          h.endsWith('.internal') ||
+          h.endsWith('.localdomain') ||
+          h.endsWith('.lan') ||
+          h.endsWith('.home') ||
+          h.endsWith('.home.arpa') ||
+          h.endsWith('.intranet') ||
+          h.endsWith('.corp')
         ) {
           return null;
         }
