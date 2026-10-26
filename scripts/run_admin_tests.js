@@ -59,9 +59,10 @@ function clone(value) {
   const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'fitia-admin-tests-'));
   const dataFile = path.join(temporaryDirectory, 'announcements.json');
   const promotionsFile = path.join(temporaryDirectory, 'promotions.json');
+  const assetDirectory = path.join(temporaryDirectory, 'assets', 'announcements');
   fs.copyFileSync(path.join(ROOT, 'announcements.json'), dataFile);
   fs.copyFileSync(path.join(ROOT, 'promotions.json'), promotionsFile);
-  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile });
+  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, assetDirectory });
   const localPort = await listen(localServer);
   const localBase = `http://127.0.0.1:${localPort}`;
   let githubServer = null;
@@ -70,6 +71,7 @@ function clone(value) {
   let manifest = null;
   let revision = '';
   let staleRevision = '';
+  let uploadedAssetPath = '';
 
   try {
     await runTest('Interface séparée, en-têtes CSP et fichiers du projet non exposés', async () => {
@@ -85,6 +87,12 @@ function clone(value) {
         const result = await request(localBase, asset);
         assert.strictEqual(result.response.status, 200, asset);
         assert.ok(result.text.includes('promotion-effect'), asset);
+      }
+      for (const avatar of ['/assets/avatars/team-1.svg', '/assets/avatars/team-2.svg', '/assets/avatars/team-3.svg']) {
+        const result = await request(localBase, avatar);
+        assert.strictEqual(result.response.status, 200, avatar);
+        assert.ok(result.text.includes('<svg'), avatar);
+        assert.ok(result.response.headers.get('content-type').includes('image/svg+xml'));
       }
       for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/promotions.json', '/.git/HEAD']) {
         const result = await request(localBase, forbidden);
@@ -105,6 +113,8 @@ function clone(value) {
       assert.strictEqual(promotions.response.status, 401);
       const updatePromotions = await request(localBase, '/api/admin/promotions', { method: 'PUT', body: {} });
       assert.strictEqual(updatePromotions.response.status, 401);
+      const upload = await request(localBase, '/api/admin/announcement-assets', { method: 'POST', body: {} });
+      assert.strictEqual(upload.response.status, 401);
     });
 
     await runTest('Connexion par mot de passe, cookie HttpOnly et jeton CSRF temporaire', async () => {
@@ -152,6 +162,47 @@ function clone(value) {
       assert.strictEqual(fs.readFileSync(dataFile, 'utf8'), fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
     });
 
+    await runTest('Import sécurisé des images : CSRF, signature binaire, MIME, stockage et servi statique', async () => {
+      const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const payload = { data: pngBase64, contentType: 'image/png' };
+      const withoutCsrf = await request(localBase, '/api/admin/announcement-assets', { method: 'POST', cookie, body: payload });
+      assert.strictEqual(withoutCsrf.response.status, 403);
+      const wrongOrigin = await request(localBase, '/api/admin/announcement-assets', {
+        method: 'POST', cookie, csrf, origin: 'https://example.com', body: payload
+      });
+      assert.strictEqual(wrongOrigin.response.status, 403);
+      const invalidBase64 = await request(localBase, '/api/admin/announcement-assets', {
+        method: 'POST', cookie, csrf, body: { data: 'not-base64!' }
+      });
+      assert.strictEqual(invalidBase64.response.status, 400);
+      const disguisedSvg = await request(localBase, '/api/admin/announcement-assets', {
+        method: 'POST', cookie, csrf,
+        body: { data: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>').toString('base64'), contentType: 'image/png' }
+      });
+      assert.strictEqual(disguisedSvg.response.status, 415);
+      const wrongMime = await request(localBase, '/api/admin/announcement-assets', {
+        method: 'POST', cookie, csrf, body: { ...payload, contentType: 'image/jpeg' }
+      });
+      assert.strictEqual(wrongMime.response.status, 415);
+
+      const uploaded = await request(localBase, '/api/admin/announcement-assets', { method: 'POST', cookie, csrf, body: payload });
+      assert.strictEqual(uploaded.response.status, 201, uploaded.text);
+      assert.match(uploaded.data.asset.path, /^assets\/announcements\/announcement-[a-f0-9]{24}\.png$/);
+      assert.strictEqual(uploaded.data.asset.contentType, 'image/png');
+      assert.strictEqual(uploaded.data.asset.size, Buffer.from(pngBase64, 'base64').length);
+      uploadedAssetPath = uploaded.data.asset.path;
+      const storedFile = path.join(assetDirectory, path.basename(uploadedAssetPath));
+      assert.ok(fs.existsSync(storedFile));
+      assert.ok(fs.readFileSync(storedFile).equals(Buffer.from(pngBase64, 'base64')));
+      const served = await request(localBase, `/${uploadedAssetPath}`);
+      assert.strictEqual(served.response.status, 200);
+      assert.ok(served.response.headers.get('content-type').includes('image/png'));
+      const repeated = await request(localBase, '/api/admin/announcement-assets', { method: 'POST', cookie, csrf, body: payload });
+      assert.strictEqual(repeated.response.status, 201);
+      assert.strictEqual(repeated.data.asset.path, uploadedAssetPath);
+      assert.strictEqual(fs.readdirSync(assetDirectory).length, 1, 'Le nom haché rend les imports identiques idempotents');
+    });
+
     await runTest('Création d’un événement multilingue programmé et enregistrement atomique', async () => {
       const next = clone(manifest);
       next.announcements.push({
@@ -159,6 +210,10 @@ function clone(value) {
         category: 'event',
         title: { fr: 'Événement de test', en: 'Test event' },
         message: { fr: 'Message de test', en: 'Test message' },
+        theme: 'aurora',
+        font: 'rounded',
+        backgroundImage: uploadedAssetPath,
+        avatars: ['assets/avatars/team-1.svg', uploadedAssetPath],
         startsAt: '2030-01-01T00:00:00.000Z',
         expiresAt: '2030-12-31T23:59:59.000Z'
       });
@@ -170,6 +225,10 @@ function clone(value) {
       assert.strictEqual(result.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].startsAt, '2030-01-01T00:00:00.000Z');
       const saved = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
       assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].title.en, 'Test event');
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].theme, 'aurora');
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].font, 'rounded');
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundImage, uploadedAssetPath);
+      assert.deepStrictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].avatars, ['assets/avatars/team-1.svg', uploadedAssetPath]);
       assert.ok(!fs.readdirSync(temporaryDirectory).some((name) => name.includes('.tmp-')));
       manifest = result.data.manifest;
       revision = result.data.revision;
@@ -198,6 +257,25 @@ function clone(value) {
       });
       assert.strictEqual(result.response.status, 400);
 
+      const invalidAppearance = clone(manifest);
+      invalidAppearance.announcements[0].theme = 'unknown-theme';
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidAppearance, revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+      invalidAppearance.announcements[0].theme = 'classic';
+      invalidAppearance.announcements[0].backgroundImage = '../secret.png';
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidAppearance, revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+      invalidAppearance.announcements[0].backgroundImage = '';
+      invalidAppearance.announcements[0].avatars = ['assets/avatars/team-1.svg', 'assets/avatars/team-1.svg'];
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidAppearance, revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
       const tooMany = { enabled: true, announcements: Array.from({ length: 13 }, (_, index) => ({
         id: `event-${index}`, category: 'event', title: { fr: `Titre ${index}` }, message: { fr: 'Message' }
       })) };
@@ -211,10 +289,10 @@ function clone(value) {
       const loaded = await request(localBase, '/api/admin/promotions', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
       assert.strictEqual(typeof loaded.data.manifest.enabled, 'boolean');
-      assert.strictEqual(loaded.data.manifest.promotions.length, 0);
+      assert.ok(Array.isArray(loaded.data.manifest.promotions));
       const initialRevision = loaded.data.revision;
       const next = clone(loaded.data.manifest);
-      next.promotions.push({
+      next.promotions = [{
         id: 'gift-admin-test',
         targetType: 'machine',
         targetId: 0,
@@ -222,7 +300,7 @@ function clone(value) {
         label: { fr: 'JOYEUX <b>NOËL</b>', en: 'MERRY CHRISTMAS' },
         startsAt: '2030-12-01T00:00:00.000Z',
         expiresAt: '2030-12-31T23:59:59.000Z'
-      });
+      }];
       const withoutCsrf = await request(localBase, '/api/admin/promotions', {
         method: 'PUT', cookie, body: { manifest: next, revision: initialRevision }
       });
@@ -357,17 +435,33 @@ function clone(value) {
       assert.ok(limited.response.headers.get('retry-after'));
     });
 
-    await runTest('Publication GitHub des annonces et décorations avec SHA et token strictement serveur', async () => {
+    await runTest('Publication GitHub des annonces, décorations et visuels avec secrets strictement serveur', async () => {
       let githubManifest = { enabled: true, announcements: [] };
       let githubRevision = 'sha-initial';
       let writes = 0;
+      let assetWrites = 0;
+      const githubAssets = new Map();
       let githubPromotionManifest = { enabled: true, promotions: [] };
       let githubPromotionRevision = 'sha-promotion-initial';
       let promotionWrites = 0;
       const mockFetch = async (url, init = {}) => {
         const isPromotion = String(url).includes('/contents/promotions.json');
-        assert.ok(String(url).includes(`/repos/web3service/fitia-mining-pro/contents/${isPromotion ? 'promotions.json' : 'announcements.json'}`));
         assert.strictEqual(init.headers.Authorization, 'Bearer test-token-not-real');
+        const assetMatch = String(url).match(/\/contents\/(assets\/announcements\/announcement-[a-f0-9]{24}\.(?:png|jpg|webp))/);
+        if (assetMatch) {
+          const assetPath = assetMatch[1];
+          if ((init.method || 'GET') === 'PUT') {
+            const body = JSON.parse(init.body);
+            assert.strictEqual(body.message, 'Add FITIA announcement asset');
+            assert.strictEqual(body.branch, 'main');
+            githubAssets.set(assetPath, Buffer.from(body.content, 'base64'));
+            assetWrites += 1;
+            return new Response(JSON.stringify({ content: { sha: `sha-asset-${assetWrites}` } }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+          }
+          if (!githubAssets.has(assetPath)) return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ sha: 'sha-asset-existing', encoding: 'base64', content: githubAssets.get(assetPath).toString('base64') }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        assert.ok(String(url).includes(`/repos/web3service/fitia-mining-pro/contents/${isPromotion ? 'promotions.json' : 'announcements.json'}`));
         if ((init.method || 'GET') === 'PUT') {
           const body = JSON.parse(init.body);
           assert.strictEqual(body.sha, isPromotion ? githubPromotionRevision : githubRevision);
@@ -440,6 +534,22 @@ function clone(value) {
       assert.strictEqual(githubPromotionManifest.promotions[0].id, 'badge-github-test');
       assert.strictEqual(promotionWrites, 1);
       assert.ok(!savedPromotions.text.includes('test-token-not-real'));
+
+      const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const uploaded = await request(base, '/api/admin/announcement-assets', {
+        method: 'POST', cookie: ghCookie, csrf: ghCsrf,
+        body: { data: pngBase64, contentType: 'image/png' }
+      });
+      assert.strictEqual(uploaded.response.status, 201, uploaded.text);
+      assert.strictEqual(assetWrites, 1);
+      assert.ok(githubAssets.get(uploaded.data.asset.path).equals(Buffer.from(pngBase64, 'base64')));
+      assert.ok(!uploaded.text.includes('test-token-not-real'));
+      const repeated = await request(base, '/api/admin/announcement-assets', {
+        method: 'POST', cookie: ghCookie, csrf: ghCsrf,
+        body: { data: pngBase64, contentType: 'image/png' }
+      });
+      assert.strictEqual(repeated.response.status, 201);
+      assert.strictEqual(assetWrites, 1);
     });
   } finally {
     await close(localServer);

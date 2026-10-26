@@ -104,7 +104,8 @@ function createMockAndroidBridge() {
     vibrations: 0,
     appVersionCode: 0,
     appVersionName: '',
-    updateDownloads: []
+    updateDownloads: [],
+    sharedTexts: []
   };
 
   return {
@@ -123,7 +124,7 @@ function createMockAndroidBridge() {
       state.clipboard = String(t || '');
       state.lastClearDelayMs = Number(clearDelayMs);
     },
-    shareText: () => {},
+    shareText: (title, text) => { state.sharedTexts.push({ title: String(title || ''), text: String(text || '') }); },
     setPinGuardState: (json) => { state.pinGuardJson = String(json || ''); },
     getPinGuardState: () => state.pinGuardJson,
     sealVault: (plainText) => {
@@ -705,7 +706,7 @@ function httpRequest(port, method, reqPath) {
       App.closeModals();
     });
 
-    await runTest('UI-REFERRAL', 'Parrainage déplacé du tableau de bord vers Paramètres avec partage et liaison conservés', async () => {
+    await runTest('UI-REFERRAL', 'Code FITIA professionnel, copie, partage et compatibilité des liaisons on-chain', async () => {
       const document = e2eWin.document;
       const settingsModal = document.getElementById('modal-security');
       await App.openSecurityModal();
@@ -717,8 +718,71 @@ function httpRequest(port, method, reqPath) {
       ['my-ref-id-label', 'current-referrer-status', 'ref-form-wrap', 'ref-address-input'].forEach((id) => {
         assert.ok(referralCard.querySelector(`#${id}`), `Élément Parrainage conservé : ${id}`);
       });
+      assert.ok(referralCard.querySelector('.ref-brand-logo[src="assets/fta.png"]'), 'Le logo FITIA local identifie le programme');
+      assert.ok(referralCard.querySelector('button[onclick="App.copyMyReferralCode()"]'), 'La copie directe du code est disponible');
       assert.ok(referralCard.querySelector('button[onclick="App.shareMyReferral()"]'), 'Le partage du code de parrainage reste disponible');
       assert.ok(referralCard.querySelector('button[onclick="App.bindReferrer()"]'), 'La liaison du parrain reste disponible');
+      assert.strictEqual(App.formatReferralCode(1042), 'FITIA-001042');
+      assert.strictEqual(App.formatReferralCode(42), 'FITIA-000042');
+      assert.strictEqual(App.formatReferralCode(1234567), 'FITIA-1234567');
+      assert.strictEqual(App.formatReferralCode(0), '', 'Sans UID, le format FITIA ne fabrique pas un faux code');
+      assert.strictEqual(document.getElementById('my-ref-id-label').textContent, 'FITIA-001042', 'L’UID on-chain 1042 est présenté sous sa forme professionnelle');
+      assert.strictEqual(App.getMyReferralCode(), 'FITIA-001042');
+      App.myReferralCode = '';
+      assert.strictEqual(App.getMyReferralCode(), App.user, 'Sans code UID, le partage utilise l’adresse complète et non raccourcie');
+      App.myReferralCode = 'FITIA-001042';
+
+      for (const [input, expected] of [['FITIA-001042', 1042n], ['fitia-1042', 1042n], ['#1042', 1042n], ['1042', 1042n]]) {
+        const parsed = App.parseReferralInput(input);
+        assert.strictEqual(parsed?.type, 'id', `${input} reste une liaison par UID`);
+        assert.strictEqual(parsed?.value, expected, `${input} est converti vers le bon UID`);
+      }
+      const parsedAddress = App.parseReferralInput(App.user);
+      assert.strictEqual(parsedAddress?.type, 'address');
+      assert.strictEqual(parsedAddress?.value, e2eWin.ethers.getAddress(App.user));
+      for (const invalid of ['', '0', '#0', 'FITIA-0', 'FITIA--1042', 'FITIA-1042-EXTRA', '0x1234', 'FITIA-ABC']) {
+        assert.strictEqual(App.parseReferralInput(invalid), null, `Entrée refusée : ${invalid || '(vide)'}`);
+      }
+
+      await App.copyMyReferralCode();
+      assert.strictEqual(e2eWin.FitiaNative._state.clipboard, 'FITIA-001042', 'La copie utilise le code complet');
+      assert.notStrictEqual(e2eWin.FitiaNative._state.lastClearDelayMs, 45000, 'Le code public n’utilise pas le presse-papiers sensible');
+      await App.shareMyReferral();
+      const shared = e2eWin.FitiaNative._state.sharedTexts.at(-1);
+      assert.ok(shared?.text.includes('FITIA-001042'), 'Le partage contient le code professionnel complet');
+      assert.ok(shared?.text.includes(App.user) === false, 'Le partage privilégie le code et ne duplique pas l’adresse');
+
+      const originals = { core: App.core, ensurePolGas: App.ensurePolGas, updateData: App.updateData };
+      const calls = [];
+      App.ensurePolGas = async () => true;
+      App.updateData = async () => {};
+      App.core = {
+        setReferrerById: async (uid) => { calls.push({ type: 'id', value: uid }); return { wait: async () => ({ status: 1 }) }; },
+        setReferrer: async (address) => { calls.push({ type: 'address', value: address }); return { wait: async () => ({ status: 1 }) }; }
+      };
+      try {
+        const input = document.getElementById('ref-address-input');
+        input.value = 'fitia-001042';
+        await App.bindReferrer();
+        input.value = '#1042';
+        await App.bindReferrer();
+        input.value = App.user;
+        await App.bindReferrer();
+        assert.deepStrictEqual(calls, [
+          { type: 'id', value: 1042n },
+          { type: 'id', value: 1042n },
+          { type: 'address', value: e2eWin.ethers.getAddress(App.user) }
+        ], 'Les nouveaux et anciens formats conservent leurs méthodes de contrat respectives');
+        input.value = 'FITIA--1042';
+        await App.bindReferrer();
+        assert.strictEqual(calls.length, 3, 'Une entrée invalide ne déclenche aucune transaction');
+      } finally {
+        App.core = originals.core;
+        App.ensurePolGas = originals.ensurePolGas;
+        App.updateData = originals.updateData;
+        document.getElementById('ref-address-input').value = '';
+      }
+
       assert.ok(
         !/[\u{2300}-\u{23FF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u.test(referralCard.textContent),
         'La section Parrainage reste sans emoji dans Paramètres'
@@ -933,11 +997,17 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(carouselDelay, 8000, 'Chaque annonce reste huit secondes avant la rotation');
         center.stop();
 
+        const uploadedBackground = `assets/announcements/announcement-${'a'.repeat(24)}.webp`;
+        const uploadedAvatar = `assets/announcements/announcement-${'b'.repeat(24)}.png`;
         const safe = {
           id: 'event-safe',
           category: 'event',
           title: { fr: '<img src=x> Événement officiel', en: 'Safe official event' },
           message: { fr: 'Texte <script>alert(1)</script> uniquement', en: 'Plain text only' },
+          theme: 'celebration',
+          font: 'elegant',
+          backgroundImage: uploadedBackground,
+          avatars: ['assets/avatars/team-1.svg', uploadedAvatar],
           startsAt: '2026-10-01T00:00:00Z',
           expiresAt: '2026-12-31T23:59:59Z'
         };
@@ -949,7 +1019,13 @@ function httpRequest(port, method, reqPath) {
             { ...safe, id: 'expired', expiresAt: '2026-01-01T00:00:00Z' },
             { ...safe, id: 'future', startsAt: '2027-01-01T00:00:00Z' },
             { ...safe, id: 'bad-category', category: 'unknown' },
-            { ...safe, id: 'bad-date', expiresAt: 'date-invalide' }
+            { ...safe, id: 'bad-date', expiresAt: 'date-invalide' },
+            { ...safe, id: 'bad-theme', theme: 'injected-theme' },
+            { ...safe, id: 'bad-font', font: 'url(https://evil.example/font)' },
+            { ...safe, id: 'bad-background', backgroundImage: 'https://evil.example/background.png' },
+            { ...safe, id: 'bad-avatar', avatars: ['https://evil.example/avatar.png'] },
+            { ...safe, id: 'duplicate-avatar', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-1.svg'] },
+            { ...safe, id: 'too-many-avatars', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg', uploadedAvatar] }
           ]
         };
         const normalized = center.normalizeManifest(manifest, now);
@@ -967,10 +1043,40 @@ function httpRequest(port, method, reqPath) {
         assert.ok(e2eWin.document.querySelector('.announcement-title').textContent.includes('<img src=x>'), 'Le balisage reste du texte visible');
         assert.strictEqual(e2eWin.document.querySelector('#announcement-center script'), null, 'Aucun script distant ne peut être injecté');
         assert.strictEqual(e2eWin.document.querySelector('.announcement-copy img'), null, 'Aucune image injectée dans le texte');
+        const visualSlide = e2eWin.document.querySelector('.announcement-slide');
+        assert.ok(visualSlide.classList.contains('announcement-theme-celebration'));
+        assert.ok(visualSlide.classList.contains('announcement-font-elegant'));
+        assert.ok(visualSlide.classList.contains('has-background'));
+        assert.ok(visualSlide.style.getPropertyValue('--announcement-bg-image').includes(uploadedBackground));
+        assert.ok(visualSlide.style.getPropertyValue('--announcement-bg-image').includes('raw.githubusercontent.com'));
+        assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatars img').length, 2, 'Les avatars validés sont affichés');
+        assert.strictEqual(visualSlide.querySelector('.announcement-avatars img').getAttribute('src'), 'assets/avatars/team-1.svg', 'Les avatars FITIA restent embarqués');
+        assert.strictEqual(visualSlide.querySelector('.announcement-avatars').getAttribute('aria-hidden'), 'true');
 
         App.setLanguage('en');
         assert.strictEqual(e2eWin.document.querySelector('.announcement-title').textContent, 'Safe official event');
         App.setLanguage('fr');
+
+        e2eWin.fetch = async () => ({ ok: true, json: async () => ({ enabled: false, announcements: [safe] }) });
+        await center.refresh();
+        assert.strictEqual(center.channelEnabled, false);
+        assert.strictEqual(center.localFallback, false, 'Un manifeste désactivé ne doit pas réactiver les annonces locales');
+        assert.strictEqual(center.items.length, 0);
+        assert.ok(e2eWin.document.getElementById('announcement-center').classList.contains('hidden'), 'La section entière est masquée');
+        assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 0);
+        center.start();
+        assert.strictEqual(center.timer, null, 'La désactivation arrête aussi la rotation');
+
+        e2eWin.fetch = async () => { throw new Error('offline'); };
+        await center.refresh();
+        assert.ok(e2eWin.document.getElementById('announcement-center').classList.contains('hidden'), 'Une panne ne change pas le dernier état désactivé valide');
+
+        e2eWin.fetch = async () => ({ ok: true, json: async () => manifest });
+        await center.refresh();
+        assert.strictEqual(center.channelEnabled, true, 'La réactivation distante réouvre le canal');
+        assert.strictEqual(center.items.length, 1);
+        assert.ok(!e2eWin.document.getElementById('announcement-center').classList.contains('hidden'));
+        assert.strictEqual(e2eWin.document.querySelectorAll('#announcement-track .announcement-slide').length, 1);
 
         e2eWin.fetch = async () => { throw new Error('offline'); };
         await center.refresh();
@@ -985,6 +1091,8 @@ function httpRequest(port, method, reqPath) {
         App.setLanguage(originalLang);
         center.stop();
         center.localFallback = true;
+        center.channelEnabled = true;
+        center.lastFetchAt = 0;
         center.items = center.defaults();
         center.index = 0;
         center.fetchInFlight = false;
@@ -1127,7 +1235,9 @@ function httpRequest(port, method, reqPath) {
 
         const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
         assert.strictEqual(typeof published.enabled, 'boolean');
-        assert.deepStrictEqual(published.promotions, []);
+        assert.ok(Array.isArray(published.promotions));
+        const publishedItems = center.normalizeManifest({ ...published, enabled: true }, now);
+        assert.strictEqual(publishedItems.length, published.promotions.length, 'La configuration publiée reste valide sans imposer son activation ni un nombre fixe de promotions');
         const walletSource = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8');
         assert.ok(walletSource.indexOf('src="promotion-effects.js"') < walletSource.indexOf('src="promotions.js"'));
         assert.ok(walletSource.indexOf('src="promotions.js"') < walletSource.indexOf('src="app.js"'));
@@ -1191,7 +1301,7 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(document.querySelector('[data-swap-market="POL_USDT"]').getAttribute('aria-pressed'), 'false');
     });
 
-    await runTest('MINING-UI', 'Compte Minage : titre corrigé, vrai logo FTA, sélecteur visuel et Retirer sans suffixe', async () => {
+    await runTest('MINING-UI', 'Compte Minage : titre corrigé, vrai logo FTA, sélecteur visuel et boutons sans suffixe', async () => {
       const document = e2eWin.document;
       const originalLang = App.currentLang;
       const tokenInput = document.getElementById('deposit-token-select');
@@ -1202,9 +1312,12 @@ function httpRequest(port, method, reqPath) {
       try {
         App.setLanguage('fr');
         const title = document.querySelector('[data-i18n="miningVaultTitle"]');
+        const depositButton = document.querySelector('[data-i18n="depositBtn"]');
         const withdrawButton = document.querySelector('[data-i18n="withdrawBtn"]');
         assert.strictEqual(title.textContent.trim(), '⚡ Compte Minage');
         assert.ok(!title.textContent.includes('Contrat FITIA'));
+        assert.strictEqual(depositButton.textContent.trim(), 'DÉPOSER');
+        assert.ok(!depositButton.textContent.includes('↓'));
         assert.strictEqual(withdrawButton.textContent.trim(), 'RETIRER');
         assert.ok(!withdrawButton.textContent.includes('↑'));
         assert.ok(!withdrawButton.textContent.includes('ij'));
@@ -1233,15 +1346,128 @@ function httpRequest(port, method, reqPath) {
         App.onTransferTokenChange('POL');
         assert.strictEqual(tokenInput.value, 'USDT', 'Un token non pris en charge est ignoré');
 
-        for (const lang of ['en', 'de', 'zh']) {
+        for (const [lang, depositLabel] of Object.entries({ en: 'DEPOSIT', de: 'EINZAHLEN', zh: '存入' })) {
           App.setLanguage(lang);
           assert.ok(!title.textContent.includes('FITIA Contract') && !title.textContent.includes('(FITIA)') && !title.textContent.includes('FITIA 合约'));
+          assert.strictEqual(depositButton.textContent.trim(), depositLabel);
+          assert.ok(!depositButton.textContent.includes('↓'));
           assert.ok(!withdrawButton.textContent.includes('↑'));
         }
       } finally {
         App.onTransferTokenChange(originalToken);
         amountInput.value = originalAmount;
         App.setLanguage(originalLang);
+      }
+    });
+
+    await runTest('PLUG-UI', 'Connexion Machine/Batterie : sélection visuelle, stock, aperçu et transaction protégée', async () => {
+      const document = e2eWin.document;
+      const machineInput = document.getElementById('plug-machine-id');
+      const batteryInput = document.getElementById('plug-battery-type');
+      const submit = document.getElementById('btn-plug-machine');
+      const originals = {
+        userMachines: App.userMachines,
+        batteryInventory: App.batteryInventory,
+        batteryTypeDurations: App.batteryTypeDurations,
+        mine: App.mine,
+        ensurePolGas: App.ensurePolGas,
+        updateData: App.updateData,
+        showToast: App.showToast,
+        lang: App.currentLang,
+        machineValue: machineInput.value,
+        batteryValue: batteryInput.value,
+        inProgress: App.plugTransactionInProgress
+      };
+      const messages = [];
+      const calls = [];
+      const now = Math.floor(Date.now() / 1000);
+
+      try {
+        App.userMachines = [
+          { tid: 0, exp: 0 },
+          { tid: 1, exp: now - 60 },
+          { tid: 2, exp: now + 3600 }
+        ];
+        App.batteryInventory = { 0: 2, 1: 1 };
+        App.batteryTypeDurations = { 0: 7, 1: 30, 2: 90 };
+        App.showToast = (message, isError = false) => messages.push({ message, isError });
+        machineInput.value = '';
+        batteryInput.value = '';
+        App.renderPlugInterface();
+
+        assert.strictEqual(document.querySelectorAll('[data-plug-machine]').length, 2, 'Seules les machines non actives sont proposées');
+        assert.strictEqual(document.querySelector('[data-plug-machine="2"]'), null, 'La machine active est exclue');
+        assert.strictEqual(document.querySelectorAll('[data-plug-battery]').length, 2, 'Seules les batteries en stock sont proposées');
+        assert.strictEqual(document.querySelector('[data-plug-battery="2"]'), null, 'Le type sans stock est exclu');
+        assert.strictEqual(document.getElementById('plug-machine-count').textContent, '2');
+        assert.strictEqual(document.getElementById('plug-battery-count').textContent, '3');
+        assert.strictEqual(submit.disabled, true, 'La confirmation reste désactivée sans sélection');
+
+        assert.strictEqual(App.selectPlugMachine(1), true);
+        assert.strictEqual(App.selectPlugBattery(1), true);
+        assert.strictEqual(machineInput.value, '1');
+        assert.strictEqual(batteryInput.value, '1');
+        assert.strictEqual(document.querySelector('[data-plug-machine="1"]').getAttribute('aria-pressed'), 'true');
+        assert.strictEqual(document.querySelector('[data-plug-battery="1"]').getAttribute('aria-pressed'), 'true');
+        assert.strictEqual(document.getElementById('plug-connector').classList.contains('ready'), true);
+        assert.ok(document.getElementById('plug-summary').textContent.includes('#1'));
+        assert.ok(document.getElementById('plug-summary').textContent.includes('30'));
+        assert.strictEqual(submit.disabled, false, 'La paire valide active la confirmation');
+
+        App.renderPlugInterface();
+        assert.strictEqual(machineInput.value, '1', 'Une actualisation conserve la machine valide');
+        assert.strictEqual(batteryInput.value, '1', 'Une actualisation conserve la batterie valide');
+        App.quickSelectMachineToPlug(0);
+        assert.strictEqual(machineInput.value, '0', 'Le raccourci d’une machine préremplit la sélection visuelle');
+        assert.strictEqual(batteryInput.value, '1');
+
+        let resolveReceipt;
+        App.ensurePolGas = async () => true;
+        App.updateData = async () => {};
+        App.mine = {
+          plugInMachine: async (...args) => {
+            calls.push(args);
+            return { wait: () => new Promise((resolve) => { resolveReceipt = resolve; }) };
+          }
+        };
+        const firstConnection = App.plugInMachine();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.strictEqual(calls.length, 1);
+        assert.strictEqual(App.plugTransactionInProgress, true);
+        assert.strictEqual(submit.disabled, true, 'Le bouton est bloqué pendant la confirmation');
+        await App.plugInMachine();
+        assert.strictEqual(calls.length, 1, 'Un double-clic ne crée pas une deuxième transaction');
+        resolveReceipt({ status: 1 });
+        await firstConnection;
+        assert.deepStrictEqual(calls, [[0, 1]], 'Les index visuels sont transmis sans modification au contrat');
+        assert.strictEqual(App.plugTransactionInProgress, false);
+        assert.strictEqual(machineInput.value, '', 'La machine connectée est retirée de la sélection après confirmation');
+        assert.strictEqual(batteryInput.value, '1', 'Le type de batterie reste disponible pour une prochaine connexion');
+
+        machineInput.value = '2';
+        batteryInput.value = '1';
+        await App.plugInMachine();
+        assert.strictEqual(calls.length, 1, 'Une machine active ne peut pas être envoyée au contrat');
+        assert.strictEqual(messages.at(-1).message, App.t('errRunning'));
+        machineInput.value = '0';
+        batteryInput.value = '2';
+        await App.plugInMachine();
+        assert.strictEqual(calls.length, 1, 'Une batterie sans stock ne peut pas être envoyée au contrat');
+        assert.strictEqual(messages.at(-1).message, App.t('errNoBattery'));
+      } finally {
+        App.userMachines = originals.userMachines;
+        App.batteryInventory = originals.batteryInventory;
+        App.batteryTypeDurations = originals.batteryTypeDurations;
+        App.mine = originals.mine;
+        App.ensurePolGas = originals.ensurePolGas;
+        App.updateData = originals.updateData;
+        App.showToast = originals.showToast;
+        App.plugTransactionInProgress = originals.inProgress;
+        machineInput.value = originals.machineValue;
+        batteryInput.value = originals.batteryValue;
+        App.setLoader(false);
+        App.setLanguage(originals.lang);
+        App.renderPlugInterface();
       }
     });
 
@@ -1691,6 +1917,8 @@ function httpRequest(port, method, reqPath) {
       App.lockWallet(true);
       assert.strictEqual(App.signer, null);
       assert.strictEqual(App.user, null);
+      assert.strictEqual(App.myReferralCode, '', 'Le code de parrainage en mémoire est purgé au verrouillage');
+      assert.strictEqual(e2eWin.document.getElementById('my-ref-id-label').textContent, '—');
       assert.strictEqual(App.revealedSecretText, '');
       assert.strictEqual(e2eWin.FitiaNative._state.screenSecure, true, 'FLAG_SECURE réactivé au verrouillage');
     });

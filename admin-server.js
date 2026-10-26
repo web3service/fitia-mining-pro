@@ -5,6 +5,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const {
+  MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES,
+  normalizeAppearance,
+  validateImagePayload
+} = require('./announcement-assets');
 
 const ROOT = __dirname;
 const ADMIN_DIR = path.join(ROOT, 'admin');
@@ -74,6 +79,9 @@ function normalizeAnnouncement(item) {
     title: normalizeLocalizedText(item.title, 80, 'Le titre'),
     message: normalizeLocalizedText(item.message, 180, 'Le message')
   };
+  const appearance = normalizeAppearance(item);
+  if (!appearance.ok) throw new ApiError(appearance.status, appearance.message, appearance.code);
+  Object.assign(normalized, appearance.value);
   const startsAt = normalizeDate(item.startsAt, 'La date de début');
   const expiresAt = normalizeDate(item.expiresAt, 'La date de fin');
   if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
@@ -214,7 +222,7 @@ function sendJson(res, status, payload, extraHeaders = {}) {
   res.end(body);
 }
 
-function readJson(req) {
+function readJson(req, maxBytes = MAX_BODY_BYTES) {
   return new Promise((resolve, reject) => {
     const contentType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
     if (contentType !== 'application/json') {
@@ -225,7 +233,7 @@ function readJson(req) {
     let size = 0;
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
+      if (size > maxBytes) {
         reject(new ApiError(413, 'La requête est trop volumineuse.', 'TOO_LARGE'));
         req.destroy();
         return;
@@ -256,6 +264,7 @@ function createAdminServer(options = {}) {
 
   const dataFile = path.resolve(options.dataFile || process.env.FITIA_ADMIN_DATA_FILE || path.join(ROOT, 'announcements.json'));
   const promotionsFile = path.resolve(options.promotionsFile || process.env.FITIA_ADMIN_PROMOTIONS_FILE || path.join(ROOT, 'promotions.json'));
+  const assetDirectory = path.resolve(options.assetDirectory || process.env.FITIA_ADMIN_ASSET_DIRECTORY || path.join(ROOT, 'assets', 'announcements'));
   const owner = options.owner || process.env.FITIA_ADMIN_GITHUB_OWNER || 'web3service';
   const repo = options.repo || process.env.FITIA_ADMIN_GITHUB_REPO || 'fitia-mining-pro';
   const branch = options.branch || process.env.FITIA_ADMIN_GITHUB_BRANCH || 'main';
@@ -404,14 +413,48 @@ function createAdminServer(options = {}) {
     return sha256(serialized);
   }
 
-  async function loadManifest(kind = 'announcements') {
-    return localMode ? loadLocal(kind) : loadGitHub(kind);
+  async function saveGitHubAsset(asset) {
+    const encodedPath = asset.path.split('/').map(encodeURIComponent).join('/');
+    const url = `${githubApiBase}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`;
+    const existing = await githubRequest(`${url}?ref=${encodeURIComponent(branch)}`);
+    if (existing.ok) return;
+    if (existing.status !== 404) throw new ApiError(503, 'Impossible de vérifier le visuel sur GitHub.', 'GITHUB_READ');
+    const response = await githubRequest(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Add FITIA announcement asset', content: asset.base64, branch })
+    });
+    if (!response.ok) throw new ApiError(503, 'La publication du visuel sur GitHub a été refusée.', 'GITHUB_WRITE');
+  }
+
+  async function saveLocalAsset(asset) {
+    const targetFile = path.join(assetDirectory, path.basename(asset.path));
+    await fs.promises.mkdir(assetDirectory, { recursive: true });
+    try {
+      const stat = await fs.promises.stat(targetFile);
+      if (stat.isFile()) return;
+    } catch (_) { /* Le visuel sera créé ci-dessous. */ }
+    const temporary = `${targetFile}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
+    await fs.promises.writeFile(temporary, asset.bytes, { mode: 0o600 });
+    await fs.promises.rename(temporary, targetFile);
   }
 
   function enqueueMutation(task) {
     const result = mutationQueue.then(task);
     mutationQueue = result.catch(() => {});
     return result;
+  }
+
+  async function loadManifest(kind = 'announcements') {
+    return localMode ? loadLocal(kind) : loadGitHub(kind);
+  }
+
+  async function publishAsset(payload) {
+    const validation = validateImagePayload(payload);
+    if (!validation.ok) throw new ApiError(validation.status, validation.message, validation.code);
+    const asset = validation.value;
+    await enqueueMutation(() => (localMode ? saveLocalAsset(asset) : saveGitHubAsset(asset)));
+    return { path: asset.path, contentType: asset.contentType, size: asset.size };
   }
 
   async function updateManifest(rawManifest, expectedRevision, kind = 'announcements') {
@@ -438,7 +481,10 @@ function createAdminServer(options = {}) {
     ['/admin/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.js', { file: path.join(ROOT, 'promotion-effects.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.css', { file: path.join(ROOT, 'promotion-effects.css'), type: 'text/css; charset=utf-8' }],
-    ['/assets/icon-192.png', { file: path.join(ROOT, 'assets/icon-192.png'), type: 'image/png' }]
+    ['/assets/icon-192.png', { file: path.join(ROOT, 'assets/icon-192.png'), type: 'image/png' }],
+    ['/assets/avatars/team-1.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-1.svg'), type: 'image/svg+xml' }],
+    ['/assets/avatars/team-2.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-2.svg'), type: 'image/svg+xml' }],
+    ['/assets/avatars/team-3.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-3.svg'), type: 'image/svg+xml' }]
   ]);
 
   async function handleApi(req, res, pathname) {
@@ -493,6 +539,15 @@ function createAdminServer(options = {}) {
       return;
     }
 
+    if (pathname === '/api/announcement-assets' && req.method === 'POST') {
+      const session = requireSession(req, res);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES);
+      const asset = await publishAsset(body);
+      sendJson(res, 201, { asset, ...sourceInfo() });
+      return;
+    }
+
     if ((pathname === '/api/announcements' || pathname === '/api/promotions') && req.method === 'GET') {
       const session = requireSession(req, res);
       if (!session) return;
@@ -528,7 +583,12 @@ function createAdminServer(options = {}) {
         sendJson(res, 405, { error: 'Méthode non autorisée.', code: 'METHOD' });
         return;
       }
-      const staticFile = staticFiles.get(pathname);
+      let staticFile = staticFiles.get(pathname);
+      const uploadedAsset = /^\/assets\/announcements\/(announcement-[a-f0-9]{24}\.(png|jpg|webp))$/.exec(pathname);
+      if (uploadedAsset) {
+        const types = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
+        staticFile = { file: path.join(assetDirectory, uploadedAsset[1]), type: types[uploadedAsset[2]] };
+      }
       if (!staticFile) {
         sendJson(res, 404, { error: 'Page introuvable.', code: 'NOT_FOUND' });
         return;

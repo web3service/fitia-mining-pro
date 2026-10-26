@@ -19,6 +19,7 @@ let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
 const writes = [];
 let promotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
+const initialPromotionCount = promotionManifest.promotions.length;
 let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];
 let failPromotions = false;
@@ -89,6 +90,21 @@ async function waitFor(condition, label) {
 
   window.document.querySelector('[data-new-event]').click();
   assert.ok(!window.document.getElementById('editor-modal').classList.contains('hidden'));
+  const template = window.document.getElementById('item-template');
+  template.value = 'maintenance-thanks';
+  template.dispatchEvent(new window.Event('change', { bubbles: true }));
+  assert.strictEqual(window.document.getElementById('item-title-fr').value, 'Merci pour votre patience');
+  assert.strictEqual(window.document.getElementById('item-theme').value, 'celebration');
+  assert.strictEqual(window.document.getElementById('item-font').value, 'elegant');
+  assert.strictEqual(window.document.getElementById('item-avatar-count').textContent, '3/3');
+  assert.strictEqual(window.document.querySelectorAll('#preview-avatars img').length, 3);
+  assert.ok(window.document.getElementById('preview-slide').classList.contains('announcement-theme-celebration'));
+  assert.strictEqual(writes.length, 0, 'Le modèle reste un brouillon et ne publie rien automatiquement');
+  const firstPreset = window.document.querySelector('[data-avatar-preset="assets/avatars/team-1.svg"]');
+  firstPreset.click();
+  assert.strictEqual(window.document.querySelectorAll('#preview-avatars img').length, 2);
+  firstPreset.click();
+  assert.strictEqual(window.document.querySelectorAll('#preview-avatars img').length, 3);
   const title = '<img src=x data-injected> Événement test';
   const message = '<script>window.__xss = true</script> Message test';
   window.document.getElementById('item-title-fr').value = title;
@@ -102,7 +118,12 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('editor-modal').classList.contains('hidden'), 'fermeture éditeur');
   assert.strictEqual(manifest.announcements.length, initialAnnouncementCount + 1);
   assert.strictEqual(manifest.announcements[initialAnnouncementCount].startsAt, '2030-01-01T10:00:00.000Z');
-  const createdAnnouncementId = manifest.announcements[initialAnnouncementCount].id;
+  const createdAnnouncement = manifest.announcements[initialAnnouncementCount];
+  const createdAnnouncementId = createdAnnouncement.id;
+  assert.strictEqual(createdAnnouncement.theme, 'celebration');
+  assert.strictEqual(createdAnnouncement.font, 'elegant');
+  assert.strictEqual(createdAnnouncement.avatars.length, 3);
+  assert.ok(createdAnnouncement.avatars.every((avatar) => /^assets\/avatars\/team-[123]\.svg$/.test(avatar)));
   const newRow = window.document.querySelector(`[data-announcement-id="${createdAnnouncementId}"]`);
   assert.ok(newRow.textContent.includes('<img src=x data-injected>'));
   assert.strictEqual(newRow.querySelector('[data-injected]'), null);
@@ -146,13 +167,15 @@ async function waitFor(condition, label) {
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => promotionWrites.length === 1, 'création décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture éditeur décoration');
-  assert.strictEqual(promotionManifest.promotions.length, 1);
-  assert.strictEqual(promotionManifest.promotions[0].targetType, 'battery');
-  assert.strictEqual(promotionManifest.promotions[0].targetId, 1);
-  assert.strictEqual(promotionManifest.promotions[0].variant, 'bells');
-  assert.strictEqual(promotionManifest.promotions[0].animated, false);
-  assert.strictEqual(promotionManifest.promotions[0].startsAt, '2030-12-01T08:00:00.000Z');
-  const promotionRow = window.document.querySelector('[data-promotion-id^="bells-"]');
+  assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount + 1);
+  const createdPromotion = promotionManifest.promotions[initialPromotionCount];
+  const createdPromotionId = createdPromotion.id;
+  assert.strictEqual(createdPromotion.targetType, 'battery');
+  assert.strictEqual(createdPromotion.targetId, 1);
+  assert.strictEqual(createdPromotion.variant, 'bells');
+  assert.strictEqual(createdPromotion.animated, false);
+  assert.strictEqual(createdPromotion.startsAt, '2030-12-01T08:00:00.000Z');
+  const promotionRow = window.document.querySelector(`[data-promotion-id="${createdPromotionId}"]`);
   assert.ok(promotionRow.textContent.includes(promotionLabel));
   assert.strictEqual(promotionRow.querySelector('[data-promotion-xss]'), null);
   assert.strictEqual(promotionRow.querySelector('script'), null);
@@ -169,9 +192,9 @@ async function waitFor(condition, label) {
   window.document.getElementById('promotion-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => promotionWrites.length === 2, 'modification décoration');
   await waitFor(() => window.document.getElementById('promotion-editor-modal').classList.contains('hidden'), 'fermeture modification décoration');
-  assert.strictEqual(promotionManifest.promotions[0].targetId, 2);
-  assert.strictEqual(promotionManifest.promotions[0].variant, 'gift');
-  assert.strictEqual(promotionManifest.promotions[0].animated, true);
+  assert.strictEqual(promotionManifest.promotions[initialPromotionCount].targetId, 2);
+  assert.strictEqual(promotionManifest.promotions[initialPromotionCount].variant, 'gift');
+  assert.strictEqual(promotionManifest.promotions[initialPromotionCount].animated, true);
 
   const promotionsEnabled = window.document.getElementById('promotions-enabled');
   promotionsEnabled.checked = false;
@@ -180,10 +203,10 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin désactivation décorations');
   assert.strictEqual(promotionManifest.enabled, false);
 
-  window.document.querySelector('[data-promotion-id] .button-danger').click();
+  window.document.querySelector(`[data-promotion-id="${createdPromotionId}"] .button-danger`).click();
   await waitFor(() => promotionWrites.length === 4, 'suppression décoration');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression décoration');
-  assert.strictEqual(promotionManifest.promotions.length, 0);
+  assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount);
 
   manifest.announcements[0].title.fr = 'Annonce rechargée malgré la panne';
   failPromotions = true;
@@ -191,7 +214,7 @@ async function waitFor(condition, label) {
   await waitFor(() => !window.document.getElementById('promotions-list-error').classList.contains('hidden'), 'panne indépendante des décorations');
   assert.ok(window.document.querySelector('#announcements-list .announcement-row').textContent.includes('Annonce rechargée malgré la panne'));
   assert.strictEqual(window.document.getElementById('promotions-list-error').textContent, 'Canal décorations indisponible');
-  console.log('  ✅ UI admin : annonces et décorations indépendants, CRUD, dates, activation, panne isolée et blocage XSS validés');
+  console.log('  ✅ UI admin : modèles, thèmes, avatars, aperçu, CRUD, activation, panne isolée et blocage XSS validés');
   window.close();
 })().catch((error) => {
   console.error(error);

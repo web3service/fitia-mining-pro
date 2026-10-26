@@ -8,6 +8,50 @@
     referral: 'Parrainage',
     security: 'Sécurité'
   };
+  const AVATAR_PRESETS = ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg'];
+  const MAX_IMAGE_BYTES = 1536 * 1024;
+  const ANNOUNCEMENT_TEMPLATES = {
+    'maintenance-thanks': {
+      category: 'event',
+      theme: 'celebration',
+      font: 'elegant',
+      avatars: AVATAR_PRESETS,
+      title: {
+        fr: 'Merci pour votre patience',
+        en: 'Thank you for your patience',
+        de: 'Danke für Ihre Geduld',
+        zh: '感谢您的耐心等待',
+        sg: 'Thank you for your patience'
+      },
+      message: {
+        fr: 'La maintenance est terminée. FITIA PRO est de nouveau disponible. Merci pour votre confiance et votre fidélité.',
+        en: 'Maintenance is complete. FITIA PRO is available again. Thank you for your trust and continued support.',
+        de: 'Die Wartung ist abgeschlossen. FITIA PRO ist wieder verfügbar. Vielen Dank für Ihr Vertrauen und Ihre Treue.',
+        zh: '维护已完成，FITIA PRO 已恢复使用。感谢您的信任与一如既往的支持。',
+        sg: 'Maintenance is complete. FITIA PRO is available again. Thank you for your trust and continued support.'
+      }
+    },
+    'update-thanks': {
+      category: 'event',
+      theme: 'celebration',
+      font: 'elegant',
+      avatars: AVATAR_PRESETS,
+      title: {
+        fr: 'Merci pour votre confiance',
+        en: 'Thank you for your trust',
+        de: 'Danke für Ihr Vertrauen',
+        zh: '感谢您的信任',
+        sg: 'Thank you for your trust'
+      },
+      message: {
+        fr: 'La mise à jour est terminée. Merci de continuer votre aventure avec FITIA PRO.',
+        en: 'The update is complete. Thank you for continuing your journey with FITIA PRO.',
+        de: 'Das Update ist abgeschlossen. Vielen Dank, dass Sie FITIA PRO weiterhin nutzen.',
+        zh: '更新已完成。感谢您继续与 FITIA PRO 同行。',
+        sg: 'The update is complete. Thank you for continuing your journey with FITIA PRO.'
+      }
+    }
+  };
   const STATUS_LABELS = { active: 'Active', scheduled: 'Programmée', expired: 'Expirée' };
   const PROMOTION_VARIANT_LABELS = {
     gift: 'Cadeau emballé',
@@ -32,6 +76,11 @@
     lastSync: null,
     editingId: null,
     editingPromotionId: null,
+    editorBackground: '',
+    editorAvatars: [],
+    editorAssetData: {},
+    editorSession: 0,
+    assetUploads: 0,
     saving: false,
     promotionSaving: false,
     section: 'dashboard'
@@ -599,12 +648,184 @@
     return values;
   }
 
+  function editorAssetUrl(assetPath) {
+    return state.editorAssetData[assetPath] || `/${assetPath}`;
+  }
+
+  function updateAssetUploadUi() {
+    const pending = state.assetUploads > 0;
+    byId('item-background-upload').disabled = pending;
+    byId('item-avatar-upload').disabled = pending || state.editorAvatars.length >= 3;
+    byId('save-announcement').disabled = pending;
+  }
+
+  function renderAvatarEditor() {
+    byId('item-avatar-count').textContent = `${state.editorAvatars.length}/3`;
+    document.querySelectorAll('[data-avatar-preset]').forEach((button) => {
+      const selected = state.editorAvatars.includes(button.dataset.avatarPreset);
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+      button.disabled = state.assetUploads > 0 || (!selected && state.editorAvatars.length >= 3);
+    });
+    const list = byId('item-avatar-list');
+    list.textContent = '';
+    state.editorAvatars.forEach((assetPath, index) => {
+      const item = document.createElement('span');
+      item.className = 'avatar-selected';
+      const image = document.createElement('img');
+      image.src = editorAssetUrl(assetPath);
+      image.alt = `Avatar ${index + 1}`;
+      image.width = 42;
+      image.height = 42;
+      const remove = makeButton('×', 'avatar-remove', () => {
+        state.editorAvatars.splice(index, 1);
+        renderAvatarEditor();
+        updatePreview();
+      });
+      remove.setAttribute('aria-label', `Retirer l’avatar ${index + 1}`);
+      item.append(image, remove);
+      list.appendChild(item);
+    });
+    updateAssetUploadUi();
+  }
+
+  function toggleAvatar(assetPath) {
+    const index = state.editorAvatars.indexOf(assetPath);
+    if (index >= 0) state.editorAvatars.splice(index, 1);
+    else if (state.editorAvatars.length < 3) state.editorAvatars.push(assetPath);
+    else {
+      showToast('Retirez un avatar avant d’en ajouter un autre.', 'error');
+      return;
+    }
+    renderAvatarEditor();
+    updatePreview();
+  }
+
+  function applyAnnouncementTemplate() {
+    const template = ANNOUNCEMENT_TEMPLATES[byId('item-template').value];
+    if (!template) return;
+    byId('item-category').value = template.category;
+    fillLocalizedField('title', template.title);
+    fillLocalizedField('message', template.message);
+    byId('item-theme').value = template.theme;
+    byId('item-font').value = template.font;
+    state.editorBackground = '';
+    state.editorAvatars = [...template.avatars];
+    byId('asset-upload-status').textContent = '';
+    renderAvatarEditor();
+    updatePreview();
+    showToast('Modèle prêt à personnaliser. Vérifiez le brouillon avant publication.');
+  }
+
+  function readFileAsDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Impossible de lire cette image.'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function loadImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('Le contenu de cette image est illisible.'));
+      image.src = dataUrl;
+    });
+  }
+
+  async function optimizeImage(file, kind) {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      throw new Error('Formats autorisés : PNG, JPEG et WebP.');
+    }
+    if (!file.size || file.size > 12 * 1024 * 1024) {
+      throw new Error('Le fichier source doit peser entre 1 octet et 12 Mo.');
+    }
+    const sourceUrl = await readFileAsDataUrl(file);
+    const image = await loadImage(sourceUrl);
+    if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 30000000) {
+      throw new Error('Les dimensions de cette image ne sont pas prises en charge.');
+    }
+    const maxWidth = kind === 'background' ? 1280 : 256;
+    const maxHeight = kind === 'background' ? 720 : 256;
+    const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Votre navigateur ne permet pas de préparer cette image.');
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const encode = (quality) => new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('La conversion de l’image a échoué.')), 'image/webp', quality);
+    });
+    let blob = await encode(0.84);
+    if (blob.size > MAX_IMAGE_BYTES) blob = await encode(0.64);
+    if (blob.size > MAX_IMAGE_BYTES) throw new Error('L’image reste trop volumineuse après optimisation.');
+    const dataUrl = await readFileAsDataUrl(blob);
+    return { dataUrl, data: dataUrl.split(',')[1], contentType: blob.type };
+  }
+
+  async function handleImageSelection(event, kind) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    if (kind === 'avatar' && state.editorAvatars.length >= 3) {
+      showToast('Une annonce accepte au maximum trois avatars.', 'error');
+      return;
+    }
+    const editorSession = state.editorSession;
+    state.assetUploads += 1;
+    byId('asset-upload-status').textContent = 'Optimisation et enregistrement sécurisé du visuel…';
+    byId('editor-error').textContent = '';
+    updateAssetUploadUi();
+    try {
+      const image = await optimizeImage(file, kind);
+      const result = await api('/api/admin/announcement-assets', {
+        method: 'POST',
+        body: { data: image.data, contentType: image.contentType }
+      });
+      const assetPath = result.asset && result.asset.path;
+      if (typeof assetPath !== 'string' || !/^assets\/announcements\/announcement-[a-f0-9]{24}\.(png|jpg|webp)$/.test(assetPath)) {
+        throw new Error('Le serveur a renvoyé un chemin de visuel invalide.');
+      }
+      if (editorSession !== state.editorSession) return;
+      state.editorAssetData[assetPath] = image.dataUrl;
+      if (kind === 'background') state.editorBackground = assetPath;
+      else if (!state.editorAvatars.includes(assetPath) && state.editorAvatars.length < 3) state.editorAvatars.push(assetPath);
+      byId('asset-upload-status').textContent = 'Visuel enregistré. Publiez l’annonce pour l’associer au manifeste.';
+      renderAvatarEditor();
+      updatePreview();
+      showToast(kind === 'background' ? 'Arrière-plan importé.' : 'Avatar importé.');
+    } catch (error) {
+      if (editorSession === state.editorSession) {
+        byId('asset-upload-status').textContent = error.message;
+        showToast(error.message, 'error');
+      }
+    } finally {
+      if (editorSession === state.editorSession) {
+        state.assetUploads = Math.max(0, state.assetUploads - 1);
+        updateAssetUploadUi();
+        renderAvatarEditor();
+      }
+    }
+  }
+
   function openEditor(item = null, options = {}) {
     const duplicate = Boolean(options.duplicate);
+    state.editorSession += 1;
+    state.assetUploads = 0;
+    state.editorAssetData = {};
+    state.editorBackground = item?.backgroundImage || '';
+    state.editorAvatars = Array.isArray(item?.avatars) ? [...item.avatars] : [];
     state.editingId = item && !duplicate ? item.id : null;
     byId('announcement-form').reset();
     byId('editor-error').textContent = '';
+    byId('asset-upload-status').textContent = '';
+    byId('item-template').value = 'custom';
     byId('item-category').value = item?.category || options.category || 'event';
+    byId('item-theme').value = item?.theme || 'classic';
+    byId('item-font').value = item?.font || 'modern';
     const titleValues = item ? clone(item.title) : {};
     if (duplicate && titleValues.fr) titleValues.fr = `${titleValues.fr} — copie`.slice(0, 80);
     fillLocalizedField('title', titleValues);
@@ -612,6 +833,7 @@
     byId('item-starts-at').value = item ? toInputDate(item.startsAt) : '';
     byId('item-expires-at').value = item ? toInputDate(item.expiresAt) : '';
     byId('editor-title').textContent = state.editingId ? 'Modifier l’annonce' : duplicate ? 'Dupliquer l’annonce' : 'Nouvelle annonce';
+    renderAvatarEditor();
     updatePreview();
     byId('editor-modal').classList.remove('hidden');
     document.body.classList.add('modal-open');
@@ -622,18 +844,38 @@
     byId('editor-modal').classList.add('hidden');
     document.body.classList.remove('modal-open');
     state.editingId = null;
+    state.editorSession += 1;
+    state.assetUploads = 0;
     byId('editor-error').textContent = '';
   }
 
   function updatePreview() {
     const category = byId('item-category').value;
+    const theme = byId('item-theme').value;
+    const font = byId('item-font').value;
     const title = byId('item-title-fr').value.trim() || byId('item-title-en').value.trim() || 'Votre titre';
     const message = byId('item-message-fr').value.trim() || byId('item-message-en').value.trim() || 'Votre message apparaîtra ici.';
-    byId('preview-slide').className = `preview-slide preview-${category}`;
+    const slide = byId('preview-slide');
+    slide.className = `preview-slide preview-${category} announcement-theme-${theme} announcement-font-${font}`;
+    slide.classList.toggle('has-background', Boolean(state.editorBackground));
+    slide.classList.toggle('has-avatars', state.editorAvatars.length > 0);
+    slide.style.setProperty('--announcement-bg-image', state.editorBackground ? `url(${JSON.stringify(editorAssetUrl(state.editorBackground))})` : 'none');
     byId('preview-category').textContent = CATEGORY_LABELS[category];
     byId('preview-title').textContent = title;
     byId('preview-message').textContent = message;
     byId('message-count').textContent = String(byId('item-message-fr').value.length);
+    byId('item-background-status').textContent = state.editorBackground ? 'Image sélectionnée' : 'Aucune image';
+    byId('item-background-remove').classList.toggle('hidden', !state.editorBackground);
+    const avatarPreview = byId('preview-avatars');
+    avatarPreview.textContent = '';
+    state.editorAvatars.forEach((assetPath) => {
+      const image = document.createElement('img');
+      image.src = editorAssetUrl(assetPath);
+      image.alt = '';
+      image.width = 30;
+      image.height = 30;
+      avatarPreview.appendChild(image);
+    });
     const startsAt = fromInputDate(byId('item-starts-at').value);
     const expiresAt = fromInputDate(byId('item-expires-at').value);
     let schedule = 'Diffusion sans limite de date';
@@ -645,6 +887,10 @@
 
   async function submitEditor(event) {
     event.preventDefault();
+    if (state.assetUploads > 0) {
+      byId('editor-error').textContent = 'Attendez la fin de l’enregistrement du visuel.';
+      return;
+    }
     const startsAt = fromInputDate(byId('item-starts-at').value);
     const expiresAt = fromInputDate(byId('item-expires-at').value);
     if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
@@ -656,8 +902,12 @@
       id: state.editingId || generateId(category),
       category,
       title: readLocalizedField('title'),
-      message: readLocalizedField('message')
+      message: readLocalizedField('message'),
+      theme: byId('item-theme').value,
+      font: byId('item-font').value
     };
+    if (state.editorBackground) item.backgroundImage = state.editorBackground;
+    if (state.editorAvatars.length) item.avatars = [...state.editorAvatars];
     if (startsAt) item.startsAt = startsAt;
     if (expiresAt) item.expiresAt = expiresAt;
     const next = clone(state.manifest);
@@ -718,6 +968,21 @@
     byId('announcement-form').addEventListener('submit', submitEditor);
     byId('announcement-form').addEventListener('input', updatePreview);
     byId('item-category').addEventListener('change', updatePreview);
+    byId('item-theme').addEventListener('change', updatePreview);
+    byId('item-font').addEventListener('change', updatePreview);
+    byId('item-template').addEventListener('change', applyAnnouncementTemplate);
+    byId('item-background-upload').addEventListener('click', () => byId('item-background-file').click());
+    byId('item-avatar-upload').addEventListener('click', () => byId('item-avatar-file').click());
+    byId('item-background-file').addEventListener('change', (event) => handleImageSelection(event, 'background'));
+    byId('item-avatar-file').addEventListener('change', (event) => handleImageSelection(event, 'avatar'));
+    byId('item-background-remove').addEventListener('click', () => {
+      state.editorBackground = '';
+      byId('asset-upload-status').textContent = '';
+      updatePreview();
+    });
+    document.querySelectorAll('[data-avatar-preset]').forEach((button) => {
+      button.addEventListener('click', () => toggleAvatar(button.dataset.avatarPreset));
+    });
     byId('promotion-form').addEventListener('submit', submitPromotionEditor);
     byId('promotion-form').addEventListener('input', updatePromotionPreview);
     byId('promotion-form').addEventListener('change', updatePromotionPreview);

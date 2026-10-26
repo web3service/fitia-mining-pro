@@ -69,11 +69,22 @@ const i18n = {
     wrongPin: "Code PIN incorrect.",
     lockedOutMsg: "Trop d'essais. Réessayez dans {s}s.",
     walletLocked: "🔒 Portefeuille verrouillé",
-    refTitle: "Parrainage",
-    refDesc: "Entrez l'adresse ou l'ID de votre parrain.",
-    refAlreadyBound: "Parrain lié :",
-    shareRef: "Mon ID",
-    bindRef: "LIER",
+    refTitle: "Programme de parrainage",
+    refSubtitle: "Partagez votre code avec votre communauté.",
+    refDesc: "Saisissez le code ou l’adresse Polygon de votre parrain.",
+    refAlreadyBound: "Parrain associé :",
+    yourRefCode: "Votre code de parrainage",
+    refCodeHint: "Ce code personnel ne donne accès à aucun fonds.",
+    copyRefCode: "Copier le code",
+    refCodeCopied: "Code de parrainage copié !",
+    shareRef: "Partager",
+    refBindTitle: "Vous avez un code ?",
+    refInputLabel: "Code ou adresse du parrain",
+    refInputHint: "Formats acceptés : FITIA-001042, #1042, 1042 ou adresse Polygon.",
+    invalidRefCode: "Code de parrainage ou adresse invalide",
+    refShareTitle: "FITIA PRO — Programme de parrainage",
+    refShareMessage: "Rejoignez FITIA PRO et utilisez mon code de parrainage : {code}\n\nDans l’application, ouvrez Paramètres puis Programme de parrainage pour l’associer.",
+    bindRef: "ASSOCIER",
     power: "PUISSANCE",
     ftaSec: "Hashrate",
     pending: "EN ATTENTE",
@@ -93,10 +104,23 @@ const i18n = {
     miningVaultDesc: "Solde utilisé pour la boutique, le swap et vos récompenses de minage. Déposez ou retirez vers votre portefeuille à tout moment.",
     lowPolGasWarn: "Ajoutez un peu de POL (~0.05 POL) à votre adresse pour payer les frais réseau Polygon.",
     noGasPolErr: "⛽ Solde POL insuffisant pour payer les frais réseau Polygon (~0.01 POL requis). Appuyez sur Recevoir pour déposer un peu de POL.",
-    plugMachine: "🔌 Brancher une machine",
-    plugDesc: "Choisissez l'index d'une machine et le type de batterie.",
+    plugMachine: "Connexion machine & batterie",
+    plugDesc: "Sélectionnez une machine disponible et son autonomie.",
     machineId: "Index Machine (0, 1...)",
-    plug: "BRANCHER ⚡",
+    plug: "CONNECTER",
+    plugAction: "CONNECTER LA MACHINE",
+    plugMachineStep: "1. Choisissez une machine",
+    plugBatteryStep: "2. Choisissez une batterie",
+    plugPreview: "Aperçu de connexion",
+    plugNotReady: "À configurer",
+    plugReady: "Prêt à connecter",
+    selectMachinePrompt: "Machine à sélectionner",
+    selectBatteryPrompt: "Batterie à sélectionner",
+    selectMachineToContinue: "Sélectionnez une machine disponible.",
+    selectBatteryToContinue: "Sélectionnez une batterie en stock.",
+    plugReadySummary: "Machine {machine} • Autonomie {days}",
+    plugConsumptionHint: "1 batterie sera utilisée. Confirmation sécurisée sur Polygon.",
+    noEligibleMachines: "Toutes vos machines sont actuellement actives.",
     swapTitle: "💱 Échange",
     youPay: "Vous payez",
     balance: "Solde:",
@@ -110,16 +134,16 @@ const i18n = {
     swapNav: "Swap",
     linking: "Liaison...",
     refLinked: "Parrain lié !",
-    enterRefAddr: "Adresse ou ID parrain (0x...)",
+    enterRefAddr: "FITIA-001042, #1042 ou 0x...",
     buyingMachine: "Achat Machine",
     buyingBattery: "Achat Batterie",
     autoDepositStep: "Dépôt automatique vers Compte Minage...",
     confirming: "Confirmation blockchain...",
     machineBought: "Machine achetée ! ⛏️",
     batteryBought: "Batterie achetée ! 🔋",
-    invalidId: "Index Machine invalide",
-    pluggingIn: "Branchement...",
-    pluggedIn: "Machine branchée ! ⚡",
+    invalidId: "Sélectionnez une machine disponible",
+    pluggingIn: "Connexion en cours...",
+    pluggedIn: "Machine connectée !",
     invalidAmount: "Montant invalide",
     swapping: "Échange en cours...",
     swapSuccess: "Échange réussi !",
@@ -166,7 +190,7 @@ const i18n = {
     swapRejected: "Transaction annulée.",
     swapNotConfirmed: "Échange non confirmé. Vérifiez votre historique avant de réessayer.",
     networkFee: "Frais réseau estimés",
-    depositBtn: "DÉPOSER ↓",
+    depositBtn: "DÉPOSER",
     withdrawBtn: "RETIRER",
     depositing: "Dépôt vers Minage...",
     depositSuccess: "Dépôt réussi !",
@@ -272,11 +296,22 @@ const i18n = {
     wrongPin: "Incorrect PIN.",
     lockedOutMsg: "Too many attempts. Try again in {s}s.",
     walletLocked: "🔒 Wallet locked",
-    refTitle: "Referral System",
-    refDesc: "Enter referrer address or ID to link.",
-    refAlreadyBound: "Referrer linked:",
-    shareRef: "My ID",
-    bindRef: "BIND",
+    refTitle: "Referral program",
+    refSubtitle: "Share your code with your community.",
+    refDesc: "Enter your referrer’s code or Polygon address.",
+    refAlreadyBound: "Linked referrer:",
+    yourRefCode: "Your referral code",
+    refCodeHint: "This personal code does not give access to your funds.",
+    copyRefCode: "Copy code",
+    refCodeCopied: "Referral code copied!",
+    shareRef: "Share",
+    refBindTitle: "Have a referral code?",
+    refInputLabel: "Referrer code or address",
+    refInputHint: "Accepted formats: FITIA-001042, #1042, 1042 or a Polygon address.",
+    invalidRefCode: "Invalid referral code or address",
+    refShareTitle: "FITIA PRO — Referral program",
+    refShareMessage: "Join FITIA PRO and use my referral code: {code}\n\nIn the app, open Settings then Referral program to link it.",
+    bindRef: "LINK",
     power: "POWER",
     ftaSec: "Hashrate",
     pending: "PENDING",
@@ -296,10 +331,23 @@ const i18n = {
     miningVaultDesc: "Balance used for shop, swap and mining rewards. Deposit or withdraw to your wallet anytime.",
     lowPolGasWarn: "Add a small amount of POL (~0.05 POL) to your address to cover Polygon network gas fees.",
     noGasPolErr: "⛽ Insufficient POL for Polygon gas fees (~0.01 POL needed). Tap Receive to add POL.",
-    plugMachine: "🔌 Plug in a machine",
-    plugDesc: "Select a machine index and battery type.",
+    plugMachine: "Machine & battery connection",
+    plugDesc: "Select an available machine and its battery life.",
     machineId: "Machine Index (0, 1...)",
-    plug: "PLUG IN ⚡",
+    plug: "CONNECT",
+    plugAction: "CONNECT MACHINE",
+    plugMachineStep: "1. Choose a machine",
+    plugBatteryStep: "2. Choose a battery",
+    plugPreview: "Connection preview",
+    plugNotReady: "Setup required",
+    plugReady: "Ready to connect",
+    selectMachinePrompt: "Select a machine",
+    selectBatteryPrompt: "Select a battery",
+    selectMachineToContinue: "Select an available machine.",
+    selectBatteryToContinue: "Select a battery in stock.",
+    plugReadySummary: "Machine {machine} • {days} battery life",
+    plugConsumptionHint: "1 battery will be used. Secure confirmation on Polygon.",
+    noEligibleMachines: "All your machines are currently active.",
     swapTitle: "💱 Swap",
     youPay: "You pay",
     balance: "Balance:",
@@ -313,16 +361,16 @@ const i18n = {
     swapNav: "Swap",
     linking: "Linking...",
     refLinked: "Referrer linked!",
-    enterRefAddr: "Referrer address or ID (0x...)",
+    enterRefAddr: "FITIA-001042, #1042 or 0x...",
     buyingMachine: "Buying Machine",
     buyingBattery: "Buying Battery",
     autoDepositStep: "Auto-depositing to Mining Account...",
     confirming: "Confirming on Polygon...",
     machineBought: "Machine purchased! ⛏️",
     batteryBought: "Battery purchased! 🔋",
-    invalidId: "Invalid Machine Index",
-    pluggingIn: "Plugging in...",
-    pluggedIn: "Machine plugged in! ⚡",
+    invalidId: "Select an available machine",
+    pluggingIn: "Connecting...",
+    pluggedIn: "Machine connected!",
     invalidAmount: "Invalid amount",
     swapping: "Swapping...",
     swapSuccess: "Swap successful!",
@@ -369,7 +417,7 @@ const i18n = {
     swapRejected: "Transaction cancelled.",
     swapNotConfirmed: "Swap not confirmed. Check your history before trying again.",
     networkFee: "Est. Network Fee",
-    depositBtn: "DEPOSIT ↓",
+    depositBtn: "DEPOSIT",
     withdrawBtn: "WITHDRAW",
     depositing: "Depositing to Mining...",
     depositSuccess: "Deposit successful!",
@@ -434,9 +482,23 @@ const i18n = {
     unlockTitle: "FITIA PRO entsperren",
     unlockDesc: "6-stellige PIN eingeben",
     wrongPin: "Falsche PIN.",
-    refTitle: "Empfehlung",
-    refDesc: "Empfehler-Adresse oder ID eingeben.",
-    bindRef: "BINDEN",
+    refTitle: "Empfehlungsprogramm",
+    refSubtitle: "Teilen Sie Ihren Code mit Ihrer Community.",
+    refDesc: "Geben Sie den Code oder die Polygon-Adresse Ihres Empfehlers ein.",
+    refAlreadyBound: "Verbundener Empfehler:",
+    yourRefCode: "Ihr Empfehlungscode",
+    refCodeHint: "Dieser persönliche Code gewährt keinen Zugriff auf Ihr Guthaben.",
+    copyRefCode: "Code kopieren",
+    refCodeCopied: "Empfehlungscode kopiert!",
+    shareRef: "Teilen",
+    refBindTitle: "Haben Sie einen Empfehlungscode?",
+    refInputLabel: "Code oder Adresse des Empfehlers",
+    refInputHint: "Akzeptierte Formate: FITIA-001042, #1042, 1042 oder eine Polygon-Adresse.",
+    invalidRefCode: "Ungültiger Empfehlungscode oder ungültige Adresse",
+    refShareTitle: "FITIA PRO — Empfehlungsprogramm",
+    refShareMessage: "Treten Sie FITIA PRO bei und verwenden Sie meinen Empfehlungscode: {code}\n\nÖffnen Sie in der App Einstellungen und dann Empfehlungsprogramm, um ihn zu verknüpfen.",
+    bindRef: "VERKNÜPFEN",
+    enterRefAddr: "FITIA-001042, #1042 oder 0x...",
     power: "LEISTUNG",
     ftaSec: "Hashrate",
     pending: "AUSSTEHEND",
@@ -451,10 +513,28 @@ const i18n = {
     myAssets: "⚙️ Wallet & Assets",
     onchainWalletTitle: "🔐 Meine Polygon Wallet",
     miningVaultTitle: "⚡ Mining-Konto",
-    plugMachine: "🔌 Maschine anschließen",
-    plugDesc: "Wähle Maschinen-Index und Batterietyp.",
+    plugMachine: "Maschine & Akku verbinden",
+    plugDesc: "Wählen Sie eine verfügbare Maschine und ihre Laufzeit.",
     machineId: "Maschinen-Index (0, 1...)",
-    plug: "ANSCHLIESSEN ⚡",
+    plug: "VERBINDEN",
+    plugAction: "MASCHINE VERBINDEN",
+    plugMachineStep: "1. Maschine auswählen",
+    plugBatteryStep: "2. Akku auswählen",
+    plugPreview: "Verbindungsvorschau",
+    plugNotReady: "Konfiguration nötig",
+    plugReady: "Bereit zum Verbinden",
+    selectMachinePrompt: "Maschine auswählen",
+    selectBatteryPrompt: "Akku auswählen",
+    selectMachineToContinue: "Wählen Sie eine verfügbare Maschine.",
+    selectBatteryToContinue: "Wählen Sie einen Akku auf Lager.",
+    plugReadySummary: "Maschine {machine} • Laufzeit {days}",
+    plugConsumptionHint: "1 Akku wird verwendet. Sichere Bestätigung auf Polygon.",
+    noEligibleMachines: "Alle Ihre Maschinen sind derzeit aktiv.",
+    invalidId: "Wählen Sie eine verfügbare Maschine",
+    pluggingIn: "Verbindung läuft...",
+    pluggedIn: "Maschine verbunden!",
+    errNoBattery: "Kein Akku dieses Typs auf Lager",
+    errRunning: "Diese Maschine ist bereits aktiv",
     swapTitle: "💱 Tausch",
     youPay: "Sie zahlen",
     balance: "Guthaben:",
@@ -480,7 +560,7 @@ const i18n = {
     noMachines: "Keine Maschinen",
     noBatteries: "Keine Batterien",
     noActiveMachines: "Keine aktiven Maschinen",
-    depositBtn: "EINZAHLEN ↓",
+    depositBtn: "EINZAHLEN",
     withdrawBtn: "ABHEBEN",
     send: "Senden",
     receive: "Empfangen",
@@ -492,9 +572,23 @@ const i18n = {
     unlockTitle: "解锁 FITIA PRO",
     unlockDesc: "请输入6位数字PIN码",
     wrongPin: "PIN码错误",
-    refTitle: "推荐系统",
-    refDesc: "输入推荐人地址或ID进行绑定。",
+    refTitle: "推荐计划",
+    refSubtitle: "与您的社区分享推荐码。",
+    refDesc: "输入推荐人的推荐码或 Polygon 地址。",
+    refAlreadyBound: "已绑定推荐人：",
+    yourRefCode: "您的推荐码",
+    refCodeHint: "此个人推荐码不会授予任何人访问您资金的权限。",
+    copyRefCode: "复制推荐码",
+    refCodeCopied: "推荐码已复制！",
+    shareRef: "分享",
+    refBindTitle: "您有推荐码吗？",
+    refInputLabel: "推荐码或推荐人地址",
+    refInputHint: "支持格式：FITIA-001042、#1042、1042 或 Polygon 地址。",
+    invalidRefCode: "推荐码或地址无效",
+    refShareTitle: "FITIA PRO — 推荐计划",
+    refShareMessage: "加入 FITIA PRO 并使用我的推荐码：{code}\n\n在应用中打开“设置”，然后打开“推荐计划”进行绑定。",
     bindRef: "绑定",
+    enterRefAddr: "FITIA-001042、#1042 或 0x...",
     power: "算力",
     ftaSec: "Hashrate",
     pending: "待领取",
@@ -509,10 +603,28 @@ const i18n = {
     myAssets: "⚙️ 钱包与资产",
     onchainWalletTitle: "🔐 我的 Polygon 钱包",
     miningVaultTitle: "⚡ 挖矿账户",
-    plugMachine: "🔌 插入矿机",
-    plugDesc: "选择矿机索引和电池类型。",
+    plugMachine: "连接矿机与电池",
+    plugDesc: "选择可用矿机和电池续航时间。",
     machineId: "矿机索引 (0, 1...)",
-    plug: "插入 ⚡",
+    plug: "连接",
+    plugAction: "连接矿机",
+    plugMachineStep: "1. 选择矿机",
+    plugBatteryStep: "2. 选择电池",
+    plugPreview: "连接预览",
+    plugNotReady: "待配置",
+    plugReady: "可以连接",
+    selectMachinePrompt: "选择矿机",
+    selectBatteryPrompt: "选择电池",
+    selectMachineToContinue: "请选择一台可用矿机。",
+    selectBatteryToContinue: "请选择一块库存电池。",
+    plugReadySummary: "矿机 {machine} • 续航 {days}",
+    plugConsumptionHint: "将使用 1 块电池，并在 Polygon 上安全确认。",
+    noEligibleMachines: "您的所有矿机都在运行中。",
+    invalidId: "请选择可用矿机",
+    pluggingIn: "正在连接...",
+    pluggedIn: "矿机已连接！",
+    errNoBattery: "没有此类型的库存电池",
+    errRunning: "此矿机已在运行中",
     swapTitle: "💱 兑换",
     youPay: "您支付",
     balance: "余额:",
@@ -538,7 +650,7 @@ const i18n = {
     noMachines: "暂无矿机",
     noBatteries: "暂无电池",
     noActiveMachines: "无运行中矿机",
-    depositBtn: "存入 ↓",
+    depositBtn: "存入",
     withdrawBtn: "提取",
     send: "发送",
     receive: "接收",
@@ -548,7 +660,49 @@ const i18n = {
     createNewWallet: "CREATE NEW WALLET",
     importExistingWallet: "Import Existing Wallet",
     unlockTitle: "Unlock FITIA PRO",
-    unlockDesc: "Enter your 6-digit PIN"
+    unlockDesc: "Enter your 6-digit PIN",
+    refTitle: "Referral program",
+    refSubtitle: "Share your code with your community.",
+    refDesc: "Enter your referrer’s code or Polygon address.",
+    refAlreadyBound: "Linked referrer:",
+    yourRefCode: "Your referral code",
+    refCodeHint: "This personal code does not give access to your funds.",
+    copyRefCode: "Copy code",
+    refCodeCopied: "Referral code copied!",
+    shareRef: "Share",
+    refBindTitle: "Have a referral code?",
+    refInputLabel: "Referrer code or address",
+    refInputHint: "Accepted formats: FITIA-001042, #1042, 1042 or a Polygon address.",
+    invalidRefCode: "Invalid referral code or address",
+    refShareTitle: "FITIA PRO — Referral program",
+    refShareMessage: "Join FITIA PRO and use my referral code: {code}\n\nIn the app, open Settings then Referral program to link it.",
+    bindRef: "LINK",
+    enterRefAddr: "FITIA-001042, #1042 or 0x...",
+    plugMachine: "Machine & battery connection",
+    plugDesc: "Select an available machine and its battery life.",
+    plug: "CONNECT",
+    plugAction: "CONNECT MACHINE",
+    plugMachineStep: "1. Choose a machine",
+    plugBatteryStep: "2. Choose a battery",
+    plugPreview: "Connection preview",
+    plugNotReady: "Setup required",
+    plugReady: "Ready to connect",
+    selectMachinePrompt: "Select a machine",
+    selectBatteryPrompt: "Select a battery",
+    selectMachineToContinue: "Select an available machine.",
+    selectBatteryToContinue: "Select a battery in stock.",
+    plugReadySummary: "Machine {machine} • {days} battery life",
+    plugConsumptionHint: "1 battery will be used. Secure confirmation on Polygon.",
+    noEligibleMachines: "All your machines are currently active.",
+    invalidId: "Select an available machine",
+    pluggingIn: "Connecting...",
+    pluggedIn: "Machine connected!",
+    days: "days",
+    available: "Available",
+    noMachines: "No machines yet",
+    noBatteries: "No batteries yet",
+    errNoBattery: "No battery of this type available",
+    errRunning: "This machine is already running"
   }
 };
 
@@ -648,6 +802,7 @@ class Application {
     this.provider = null;
     this.signer = null;
     this.user = null;
+    this.myReferralCode = '';
 
     this.core = null;
     this.mine = null;
@@ -667,6 +822,7 @@ class Application {
     this.dexQuoteRequestId = 0;
     this.pendingDexQuote = null;
     this.swapTransactionInProgress = false;
+    this.plugTransactionInProgress = false;
 
     this.usdtDecimals = 6;
     this.ftaDecimals = 8;
@@ -772,6 +928,23 @@ class Application {
     if (this.batteryTypeDurations[typeId] !== undefined) return this.batteryTypeDurations[typeId];
     const fallback = { 0: 3, 1: 7, 2: 15, 3: 30, 4: 90, 5: 180, 6: 270, 7: 365 };
     return fallback[typeId] || 30;
+  }
+
+  getMachineTierName(tier) {
+    const tierNames = ['MK-I', 'MK-II', 'MK-III', 'MK-IV', 'MK-V', 'MK-VI', 'MK-VII', 'MK-VIII'];
+    const index = Math.abs(Math.trunc(Number(tier) || 0)) % tierNames.length;
+    return tierNames[index];
+  }
+
+  getPlugBatteryVisual(days) {
+    const duration = Number.isFinite(Number(days)) ? Number(days) : 0;
+    return `<span class="real-battery" aria-hidden="true">
+      <span class="battery-cap"></span>
+      <span class="battery-body">
+        <span class="battery-level" style="width:85%"></span>
+        <span class="battery-charge-indicator">${duration}J</span>
+      </span>
+    </span>`;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -995,6 +1168,7 @@ class Application {
       this.renderActiveMachines();
       this.renderUserMachines();
       this.renderUserBatteries();
+      this.renderPlugInterface();
     }
   }
 
@@ -1458,6 +1632,9 @@ class Application {
     this.revealedSecretText = '';
     this.signer = null;
     this.user = null;
+    this.myReferralCode = '';
+    const referralCodeLabel = document.getElementById('my-ref-id-label');
+    if (referralCodeLabel) referralCodeLabel.textContent = '—';
     this.core = null;
     this.mine = null;
     this.usdtToken = null;
@@ -1467,6 +1644,11 @@ class Application {
     this.pendingDexQuote = null;
     this.dexQuoteRequestId += 1;
     this.swapTransactionInProgress = false;
+    this.plugTransactionInProgress = false;
+    const plugMachineInput = document.getElementById('plug-machine-id');
+    const plugBatteryInput = document.getElementById('plug-battery-type');
+    if (plugMachineInput) plugMachineInput.value = '';
+    if (plugBatteryInput) plugBatteryInput.value = '';
 
     // 2) Réactivation immédiate de FLAG_SECURE puis fermeture des modales
     FitiaSecurity.Native.setScreenSecure(true);
@@ -1780,18 +1962,159 @@ class Application {
   }
 
   refreshPlugBatteryDropdown() {
-    const sel = document.getElementById('plug-battery-type');
-    if (!sel) return;
-    const currentVal = sel.value;
-    const keys = Object.keys(this.batteryTypeDurations).map(Number).sort((a, b) => a - b);
-    if (!keys.length) return;
-    sel.innerHTML = keys.map((id) => {
-      const days = this.batteryTypeDurations[id];
-      const stock = this.batteryInventory[id] || 0;
-      const stockTag = stock > 0 ? ` (×${stock})` : '';
-      return `<option value="${id}">${days} ${this.t('days')}${stockTag}</option>`;
-    }).join('');
-    if (keys.includes(Number(currentVal))) sel.value = currentVal;
+    this.renderPlugInterface();
+  }
+
+  getPlugPlaceholderIcon(kind) {
+    if (kind === 'machine') {
+      return '<svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="4" width="40" height="42" rx="7"/><rect x="11" y="12" width="12" height="17" rx="2"/><rect x="27" y="12" width="12" height="17" rx="2"/><circle cx="18" cy="37" r="5"/><circle cx="32" cy="37" r="5"/></svg>';
+    }
+    return '<svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="15" width="36" height="22" rx="5"/><path d="M43 21v10m-31-5h19"/></svg>';
+  }
+
+  renderPlugInterface() {
+    const card = document.getElementById('plug-machine-card');
+    const machineInput = document.getElementById('plug-machine-id');
+    const batteryInput = document.getElementById('plug-battery-type');
+    const machineOptions = document.getElementById('plug-machine-options');
+    const batteryOptions = document.getElementById('plug-battery-options');
+    if (!card || !machineInput || !batteryInput || !machineOptions || !batteryOptions) return;
+
+    const machineScroll = machineOptions.scrollLeft;
+    const batteryScroll = batteryOptions.scrollLeft;
+    const now = Math.floor(Date.now() / 1000);
+    const machines = this.userMachines
+      .map((machine, index) => ({ ...machine, index }))
+      .filter((machine) => machine.exp <= 0 || machine.exp < now);
+    const batteryTypes = Array.from(new Set([
+      ...Object.keys(this.batteryTypeDurations),
+      ...Object.keys(this.batteryInventory)
+    ])).map(Number).filter(Number.isSafeInteger).sort((a, b) => a - b)
+      .map((typeId) => ({
+        typeId,
+        days: this.getBatteryDuration(typeId),
+        qty: Number(this.batteryInventory[typeId] || 0)
+      }))
+      .filter((battery) => battery.qty > 0);
+
+    let selectedMachineIndex = machineInput.value === '' ? null : Number(machineInput.value);
+    if (!Number.isSafeInteger(selectedMachineIndex) || !machines.some((machine) => machine.index === selectedMachineIndex)) {
+      selectedMachineIndex = null;
+    }
+    let selectedBatteryType = batteryInput.value === '' ? null : Number(batteryInput.value);
+    if (!Number.isSafeInteger(selectedBatteryType) || !batteryTypes.some((battery) => battery.typeId === selectedBatteryType)) {
+      selectedBatteryType = null;
+    }
+    machineInput.value = selectedMachineIndex === null ? '' : String(selectedMachineIndex);
+    batteryInput.value = selectedBatteryType === null ? '' : String(selectedBatteryType);
+
+    const renderEmpty = (container, message) => {
+      const empty = document.createElement('p');
+      empty.className = 'plug-options-empty';
+      empty.textContent = message;
+      container.replaceChildren(empty);
+    };
+    const availableLabel = FitiaSecurity.escapeHtml(this.t('available'));
+    const daysLabel = FitiaSecurity.escapeHtml(this.t('days'));
+
+    if (!machines.length) {
+      renderEmpty(machineOptions, this.t(this.userMachines.length ? 'noEligibleMachines' : 'noMachines'));
+    } else {
+      machineOptions.innerHTML = machines.map((machine) => {
+        const selected = machine.index === selectedMachineIndex;
+        return `<button type="button" class="plug-option plug-machine-option${selected ? ' selected' : ''}" data-plug-machine="${machine.index}" aria-pressed="${selected}" onclick="App.selectPlugMachine(${machine.index})">
+          <span class="plug-option-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
+          <span class="plug-option-icon">${this.getMachineMiniSVG(machine.tid)}</span>
+          <strong>#${machine.index} · ${this.getMachineTierName(machine.tid)}</strong>
+          <span class="plug-option-status"><i></i>${availableLabel}</span>
+        </button>`;
+      }).join('');
+    }
+
+    if (!batteryTypes.length) {
+      renderEmpty(batteryOptions, this.t('noBatteries'));
+    } else {
+      batteryOptions.innerHTML = batteryTypes.map((battery) => {
+        const selected = battery.typeId === selectedBatteryType;
+        return `<button type="button" class="plug-option plug-battery-option${selected ? ' selected' : ''}" data-plug-battery="${battery.typeId}" aria-pressed="${selected}" onclick="App.selectPlugBattery(${battery.typeId})">
+          <span class="plug-option-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
+          <span class="plug-option-icon">${this.getPlugBatteryVisual(battery.days)}</span>
+          <strong>${battery.days} ${daysLabel}</strong>
+          <span class="plug-option-stock">×${battery.qty}</span>
+        </button>`;
+      }).join('');
+    }
+
+    const selectedMachine = machines.find((machine) => machine.index === selectedMachineIndex) || null;
+    const selectedBattery = batteryTypes.find((battery) => battery.typeId === selectedBatteryType) || null;
+    const ready = Boolean(selectedMachine && selectedBattery);
+    const previewMachine = document.getElementById('plug-preview-machine');
+    const previewBattery = document.getElementById('plug-preview-battery');
+    const previewMachineIcon = document.getElementById('plug-preview-machine-icon');
+    const previewBatteryIcon = document.getElementById('plug-preview-battery-icon');
+
+    previewMachine.classList.toggle('selected', Boolean(selectedMachine));
+    previewBattery.classList.toggle('selected', Boolean(selectedBattery));
+    previewMachineIcon.innerHTML = selectedMachine ? this.getMachineMiniSVG(selectedMachine.tid) : this.getPlugPlaceholderIcon('machine');
+    previewBatteryIcon.innerHTML = selectedBattery ? this.getPlugBatteryVisual(selectedBattery.days) : this.getPlugPlaceholderIcon('battery');
+    document.getElementById('plug-preview-machine-name').textContent = selectedMachine
+      ? `#${selectedMachine.index} · ${this.getMachineTierName(selectedMachine.tid)}`
+      : this.t('selectMachinePrompt');
+    document.getElementById('plug-preview-battery-name').textContent = selectedBattery
+      ? `${selectedBattery.days} ${this.t('days')} · ×${selectedBattery.qty}`
+      : this.t('selectBatteryPrompt');
+
+    card.classList.toggle('is-ready', ready);
+    document.getElementById('plug-connector').classList.toggle('ready', ready);
+    const statusBadge = document.getElementById('plug-status-badge');
+    statusBadge.classList.toggle('ready', ready);
+    statusBadge.textContent = this.t(ready ? 'plugReady' : 'plugNotReady');
+    const summary = document.getElementById('plug-summary');
+    if (ready) {
+      summary.textContent = this.t('plugReadySummary')
+        .replace('{machine}', `#${selectedMachine.index}`)
+        .replace('{days}', `${selectedBattery.days} ${this.t('days')}`);
+    } else {
+      summary.textContent = this.t(selectedMachine ? 'selectBatteryToContinue' : 'selectMachineToContinue');
+    }
+
+    document.getElementById('plug-machine-count').textContent = String(machines.length);
+    document.getElementById('plug-battery-count').textContent = String(batteryTypes.reduce((total, battery) => total + battery.qty, 0));
+    const submit = document.getElementById('btn-plug-machine');
+    submit.disabled = !ready || this.plugTransactionInProgress;
+    submit.classList.toggle('is-loading', this.plugTransactionInProgress);
+    machineOptions.scrollLeft = machineScroll;
+    batteryOptions.scrollLeft = batteryScroll;
+  }
+
+  selectPlugMachine(machineIdx) {
+    const index = Number(machineIdx);
+    const machine = this.userMachines[index];
+    const now = Math.floor(Date.now() / 1000);
+    if (!Number.isSafeInteger(index) || index < 0 || !machine) {
+      this.showToast(this.t('invalidId'), true);
+      return false;
+    }
+    if (machine.exp > 0 && machine.exp >= now) {
+      this.showToast(this.t('errRunning'), true);
+      return false;
+    }
+    document.getElementById('plug-machine-id').value = String(index);
+    this.renderPlugInterface();
+    FitiaSecurity.Native.vibrate(14);
+    return true;
+  }
+
+  selectPlugBattery(typeId) {
+    const index = Number(typeId);
+    if (!Number.isSafeInteger(index) || index < 0 || Number(this.batteryInventory[index] || 0) <= 0) {
+      this.showToast(this.t('errNoBattery'), true);
+      return false;
+    }
+    document.getElementById('plug-battery-type').value = String(index);
+    this.renderPlugInterface();
+    FitiaSecurity.Native.vibrate(14);
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1799,6 +2122,7 @@ class Application {
   // ═══════════════════════════════════════════════════════════════
   async updateData() {
     if (!this.user || !this.core || !this.mine) return;
+    void this.announcementCenter.refresh({ force: false });
     if (this.activity.hasPending()) this.activity.refreshPending(this.provider);
     try {
       // Lecture groupée parallèle pour une réactivité maximale sur mobile
@@ -1897,9 +2221,14 @@ class Application {
       this.updatePriceChange('usdt', 1);
       this.updatePriceChange('fta', this.ftaPriceUsd);
 
-      // Infos Parrainage (UID + Parrain actuel)
+      // Infos Parrainage (code FITIA dérivé du même UID on-chain + parrain actuel)
       const myUid = Number(myUidRaw);
-      document.getElementById('my-ref-id-label').textContent = myUid > 0 ? `#${myUid}` : this.shortAddr(this.user);
+      const brandedReferralCode = this.formatReferralCode(myUid);
+      this.myReferralCode = brandedReferralCode || this.user || '';
+      const referralCodeLabel = document.getElementById('my-ref-id-label');
+      referralCodeLabel.textContent = this.myReferralCode || '—';
+      referralCodeLabel.classList.toggle('ref-code-address', !brandedReferralCode);
+      referralCodeLabel.title = this.myReferralCode;
       if (myRefAddr && myRefAddr !== ethers.ZeroAddress) {
         document.getElementById('current-referrer-status').textContent = `${this.t('refAlreadyBound')} ${this.shortAddr(myRefAddr)}`;
         document.getElementById('ref-form-wrap')?.classList.add('hidden');
@@ -2084,7 +2413,7 @@ class Application {
         extra = `<div class="battery-bar-wrap"><div class="battery-bar-header"><span class="battery-bar-label">${this.t('timeRemaining')}</span><span class="battery-bar-time green">${this.formatTimeRemaining(rem)}</span></div><div class="battery-bar"><div class="battery-bar-fill green" style="width:65%"></div></div></div>`;
       }
       const quickPlugBtn = !isRunning
-        ? `<button class="btn-chip accent sm" onclick="App.quickSelectMachineToPlug(${i})">🔌 ${this.t('plug')}</button>`
+        ? `<button class="btn-chip accent sm" onclick="App.quickSelectMachineToPlug(${i})">${this.t('plug')}</button>`
         : '';
 
       return `<div class="asset-row">${this.getMachineMiniSVG(m.tid)}
@@ -2099,10 +2428,14 @@ class Application {
   }
 
   quickSelectMachineToPlug(machineIdx) {
-    const input = document.getElementById('plug-machine-id');
-    if (input) input.value = machineIdx;
-    document.getElementById('plug-machine-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    FitiaSecurity.Native.vibrate(18);
+    if (!this.selectPlugMachine(machineIdx)) return;
+    const card = document.getElementById('plug-machine-card');
+    card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const options = document.getElementById('plug-machine-options');
+    const selected = options?.querySelector(`[data-plug-machine="${Number(machineIdx)}"]`);
+    if (options && selected) {
+      options.scrollLeft = Math.max(0, selected.offsetLeft - (options.clientWidth - selected.offsetWidth) / 2);
+    }
   }
 
   renderUserBatteries() {
@@ -2646,27 +2979,41 @@ class Application {
   }
 
   async plugInMachine() {
-    const machineIndex = document.getElementById('plug-machine-id').value;
-    const batteryTypeId = document.getElementById('plug-battery-type').value;
+    if (this.plugTransactionInProgress) return;
+    const machineInput = document.getElementById('plug-machine-id');
+    const batteryInput = document.getElementById('plug-battery-type');
+    const machineIndex = Number(machineInput.value);
+    const batteryTypeId = Number(batteryInput.value);
+    const machine = this.userMachines[machineIndex];
+    const now = Math.floor(Date.now() / 1000);
 
-    if (machineIndex === "" || Number(machineIndex) < 0 || Number(machineIndex) >= this.userMachines.length) {
+    if (machineInput.value === '' || !Number.isSafeInteger(machineIndex) || machineIndex < 0 || !machine) {
       return this.showToast(this.t('invalidId'), true);
     }
-    if (!this.batteryInventory[Number(batteryTypeId)] || this.batteryInventory[Number(batteryTypeId)] <= 0) {
+    if (machine.exp > 0 && machine.exp >= now) {
+      return this.showToast(this.t('errRunning'), true);
+    }
+    if (batteryInput.value === '' || !Number.isSafeInteger(batteryTypeId) || batteryTypeId < 0 || Number(this.batteryInventory[batteryTypeId] || 0) <= 0) {
       return this.showToast(this.t('errNoBattery'), true);
     }
-    if (!(await this.ensurePolGas())) return;
 
-    this.setLoader(true, this.t('pluggingIn'));
+    this.plugTransactionInProgress = true;
+    this.renderPlugInterface();
     try {
-      await (await this.mine.plugInMachine(Number(machineIndex), Number(batteryTypeId))).wait();
+      if (!(await this.ensurePolGas())) return;
+      this.setLoader(true, this.t('pluggingIn'));
+      await (await this.mine.plugInMachine(machineIndex, batteryTypeId)).wait();
       FitiaSecurity.Native.vibrate(40);
       this.showToast(this.t('pluggedIn'));
+      machineInput.value = '';
+      this.renderPlugInterface();
       await this.updateData();
     } catch (e) {
       this.showError(e);
     } finally {
+      this.plugTransactionInProgress = false;
       this.setLoader(false);
+      this.renderPlugInterface();
     }
   }
 
@@ -2750,26 +3097,56 @@ class Application {
   }
 
   // ─── Parrainage ──────────────────────────────────────────────────
+  formatReferralCode(uid) {
+    const value = Number(uid);
+    if (!Number.isSafeInteger(value) || value <= 0) return '';
+    return `FITIA-${String(value).padStart(6, '0')}`;
+  }
+
+  parseReferralInput(value) {
+    const input = String(value || '').trim();
+    if (ethers.isAddress(input)) return { type: 'address', value: ethers.getAddress(input) };
+    const match = input.match(/^(?:FITIA-([0-9]{1,78})|#?([0-9]{1,78}))$/i);
+    const digits = match?.[1] || match?.[2];
+    if (!digits) return null;
+    const referralId = BigInt(digits);
+    if (referralId <= 0n) return null;
+    return { type: 'id', value: referralId };
+  }
+
+  getMyReferralCode() {
+    return this.myReferralCode || this.user || '';
+  }
+
+  async copyMyReferralCode() {
+    if (!this.user) return;
+    const code = this.getMyReferralCode();
+    if (!code) return;
+    const copied = await FitiaSecurity.Native.copyText(code);
+    this.showToast(copied ? this.t('refCodeCopied') : this.t('errGeneric'), !copied);
+  }
+
   async shareMyReferral() {
     if (!this.user) return;
-    const uidText = document.getElementById('my-ref-id-label')?.textContent || '';
-    const msg = `Rejoins FITIA PRO MINER ! Mon code/adresse parrain : ${this.user} (${uidText})`;
-    await FitiaSecurity.Native.shareText('FITIA PRO Parrainage', msg);
+    const code = this.getMyReferralCode();
+    if (!code) return;
+    const message = this.t('refShareMessage').replace('{code}', code);
+    const shared = await FitiaSecurity.Native.shareText(this.t('refShareTitle'), message);
+    if (!shared) this.showToast(this.t('errGeneric'), true);
   }
 
   async bindReferrer() {
     const input = document.getElementById('ref-address-input').value.trim();
-    if (!input || !this.user) return this.showToast(this.t('invalidAddr'), true);
+    const parsed = this.parseReferralInput(input);
+    if (!parsed || !this.user) return this.showToast(this.t('invalidRefCode'), true);
     if (!(await this.ensurePolGas())) return;
 
     this.setLoader(true, this.t('linking'));
     try {
-      if (input.startsWith('0x') && ethers.isAddress(input)) {
-        await (await this.core.setReferrer(input)).wait();
+      if (parsed.type === 'address') {
+        await (await this.core.setReferrer(parsed.value)).wait();
       } else {
-        const refId = parseInt(input.replace('#', ''), 10);
-        if (isNaN(refId) || refId <= 0) throw new Error("Format invalide");
-        await (await this.core.setReferrerById(refId)).wait();
+        await (await this.core.setReferrerById(parsed.value)).wait();
       }
       this.showToast(this.t('refLinked'));
       document.getElementById('ref-address-input').value = '';
@@ -3427,7 +3804,11 @@ class Application {
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     await FitiaSecurity.Vault.deleteVault();
     this.user = null;
+    this.myReferralCode = '';
     this.signer = null;
+    this.plugTransactionInProgress = false;
+    document.getElementById('plug-machine-id').value = '';
+    document.getElementById('plug-battery-type').value = '';
     this.showAuthStep('welcome');
   }
 

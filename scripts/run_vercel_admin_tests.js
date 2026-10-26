@@ -74,6 +74,9 @@ async function request(base, action, options = {}) {
   const initialAnnouncementCount = githubManifest.announcements.length;
   let githubRevision = 'sha-vercel-initial';
   let githubWrites = 0;
+  let githubAssetWrites = 0;
+  let uploadedAssetPath = '';
+  const githubAssets = new Map();
   let githubPromotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
   let githubPromotionRevision = 'sha-vercel-promotion-initial';
   let githubPromotionWrites = 0;
@@ -83,6 +86,23 @@ async function request(base, action, options = {}) {
     if (!target.startsWith('https://api.github.com/')) return originalFetch(url, init);
     const isPromotion = target.includes('/contents/promotions.json');
     assert.strictEqual(init.headers.Authorization, `Bearer ${TOKEN}`);
+    const assetMatch = target.match(/\/contents\/(assets\/announcements\/announcement-[a-f0-9]{24}\.(?:png|jpg|webp))/);
+    if (assetMatch) {
+      const assetPath = assetMatch[1];
+      if ((init.method || 'GET') === 'PUT') {
+        const body = JSON.parse(init.body);
+        assert.strictEqual(body.branch, 'main');
+        assert.strictEqual(body.message, 'Add FITIA announcement asset');
+        assert.strictEqual(body.sha, undefined);
+        githubAssets.set(assetPath, Buffer.from(body.content, 'base64'));
+        githubAssetWrites += 1;
+        return new Response(JSON.stringify({ content: { sha: `sha-asset-${githubAssetWrites}` } }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+      }
+      if (!githubAssets.has(assetPath)) return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({
+        sha: 'sha-asset-existing', encoding: 'base64', content: githubAssets.get(assetPath).toString('base64')
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
     if ((init.method || 'GET') === 'PUT') {
       const body = JSON.parse(init.body);
       assert.strictEqual(body.sha, isPromotion ? githubPromotionRevision : githubRevision);
@@ -111,12 +131,12 @@ async function request(base, action, options = {}) {
   };
 
   try {
-    await runTest('Vercel sert /admin et réécrit les cinq routes API serverless', async () => {
+    await runTest('Vercel sert /admin et réécrit les six routes API serverless', async () => {
       const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
       const rewrites = new Map(config.rewrites.map((item) => [item.source, item.destination]));
       assert.strictEqual(rewrites.get('/admin'), '/admin/index.html');
       assert.strictEqual(rewrites.get('/admin/'), '/admin/index.html');
-      for (const action of ['login', 'session', 'logout', 'announcements', 'promotions']) {
+      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions']) {
         assert.strictEqual(rewrites.get(`/api/admin/${action}`), `/api/admin?action=${action}`);
       }
       const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
@@ -153,6 +173,30 @@ async function request(base, action, options = {}) {
       assert.strictEqual(session.data.mode, 'github');
     });
 
+    await runTest('Les visuels serverless exigent CSRF et sont publiés comme actifs GitHub validés', async () => {
+      const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const payload = { data: pngBase64, contentType: 'image/png' };
+      const rejected = await request(baseB, 'announcement-assets', { method: 'POST', cookie, body: payload });
+      assert.strictEqual(rejected.response.status, 403);
+      const invalid = await request(baseB, 'announcement-assets', {
+        method: 'POST', cookie, csrf,
+        body: { data: Buffer.from('<svg><script>alert(1)</script></svg>').toString('base64'), contentType: 'image/png' }
+      });
+      assert.strictEqual(invalid.response.status, 415);
+      assert.strictEqual(githubAssetWrites, 0);
+      const uploaded = await request(baseB, 'announcement-assets', { method: 'POST', cookie, csrf, body: payload });
+      assert.strictEqual(uploaded.response.status, 201, uploaded.text);
+      assert.match(uploaded.data.asset.path, /^assets\/announcements\/announcement-[a-f0-9]{24}\.png$/);
+      assert.strictEqual(githubAssetWrites, 1);
+      uploadedAssetPath = uploaded.data.asset.path;
+      assert.ok(githubAssets.get(uploadedAssetPath).equals(Buffer.from(pngBase64, 'base64')));
+      assert.ok(!uploaded.text.includes(TOKEN));
+      const repeated = await request(baseB, 'announcement-assets', { method: 'POST', cookie, csrf, body: payload });
+      assert.strictEqual(repeated.response.status, 201);
+      assert.strictEqual(repeated.data.asset.path, uploadedAssetPath);
+      assert.strictEqual(githubAssetWrites, 1, 'Un actif déjà présent ne doit pas être republié');
+    });
+
     await runTest('La fonction serverless publie avec CSRF, SHA et token uniquement côté serveur', async () => {
       const loaded = await request(baseB, 'announcements', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
@@ -162,7 +206,8 @@ async function request(base, action, options = {}) {
 
       const next = loaded.data.manifest;
       next.announcements.push({
-        id: 'event-vercel-test', category: 'event', title: { fr: 'Test Vercel' }, message: { fr: 'Publication serverless' }
+        id: 'event-vercel-test', category: 'event', title: { fr: 'Test Vercel' }, message: { fr: 'Publication serverless' },
+        theme: 'gold', font: 'elegant', backgroundImage: uploadedAssetPath, avatars: ['assets/avatars/team-2.svg']
       });
       const rejected = await request(baseB, 'announcements', {
         method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
@@ -174,6 +219,10 @@ async function request(base, action, options = {}) {
       assert.strictEqual(saved.response.status, 200, saved.text);
       assert.strictEqual(saved.data.revision, 'sha-vercel-write-1');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].id, 'event-vercel-test');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].theme, 'gold');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].font, 'elegant');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundImage, uploadedAssetPath);
+      assert.deepStrictEqual(githubManifest.announcements[initialAnnouncementCount].avatars, ['assets/avatars/team-2.svg']);
       assert.strictEqual(githubWrites, 1);
       assert.ok(!saved.text.includes(TOKEN));
     });
@@ -181,13 +230,13 @@ async function request(base, action, options = {}) {
     await runTest('La fonction serverless publie les décorations dans leur propre fichier avec CSRF et validation', async () => {
       const loaded = await request(baseB, 'promotions', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
-      assert.strictEqual(loaded.data.manifest.promotions.length, 0);
+      assert.ok(Array.isArray(loaded.data.manifest.promotions));
       assert.strictEqual(loaded.data.revision, 'sha-vercel-promotion-initial');
       const next = loaded.data.manifest;
-      next.promotions.push({
+      next.promotions = [{
         id: 'gift-vercel-test', targetType: 'machine', targetId: 2, variant: 'gift', animated: false,
         label: { fr: 'JOYEUX NOËL', en: 'MERRY CHRISTMAS' }
-      });
+      }];
       const rejected = await request(baseB, 'promotions', {
         method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
       });

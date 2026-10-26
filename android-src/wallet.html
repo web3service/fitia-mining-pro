@@ -422,7 +422,7 @@
           <input type="number" id="deposit-amount" class="game-input wallet-amount-input" placeholder="Montant" step="any" data-i18n-placeholder="amount">
           <button type="button" class="btn-max-inline" onclick="App.fillMaxDeposit()">MAX</button>
         </div>
-        <button class="btn-wallet-action btn-wallet-deposit" onclick="App.deposit()" data-i18n="depositBtn">DÉPOSER ↓</button>
+        <button class="btn-wallet-action btn-wallet-deposit" onclick="App.deposit()" data-i18n="depositBtn">DÉPOSER</button>
         <button class="btn-wallet-action btn-wallet-withdraw" onclick="App.withdraw()" data-i18n="withdrawBtn">RETIRER</button>
       </div>
     </div>
@@ -439,18 +439,72 @@
       <div id="my-batteries-list"><p class="small-text" style="text-align:center;" data-i18n="noBatteries">Aucune batterie</p></div>
     </div>
 
-    <!-- Brancher une machine -->
-    <div id="plug-machine-card" class="card" style="margin-bottom: 15px; border-color: rgba(59, 130, 246, 0.3);">
-      <h3 style="margin:0 0 10px 0; font-size:1rem;" data-i18n="plugMachine">🔌 Brancher une machine</h3>
-      <p class="small-text" data-i18n="plugDesc">Choisissez l'index d'une machine et le type de batterie.</p>
-      <div class="plug-grid" style="margin-top:10px;">
-        <input type="number" id="plug-machine-id" class="game-input" placeholder="Index (0, 1...)" min="0" data-i18n-placeholder="machineId">
-        <select id="plug-battery-type" class="game-input" style="padding: 10px;">
-          <option value="0">3 Jours</option><option value="1">7 Jours</option><option value="2">15 Jours</option><option value="3">30 Jours</option>
-          <option value="4">90 Jours</option><option value="5">180 Jours</option><option value="6">270 Jours</option><option value="7">365 Jours</option>
-        </select>
+    <!-- Connexion visuelle Machine / Batterie -->
+    <div id="plug-machine-card" class="card plug-machine-card">
+      <div class="plug-card-header">
+        <div class="plug-heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
+        </div>
+        <div class="plug-heading-copy">
+          <h3 data-i18n="plugMachine">Connexion machine &amp; batterie</h3>
+          <p data-i18n="plugDesc">Sélectionnez une machine disponible et son autonomie.</p>
+        </div>
       </div>
-      <button class="btn-primary" style="margin-top:6px;" onclick="App.plugInMachine()" data-i18n="plug">BRANCHER ⚡</button>
+
+      <div class="plug-selector-block">
+        <div class="plug-section-heading">
+          <strong id="plug-machine-step-label" data-i18n="plugMachineStep">1. Choisissez une machine</strong>
+          <span id="plug-machine-count" class="plug-count" aria-hidden="true">0</span>
+        </div>
+        <input type="hidden" id="plug-machine-id" value="">
+        <div id="plug-machine-options" class="plug-options" role="group" aria-labelledby="plug-machine-step-label">
+          <p class="plug-options-empty" data-i18n="noMachines">Aucune machine</p>
+        </div>
+      </div>
+
+      <div class="plug-selector-block">
+        <div class="plug-section-heading">
+          <strong id="plug-battery-step-label" data-i18n="plugBatteryStep">2. Choisissez une batterie</strong>
+          <span id="plug-battery-count" class="plug-count plug-count-battery" aria-hidden="true">0</span>
+        </div>
+        <input type="hidden" id="plug-battery-type" value="">
+        <div id="plug-battery-options" class="plug-options" role="group" aria-labelledby="plug-battery-step-label">
+          <p class="plug-options-empty" data-i18n="noBatteries">Aucune batterie</p>
+        </div>
+      </div>
+
+      <div class="plug-preview">
+        <div class="plug-preview-topline">
+          <span data-i18n="plugPreview">Aperçu de connexion</span>
+          <span id="plug-status-badge" class="plug-status-badge" data-i18n="plugNotReady">À configurer</span>
+        </div>
+        <div class="plug-preview-flow">
+          <div id="plug-preview-machine" class="plug-preview-node">
+            <span id="plug-preview-machine-icon" class="plug-preview-icon" aria-hidden="true">
+              <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="4" width="40" height="42" rx="7"/><rect x="11" y="12" width="12" height="17" rx="2"/><rect x="27" y="12" width="12" height="17" rx="2"/><circle cx="18" cy="37" r="5"/><circle cx="32" cy="37" r="5"/></svg>
+            </span>
+            <strong id="plug-preview-machine-name" data-i18n="selectMachinePrompt">Machine à sélectionner</strong>
+          </div>
+          <div id="plug-connector" class="plug-connector" aria-hidden="true">
+            <span class="plug-connector-line"></span>
+            <span class="plug-connector-bolt"><svg viewBox="0 0 24 24"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg></span>
+            <span class="plug-energy-pulse"></span>
+          </div>
+          <div id="plug-preview-battery" class="plug-preview-node">
+            <span id="plug-preview-battery-icon" class="plug-preview-icon" aria-hidden="true">
+              <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="15" width="36" height="22" rx="5"/><path d="M43 21v10m-31-5h19"/></svg>
+            </span>
+            <strong id="plug-preview-battery-name" data-i18n="selectBatteryPrompt">Batterie à sélectionner</strong>
+          </div>
+        </div>
+        <p id="plug-summary" class="plug-summary" aria-live="polite" data-i18n="selectMachineToContinue">Sélectionnez une machine disponible.</p>
+      </div>
+
+      <button type="button" id="btn-plug-machine" class="plug-submit" onclick="App.plugInMachine()" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
+        <span data-i18n="plugAction">CONNECTER LA MACHINE</span>
+      </button>
+      <p class="plug-footnote" data-i18n="plugConsumptionHint">1 batterie sera utilisée. Confirmation sécurisée sur Polygon.</p>
     </div>
   </div>
 
@@ -584,15 +638,45 @@
       </div>
     </div>
 
-    <div class="card referral-card" style="margin-top: 15px;">
+    <div class="card referral-card">
       <div class="ref-header-row">
-        <h3 data-i18n="refTitle">Parrainage</h3>
-        <button class="btn-chip sm" onclick="App.shareMyReferral()"><span data-i18n="shareRef">Mon ID</span>: <strong id="my-ref-id-label">—</strong></button>
+        <div class="ref-brand">
+          <img src="assets/fta.png" class="ref-brand-logo" width="38" height="38" alt="">
+          <div>
+            <h3 data-i18n="refTitle">Programme de parrainage</h3>
+            <p class="ref-subtitle" data-i18n="refSubtitle">Partagez votre code avec votre communauté.</p>
+          </div>
+        </div>
+        <span class="ref-network-badge">POLYGON</span>
       </div>
-      <p id="current-referrer-status" class="small-text" data-i18n="refDesc">Entrez l'adresse ou l'ID de votre parrain.</p>
-      <div id="ref-form-wrap" class="ref-input-group">
-        <input type="text" id="ref-address-input" class="game-input" placeholder="0x... ou ID" data-i18n-placeholder="enterRefAddr">
-        <button class="btn-sm btn-full" onclick="App.bindReferrer()" data-i18n="bindRef">LIER</button>
+
+      <div class="ref-code-panel">
+        <span class="ref-code-label" data-i18n="yourRefCode">Votre code de parrainage</span>
+        <strong id="my-ref-id-label" class="ref-code-value">—</strong>
+        <p class="ref-code-hint" data-i18n="refCodeHint">Ce code personnel ne donne accès à aucun fonds.</p>
+      </div>
+      <div class="ref-actions">
+        <button type="button" class="ref-action-btn ref-action-secondary" onclick="App.copyMyReferralCode()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+          <span data-i18n="copyRefCode">Copier le code</span>
+        </button>
+        <button type="button" class="ref-action-btn ref-action-primary" onclick="App.shareMyReferral()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5"></path></svg>
+          <span data-i18n="shareRef">Partager</span>
+        </button>
+      </div>
+
+      <div class="ref-bind-block">
+        <strong class="ref-bind-title" data-i18n="refBindTitle">Vous avez un code ?</strong>
+        <p id="current-referrer-status" class="small-text" data-i18n="refDesc">Saisissez le code ou l’adresse Polygon de votre parrain.</p>
+        <div id="ref-form-wrap" class="ref-input-group">
+          <label class="ref-input-label" for="ref-address-input" data-i18n="refInputLabel">Code ou adresse du parrain</label>
+          <div class="ref-input-row">
+            <input type="text" id="ref-address-input" class="game-input" placeholder="FITIA-001042, #1042 ou 0x..." data-i18n-placeholder="enterRefAddr" aria-describedby="ref-input-hint" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+            <button type="button" class="ref-bind-button" onclick="App.bindReferrer()" data-i18n="bindRef">ASSOCIER</button>
+          </div>
+          <p id="ref-input-hint" class="ref-input-hint" data-i18n="refInputHint">Formats acceptés : FITIA-001042, #1042, 1042 ou adresse Polygon.</p>
+        </div>
       </div>
     </div>
 

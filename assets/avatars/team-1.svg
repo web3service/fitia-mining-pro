@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Avatar FITIA">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="8" x2="116" y2="124" gradientUnits="userSpaceOnUse"><stop stop-color="#173d56"/><stop offset="1" stop-color="#091a2b"/></linearGradient>
+    <linearGradient id="jacket" x1="38" y1="91" x2="96" y2="127" gradientUnits="userSpaceOnUse"><stop stop-color="#d9ab4c"/><stop offset="1" stop-color="#8e6424"/></linearGradient>
+    <linearGradient id="skin" x1="50" y1="42" x2="80" y2="88" gradientUnits="userSpaceOnUse"><stop stop-color="#f2c9a5"/><stop offset="1" stop-color="#c88d68"/></linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="64" fill="url(#bg)"/>
+  <circle cx="64" cy="64" r="55" fill="none" stroke="#f2cf79" stroke-opacity=".25"/>
+  <path d="M18 128c3-26 20-39 46-39s43 13 46 39" fill="url(#jacket)"/>
+  <path d="M52 83h24v18c-7 8-17 8-24 0z" fill="url(#skin)"/>
+  <path d="M39 55c0-25 11-36 27-36 19 0 29 15 26 42l-4 22c-4 13-14 19-24 19-12 0-21-8-24-23z" fill="#251c24"/>
+  <path d="M45 54c0-18 8-27 21-27 14 0 22 10 22 28v19c-2 14-11 23-23 23-11 0-19-9-20-23z" fill="url(#skin)"/>
+  <path d="M42 58c-4-22 5-39 25-39 17 0 28 12 27 34-10-2-20-8-26-17-5 10-14 17-26 22z" fill="#30212a"/>
+  <path d="M51 61c3-2 6-2 9 0M72 61c3-2 6-2 9 0" fill="none" stroke="#533b36" stroke-width="2" stroke-linecap="round"/>
+  <path d="M61 78c3 2 7 2 10 0" fill="none" stroke="#9b5d58" stroke-width="2" stroke-linecap="round"/>
+  <path d="M40 128l8-29 16 12 16-12 9 29" fill="#102b40"/>
+  <path d="M55 105l9 6 9-6-9 23z" fill="#f3f7f8"/>
+  <circle cx="96" cy="28" r="9" fill="#f2cf79" fill-opacity=".16"/><circle cx="96" cy="28" r="3" fill="#f2cf79"/>
+</svg>

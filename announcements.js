@@ -80,6 +80,8 @@
       this.fetchInFlight = false;
       this.initialized = false;
       this.localFallback = true;
+      this.channelEnabled = true;
+      this.lastFetchAt = 0;
       this.touchStart = null;
       this.gesturesBound = false;
     }
@@ -101,6 +103,7 @@
     init() {
       this.items = this.defaults();
       this.localFallback = true;
+      this.channelEnabled = true;
       this.initialized = true;
       this.bindGestures();
       this.render();
@@ -137,6 +140,20 @@
       return Number.isFinite(timestamp) ? timestamp : undefined;
     }
 
+    normalizeAssetPath(value, allowAvatarPresets = false) {
+      if (typeof value !== 'string') return null;
+      const clean = value.trim();
+      if (clean.length > 160 || clean.includes('\\') || clean.includes('..')) return null;
+      if (/^assets\/announcements\/announcement-[a-f0-9]{24}\.(png|jpg|webp)$/.test(clean)) return clean;
+      if (allowAvatarPresets && /^assets\/avatars\/team-[123]\.svg$/.test(clean)) return clean;
+      return null;
+    }
+
+    assetUrl(assetPath) {
+      if (assetPath.startsWith('assets/avatars/')) return assetPath;
+      return new URL(assetPath, MANIFEST_URL).href;
+    }
+
     normalizeManifest(raw, now = Date.now()) {
       if (!raw || raw.enabled !== true || !Array.isArray(raw.announcements)) return [];
       const acceptedCategories = new Set(['information', 'event', 'referral', 'security']);
@@ -152,6 +169,21 @@
         const title = this.normalizeLocalizedText(item.title, 80);
         const message = this.normalizeLocalizedText(item.message, 180);
         if (!title || !message) return;
+        const theme = item.theme === undefined ? 'classic' : item.theme;
+        const font = item.font === undefined ? 'modern' : item.font;
+        if (!['classic', 'aurora', 'gold', 'emerald', 'violet', 'celebration'].includes(theme)) return;
+        if (!['modern', 'elegant', 'rounded', 'mono'].includes(font)) return;
+        const backgroundImage = item.backgroundImage ? this.normalizeAssetPath(item.backgroundImage) : '';
+        if (item.backgroundImage && !backgroundImage) return;
+        const avatars = [];
+        if (item.avatars !== undefined) {
+          if (!Array.isArray(item.avatars) || item.avatars.length > 3) return;
+          for (const candidate of item.avatars) {
+            const avatar = this.normalizeAssetPath(candidate, true);
+            if (!avatar || avatars.includes(avatar)) return;
+            avatars.push(avatar);
+          }
+        }
         const startsAt = this.parseDate(item.startsAt);
         const expiresAt = this.parseDate(item.expiresAt);
         if (startsAt === undefined || expiresAt === undefined) return;
@@ -159,7 +191,10 @@
         if (expiresAt !== null && expiresAt <= currentTime) return;
         if (startsAt !== null && expiresAt !== null && expiresAt <= startsAt) return;
         seenIds.add(id);
-        normalized.push({ id, category, title, message, startsAt, expiresAt });
+        const normalizedItem = { id, category, title, message, theme, font, startsAt, expiresAt };
+        if (backgroundImage) normalizedItem.backgroundImage = backgroundImage;
+        if (avatars.length) normalizedItem.avatars = avatars;
+        normalized.push(normalizedItem);
       });
       return normalized;
     }
@@ -217,7 +252,14 @@
 
     createSlide(item, isClone) {
       const slide = document.createElement('div');
-      slide.className = `announcement-slide announcement-${item.category}`;
+      const theme = item.theme || 'classic';
+      const font = item.font || 'modern';
+      slide.className = `announcement-slide announcement-${item.category} announcement-theme-${theme} announcement-font-${font}`;
+      slide.classList.toggle('has-background', Boolean(item.backgroundImage));
+      slide.classList.toggle('has-avatars', Boolean(item.avatars?.length));
+      if (item.backgroundImage) {
+        slide.style.setProperty('--announcement-bg-image', `url(${JSON.stringify(this.assetUrl(item.backgroundImage))})`);
+      }
       if (isClone) slide.setAttribute('aria-hidden', 'true');
 
       const artwork = document.createElement('img');
@@ -242,6 +284,20 @@
       copy.appendChild(message);
       slide.appendChild(artwork);
       slide.appendChild(copy);
+      if (item.avatars?.length) {
+        const avatarStack = document.createElement('div');
+        avatarStack.className = 'announcement-avatars';
+        avatarStack.setAttribute('aria-hidden', 'true');
+        item.avatars.forEach((assetPath) => {
+          const avatar = document.createElement('img');
+          avatar.src = this.assetUrl(assetPath);
+          avatar.alt = '';
+          avatar.draggable = false;
+          avatar.addEventListener('error', () => avatar.remove(), { once: true });
+          avatarStack.appendChild(avatar);
+        });
+        slide.appendChild(avatarStack);
+      }
       return slide;
     }
 
@@ -251,11 +307,18 @@
       const track = document.getElementById('announcement-track');
       const dots = document.getElementById('announcement-dots');
       if (!section || !track || !dots) return;
-      if (this.localFallback) this.items = this.defaults();
-      if (!this.items.length) {
-        this.localFallback = true;
-        this.items = this.defaults();
+      if (this.localFallback && this.channelEnabled) this.items = this.defaults();
+      if (!this.channelEnabled || !this.items.length) {
+        this.stop();
+        this.index = 0;
+        section.classList.add('hidden');
+        while (track.firstChild) track.removeChild(track.firstChild);
+        while (dots.firstChild) dots.removeChild(dots.firstChild);
+        dots.classList.add('hidden');
+        track.style.transform = 'translate3d(0, 0, 0)';
+        return;
       }
+      section.classList.remove('hidden');
       if (this.index < 0 || this.index >= this.items.length) this.index = 0;
       section.setAttribute('aria-label', this.t('region'));
 
@@ -314,7 +377,7 @@
     }
 
     start() {
-      if (this.timer || !this.app.user || this.items.length < 2 || document.hidden) return;
+      if (this.timer || !this.channelEnabled || !this.app.user || this.items.length < 2 || document.hidden) return;
       const dashboard = document.getElementById('view-dashboard');
       if (!dashboard?.classList.contains('active')) return;
       if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -332,9 +395,11 @@
       this.start();
     }
 
-    async refresh() {
+    async refresh({ force = true } = {}) {
       if (this.fetchInFlight) return;
+      if (!force && this.lastFetchAt && Date.now() - this.lastFetchAt < 60000) return;
       this.fetchInFlight = true;
+      this.lastFetchAt = Date.now();
       const controller = typeof AbortController === 'function' ? new AbortController() : null;
       const timeout = window.setTimeout(() => controller?.abort(), 8000);
       try {
@@ -342,18 +407,23 @@
         if (controller) options.signal = controller.signal;
         const response = await fetch(MANIFEST_URL, options);
         if (!response.ok) throw new Error('ANNOUNCEMENTS_UNAVAILABLE');
-        const remoteItems = this.normalizeManifest(await response.json());
-        if (!remoteItems.length) return;
-        const currentId = this.items[this.index % this.items.length]?.id;
+        const manifest = await response.json();
+        if (!manifest || typeof manifest.enabled !== 'boolean' || !Array.isArray(manifest.announcements)) {
+          throw new Error('ANNOUNCEMENTS_INVALID');
+        }
+        const enabled = manifest.enabled;
+        const remoteItems = enabled ? this.normalizeManifest(manifest) : [];
+        const currentId = this.items.length ? this.items[this.index % this.items.length]?.id : null;
         const preservedIndex = remoteItems.findIndex((item) => item.id === currentId);
         this.stop();
+        this.channelEnabled = enabled;
         this.items = remoteItems;
         this.localFallback = false;
         this.index = preservedIndex >= 0 ? preservedIndex : 0;
         this.render();
         this.start();
       } catch (_) {
-        // Les annonces locales restent affichées en cas de coupure réseau.
+        // Hors ligne, conserver les annonces locales ou le dernier manifeste valide.
       } finally {
         window.clearTimeout(timeout);
         this.fetchInFlight = false;
