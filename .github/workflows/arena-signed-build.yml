@@ -1,0 +1,187 @@
+name: Temporary signed Android build
+
+on:
+  push:
+    branches:
+      - 'arena/3419a4ef-fitia-mining-pro'
+    paths-ignore:
+      - 'FITIA-PRO-Miner.apk'
+      - 'update-current.json'
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 and Node.js 22
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install build and test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install pillow
+          npm install --prefix /tmp/android-npm --no-package-lock --no-audit --no-fund aaptjs3@2.0.2 @postar/apktool-node@0.3.4
+          npm install --prefix /tmp/test-deps --no-package-lock --no-audit --no-fund jsdom@26.1.0
+
+      - name: Prepare Android toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          stage="Initialisation"
+          report_failure() {
+            local exit_code="$1"
+            local command="$2"
+            {
+              printf '## ❌ Échec de préparation des outils Android\n\n'
+              printf -- '- Étape : %s\n' "$stage"
+              printf -- '- Commande : `%s`\n' "$command"
+              printf -- '- Code de sortie : %s\n' "$exit_code"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit "$exit_code"
+          }
+          trap 'report_failure $? "$BASH_COMMAND"' ERR
+
+          if [[ -z "${JAVA_HOME:-}" || ! -d "$JAVA_HOME" ]]; then
+            stage="Vérification de JAVA_HOME"
+            false
+          fi
+          command -v curl > /dev/null
+
+          stage="Copie d’aapt2 et apksigner"
+          mkdir -p /tmp/android-toolchain
+          cp /tmp/android-npm/node_modules/aaptjs3/bin/x64/linux/aapt2 /tmp/android-toolchain/aapt2
+          cp /tmp/android-npm/node_modules/@postar/apktool-node/lib/apksigner.jar /tmp/android-toolchain/apksigner.jar
+          chmod +x /tmp/android-toolchain/aapt2
+          ln -sfn "$JAVA_HOME" /tmp/android-toolchain/jdk
+
+          stage="Téléchargement d’android.jar"
+          curl -fL --retry 4 --retry-delay 2 --retry-all-errors \
+            https://raw.githubusercontent.com/Sable/android-platforms/master/android-34/android.jar \
+            -o /tmp/android-toolchain/android.jar
+
+          stage="Téléchargement d’ecj-3.45.0.jar"
+          curl -fL --retry 4 --retry-delay 2 --retry-all-errors \
+            https://raw.githubusercontent.com/NorbertXYZ/eclipse-maven/main/org/eclipse/jdt/ecj/3.45.0/ecj-3.45.0.jar \
+            -o /tmp/android-toolchain/ecj-3.45.0.jar
+
+          stage="Téléchargement de d8.jar"
+          curl -fL --retry 4 --retry-delay 2 --retry-all-errors \
+            https://raw.githubusercontent.com/jmatsu/using-moshi-for-bugs-of-r8-with-kotlin-1.6.0/main/.m2/repository/com/android/tools/r8/8470bf/r8-8470bf.jar \
+            -o /tmp/android-toolchain/d8.jar
+
+          stage="Vérification des fichiers"
+          test -x /tmp/android-toolchain/aapt2
+          test -s /tmp/android-toolchain/apksigner.jar
+          test -s /tmp/android-toolchain/android.jar
+          test -s /tmp/android-toolchain/ecj-3.45.0.jar
+          test -s /tmp/android-toolchain/d8.jar
+          trap - ERR
+          printf '✅ Outils Android préparés et fichiers vérifiés.\n' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Restore stable signing key from Actions secrets
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FITIA_ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$KEYSTORE_BASE64" ]]; then
+            echo 'Missing secret FITIA_ANDROID_KEYSTORE_BASE64' >&2
+            exit 1
+          fi
+          mkdir -p android-src/keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > android-src/keystore/fitia-release.p12
+          chmod 600 android-src/keystore/fitia-release.p12
+
+      - name: Build APK and verify pinned certificate
+        shell: bash
+        env:
+          FITIA_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
+          FITIA_ANDROID_KEY_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
+        run: python3 scripts/build_apk.py
+
+      - name: Update the current release manifest
+        shell: bash
+        run: python3 scripts/update_release_manifest.py
+
+      - name: Run security and APK tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node server.js &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          npm test
+          npm run test:admin
+
+      - name: Remove restored private key
+        if: always()
+        shell: bash
+        run: rm -f android-src/keystore/fitia-release.p12
+
+      - name: Upload signed APK and current manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: FITIA-PRO-Miner-APK
+          path: |
+            FITIA-PRO-Miner.apk
+            update-current.json
+          if-no-files-found: error
+          retention-days: 30
+
+  commit-build:
+    if: ${{ github.ref != 'refs/heads/main' }}
+    needs: build-apk
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Check out the selected branch
+        uses: actions/checkout@v4
+
+      - name: Download the tested build
+        uses: actions/download-artifact@v4
+        with:
+          name: FITIA-PRO-Miner-APK
+          path: /tmp/fitia-signed-build
+
+      - name: Verify and commit the signed build
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir=/tmp/fitia-signed-build
+          expected="$(python3 -c 'import json; print(json.load(open("/tmp/fitia-signed-build/update-current.json"))["sha256"])')"
+          actual="$(sha256sum "$artifact_dir/FITIA-PRO-Miner.apk" | awk '{print $1}')"
+          if [[ ! "$actual" =~ ^[0-9a-f]{64}$ ]] || [[ "$actual" != "$expected" ]]; then
+            echo 'Downloaded APK SHA-256 does not match the tested manifest' >&2
+            exit 1
+          fi
+
+          manifest_version="$(python3 -c 'import json; print(json.load(open("/tmp/fitia-signed-build/update-current.json"))["versionName"])')"
+          package_version="$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')"
+          if [[ "$manifest_version" != "$package_version" ]]; then
+            echo 'Downloaded manifest version does not match package.json' >&2
+            exit 1
+          fi
+
+          cp "$artifact_dir/FITIA-PRO-Miner.apk" FITIA-PRO-Miner.apk
+          cp "$artifact_dir/update-current.json" update-current.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add FITIA-PRO-Miner.apk update-current.json
+          if git diff --cached --quiet; then
+            echo 'The tested build is already committed on this branch.'
+            exit 0
+          fi
+          git commit -m 'Build signed Android APK and update current manifest'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
