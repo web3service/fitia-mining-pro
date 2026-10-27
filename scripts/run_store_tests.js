@@ -235,6 +235,36 @@ async function createHarness(token = 'USDT', options = {}) {
     } finally { h.close(); }
   });
 
+  await runTest('Images produit : photo admin locale, secours GitHub et repli contrôlé', async () => {
+    const h = await createHarness();
+    try {
+      const published = Catalog.validateManifest(JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8')));
+      const publishedProduct = published.products.find((item) => item.image);
+      assert.ok(publishedProduct, 'Le catalogue contient le produit avec photo publié depuis l’admin');
+      assert.ok(fs.statSync(path.join(ROOT, publishedProduct.image)).size > 1000, 'La photo WebP publiée est bien embarquable dans l’APK');
+      h.center.manifest = { version: 1, enabled: true, products: [publishedProduct] };
+      h.center.renderProducts();
+      const image = h.win.document.querySelector('#store-product-grid .store-product-image');
+      assert.ok(image);
+      assert.strictEqual(image.getAttribute('src'), publishedProduct.image, 'La photo locale embarquée est utilisée avant le logo');
+      assert.strictEqual(image.dataset.storeImageSource, 'local');
+      assert.ok(!image.classList.contains('store-image-fallback'));
+      assert.strictEqual(image.referrerPolicy, 'no-referrer');
+
+      image.dispatchEvent(new h.win.Event('error'));
+      assert.strictEqual(image.dataset.storeImageSource, 'remote');
+      assert.strictEqual(image.getAttribute('src'), new URL(publishedProduct.image, 'https://raw.githubusercontent.com/web3service/fitia-mining-pro/main/store-products.json').href, 'Une nouvelle photo admin pas encore embarquée est recherchée sur GitHub');
+      assert.ok(!image.classList.contains('store-image-fallback'));
+
+      image.dispatchEvent(new h.win.Event('error'));
+      assert.strictEqual(image.dataset.storeImageSource, 'fallback');
+      assert.strictEqual(image.getAttribute('src'), 'assets/icon-192.png');
+      assert.ok(image.classList.contains('store-image-fallback'));
+      image.dispatchEvent(new h.win.Event('error'));
+      assert.strictEqual(image.getAttribute('src'), 'assets/icon-192.png', 'Le repli ne crée aucune boucle d’erreur');
+    } finally { h.close(); }
+  });
+
   for (const token of ['USDT', 'FTA']) {
     await runTest(`Paiement ${token} : PIN, montant exact, reçu partagé et aucune adresse postale persistée`, async () => {
       const h = await createHarness(token);

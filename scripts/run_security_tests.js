@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.23 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.3.24 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -473,7 +473,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.23\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.3.24\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -668,7 +668,7 @@ function httpRequest(port, method, reqPath) {
       );
     });
 
-    await runTest('WEBVIEW-CSP', 'Polices et icônes embarquées, aucune ressource tierce et CSP restrictive', async () => {
+    await runTest('WEBVIEW-CSP', 'Polices et icônes embarquées, images catalogue limitées à GitHub et CSP restrictive', async () => {
       const walletHtml = fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'), 'utf8');
       const styleSource = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
       const csp = walletHtml.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)?.[1] || '';
@@ -676,10 +676,12 @@ function httpRequest(port, method, reqPath) {
       assert.ok(csp.includes("base-uri 'none'"));
       assert.ok(csp.includes("object-src 'none'"));
       assert.ok(csp.includes("font-src 'self'"));
-      assert.ok(csp.includes("img-src 'self' data: blob:"));
+      assert.ok(csp.includes("img-src 'self' data: blob: https://raw.githubusercontent.com;"));
+      const imageDirective = csp.match(/(?:^|;\s*)img-src\s+([^;]+)/)?.[1] || '';
+      assert.ok(!imageDirective.includes('https://*'), 'Les images distantes ne sont pas ouvertes à tous les hôtes HTTPS');
+      assert.strictEqual((imageDirective.match(/https:\/\//g) || []).length, 1, 'Seul le stockage public GitHub des images éditoriales est autorisé');
       assert.ok(!csp.includes('https://fonts.googleapis.com'));
       assert.ok(!csp.includes('https://fonts.gstatic.com'));
-      assert.ok(!csp.includes('img-src \'self\' data: blob: https://'));
       assert.ok(!/(?:src|href)=["']https?:\/\//i.test(walletHtml), 'Aucun sous-chargement HTTP(S) ne doit rester dans wallet.html');
       assert.ok(!/(?:fonts\.googleapis\.com|fonts\.gstatic\.com|i\.ibb\.co)/i.test(walletHtml));
       assert.ok(walletHtml.includes('src="assets/pol.svg"') && walletHtml.includes('src="assets/usdt.svg"'));
@@ -1122,9 +1124,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 329,
-        versionName: '3.3.23',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.23/FITIA-PRO-Miner.apk',
+        versionCode: 330,
+        versionName: '3.3.24',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.24/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1167,7 +1169,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 329;
+        nativeState.appVersionCode = 330;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2550,18 +2552,22 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/store.js'), 'Le module FITIA STORE est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/store-catalog.js'), 'Les validations STORE sont embarquées dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/store-products.json'), 'Le catalogue local de secours est embarqué dans l’APK');
+      const packagedCatalog = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8'));
+      for (const product of packagedCatalog.products.filter((item) => item.image)) {
+        assert.ok(packagedFiles.includes(`assets/www/${product.image}`), `La photo produit ${product.image} est embarquée dans l’APK`);
+      }
       assert.ok(packagedFiles.includes('assets/www/wallet.html'), 'Le wallet Android reste embarqué localement');
       const packagedWallet = execFileSync('python3', ['-c', [
         'import zipfile, sys',
         'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/wallet.html"))'
       ].join(';'), apkPath]);
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
-      for (const sourceFile of ['app.js', 'wallet.js']) {
+      for (const sourceFile of ['app.js', 'wallet.js', 'store.js']) {
         const packagedSource = execFileSync('python3', ['-c', [
           'import zipfile, sys',
           'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'
         ].join(';'), apkPath, sourceFile]);
-        assert.ok(packagedSource.equals(fs.readFileSync(path.join(ROOT, sourceFile))), `L’APK embarque exactement ${sourceFile} avec le correctif réseau audité`);
+        assert.ok(packagedSource.equals(fs.readFileSync(path.join(ROOT, sourceFile))), `L’APK embarque exactement ${sourceFile} audité`);
       }
       for (const fontFile of [
         'inter-latin-400-normal.woff2', 'inter-latin-600-normal.woff2',
@@ -2585,11 +2591,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 329);
-      assert.strictEqual(updateManifest.versionName, '3.3.23');
-      assert.ok(updateManifest.apkUrl.includes('/v3.3.23/'));
+      assert.strictEqual(updateManifest.versionCode, 330);
+      assert.strictEqual(updateManifest.versionName, '3.3.24');
+      assert.ok(updateManifest.apkUrl.includes('/v3.3.24/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.23 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.3.24 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2607,8 +2613,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=329'), 'versionCode=329 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.23"'), 'versionName=3.3.23 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=330'), 'versionCode=330 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.3.24"'), 'versionName=3.3.24 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

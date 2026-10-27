@@ -472,19 +472,34 @@
     }
 
     assetUrl(product) {
-      return product.image ? new URL(product.image, MANIFEST_URL).href : 'assets/icon-192.png';
+      return product.image || 'assets/icon-192.png';
+    }
+
+    remoteAssetUrl(product) {
+      return product.image ? new URL(product.image, MANIFEST_URL).href : '';
     }
 
     setProductImage(image, product) {
       image.alt = '';
       image.loading = 'lazy';
-      if (!product.image) image.classList.add('store-image-fallback');
+      image.decoding = 'async';
+      image.referrerPolicy = 'no-referrer';
+      image.classList.toggle('store-image-fallback', !product.image);
+      image.dataset.storeImageSource = product.image ? 'local' : 'fallback';
       image.src = this.assetUrl(product);
+      const remoteSource = this.remoteAssetUrl(product);
       image.addEventListener('error', () => {
-        if (image.src.endsWith('/assets/icon-192.png') || image.src.endsWith('assets/icon-192.png')) return;
+        const source = image.dataset.storeImageSource;
+        if (source === 'local' && remoteSource) {
+          image.dataset.storeImageSource = 'remote';
+          image.src = remoteSource;
+          return;
+        }
+        if (source === 'fallback') return;
+        image.dataset.storeImageSource = 'fallback';
         image.src = 'assets/icon-192.png';
         image.classList.add('store-image-fallback');
-      }, { once: true });
+      });
     }
 
     render() {
