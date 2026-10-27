@@ -437,16 +437,17 @@ class SupabaseDigitalAssetStorage {
 
   async request(url, init = {}) {
     const { serviceKey } = this.settings();
+    const headers = { ...(init.headers || {}), apikey: serviceKey };
+    // Les clés opaques sb_secret_ utilisent uniquement apikey. Seul un JWT
+    // service_role historique peut aussi être transmis comme Bearer token.
+    if (serviceKey.split('.').length === 3) headers.Authorization = `Bearer ${serviceKey}`;
+    else delete headers.Authorization;
     try {
       return await this.fetch(url, {
         ...init,
         redirect: 'error',
         signal: AbortSignal.timeout(30000),
-        headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          apikey: serviceKey,
-          ...(init.headers || {})
-        }
+        headers
       });
     } catch (_) {
       throw new DigitalError(503, 'Le stockage externe privé est momentanément indisponible.', 'DIGITAL_ASSET_STORAGE_UNAVAILABLE');

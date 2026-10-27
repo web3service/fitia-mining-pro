@@ -13,7 +13,7 @@ const PASSWORD = 'digital-test-password-123';
 const TOKEN = 'digital-test-token-not-real';
 const DIGITAL_KEY = 'a1'.repeat(32);
 const SUPABASE_URL = 'https://project.supabase.co';
-const SUPABASE_KEY = 'supabase-test-service-role-key-not-real-1234567890';
+const SUPABASE_KEY = 'sb_secret_fitia_test_key_not_real_1234567890abcdef';
 const SUPABASE_BUCKET = 'fitia-paid-private';
 const CONFIG = {
   password: PASSWORD, githubToken: TOKEN, digitalKey: DIGITAL_KEY, owner: 'web3service', repo: 'fitia-mining-pro',
@@ -49,7 +49,7 @@ global.fetch = async (url, init = {}) => {
   if (target.startsWith('http://127.0.0.1:')) return originalFetch(url, init);
   if (target.startsWith(`${SUPABASE_URL}/storage/v1/`)) {
     supabaseRequests += 1;
-    assert.strictEqual(init.headers?.Authorization, `Bearer ${SUPABASE_KEY}`);
+    assert.strictEqual(init.headers?.Authorization, undefined, 'Une clé sb_secret_ ne doit pas être utilisée comme JWT Bearer');
     assert.strictEqual(init.headers?.apikey, SUPABASE_KEY);
     const upload = target.match(/\/object\/fitia-paid-private\/paid\/([a-f0-9]{24})\.bin$/);
     const download = target.match(/\/object\/authenticated\/fitia-paid-private\/paid\/([a-f0-9]{24})\.bin$/);
@@ -225,6 +225,16 @@ async function runTest(name, fn) {
       await assert.rejects(unsafe.writeAsset(asset, externalAssets.get(asset.id)), (error) => error.code === 'DIGITAL_ASSET_CONFIG');
       assert.strictEqual(supabaseRequests, before, 'Aucune requête externe ne doit partir avec une configuration invalide');
       assert.ok(!files.has(`digital-assets/${asset.id}.bin`));
+    });
+
+    await runTest('Authentification Supabase : apikey pour sb_secret et Bearer seulement pour JWT legacy', async () => {
+      const legacyKey = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature';
+      const legacy = new Digital.SupabaseDigitalAssetStorage({ ...CONFIG, supabaseServiceRoleKey: legacyKey }, async (_url, init) => {
+        assert.strictEqual(init.headers.apikey, legacyKey);
+        assert.strictEqual(init.headers.Authorization, `Bearer ${legacyKey}`);
+        return new Response('{}', { status: 200 });
+      });
+      await legacy.request(`${SUPABASE_URL}/storage/v1/test`);
     });
 
     await runTest('API admin Vercel : session, CSRF et même clé dédiée que la livraison', async () => {
