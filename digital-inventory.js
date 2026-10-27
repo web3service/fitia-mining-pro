@@ -3,10 +3,10 @@
 /*
  * FITIA STORE — coffre numérique chiffré.
  *
- * Seuls des ciphertexts sont écrits dans le stockage. Les métadonnées de vente
- * restent dans le catalogue public ; fichiers, URLs privées et licences ne le
- * quittent jamais en clair. La clé AES est dérivée de deux secrets serveur et
- * n'est jamais envoyée au navigateur.
+ * Le coffre GitHub ne contient que licences et métadonnées chiffrées. Les
+ * fichiers payants, même chiffrés, sont exclusivement dans le bucket Supabase
+ * privé (ou sur le disque local en développement), jamais dans GitHub. La clé
+ * AES et les secrets de stockage restent strictement côté serveur.
  */
 const crypto = require('crypto');
 const fs = require('fs');
@@ -401,12 +401,95 @@ async function updateVault(store, mutator, attempts = 4) {
   throw lastError || new DigitalError(409, 'Le coffre a changé. Réessayez.', 'CONFLICT');
 }
 
+class SupabaseDigitalAssetStorage {
+  constructor(config = {}, fetchImpl = global.fetch) {
+    this.config = config;
+    this.fetch = fetchImpl;
+  }
+
+  settings() {
+    let parsed;
+    try { parsed = new URL(String(this.config.supabaseUrl || '')); }
+    catch (_) { throw new DigitalError(503, 'Le stockage externe des fichiers payants n’est pas configuré.', 'DIGITAL_ASSET_CONFIG'); }
+    const serviceKey = String(this.config.supabaseServiceRoleKey || '').trim();
+    const bucket = String(this.config.supabaseBucket || 'fitia-paid-private');
+    if (parsed.protocol !== 'https:' || !/^[a-z0-9][a-z0-9-]{2,63}\.supabase\.co$/i.test(parsed.hostname) ||
+        parsed.username || parsed.password || parsed.search || parsed.hash || !['', '/'].includes(parsed.pathname) ||
+        !/^[a-z0-9][a-z0-9-]{0,62}$/.test(bucket) || !/^[A-Za-z0-9._~-]{40,4096}$/.test(serviceKey)) {
+      throw new DigitalError(503, 'Le stockage externe privé est absent ou invalide. Aucun fichier ne sera envoyé vers GitHub.', 'DIGITAL_ASSET_CONFIG');
+    }
+    return { origin: parsed.origin, serviceKey, bucket };
+  }
+
+  status() {
+    try { this.settings(); return { provider: 'supabase', configured: true }; }
+    catch (_) { return { provider: 'supabase', configured: false }; }
+  }
+
+  target(asset, authenticated = false) {
+    if (!asset || !/^[a-f0-9]{24}$/.test(asset.id || '')) {
+      throw new DigitalError(503, 'Le fichier externe est invalide.', 'DIGITAL_ASSET_INVALID');
+    }
+    const { origin, bucket } = this.settings();
+    const prefix = authenticated ? 'object/authenticated' : 'object';
+    return `${origin}/storage/v1/${prefix}/${encodeURIComponent(bucket)}/paid/${asset.id}.bin`;
+  }
+
+  async request(url, init = {}) {
+    const { serviceKey } = this.settings();
+    try {
+      return await this.fetch(url, {
+        ...init,
+        redirect: 'error',
+        signal: AbortSignal.timeout(30000),
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          ...(init.headers || {})
+        }
+      });
+    } catch (_) {
+      throw new DigitalError(503, 'Le stockage externe privé est momentanément indisponible.', 'DIGITAL_ASSET_STORAGE_UNAVAILABLE');
+    }
+  }
+
+  async writeAsset(asset, encrypted) {
+    const buffer = Buffer.isBuffer(encrypted) ? encrypted : Buffer.from(encrypted);
+    if (buffer.length < 29 || buffer.length > MAX_DIGITAL_FILE_BYTES + 28) {
+      throw new DigitalError(400, 'Le ciphertext externe est invalide.', 'DIGITAL_ASSET_INVALID');
+    }
+    const response = await this.request(this.target(asset), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', 'x-upsert': 'false' },
+      body: buffer
+    });
+    if (response.status === 409) throw new DigitalError(409, 'Le fichier externe existe déjà.', 'CONFLICT');
+    if (!response.ok) throw new DigitalError(503, 'Le stockage externe privé a refusé le fichier.', 'DIGITAL_ASSET_STORAGE_WRITE');
+    return `supabase://paid/${asset.id}.bin`;
+  }
+
+  async readAsset(asset) {
+    const response = await this.request(this.target(asset, true));
+    if (!response.ok) throw new DigitalError(503, 'Le fichier payant est absent du stockage externe privé.', 'DIGITAL_ASSET_MISSING');
+    const declared = Number(response.headers.get('content-length') || 0);
+    if (declared > MAX_DIGITAL_FILE_BYTES + 28) throw new DigitalError(503, 'Le fichier externe dépasse la limite autorisée.', 'DIGITAL_ASSET_INVALID');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > MAX_DIGITAL_FILE_BYTES + 28) throw new DigitalError(503, 'Le fichier externe dépasse la limite autorisée.', 'DIGITAL_ASSET_INVALID');
+    return buffer;
+  }
+}
+
 class GitHubDigitalStore {
   constructor(config, fetchImpl = global.fetch) {
     this.config = config;
     this.fetch = fetchImpl;
     this.key = deriveKey(config);
     this.apiBase = String(config.apiBase || 'https://api.github.com').replace(/\/$/, '');
+    this.assets = new SupabaseDigitalAssetStorage(config, fetchImpl);
+  }
+
+  assetStorageStatus() {
+    return this.assets.status();
   }
 
   url(target, ref = false) {
@@ -467,24 +550,12 @@ class GitHubDigitalStore {
   }
 
   async writeAsset(asset, encrypted) {
-    const target = `${ASSET_DIRECTORY}/${asset.id}.bin`;
-    const response = await this.request(this.url(target), {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: 'Add encrypted FITIA STORE digital asset',
-        content: Buffer.from(encrypted).toString('base64'), branch: this.config.branch
-      })
-    });
-    if (!response.ok) throw new DigitalError(503, 'L’enregistrement du fichier chiffré a été refusé.', 'DIGITAL_STORAGE_WRITE');
-    return target;
+    // Aucun fallback GitHub : les octets payants, même chiffrés, restent externes.
+    return this.assets.writeAsset(asset, encrypted);
   }
 
   async readAsset(asset) {
-    const response = await this.request(this.url(`${ASSET_DIRECTORY}/${asset.id}.bin`, true), {
-      headers: { Accept: 'application/vnd.github.raw+json' }
-    });
-    if (!response.ok) throw new DigitalError(503, 'Impossible de lire le fichier chiffré.', 'DIGITAL_ASSET_MISSING');
-    return Buffer.from(await response.arrayBuffer());
+    return this.assets.readAsset(asset);
   }
 
   async loadCatalog() {
@@ -503,6 +574,10 @@ class LocalDigitalStore {
     this.assetDirectory = path.resolve(options.assetDirectory || path.join(this.root, ASSET_DIRECTORY));
     this.catalogFile = path.resolve(options.catalogFile || path.join(this.root, 'store-products.json'));
     this.key = deriveKey(options);
+  }
+
+  assetStorageStatus() {
+    return { provider: 'local', configured: true };
   }
 
   async loadVault() {
@@ -553,6 +628,7 @@ module.exports = {
   DigitalError, emptyVault, validateVault, deriveKey, encryptVault, decryptVault,
   encryptAsset, decryptAsset, normalizeBase64File, createAsset, addLicenses,
   summarize, requestFingerprint, orderFromRequest, allocateOrder, deliveryPayload,
-  createDownloadToken, readDownloadToken, updateVault, GitHubDigitalStore, LocalDigitalStore,
+  createDownloadToken, readDownloadToken, updateVault, SupabaseDigitalAssetStorage,
+  GitHubDigitalStore, LocalDigitalStore,
   cleanFileName, cleanContentType, clone
 };

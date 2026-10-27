@@ -273,6 +273,9 @@ function getConfig() {
     password,
     githubToken,
     digitalKey: process.env.FITIA_DIGITAL_VAULT_KEY || '',
+    supabaseUrl: process.env.FITIA_SUPABASE_URL || process.env.SUPABASE_URL || '',
+    supabaseServiceRoleKey: process.env.FITIA_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '',
+    supabaseBucket: process.env.FITIA_SUPABASE_BUCKET || 'fitia-paid-private',
     owner: process.env.FITIA_ADMIN_GITHUB_OWNER || 'web3service',
     repo: process.env.FITIA_ADMIN_GITHUB_REPO || 'fitia-mining-pro',
     branch: process.env.FITIA_ADMIN_GITHUB_BRANCH || 'main',
@@ -416,7 +419,7 @@ async function digitalInventory(config, method, body) {
   const store = new GitHubDigitalStore(config);
   if (method === 'GET') {
     const { vault, revision } = await store.loadVault();
-    return { inventory: summarize(vault), revision };
+    return { inventory: summarize(vault), revision, assetStorage: store.assetStorageStatus() };
   }
   if (body.productType === 'download') {
     let uploaded = null;
