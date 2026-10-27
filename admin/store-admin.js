@@ -20,6 +20,7 @@
       editorSession: 0,
       assetUploads: 0,
       inventory: { products: [], awaitingInventory: 0, completedOrders: 0 },
+      assetStorage: { provider: 'supabase', configured: false },
       editorProductId: '',
       editorDigital: null,
       editorFile: null,
@@ -35,6 +36,7 @@
       state.editorSession += 1;
       state.assetUploads = 0;
       state.inventory = { products: [], awaitingInventory: 0, completedOrders: 0 };
+      state.assetStorage = { provider: 'supabase', configured: false };
       state.editorProductId = '';
       state.editorDigital = null;
       state.editorFile = null;
@@ -49,6 +51,7 @@
       state.manifest = data.manifest;
       state.revision = data.revision;
       state.inventory = digital.inventory || { products: [], awaitingInventory: 0, completedOrders: 0 };
+      state.assetStorage = digital.assetStorage || { provider: 'supabase', configured: false };
       return data;
     }
 
@@ -207,6 +210,21 @@
       return state.inventory.products.find((entry) => entry.productId === productId) || null;
     }
 
+    function renderStorageStatus(type) {
+      const element = byId('store-digital-storage-status');
+      if (type === 'license') {
+        element.textContent = 'Les licences restent chiffrées dans le coffre ; aucun bucket de fichiers n’est nécessaire.';
+        return;
+      }
+      if (state.assetStorage?.provider === 'local') {
+        element.textContent = 'Mode local : fichier chiffré sur ce serveur, hors du catalogue et des routes statiques.';
+      } else if (state.assetStorage?.configured) {
+        element.textContent = 'Stockage externe privé Supabase configuré : aucun octet du fichier, même chiffré, n’est écrit sur GitHub.';
+      } else {
+        element.textContent = 'Stockage externe privé non connecté. Le dépôt de fichiers est bloqué ; aucun repli vers GitHub n’est autorisé.';
+      }
+    }
+
     function syncProductType(force = false) {
       const type = byId('store-product-type').value;
       const digital = type !== 'physical';
@@ -229,12 +247,19 @@
       byId('store-digital-file-status').textContent = type === 'download'
         ? state.editorFile ? `Prêt à chiffrer : ${state.editorFile.name} (${state.editorFile.size} octets)`
           : state.editorDigital ? `Fichier enregistré : ${state.editorDigital.fileName}` : 'Sélectionnez le fichier à vendre avant la publication.' : '';
+      renderStorageStatus(type);
       updatePreview();
     }
 
     function handleDigitalFileSelection(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
+      if (!state.assetStorage?.configured) {
+        state.editorFile = null;
+        byId('store-digital-file').value = '';
+        byId('store-editor-error').textContent = 'Connectez d’abord le stockage externe privé. Aucun fichier ne sera envoyé vers GitHub.';
+        return;
+      }
       if (!file.size || file.size > 3 * 1024 * 1024) {
         state.editorFile = null;
         byId('store-digital-file').value = '';
@@ -263,6 +288,7 @@
     async function prepareDigitalInventory(item) {
       if (item.type === 'download') {
         if (state.editorFile) {
+          if (!state.assetStorage?.configured) throw new Error('Le stockage externe privé n’est pas connecté. Aucun repli vers GitHub n’est autorisé.');
           const data = await readFileBase64(state.editorFile);
           const result = await api('/api/admin/digital-inventory', {
             method: 'POST',

@@ -73,7 +73,7 @@ window.fetch = async (url, options = {}) => {
     return response({ manifest: storeManifest, revision: storeRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
   if (url === '/api/admin/digital-inventory' && (!options.method || options.method === 'GET')) {
-    return response({ inventory: digitalInventory, revision: null, mode: 'local', project: null, branch: null });
+    return response({ inventory: digitalInventory, revision: null, assetStorage: { provider: 'supabase', configured: false }, mode: 'local', project: null, branch: null });
   }
   if (url === '/api/admin/digital-inventory' && options.method === 'POST') {
     const body = JSON.parse(options.body);
@@ -333,6 +333,21 @@ async function waitFor(condition, label) {
   await waitFor(() => storeWrites.length === 3, 'suppression produit STORE');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression produit STORE');
   assert.strictEqual(storeManifest.products.length, 0);
+
+  window.document.querySelector('#section-store [data-new-store-product]').click();
+  const downloadType = window.document.getElementById('store-product-type');
+  downloadType.value = 'download';
+  downloadType.dispatchEvent(new window.Event('change', { bubbles: true }));
+  assert.ok(window.document.getElementById('store-digital-storage-status').textContent.includes('non connecté'));
+  const blockedFileInput = window.document.getElementById('store-digital-file');
+  Object.defineProperty(blockedFileInput, 'files', {
+    configurable: true,
+    value: [new window.File(['PRIVATE-CONTENT'], 'private.pdf', { type: 'application/pdf' })]
+  });
+  blockedFileInput.dispatchEvent(new window.Event('change', { bubbles: true }));
+  assert.ok(window.document.getElementById('store-editor-error').textContent.includes('Connectez d’abord'));
+  assert.strictEqual(digitalUploads.length, 0, 'Aucun upload ne doit être tenté sans stockage externe');
+  window.document.querySelector('[data-close-store-editor]').click();
 
   window.document.querySelector('#section-store [data-new-store-product]').click();
   const licenseType = window.document.getElementById('store-product-type');

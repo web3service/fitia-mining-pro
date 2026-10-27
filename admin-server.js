@@ -542,7 +542,7 @@ function createAdminServer(options = {}) {
   async function digitalInventory(method, body) {
     if (method === 'GET') {
       const { vault, revision } = await digitalStore.loadVault();
-      return { inventory: summarize(vault), revision };
+      return { inventory: summarize(vault), revision, assetStorage: digitalStore.assetStorageStatus() };
     }
     if (body.productType === 'download') {
       let uploaded = null;

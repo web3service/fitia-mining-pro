@@ -12,17 +12,23 @@ const adminHandler = require('../api/admin');
 const PASSWORD = 'digital-test-password-123';
 const TOKEN = 'digital-test-token-not-real';
 const DIGITAL_KEY = 'a1'.repeat(32);
+const SUPABASE_URL = 'https://project.supabase.co';
+const SUPABASE_KEY = 'supabase-test-service-role-key-not-real-1234567890';
+const SUPABASE_BUCKET = 'fitia-paid-private';
 const CONFIG = {
   password: PASSWORD, githubToken: TOKEN, digitalKey: DIGITAL_KEY, owner: 'web3service', repo: 'fitia-mining-pro',
-  branch: 'main', apiBase: 'https://api.github.com'
+  branch: 'main', apiBase: 'https://api.github.com', supabaseUrl: SUPABASE_URL,
+  supabaseServiceRoleKey: SUPABASE_KEY, supabaseBucket: SUPABASE_BUCKET
 };
 const SELLER = '0x1111111111111111111111111111111111111111';
 const USDT = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
 const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const originalFetch = global.fetch;
 const files = new Map();
+const externalAssets = new Map();
 const receipts = new Map();
 let revision = 0;
+let supabaseRequests = 0;
 let rpcCalls = 0;
 let lastReceiptHash = '';
 let passed = 0;
@@ -41,10 +47,31 @@ function putFile(target, content) {
 global.fetch = async (url, init = {}) => {
   const target = String(url);
   if (target.startsWith('http://127.0.0.1:')) return originalFetch(url, init);
+  if (target.startsWith(`${SUPABASE_URL}/storage/v1/`)) {
+    supabaseRequests += 1;
+    assert.strictEqual(init.headers?.Authorization, `Bearer ${SUPABASE_KEY}`);
+    assert.strictEqual(init.headers?.apikey, SUPABASE_KEY);
+    const upload = target.match(/\/object\/fitia-paid-private\/paid\/([a-f0-9]{24})\.bin$/);
+    const download = target.match(/\/object\/authenticated\/fitia-paid-private\/paid\/([a-f0-9]{24})\.bin$/);
+    assert.ok(upload || download, `URL Supabase inattendue: ${target}`);
+    const assetId = (upload || download)[1];
+    if (upload) {
+      assert.strictEqual(init.method, 'POST');
+      assert.strictEqual(init.headers?.['x-upsert'], 'false');
+      assert.ok(!externalAssets.has(assetId), 'Un ciphertext externe ne doit pas être écrasé');
+      externalAssets.set(assetId, Buffer.from(init.body));
+      return responseJson({ Key: `paid/${assetId}.bin` }, 200);
+    }
+    const content = externalAssets.get(assetId);
+    if (!content) return responseJson({ message: 'not found' }, 404);
+    return new Response(content, { status: 200, headers: { 'Content-Length': String(content.length) } });
+  }
   if (target.startsWith('https://api.github.com/')) {
     const match = target.match(/\/contents\/([^?]+)(?:\?.*)?$/);
     assert.ok(match, `URL GitHub inattendue: ${target}`);
     const filePath = decodeURIComponent(match[1]);
+    assert.ok(!filePath.startsWith('digital-assets/'), 'Aucun octet de fichier payant ne doit partir vers GitHub');
+    assert.ok(!JSON.stringify(init.headers || {}).includes(SUPABASE_KEY), 'La clé Supabase ne doit jamais être transmise à GitHub');
     if ((init.method || 'GET') === 'PUT') {
       const body = JSON.parse(init.body);
       const current = files.get(filePath);
@@ -144,6 +171,9 @@ async function runTest(name, fn) {
   process.env.FITIA_ADMIN_PASSWORD = PASSWORD;
   process.env.FITIA_GITHUB_TOKEN = TOKEN;
   process.env.FITIA_DIGITAL_VAULT_KEY = DIGITAL_KEY;
+  process.env.FITIA_SUPABASE_URL = SUPABASE_URL;
+  process.env.FITIA_SUPABASE_SERVICE_ROLE_KEY = SUPABASE_KEY;
+  process.env.FITIA_SUPABASE_BUCKET = SUPABASE_BUCKET;
   delete process.env.FITIA_POLYGON_RPC_URL;
   const server = http.createServer((req, res) => {
     const pathname = new URL(req.url || '/', 'http://localhost').pathname;
@@ -162,7 +192,7 @@ async function runTest(name, fn) {
   let asset;
 
   try {
-    await runTest('Coffre AES-256-GCM : ciphertext public sans fichier ni licence en clair', async () => {
+    await runTest('Coffre chiffré : fichier privé externe et aucun octet payant sur GitHub', async () => {
       const updated = await Digital.updateVault(store, async (vault) => {
         const created = Digital.createAsset(vault, {
           productId: 'product-download', data: filePlaintext.toString('base64'),
@@ -175,14 +205,26 @@ async function runTest(name, fn) {
       });
       assert.strictEqual(Digital.summarize(updated.vault).products.find((entry) => entry.productId === 'product-license').availableLicenses, 2);
       const publicVault = files.get('digital-vault.json').content.toString('utf8');
-      const publicAsset = files.get(`digital-assets/${asset.id}.bin`).content.toString('utf8');
-      for (const secret of ['LICENSE-ALPHA-001', 'LICENSE-ALPHA-002', filePlaintext.toString(), filePlaintext.toString('base64')]) {
+      const externalAsset = externalAssets.get(asset.id);
+      assert.ok(externalAsset, 'Le ciphertext doit être dans le bucket externe privé');
+      assert.ok(!files.has(`digital-assets/${asset.id}.bin`), 'Aucun blob payant ne doit exister sur GitHub');
+      for (const secret of ['LICENSE-ALPHA-001', 'LICENSE-ALPHA-002', filePlaintext.toString(), filePlaintext.toString('base64'), SUPABASE_KEY]) {
         assert.ok(!publicVault.includes(secret));
-        assert.ok(!publicAsset.includes(secret));
+        assert.ok(!externalAsset.toString('utf8').includes(secret));
       }
-      assert.deepStrictEqual(Digital.decryptAsset(files.get(`digital-assets/${asset.id}.bin`).content, store.key, asset), filePlaintext);
+      assert.deepStrictEqual(Digital.decryptAsset(externalAsset, store.key, asset), filePlaintext);
       assert.throws(() => Digital.decryptVault(JSON.parse(publicVault), Digital.deriveKey({ password: 'wrong-password-123', githubToken: 'wrong-token' })), Digital.DigitalError);
       assert.throws(() => Catalog.validateManifest({ version: 1, enabled: true, products: [product({ type: 'license', shippingFee: '1' })] }), /frais postaux/);
+    });
+
+    await runTest('Sans stockage externe valide : dépôt refusé et aucun repli GitHub ou SSRF', async () => {
+      const before = supabaseRequests;
+      const missing = new Digital.GitHubDigitalStore({ ...CONFIG, supabaseUrl: '', supabaseServiceRoleKey: '' });
+      await assert.rejects(missing.writeAsset(asset, externalAssets.get(asset.id)), (error) => error.code === 'DIGITAL_ASSET_CONFIG');
+      const unsafe = new Digital.GitHubDigitalStore({ ...CONFIG, supabaseUrl: 'https://169.254.169.254/latest/meta-data' });
+      await assert.rejects(unsafe.writeAsset(asset, externalAssets.get(asset.id)), (error) => error.code === 'DIGITAL_ASSET_CONFIG');
+      assert.strictEqual(supabaseRequests, before, 'Aucune requête externe ne doit partir avec une configuration invalide');
+      assert.ok(!files.has(`digital-assets/${asset.id}.bin`));
     });
 
     await runTest('API admin Vercel : session, CSRF et même clé dédiée que la livraison', async () => {
@@ -198,6 +240,8 @@ async function runTest(name, fn) {
       assert.ok(!JSON.stringify(uploaded.data).includes('ADMIN-VERCEL-KEY-001'));
       const inventory = await adminRequest(base, 'digital-inventory', { cookie });
       assert.strictEqual(inventory.response.status, 200);
+      assert.deepStrictEqual(inventory.data.assetStorage, { provider: 'supabase', configured: true });
+      assert.ok(!JSON.stringify(inventory.data).includes(SUPABASE_KEY), 'La clé de service ne doit jamais apparaître dans une réponse admin');
       assert.strictEqual(inventory.data.inventory.products.find((entry) => entry.productId === 'product-admin-upload').availableLicenses, 1);
       assert.ok(!files.get('digital-vault.json').content.toString('utf8').includes('ADMIN-VERCEL-KEY-001'));
     });
