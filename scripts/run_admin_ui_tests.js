@@ -27,6 +27,8 @@ let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];
 let failPromotions = false;
 let storeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8'));
+// Le scénario CRUD part d’un catalogue vide en mémoire et ne touche pas au catalogue éditorial réel.
+storeManifest = { ...storeManifest, enabled: false, products: [] };
 let storeRevision = 'revision-store-initiale';
 const storeWrites = [];
 const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
