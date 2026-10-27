@@ -14,6 +14,8 @@
     'automotive', 'grocery', 'jewelry', 'office', 'other'
   ]);
   const SOURCE_TYPES = Object.freeze(['own', 'dropshipping']);
+  const PRODUCT_TYPES = Object.freeze(['physical', 'download', 'license']);
+  const MAX_DIGITAL_FILE_BYTES = 3 * 1024 * 1024;
   const TOKENS = Object.freeze(['USDT', 'FTA']);
   const TOKEN_DECIMALS = Object.freeze({ USDT: 6, FTA: 8 });
   const MAX_PRODUCTS = 200;
@@ -108,12 +110,14 @@
     const id = cleanText(item.id, 64).toLowerCase();
     const sellerId = cleanText(item.sellerId, 64).toLowerCase();
     const sourceType = cleanText(item.sourceType, 20).toLowerCase();
+    const type = item.type === undefined ? 'physical' : cleanText(item.type, 16).toLowerCase();
     const category = cleanText(item.category, 24).toLowerCase();
     const priceToken = cleanText(item.priceToken, 8).toUpperCase();
     const paymentAddress = cleanText(item.paymentAddress, 42);
     if (!/^[a-z0-9][a-z0-9._-]{2,63}$/.test(id)) fail('Un identifiant de produit est invalide.');
     if (!/^[a-z0-9][a-z0-9._-]{2,63}$/.test(sellerId)) fail('Un identifiant de vendeur est invalide.');
     if (!SOURCE_TYPES.includes(sourceType)) fail('Le type d’approvisionnement est invalide.');
+    if (!PRODUCT_TYPES.includes(type)) fail('Le type de produit doit être physique, téléchargement ou licence.');
     if (!CATEGORIES.includes(category)) fail('La catégorie du produit est invalide.');
     if (!TOKENS.includes(priceToken)) fail('Le jeton de paiement doit être USDT ou FTA.');
     if (!ADDRESS_PATTERN.test(paymentAddress) || paymentAddress.toLowerCase() === ZERO_ADDRESS) {
@@ -134,6 +138,7 @@
       id,
       active: item.active,
       sourceType,
+      type,
       category,
       name: localized(item.name, 100, 'Le nom du produit'),
       description: localized(item.description, 600, 'La description', false),
@@ -150,6 +155,24 @@
     };
     if (!product.sellerName) fail('Le nom du vendeur est obligatoire.');
     if (!product.deliveryEstimate) fail('Le délai de livraison est obligatoire.');
+    if (type !== 'physical' && parseUnits(product.shippingFee, TOKEN_DECIMALS[priceToken]) !== 0n) {
+      fail('Un produit numérique ne peut pas facturer de frais postaux.');
+    }
+    if (type === 'download') {
+      const digital = item.digital;
+      if (!digital || typeof digital !== 'object' || Array.isArray(digital)) fail('Le fichier numérique doit être enregistré avant publication.');
+      const assetId = cleanText(digital.assetId, 24).toLowerCase();
+      const fileName = cleanText(digital.fileName, 120);
+      const contentType = cleanText(digital.contentType, 104).toLowerCase();
+      if (!/^[a-f0-9]{24}$/.test(assetId) || !fileName || /[\\/]/.test(fileName) ||
+          !/^[a-z0-9][a-z0-9!#$&^_.+-]{0,40}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,60}$/.test(contentType) ||
+          !Number.isSafeInteger(digital.size) || digital.size < 1 || digital.size > MAX_DIGITAL_FILE_BYTES) {
+        fail('Les informations publiques du fichier numérique sont invalides.');
+      }
+      product.digital = { assetId, fileName, contentType, size: digital.size };
+    } else if (item.digital !== undefined && item.digital !== null) {
+      fail('Seul un produit de téléchargement peut référencer un fichier numérique.');
+    }
     if (startsAt) product.startsAt = startsAt;
     if (expiresAt) product.expiresAt = expiresAt;
     return product;
@@ -235,7 +258,7 @@
   }
 
   return Object.freeze({
-    LANGUAGES, CATEGORIES, SOURCE_TYPES, TOKENS, TOKEN_DECIMALS, MAX_PRODUCTS,
+    LANGUAGES, CATEGORIES, SOURCE_TYPES, PRODUCT_TYPES, MAX_DIGITAL_FILE_BYTES, TOKENS, TOKEN_DECIMALS, MAX_PRODUCTS,
     PRODUCT_IMAGE_PATTERN, ZERO_ADDRESS, StoreValidationError,
     cleanText, decimalString, parseUnits, formatUnits,
     normalizeProduct, validateManifest, isVisible, groupKey, calculateCart

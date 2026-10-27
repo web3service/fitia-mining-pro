@@ -1964,7 +1964,7 @@ main::-webkit-scrollbar { display: none; }
   .swap-market-copy small { font-size: 0.68rem; }
 }
 
-/* ═══ FITIA STORE — marketplace physique ═══ */
+/* ═══ FITIA STORE — produits physiques et numériques ═══ */
 .store-hero { position: relative; display: flex; overflow: hidden; align-items: center; justify-content: space-between; min-height: 116px; margin-bottom: 10px; padding: 20px; border: 1px solid rgba(240,185,11,0.28); border-radius: 20px; background: radial-gradient(circle at 85% 15%, rgba(240,185,11,0.24), transparent 38%), linear-gradient(135deg, rgba(240,185,11,0.12), rgba(15,23,42,0.96) 62%); box-shadow: 0 16px 40px rgba(0,0,0,0.22); }
 .store-hero::after { position: absolute; width: 120px; height: 120px; right: -48px; bottom: -65px; border: 1px solid rgba(240,185,11,0.22); border-radius: 32px; content: ''; transform: rotate(28deg); }
 .store-hero-copy { position: relative; z-index: 1; }
@@ -2015,6 +2015,9 @@ main::-webkit-scrollbar { display: none; }
 .store-source-badge { position: absolute; top: 7px; left: 7px; max-width: calc(100% - 14px); padding: 4px 6px; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; background: rgba(4,10,22,0.82); color: #d9e3f2; font-size: 0.51rem; font-weight: 800; letter-spacing: .04em; backdrop-filter: blur(6px); }
 .store-source-badge.own { color: #6ee7b7; }
 .store-source-badge.dropshipping { color: #93c5fd; }
+.store-product-type-badge { position: absolute; right: 7px; bottom: 7px; max-width: calc(100% - 14px); padding: 4px 6px; border: 1px solid rgba(240,185,11,0.24); border-radius: 6px; background: rgba(4,10,22,0.86); color: #ffe066; font-size: 0.49rem; font-weight: 800; letter-spacing: .04em; backdrop-filter: blur(6px); }
+.store-product-type-badge.download { border-color: rgba(147,197,253,0.32); color: #bfdbfe; }
+.store-product-type-badge.license { border-color: rgba(196,181,253,0.32); color: #ddd6fe; }
 .store-soldout-badge { position: absolute; inset: auto 7px 7px; padding: 5px; border-radius: 6px; background: rgba(127,29,29,0.88); color: #fecaca; font-size: 0.58rem; font-weight: 800; text-align: center; }
 .store-product-body { display: flex; min-width: 0; padding: 10px; flex: 1; flex-direction: column; }
 .store-product-name { display: -webkit-box; overflow: hidden; min-height: 34px; margin: 0 0 5px; color: #f5f7fb; font-size: 0.77rem; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -2064,6 +2067,15 @@ main::-webkit-scrollbar { display: none; }
 .store-receipt-row { min-width: 0; }
 .store-receipt-row small { display: block; margin-bottom: 3px; color: var(--text-muted); font-size: 0.59rem; text-transform: uppercase; }
 .store-receipt-row span { display: block; overflow-wrap: anywhere; color: var(--text); font-size: 0.71rem; line-height: 1.45; white-space: pre-line; }
+.store-digital-delivery { display: grid; gap: 10px; margin-top: 12px; padding: 13px; border: 1px solid rgba(147,197,253,0.2); border-radius: 12px; background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(2,6,23,0.45)); }
+.store-digital-delivery.hidden { display: none; }
+.store-digital-delivery > strong { color: #dbeafe; font-size: 0.76rem; }
+.store-digital-delivery > p { margin: 0; color: var(--text-muted); font-size: 0.66rem; line-height: 1.5; }
+.store-digital-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,0.07); }
+.store-digital-item > div { min-width: 0; }
+.store-digital-item small, .store-digital-item span { display: block; margin-bottom: 4px; color: var(--text-muted); font-size: 0.59rem; overflow-wrap: anywhere; }
+.store-digital-item code { display: block; color: #fef3c7; font-family: 'JetBrains Mono', monospace; font-size: 0.69rem; line-height: 1.45; overflow-wrap: anywhere; user-select: text; }
+.store-digital-item button { flex-shrink: 0; min-height: 38px; padding: 7px 10px; border: 1px solid rgba(240,185,11,0.28); border-radius: 9px; background: rgba(240,185,11,0.1); color: #ffe066; font-size: 0.58rem; font-weight: 800; }
 .store-orders-list { display: grid; gap: 10px; }
 .store-order-card { padding: 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: rgba(255,255,255,0.025); }
 .store-order-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

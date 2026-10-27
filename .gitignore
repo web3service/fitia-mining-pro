@@ -6,3 +6,6 @@ android-src/keystore/
 *.idsig
 .env
 .env.*
+# Coffre numérique local (toujours chiffré, mais potentiellement volumineux)
+digital-vault.json
+digital-assets/

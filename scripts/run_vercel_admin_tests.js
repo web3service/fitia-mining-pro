@@ -142,12 +142,12 @@ async function request(base, action, options = {}) {
   };
 
   try {
-    await runTest('Vercel sert /admin et réécrit les huit routes API serverless', async () => {
+    await runTest('Vercel sert /admin et réécrit les neuf routes API serverless', async () => {
       const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
       const rewrites = new Map(config.rewrites.map((item) => [item.source, item.destination]));
       assert.strictEqual(rewrites.get('/admin'), '/admin/index.html');
       assert.strictEqual(rewrites.get('/admin/'), '/admin/index.html');
-      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'store-products', 'store-assets']) {
+      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'store-products', 'store-assets', 'digital-inventory']) {
         assert.strictEqual(rewrites.get(`/api/admin/${action}`), `/api/admin?action=${action}`);
       }
       const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');

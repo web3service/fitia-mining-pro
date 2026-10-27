@@ -5,6 +5,10 @@ const {
   validateImagePayload
 } = require('../announcement-assets');
 const { validateManifest: validateStoreCatalog } = require('../store-catalog');
+const {
+  MAX_DIGITAL_BODY_BYTES, DigitalError, GitHubDigitalStore,
+  createAsset, addLicenses, summarize, updateVault
+} = require('../digital-inventory');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -268,6 +272,7 @@ function getConfig() {
   return {
     password,
     githubToken,
+    digitalKey: process.env.FITIA_DIGITAL_VAULT_KEY || '',
     owner: process.env.FITIA_ADMIN_GITHUB_OWNER || 'web3service',
     repo: process.env.FITIA_ADMIN_GITHUB_REPO || 'fitia-mining-pro',
     branch: process.env.FITIA_ADMIN_GITHUB_BRANCH || 'main',
@@ -407,6 +412,33 @@ async function saveAnnouncementAsset(config, payload, kind = 'announcement') {
   return { path: asset.path, contentType: asset.contentType, size: asset.size };
 }
 
+async function digitalInventory(config, method, body) {
+  const store = new GitHubDigitalStore(config);
+  if (method === 'GET') {
+    const { vault, revision } = await store.loadVault();
+    return { inventory: summarize(vault), revision };
+  }
+  if (body.productType === 'download') {
+    let uploaded = null;
+    const updated = await updateVault(store, async (vault) => {
+      uploaded = createAsset(vault, body, store.key);
+      await store.writeAsset(uploaded.asset, uploaded.encrypted);
+      return uploaded.asset;
+    });
+    return { inventory: summarize(updated.vault), asset: {
+      id: uploaded.asset.id, productId: uploaded.asset.productId,
+      fileName: uploaded.asset.fileName, contentType: uploaded.asset.contentType,
+      size: uploaded.asset.size, sha256: uploaded.asset.sha256
+    } };
+  }
+  if (body.productType === 'license') {
+    let count = 0;
+    const updated = await updateVault(store, (vault) => { count = addLicenses(vault, body); return count; });
+    return { inventory: summarize(updated.vault), addedLicenses: count };
+  }
+  throw new DigitalError(400, 'Le type d’inventaire numérique est invalide.', 'DIGITAL_PRODUCT_TYPE');
+}
+
 module.exports = async function adminHandler(req, res) {
   setSecurityHeaders(res);
   try {
@@ -449,6 +481,15 @@ module.exports = async function adminHandler(req, res) {
       return;
     }
 
+    if (action === 'digital-inventory' && (req.method === 'GET' || req.method === 'POST')) {
+      const session = requireSession(req, res, config);
+      if (!session || (req.method === 'POST' && !requireCsrf(req, res, session))) return;
+      const body = req.method === 'POST' ? await readJson(req, MAX_DIGITAL_BODY_BYTES) : null;
+      const result = await digitalInventory(config, req.method, body);
+      sendJson(res, req.method === 'POST' ? 201 : 200, { ...result, ...sourceInfo(config) });
+      return;
+    }
+
     if ((action === 'announcement-assets' || action === 'store-assets') && req.method === 'POST') {
       const session = requireSession(req, res, config);
       if (!session || !requireCsrf(req, res, session)) return;
@@ -481,7 +522,7 @@ module.exports = async function adminHandler(req, res) {
     sendJson(res, 404, { error: 'Route API introuvable.', code: 'NOT_FOUND' });
   } catch (error) {
     if (res.headersSent || res.writableEnded) return;
-    if (error instanceof ApiError) {
+    if (error instanceof ApiError || error instanceof DigitalError) {
       sendJson(res, error.status, { error: error.message, code: error.code });
       return;
     }
