@@ -4,7 +4,7 @@
   "products": [
     {
       "id": "product-mvpwszmt-422259a2",
-      "active": true,
+      "active": false,
       "sourceType": "own",
       "category": "other",
       "name": {
