@@ -4,14 +4,14 @@
   "products": [
     {
       "id": "product-mvpwszmt-422259a2",
-      "active": false,
+      "active": true,
       "sourceType": "own",
       "category": "other",
       "name": {
         "fr": "friteuse à air"
       },
       "description": {},
-      "image": "assets/store/product-05d68810f190d9d2204cbc58.webp",
+      "image": "assets/store/product-aa465cbdac87c3222274c524.webp",
       "sellerId": "fitia-store",
       "sellerName": "FITIA STORE",
       "sellerContact": "@Fitia Store",
