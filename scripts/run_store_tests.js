@@ -70,9 +70,11 @@ async function createHarness(token = 'USDT', options = {}) {
   };
   const sharedTexts = [];
   const copiedTexts = [];
+  const digitalDownloads = [];
   win.FitiaSecurity = { Native: {
     shareText: async (title, text) => { sharedTexts.push({ title, text }); return true; },
     copyText: async (text) => { copiedTexts.push(text); return true; },
+    downloadDigitalProduct: (url, fileName) => { digitalDownloads.push({ url, fileName }); return true; },
     vibrate: () => {}
   } };
   let remoteManifest = manifest([
@@ -87,6 +89,14 @@ async function createHarness(token = 'USDT', options = {}) {
     product({ id: 'product-accessory', price: '2', shippingFee: '0', stock: 10 }),
     product({ id: 'product-other-seller', sellerId: 'seller-other', sourceType: 'dropshipping', paymentAddress: RECEIVER_FTA, priceToken: 'FTA' })
   ]);
+  if (options.digital || options.digitalDownload) {
+    remoteManifest = manifest([product(options.digitalDownload ? {
+      id: 'product-download', type: 'download', shippingFee: '0', deliveryEstimate: 'Instant after confirmed payment',
+      digital: { assetId: 'a'.repeat(24), fileName: 'buyer-guide.pdf', contentType: 'application/pdf', size: 4 }
+    } : {
+      id: 'product-license', type: 'license', shippingFee: '0', deliveryEstimate: 'Instant after confirmed payment'
+    })]);
+  }
   const toasts = [];
   const errors = [];
   const transfers = [];
@@ -103,8 +113,11 @@ async function createHarness(token = 'USDT', options = {}) {
       } };
     }
   });
+  const digitalWallet = options.digital || options.digitalDownload ? win.ethers.Wallet.createRandom() : null;
+  const digitalRequests = [];
   const app = {
-    currentLang: 'en', user: BUYER, signer: {}, usdtDecimals: 6, ftaDecimals: 8,
+    currentLang: 'en', user: digitalWallet ? digitalWallet.address : BUYER,
+    signer: digitalWallet ? { signMessage: (message) => digitalWallet.signMessage(message) } : {}, usdtDecimals: 6, ftaDecimals: 8,
     usdtToken: makeToken('USDT'), ftaToken: makeToken('FTA'),
     showToast: (message, isError = false, tone = '') => toasts.push({ message, isError, tone }),
     showError: (error) => errors.push(error),
@@ -124,17 +137,45 @@ async function createHarness(token = 'USDT', options = {}) {
   };
   const center = new win.FitiaStoreCenter(app);
   app.storeCenter = center;
-  win.fetch = async (url) => {
+  win.fetch = async (url, init = {}) => {
     if (String(url) === 'store-products.json' || String(url).includes('/main/store-products.json')) {
       return { ok: true, json: async () => clone(remoteManifest) };
+    }
+    if ((options.digital || options.digitalDownload) && String(url).includes('/api/store-digital')) {
+      const body = JSON.parse(init.body);
+      if (body.action === 'intent') {
+        const quote = Catalog.calculateCart(Catalog.validateManifest(clone(remoteManifest)).products, body.items);
+        return {
+          ok: true, status: 200,
+          json: async () => ({
+            paymentIntent: 'test-payment-intent.signature',
+            intent: {
+              v: 1, token: quote.token, totalUnits: quote.totalUnits.toString(), paymentAddress: quote.paymentAddress,
+              sellerId: quote.sellerId, expiresAt: Date.now() + 3600000,
+              items: quote.items.map((item) => ({ productId: item.product.id, type: item.product.type || 'physical', quantity: item.quantity, assetId: item.product.digital?.assetId || null }))
+            }
+          })
+        };
+      }
+      digitalRequests.push(body);
+      const message = center.digitalMessage(body);
+      assert.strictEqual(win.ethers.verifyMessage(message, body.signature).toLowerCase(), digitalWallet.address.toLowerCase());
+      return {
+        ok: true, status: 200,
+        json: async () => ({ status: 'complete', deliveries: [options.digitalDownload ? {
+          type: 'download', productId: 'product-download', assetId: 'a'.repeat(24),
+          fileName: 'buyer-guide.pdf', contentType: 'application/pdf', size: 4,
+          sha256: crypto.createHash('sha256').update('test').digest('hex'), downloadToken: 'download-token.signature'
+        } : { type: 'license', productId: 'product-license', key: 'FITIA-TEST-LICENSE-ONLY-IN-MEMORY' }] })
+      };
     }
     throw new Error(`Unexpected fetch: ${url}`);
   };
   center.init();
   await waitFor(() => center.lastFetchAt > 0, 'initial catalog refresh');
   return {
-    win, app, center, transfers, pinTitles, toasts, errors, sharedTexts, copiedTexts, hash,
-    productId: token === 'FTA' ? 'product-fta' : 'product-phone',
+    win, app, center, transfers, pinTitles, toasts, errors, sharedTexts, copiedTexts, digitalDownloads, hash, digitalWallet, digitalRequests,
+    productId: options.digitalDownload ? 'product-download' : options.digital ? 'product-license' : token === 'FTA' ? 'product-fta' : 'product-phone',
     setManifest: (next) => { remoteManifest = next; },
     getManifest: () => clone(remoteManifest),
     fillShipping: () => {
@@ -301,6 +342,55 @@ async function createHarness(token = 'USDT', options = {}) {
       } finally { h.close(); }
     });
   }
+
+  await runTest('Produit numérique : aucun champ postal, signature acheteur et licence jamais persistée', async () => {
+    const h = await createHarness('USDT', { digital: true });
+    try {
+      h.center.addToCart('product-license');
+      await h.center.openCheckout();
+      assert.ok(h.win.document.getElementById('store-shipping-fields').classList.contains('hidden'));
+      for (const id of ['store-shipping-name', 'store-shipping-phone', 'store-shipping-country', 'store-shipping-city', 'store-shipping-address']) {
+        assert.strictEqual(h.win.document.getElementById(id).required, false);
+      }
+      h.win.document.getElementById('store-checkout-consent').checked = true;
+      await h.center.pay({ preventDefault() {} });
+      await waitFor(() => h.center.orders[0]?.digitalStatus === 'complete', 'livraison de la licence');
+      assert.strictEqual(h.transfers.length, 1);
+      assert.strictEqual(h.transfers[0].amount, 12500000n, 'Aucun frais postal sur une licence');
+      assert.strictEqual(h.digitalRequests.length, 1);
+      assert.strictEqual(h.digitalRequests[0].buyer, h.digitalWallet.address.toLowerCase());
+      assert.ok(!JSON.stringify(h.digitalRequests[0]).includes('Alice Example'));
+      assert.ok(h.win.document.getElementById('store-digital-delivery').textContent.includes('FITIA-TEST-LICENSE-ONLY-IN-MEMORY'));
+      assert.ok(h.win.document.getElementById('store-receipt-share').classList.contains('hidden'));
+      assert.ok(!h.win.document.getElementById('store-receipt-content').textContent.includes('Delivery details'));
+      const serializedStorage = Object.keys(h.win.localStorage).map((key) => h.win.localStorage.getItem(key)).join('\n');
+      assert.ok(!serializedStorage.includes('FITIA-TEST-LICENSE-ONLY-IN-MEMORY'), 'La licence ne doit pas être persistée');
+      assert.ok(!serializedStorage.includes(h.digitalRequests[0].signature), 'La signature ne doit pas être persistée');
+      h.win.document.querySelector('#store-digital-delivery .store-digital-item button').click();
+      await waitFor(() => h.copiedTexts.length === 1, 'copie de la licence');
+      assert.strictEqual(h.copiedTexts[0], 'FITIA-TEST-LICENSE-ONLY-IN-MEMORY');
+      h.center.setAccount(null);
+      assert.strictEqual(h.center.digitalDeliveries.size, 0, 'Les licences en mémoire sont effacées au verrouillage');
+    } finally { h.close(); }
+  });
+
+  await runTest('Téléchargement numérique : capability transmise au natif sans persistance', async () => {
+    const h = await createHarness('USDT', { digitalDownload: true });
+    try {
+      h.center.addToCart('product-download');
+      await h.center.openCheckout();
+      h.win.document.getElementById('store-checkout-consent').checked = true;
+      await h.center.pay({ preventDefault() {} });
+      await waitFor(() => h.center.orders[0]?.digitalStatus === 'complete', 'préparation du téléchargement');
+      h.win.document.querySelector('#store-digital-delivery .store-digital-item button').click();
+      await waitFor(() => h.digitalDownloads.length === 1, 'téléchargement natif');
+      assert.strictEqual(h.digitalDownloads[0].fileName, 'buyer-guide.pdf');
+      assert.ok(h.digitalDownloads[0].url.startsWith('https://fitia-mining-pro.vercel.app/api/store-digital?download=download-token.signature'));
+      const serializedStorage = Object.keys(h.win.localStorage).map((key) => h.win.localStorage.getItem(key)).join('\n');
+      assert.ok(!serializedStorage.includes('download-token.signature'), 'La capability ne doit pas être persistée');
+      assert.ok(!serializedStorage.includes('PRIVATE-FILE-CONTENT'));
+    } finally { h.close(); }
+  });
 
   await runTest('Sécurité : un prix modifié avant signature bloque le transfert', async () => {
     const h = await createHarness();

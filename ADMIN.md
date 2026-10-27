@@ -84,6 +84,18 @@ Le catalogue est public : n’y enregistrez aucune donnée de client. Le wallet 
 
 Les routes d’administration associées sont `/api/admin/store-products` et `/api/admin/store-assets`. Elles utilisent la même session, la même protection CSRF et la même vérification de révision que les autres manifestes. Le stock public doit être actualisé par le vendeur après les ventes et auprès du fournisseur dropshipping.
 
+### Produits numériques et licences
+
+Le type **Téléchargement** accepte un e-book, APK, exécutable Windows, logiciel ou archive de **3 Mo maximum par fichier**. Le type **Licence** accepte de 1 à 500 clés par import, une par ligne. Pour un téléchargement, sélectionnez le fichier avant de publier ; pour une licence, ajoutez les clés avant la première publication. Le stock public d’une licence est recalculé depuis les clés encore disponibles lors de l’enregistrement dans l’admin.
+
+Le coffre utilise AES-256-GCM. GitHub ne stocke que des ciphertexts dans `digital-vault.json` et `digital-assets/` : aucune licence, aucun fichier payé et aucune capacité de téléchargement n’est écrit en clair dans le catalogue, Git, Polygon ou l’historique local du wallet. La clé du coffre est dérivée côté serveur de `FITIA_ADMIN_PASSWORD` et `FITIA_GITHUB_TOKEN`, sans transmettre ces secrets au navigateur. **Ne remplacez aucun de ces deux secrets sans une migration prévue du coffre** : l’ancien ciphertext deviendrait indéchiffrable. Une variable `FITIA_DIGITAL_VAULT_KEY` de 32 octets, hexadécimale ou base64, peut être configurée pour utiliser une clé dédiée stable.
+
+Le paiement reste un transfert ERC-20 direct au vendeur, sans commission. Avant le transfert, `/api/store-digital` vérifie le stock et signe un intent contenant uniquement le panier, le montant et le vendeur. Après le transfert, le serveur vérifie indépendamment la transaction USDT/FTA, son expéditeur, le destinataire, le montant entier exact et trois confirmations Polygon. L’acheteur signe aussi une demande avec son wallet : le hash et l’adresse publics ne suffisent donc pas à récupérer le contenu.
+
+Les licences sont attribuées avec écriture optimiste et ne peuvent pas être réutilisées. Une commande payée lors d’une course de stock reste enregistrée comme « à préparer » et peut être récupérée après réassort, sans nouveau paiement. Les téléchargements utilisent une capability signée valable 15 minutes ; ils peuvent être régénérés par une nouvelle signature de l’acheteur. Les clés et tokens ne sont jamais conservés dans le `localStorage` du wallet.
+
+La limite de 3 Mo évite de dépasser les limites gratuites de requête/réponse et de bande passante. Les fichiers plus volumineux nécessitent un stockage privé adapté qui n’est pas configuré dans cette version. Aucun montant ne doit être payé pour utiliser ce coffre chiffré dans les limites gratuites de l’infrastructure existante.
+
 ## Variables d’environnement
 
 | Variable | Rôle | Défaut |
@@ -95,6 +107,9 @@ Les routes d’administration associées sont `/api/admin/store-products` et `/a
 | `FITIA_ADMIN_PROMOTIONS_FILE` | Décorations utilisées en mode local | `promotions.json` |
 | `FITIA_ADMIN_STORE_DATA_FILE` | Catalogue STORE utilisé en mode local | `store-products.json` |
 | `FITIA_ADMIN_STORE_ASSET_DIRECTORY` | Photos STORE utilisées en mode local | `assets/store/` |
+| `FITIA_ADMIN_DIGITAL_VAULT_FILE` | Coffre chiffré utilisé en mode local | `digital-vault.json` |
+| `FITIA_ADMIN_DIGITAL_ASSET_DIRECTORY` | Fichiers chiffrés utilisés en mode local | `digital-assets/` |
+| `FITIA_DIGITAL_VAULT_KEY` | Clé AES dédiée facultative, 32 octets hex/base64 | dérivation depuis les deux secrets serveur |
 | `FITIA_ADMIN_GITHUB_OWNER` | Propriétaire du dépôt | `web3service` |
 | `FITIA_ADMIN_GITHUB_REPO` | Nom du dépôt | `fitia-mining-pro` |
 | `FITIA_ADMIN_GITHUB_BRANCH` | Branche publiée | `main` |
@@ -102,7 +117,7 @@ Les routes d’administration associées sont `/api/admin/store-products` et `/a
 
 ## Déploiement Vercel
 
-Le projet contient une fonction serverless `api/admin.js` et les réécritures nécessaires dans `vercel.json`. Le panneau sera disponible sur **`https://votre-domaine/admin/`** après configuration.
+Le projet contient les fonctions serverless `api/admin.js` et `api/store-digital.js`, ainsi que les réécritures nécessaires dans `vercel.json`. Le panneau sera disponible sur **`https://votre-domaine/admin/`** après configuration.
 
 1. Ouvrez le projet Vercel, puis **Settings → Environment Variables**.
 2. Ajoutez `FITIA_ADMIN_PASSWORD` avec un mot de passe long et unique.
