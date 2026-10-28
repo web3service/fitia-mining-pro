@@ -1,6 +1,0 @@
-REQUEST_ID=d368538a-f318-4319-83e7-6af8c4d59b3a
-CREATE_OK status=awaiting_payment private_response=true
-UNPAID_INVISIBLE_OK
-{"error":"La vérification Polygon est momentanément indisponible.","code":"ORDER_RPC_UNAVAILABLE"}
-
-503 !== 202
