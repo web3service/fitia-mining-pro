@@ -7,14 +7,14 @@
     if (!THREE) throw new Error('Three.js local est requis.');
     if (!container) throw new Error('Conteneur 3D manquant.');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x9bc8dc);
-    scene.fog = new THREE.FogExp2(0xa8cbd2, 0.018);
+    scene.background = new THREE.Color(0x91cdec);
+    scene.fog = new THREE.FogExp2(0xc2dce0, 0.011);
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 180);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 1.7));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.06;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.className = 'farm-webgl-canvas';
@@ -50,6 +50,9 @@
       yellow: material('yellow', 0xe0ae3f, 0.83), leaf: material('leaf', 0x3f762d, 0.94),
       leafLight: material('leafLight', 0x6b9638, 0.94), stone: material('stone', 0x8b8c7c, 1),
       water: material('water', 0x3d8eaa, 0.18, 0.15), metal: material('metal', 0x7d8786, 0.38, 0.65),
+      path: material('path', 0xc7a66d, 1), plaster: material('plaster', 0xf0d9aa, 0.94),
+      blueRoof: material('blueRoof', 0x395f74, 0.68, 0.08), tractor: material('tractor', 0x477c3b, 0.65, 0.08),
+      flowerPink: material('flowerPink', 0xe98c9d, 0.85), flowerWhite: material('flowerWhite', 0xfff2d4, 0.9),
       eye: material('eye', 0x090b09, 0.28), hoof: material('hoof', 0x302a27, 0.93)
     };
     const selectMaterial = new THREE.MeshStandardMaterial({ color: 0xf4c95d, emissive: 0x6b4700, emissiveIntensity: 0.65, roughness: 0.5 });
@@ -72,7 +75,7 @@
     const hemi = new THREE.HemisphereLight(0xe8f4ff, 0x526134, 2.15); scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xfff0d0, 3.1);
     sun.position.set(-12, 20, 10); sun.castShadow = true;
-    sun.shadow.mapSize.set(1536, 1536); sun.shadow.camera.left = -18; sun.shadow.camera.right = 18;
+    sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -18; sun.shadow.camera.right = 18;
     sun.shadow.camera.top = 18; sun.shadow.camera.bottom = -18; sun.shadow.camera.near = 1; sun.shadow.camera.far = 55;
     sun.shadow.bias = -0.00025; sun.shadow.normalBias = 0.035; scene.add(sun);
     const fill = new THREE.DirectionalLight(0xb8d9ff, 0.45); fill.position.set(12, 8, -10); scene.add(fill);
@@ -92,11 +95,13 @@
       texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
       return texture;
     }
-    const grassTexture = noiseTexture('#668c43', '#c3d477'); grassTexture.repeat.set(18, 18);
-    const soilTexture = noiseTexture('#69503a', '#281c13'); soilTexture.repeat.set(5, 4);
-    const lawnMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, color: 0xb7c9a0, roughness: 0.98 });
-    const fieldMaterial = new THREE.MeshStandardMaterial({ map: soilTexture, color: 0xa78a6a, roughness: 1 });
-    materials.lawn = lawnMaterial; materials.field = fieldMaterial;
+    const grassTexture = noiseTexture('#6f9c45', '#d2df83'); grassTexture.repeat.set(18, 18);
+    const soilTexture = noiseTexture('#79533a', '#382216'); soilTexture.repeat.set(5, 4);
+    const pathTexture = noiseTexture('#c9ad78', '#8e704b'); pathTexture.repeat.set(3, 3);
+    const lawnMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, color: 0xd6e8ac, roughness: 0.98 });
+    const fieldMaterial = new THREE.MeshStandardMaterial({ map: soilTexture, color: 0xb08a67, roughness: 1 });
+    const pathMaterial = new THREE.MeshStandardMaterial({ map: pathTexture, color: 0xe4c992, roughness: 1 });
+    materials.lawn = lawnMaterial; materials.field = fieldMaterial; materials.pathTextured = pathMaterial;
     box(world, lawnMaterial, [0, -0.46, 0], [80, 0.7, 80]);
     box(world, M.soil, [0, -0.1, 0], [18.5, 0.55, 13.5]);
     box(world, lawnMaterial, [0, 0.19, 0], [18.2, 0.12, 13.2]);
@@ -131,8 +136,16 @@
     // Grange avec toit à deux pans, portes, croisillons et bottes de paille.
     const barn = new THREE.Group(); barn.position.set(3.8, 0.25, -4.45); world.add(barn);
     box(barn, M.barn, [0, 1.45, 0], [4.3, 2.9, 2.8]);
+    const gableShape = new THREE.Shape(); gableShape.moveTo(-2.15, 0); gableShape.lineTo(0, 1.55); gableShape.lineTo(2.15, 0); gableShape.closePath();
+    geometries.gable = new THREE.ShapeGeometry(gableShape);
+    mesh(geometries.gable, M.barn, barn, [0, 2.85, 1.405]);
+    mesh(geometries.gable, M.barn, barn, [0, 2.85, -1.405], null, [0, Math.PI, 0]);
     box(barn, M.roof, [-1.12, 3.35, 0], [2.75, 0.18, 3.35], [0, 0, 0.58]);
     box(barn, M.roof, [1.12, 3.35, 0], [2.75, 0.18, 3.35], [0, 0, -0.58]);
+    for (let tile = -2; tile <= 2; tile += 1) {
+      box(barn, M.metal, [-1.12, 3.44, tile * 0.62], [2.65, 0.025, 0.035], [0, 0, 0.58]);
+      box(barn, M.metal, [1.12, 3.44, tile * 0.62], [2.65, 0.025, 0.035], [0, 0, -0.58]);
+    }
     box(barn, M.white, [0, 1.25, 1.43], [1.65, 2.45, 0.09]);
     box(barn, M.woodDark, [0, 1.22, 1.5], [1.4, 2.25, 0.08]);
     box(barn, M.white, [0, 1.22, 1.56], [0.11, 2.28, 0.08]);
@@ -143,6 +156,42 @@
       cylinder(world, M.yellow, [x, 0.65, -4.2], [0.58, 1.05, 0.58], [Math.PI / 2, 0, 0]);
       for (const dz of [-0.33, 0.33]) mesh(geometries.torus, M.woodDark, world, [x, 0.65, -4.2 + dz], [0.58, 0.58, 0.58], [0, 0, 0]);
     }
+
+    // Maison de ferme, cheminées et fumée douce.
+    const smokePuffs = [];
+    const house = new THREE.Group(); house.position.set(-0.35, 0.25, -4.6); world.add(house);
+    box(house, M.plaster, [0, 1.05, 0], [2.55, 2.1, 2.1]);
+    mesh(geometries.gable, M.plaster, house, [0, 2.05, 1.055], [0.58, 0.67, 1]);
+    box(house, M.blueRoof, [-0.66, 2.45, 0], [1.6, 0.14, 2.55], [0, 0, 0.58]);
+    box(house, M.blueRoof, [0.66, 2.45, 0], [1.6, 0.14, 2.55], [0, 0, -0.58]);
+    box(house, M.woodDark, [0, 0.78, 1.08], [0.58, 1.5, 0.09]);
+    for (const x of [-0.82, 0.82]) {
+      box(house, M.white, [x, 1.25, 1.09], [0.58, 0.66, 0.08]);
+      box(house, M.blueRoof, [x, 1.25, 1.14], [0.44, 0.52, 0.05]);
+      box(house, M.white, [x, 1.25, 1.18], [0.04, 0.54, 0.03]);
+      box(house, M.white, [x, 1.25, 1.18], [0.46, 0.04, 0.03]);
+    }
+    box(house, M.barn, [0.68, 3.1, -0.25], [0.38, 1.2, 0.42]);
+    box(house, M.white, [0.68, 3.73, -0.25], [0.48, 0.12, 0.52]);
+    const smokeMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f2df, transparent: true, opacity: 0.42, roughness: 1, depthWrite: false });
+    materials.smoke = smokeMaterial;
+    for (let i = 0; i < 4; i += 1) {
+      const puff = ball(house, smokeMaterial, [0.68, 3.95 + i * 0.36, -0.25], [0.18 + i * 0.05, 0.15 + i * 0.04, 0.18 + i * 0.05]);
+      puff.castShadow = false; puff.userData.smokeIndex = i; smokePuffs.push(puff);
+    }
+
+    // Petit tracteur utilitaire près de la grange.
+    const tractor = new THREE.Group(); tractor.position.set(5.3, 0.48, -2.25); tractor.rotation.y = -0.35; world.add(tractor);
+    box(tractor, M.tractor, [0, 0.62, 0.2], [1.25, 0.62, 1.55]);
+    box(tractor, M.tractor, [0, 1.25, -0.32], [1.05, 1.05, 0.85]);
+    box(tractor, M.blueRoof, [0, 1.85, -0.32], [1.3, 0.12, 1.05]);
+    box(tractor, M.water, [0, 1.37, 0.13], [0.78, 0.54, 0.04]);
+    cylinder(tractor, M.metal, [0.42, 1.22, 0.7], [0.07, 1.15, 0.07]);
+    for (const x of [-0.72, 0.72]) for (const z of [-0.52, 0.72]) {
+      const rear = z < 0; cylinder(tractor, M.black, [x, rear ? 0.48 : 0.35, z], [rear ? 0.48 : 0.35, 0.24, rear ? 0.48 : 0.35], [0, 0, Math.PI / 2]);
+      cylinder(tractor, M.metal, [x * 1.02, rear ? 0.48 : 0.35, z], [rear ? 0.22 : 0.16, 0.26, rear ? 0.22 : 0.16], [0, 0, Math.PI / 2]);
+    }
+    const tractorBeacon = ball(tractor, M.yellow, [0, 2.02, -0.35], [0.1, 0.12, 0.1]);
 
     // Moulin animé et silo métallique.
     const windmill = new THREE.Group(); windmill.position.set(-6.7, 0.25, -4.65); world.add(windmill);
@@ -157,18 +206,40 @@
     }
     cylinder(world, M.metal, [7.1, 1.65, -4.6], [0.9, 2.9, 0.9]);
     cone(world, M.roof, [7.1, 3.55, -4.6], [1.02, 0.85, 1.02]);
+    for (const y of [0.75, 1.55, 2.35]) mesh(geometries.torus, M.white, world, [7.1, y, -4.6], [0.91, 0.91, 0.91], [Math.PI / 2, 0, 0]);
 
     function tree(x, z, scale = 1) {
       const group = new THREE.Group(); group.position.set(x, 0, z); group.scale.setScalar(scale); world.add(group);
       cylinder(group, M.woodDark, [0, 1.25, 0], [0.24, 2.5, 0.24]);
+      cylinder(group, M.woodDark, [-0.32, 2.05, 0], [0.1, 1.1, 0.1], [0, 0, -0.65]);
+      cylinder(group, M.woodDark, [0.34, 2.1, -0.08], [0.09, 1, 0.09], [0.25, 0, 0.7]);
       ball(group, M.leaf, [0, 3.1, 0], [1.25, 1.4, 1.2]);
       ball(group, M.leafLight, [-0.75, 2.85, 0.15], [0.9, 1, 0.85]);
       ball(group, M.leaf, [0.75, 2.75, -0.15], [0.95, 1.05, 0.9]);
       ball(group, M.leafLight, [0.15, 3.8, 0], [0.85, 0.9, 0.8]);
+      if (scale > 0.95) for (const p of [[-0.65, 2.75, 0.75], [0.65, 3.1, 0.7], [0.1, 3.65, 0.65]]) ball(group, M.red, p, [0.11, 0.11, 0.11]);
     }
     [[-10, -5, 1.1], [-10.5, 3, 0.9], [10, -3, 1], [10.5, 4.5, 1.2], [-1, -8, 0.85], [7, 8, 0.9]].forEach((v) => tree(...v));
-    // Chemin de pierres et abreuvoir.
-    for (let i = 0; i < 9; i += 1) cylinder(world, M.stone, [-0.2 + Math.sin(i) * 0.22, 0.3, 6.1 - i * 0.65], [0.42, 0.09, 0.32]);
+    // Chemin de terre, mare, fleurs et relief au fond de la scène.
+    for (let i = 0; i < 17; i += 1) {
+      const z = 6.5 - i * 0.58; const x = -0.25 + Math.sin(i * 0.38) * 0.28;
+      cylinder(world, pathMaterial, [x, 0.31, z], [0.76, 0.07, 0.66], [0, Math.sin(i) * 0.12, 0]);
+    }
+    for (let i = 0; i < 7; i += 1) cylinder(world, pathMaterial, [0.45 + i * 0.53, 0.32, -1.55 - i * 0.24], [0.68, 0.07, 0.58]);
+    cylinder(world, M.stone, [-8.25, 0.27, 4.7], [1.75, 0.11, 1.2]);
+    cylinder(world, M.water, [-8.25, 0.34, 4.7], [1.52, 0.07, 1.02]);
+    for (let i = 0; i < 12; i += 1) {
+      const angle = i / 12 * Math.PI * 2;
+      ball(world, M.stone, [-8.25 + Math.cos(angle) * 1.65, 0.43, 4.7 + Math.sin(angle) * 1.12], [0.24, 0.18, 0.22]);
+    }
+    function flower(x, z, index) {
+      cylinder(world, M.leaf, [x, 0.52, z], [0.025, 0.42, 0.025]);
+      ball(world, index % 2 ? M.flowerPink : M.flowerWhite, [x, 0.77, z], [0.1, 0.08, 0.1]);
+      ball(world, M.yellow, [x, 0.81, z], [0.035, 0.035, 0.035]);
+    }
+    [[-1.8, -5.7], [-1.4, -5.9], [1.1, -5.8], [1.45, -5.55], [-1.3, 5.8], [-1.6, 5.45], [1.1, 5.9], [1.35, 5.5], [-9.7, 1.2], [9.4, 1.4], [-8.9, -6.8], [8.8, -6.5]].forEach((p, index) => flower(p[0], p[1], index));
+    const hillMaterial = material('hill', 0x789b5a, 1);
+    [[-18, -14, 8, 3.1, 5], [-7, -19, 10, 3.8, 5], [8, -20, 9, 3.3, 5], [20, -13, 7, 2.8, 4]].forEach((p) => ball(world, hillMaterial, [p[0], 0, p[1]], [p[2], p[3], p[4]]));
     box(world, M.woodDark, [6.6, 0.65, 4.1], [1.7, 0.65, 0.85]);
     box(world, M.water, [6.6, 1, 4.1], [1.45, 0.06, 0.62]);
 
@@ -184,7 +255,7 @@
     function animalRoot(kind, id, species, position, phase) {
       const root = new THREE.Group(); root.position.set(position[0], 0.32, position[1]);
       root.rotation.y = (phase % 5) * 0.55 - 0.8;
-      root.userData = { kind, id, species, phase, head: null, tail: null, legs: [], body: null, data: null };
+      root.userData = { kind, id, species, phase, homeX: position[0], homeZ: position[1], baseRotation: root.rotation.y, head: null, tail: null, legs: [], body: null, data: null };
       const halo = mesh(geometries.torus, workingMaterial, root, [0, 0.07, 0], [1.15, 1.15, 1.15], [Math.PI / 2, 0, 0]);
       halo.visible = false; halo.castShadow = false; root.userData.halo = halo;
       animalsGroup.add(root); return root;
@@ -299,7 +370,7 @@
     }
 
     // Orbite tactile et souris, avec inertie douce et zoom par pincement.
-    const orbit = { theta: 0.68, phi: 0.92, radius: 23, target: new THREE.Vector3(0, 0.5, 0) };
+    const orbit = { theta: 0.72, phi: 0.76, radius: 30, target: new THREE.Vector3(0, 0.7, 0) };
     const goal = { theta: orbit.theta, phi: orbit.phi, radius: orbit.radius, target: orbit.target.clone() };
     const pointers = new Map(); let pinchDistance = 0; let moved = 0; let downAt = 0;
     const raycaster = new THREE.Raycaster(); const pointerNdc = new THREE.Vector2();
@@ -365,10 +436,10 @@
     renderer.domElement.addEventListener('keydown', onKey);
 
     function focus(view = 'overview') {
-      if (view === 'crops') { goal.target.set(-3.6, 0.4, 0.25); goal.radius = 12; goal.theta = 0.5; goal.phi = 0.88; }
-      else if (view === 'animals') { goal.target.set(4.3, 0.6, 1.25); goal.radius = 11.5; goal.theta = 0.75; goal.phi = 0.92; }
-      else if (view === 'barn') { goal.target.set(3.8, 1.4, -4.2); goal.radius = 10; goal.theta = 0.25; goal.phi = 1.02; }
-      else { goal.target.set(0, 0.5, 0); goal.radius = 23; goal.theta = 0.68; goal.phi = 0.92; }
+      if (view === 'crops') { goal.target.set(-3.6, 0.4, 0.25); goal.radius = 12; goal.theta = 0.5; goal.phi = 0.78; }
+      else if (view === 'animals') { goal.target.set(4.3, 0.6, 1.25); goal.radius = 11.5; goal.theta = 0.75; goal.phi = 0.82; }
+      else if (view === 'barn') { goal.target.set(3.8, 1.4, -4.2); goal.radius = 10; goal.theta = 0.25; goal.phi = 0.88; }
+      else { goal.target.set(0, 0.7, 0); goal.radius = 30; goal.theta = 0.72; goal.phi = 0.76; }
       clampOrbit();
     }
     function zoom(factor) { goal.radius *= factor; clampOrbit(); }
@@ -391,16 +462,26 @@
       if (!reduced) {
         rotor.rotation.z -= delta * 0.55;
         clouds.forEach((cloud, index) => { cloud.position.x += delta * (0.16 + index * 0.025); if (cloud.position.x > 26) cloud.position.x = -26; });
+        smokePuffs.forEach((puff, index) => {
+          const progress = (seconds * 0.16 + index * 0.24) % 1;
+          puff.position.y = 3.85 + progress * 1.65;
+          puff.position.x = 0.68 + Math.sin(seconds * 0.45 + index) * 0.13;
+          puff.position.z = -0.25 + progress * 0.18;
+        });
+        tractorBeacon.visible = Math.sin(seconds * 3.2) > -0.25;
         animalsGroup.children.forEach((root) => {
           const data = root.userData; const phase = seconds * 1.6 + data.phase;
+          root.position.x = data.homeX + Math.sin(seconds * 0.27 + data.phase) * 0.2;
+          root.position.z = data.homeZ + Math.cos(seconds * 0.23 + data.phase) * 0.17;
           root.position.y = 0.32 + Math.sin(phase) * 0.018;
+          root.rotation.y = data.baseRotation + Math.sin(seconds * 0.19 + data.phase) * 0.28;
           if (data.body) {
             if (!Number.isFinite(data.body.userData.farmBaseScaleY)) data.body.userData.farmBaseScaleY = data.body.scale.y;
             data.body.scale.y = data.body.userData.farmBaseScaleY * (1 + Math.sin(phase * 0.7) * 0.015);
           }
           if (data.head) { data.head.rotation.x = Math.sin(phase * 0.65) * 0.08 + (data.species === 'chicken' ? Math.max(0, Math.sin(phase * 0.42)) * 0.32 : 0); data.head.rotation.y = Math.sin(phase * 0.35) * 0.14; }
           if (data.tail) data.tail.rotation.z = Math.sin(phase * 1.8) * 0.35;
-          data.legs.forEach((leg, index) => { leg.rotation.x = Math.sin(phase + index * Math.PI) * 0.025; });
+          data.legs.forEach((leg, index) => { leg.rotation.x = Math.sin(phase + index * Math.PI) * 0.075; });
         });
         cropsGroup.children.forEach((root) => { root.userData.plants.rotation.z = Math.sin(seconds * 1.25 + root.userData.phase) * 0.025; });
       }
@@ -415,7 +496,10 @@
         root.userData.plants.scale.set(0.55 + progress * 0.45, 0.12 + progress * 0.88, 0.55 + progress * 0.45);
         root.userData.halo.visible = now >= crop.readyAt; root.userData.halo.rotation.z = -seconds * 0.35;
       });
-      if (selectionRing.visible) selectionRing.rotation.z = seconds * 0.5;
+      if (selectionRing.visible) {
+        if (selected) selectionRing.position.set(selected.position.x, 0.52, selected.position.z);
+        selectionRing.rotation.z = seconds * 0.5;
+      }
       renderer.render(scene, camera);
     }
     function syncActive() {
@@ -435,7 +519,7 @@
       renderer.domElement.removeEventListener('pointerup', onPointerUp); renderer.domElement.removeEventListener('pointercancel', onPointerUp);
       renderer.domElement.removeEventListener('wheel', onWheel); renderer.domElement.removeEventListener('keydown', onKey);
       Object.values(geometries).forEach((geometry) => geometry.dispose()); Object.values(materials).forEach((mat) => mat.dispose());
-      selectMaterial.dispose(); readyMaterial.dispose(); workingMaterial.dispose(); grassTexture.dispose(); soilTexture.dispose();
+      selectMaterial.dispose(); readyMaterial.dispose(); workingMaterial.dispose(); grassTexture.dispose(); soilTexture.dispose(); pathTexture.dispose();
       renderer.dispose(); renderer.domElement.remove();
     }
     return Object.freeze({ setState, setActive, focus, zoom, rotate, dispose, renderOnce: () => renderer.render(scene, camera), get canvas() { return renderer.domElement; } });

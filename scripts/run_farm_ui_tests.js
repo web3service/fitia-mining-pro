@@ -142,6 +142,33 @@ async function waitFor(condition, label) {
       assert.strictEqual(window.localStorage.getItem(`fitia_farm_pending_deposit_v1:${wallet.address.toLowerCase()}`), null);
     });
 
+    await test('Présentation : cinq entrées, Hub, illustrations locales et aucun micro-texte FARM', async () => {
+      const document = window.document;
+      const navItems = Array.from(document.querySelectorAll('.bottom-nav .nav-item'));
+      assert.strictEqual(navItems.length, 5);
+      assert.deepStrictEqual(navItems.map((item) => item.dataset.nav), ['dashboard', 'farm', 'store', 'my-rigs', 'hub']);
+      assert.ok(document.getElementById('view-hub'));
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 6);
+      assert.strictEqual(document.querySelector('.farm-camera-hint'), null);
+      assert.strictEqual(document.querySelector('.farm-hero p'), null);
+      assert.strictEqual(document.querySelector('.farm-quick-actions small'), null);
+      assert.strictEqual(document.querySelector('.farm-stats-grid small'), null);
+      assert.ok(document.querySelector('.farm-quick-actions img[src="assets/farm/chicken.svg"]'));
+      const emoji = /[\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u;
+      assert.ok(!emoji.test(document.getElementById('view-farm').textContent));
+      center.openBuyAnimal();
+      assert.strictEqual(document.querySelectorAll('#farm-dialog-content .farm-shop-icon').length, 3);
+      assert.ok(Array.from(document.querySelectorAll('#farm-dialog-content img')).every((image) => image.getAttribute('src').startsWith('assets/farm/')));
+      assert.strictEqual(document.querySelector('#farm-dialog-content .farm-dialog-copy'), null);
+      assert.strictEqual(document.querySelector('#farm-dialog-content .farm-dialog-hint'), null);
+      assert.ok(document.getElementById('farm-dialog-subtitle').classList.contains('hidden'));
+      assert.ok(!emoji.test(document.getElementById('modal-farm-dialog').textContent));
+      center.closeDialog(); center.openDeposit();
+      assert.strictEqual(document.querySelector('#farm-dialog-content .farm-dialog-hint'), null);
+      assert.ok(document.getElementById('farm-dialog-subtitle').classList.contains('hidden'));
+      center.closeDialog();
+    });
+
     await test('Verrouillage : compte, état et boucle 3D désactivés sans fuite de secret local', async () => {
       center.closeDialog(); center.setAccount(null);
       assert.strictEqual(center.account, null); assert.strictEqual(center.state, null); assert.strictEqual(center.active, false);
