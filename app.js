@@ -1082,6 +1082,7 @@ class Application {
     this.promotionCenter = new FitiaPromotionCenter(this);
     this.storeCenter = new FitiaStoreCenter(this);
     this.farmCenter = new FitiaFarmCenter(this);
+    this.luckyWheel = new FitiaLuckyWheel(this, this.farmCenter);
 
     this.chatInitialized = false;
     this.chatHistory = [];
@@ -1158,6 +1159,7 @@ class Application {
     this.promotionCenter.init();
     this.storeCenter.init();
     this.farmCenter.init();
+    this.luckyWheel.init();
     this.setupLifecycleListeners();
 
     // Masquer les bannières de téléchargement APK lorsqu'on est déjà dans l'APK Android installé
@@ -1281,6 +1283,7 @@ class Application {
         } else {
           FitiaSecurity.Native.setScreenSecure(false);
           this.activity.refreshPending(this.provider);
+          this.farmCenter.startSession();
         }
         if (this.user) this.announcementCenter.start();
         this.backgroundedAt = 0;
@@ -1878,6 +1881,7 @@ class Application {
     this.closeModals();
     this.storeCenter?.setAccount(null);
     this.farmCenter?.setAccount(null);
+    this.luckyWheel?.setAccount(null);
     this.closeRevealModal();
     this.stopMiningCounter();
     this.announcementCenter.stop();
@@ -2158,6 +2162,8 @@ class Application {
     this.activity.setAccount(this.user);
     this.storeCenter.setAccount(this.user);
     this.farmCenter.setAccount(this.user);
+    this.luckyWheel.setAccount(this.user);
+    this.farmCenter.startSession();
     this.installActivityTracking();
     this.lastUserActivityAt = Date.now();
     // Efface immédiatement la copie de secret passée en paramètre.
@@ -4317,6 +4323,7 @@ class Application {
     this.signer = null;
     this.storeCenter?.setAccount(null);
     this.farmCenter?.setAccount(null);
+    this.luckyWheel?.setAccount(null);
     this.plugTransactionInProgress = false;
     document.getElementById('plug-machine-id').value = '';
     document.getElementById('plug-battery-type').value = '';
@@ -4449,6 +4456,7 @@ class Application {
 
   nav(viewId, btnEl) {
     this.farmCenter?.exit();
+    this.luckyWheel?.exit();
     document.querySelectorAll('.view').forEach((el) => {
       el.classList.remove('active');
       el.style.display = 'none';
@@ -4459,7 +4467,7 @@ class Application {
       activeView.style.display = 'block';
     }
     document.querySelectorAll('.nav-item').forEach((el) => el.classList.remove('active'));
-    const navView = ['farm', 'swap'].includes(viewId) ? 'hub' : viewId;
+    const navView = ['farm', 'swap', 'wheel'].includes(viewId) ? 'hub' : viewId;
     const activeNav = btnEl || document.querySelector(`.nav-item[data-nav="${navView}"]`);
     if (activeNav) activeNav.classList.add('active');
     if (viewId === 'dashboard') {
@@ -4474,6 +4482,7 @@ class Application {
       void this.storeCenter.refresh({ force: false });
     }
     if (viewId === 'farm') this.farmCenter.enter();
+    if (viewId === 'wheel') this.luckyWheel.enter();
   }
 
   setLoader(show) {

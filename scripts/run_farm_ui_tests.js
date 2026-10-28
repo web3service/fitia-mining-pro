@@ -148,8 +148,9 @@ async function waitFor(condition, label) {
       assert.strictEqual(navItems.length, 5);
       assert.deepStrictEqual(navItems.map((item) => item.dataset.nav), ['dashboard', 'shop', 'store', 'my-rigs', 'hub']);
       assert.ok(document.getElementById('view-hub'));
-      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 2);
-      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Swap']);
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 3);
+      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Lucky Wheel', 'Swap']);
+      assert.ok(document.querySelector('#view-hub .hub-card-wheel img[src="assets/lucky-wheel.svg"]'));
       assert.ok(document.querySelector('#view-hub .hub-card-farm img[src="assets/farm/barn.svg"]'));
       assert.strictEqual(document.querySelectorAll('#view-hub .hub-swap-icons img').length, 2);
       assert.strictEqual(document.querySelector('.farm-camera-hint'), null);
@@ -181,7 +182,7 @@ async function waitFor(condition, label) {
       }
     });
   } finally {
-    clearInterval(center.clockTimer); clearInterval(center.pollTimer); clearTimeout(center.retryTimer);
+    clearInterval(center.clockTimer); clearInterval(center.pollTimer); clearInterval(center.backgroundPollTimer); clearTimeout(center.retryTimer);
     await new Promise((resolve) => server.close(resolve)); window.close();
   }
   console.log('═'.repeat(68)); console.log(`📊 RÉSULTAT UI FARM : ${passed} réussis, ${failed} échoués`);

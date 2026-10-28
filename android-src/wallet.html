@@ -705,10 +705,64 @@
       <button type="button" class="hub-card hub-card-farm" onclick="App.nav('farm')">
         <span class="hub-card-icon" aria-hidden="true"><img class="hub-farm-logo" src="assets/farm/barn.svg" width="40" height="40" alt="" draggable="false"></span><strong>FARM</strong><span class="hub-chevron">›</span>
       </button>
+      <button type="button" class="hub-card hub-card-wheel" onclick="App.nav('wheel')">
+        <span class="hub-card-icon" aria-hidden="true"><img class="hub-wheel-logo" src="assets/lucky-wheel.svg" width="44" height="44" alt="" draggable="false"></span><strong>Lucky Wheel</strong><span class="hub-chevron">›</span>
+      </button>
       <button type="button" class="hub-card hub-card-swap" onclick="App.nav('swap')">
         <span class="hub-card-icon hub-swap-icons" aria-hidden="true"><img src="assets/usdt.svg" width="26" height="26" alt="" draggable="false"><img src="assets/fta.png" width="26" height="26" alt="" draggable="false"></span><strong>Swap</strong><span class="hub-chevron">›</span>
       </button>
     </div>
+  </div>
+
+  <!-- ═══ LUCKY WHEEL — TIRAGES SERVEUR ═══ -->
+  <div id="view-wheel" class="view wheel-view">
+    <div class="wheel-header">
+      <button type="button" class="wheel-back-button" onclick="App.nav('hub')" aria-label="Back to Hub"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+      <div><span>FITIA GAMES</span><h2>Lucky Wheel</h2></div>
+      <button id="wheel-open-info" type="button" class="wheel-info-button" aria-label="View probabilities">ODDS</button>
+    </div>
+    <section class="wheel-hero">
+      <img src="assets/lucky-wheel.svg" width="76" height="76" alt="" draggable="false">
+      <div><span>COIN BALANCE</span><strong id="wheel-coin-balance">0</strong></div>
+      <div class="wheel-hero-stat"><span>BONUS</span><strong id="wheel-bonus-count">0</strong></div>
+    </section>
+    <section id="wheel-locked" class="wheel-locked hidden">
+      <strong>FARM activation required</strong>
+      <button id="wheel-open-farm" type="button" class="farm-small-button">OPEN FARM</button>
+    </section>
+    <div id="wheel-game" class="wheel-game">
+      <div class="wheel-status-strip">
+        <div><span>FREE · 24H</span><strong id="wheel-free-status" class="ready">FREE SPIN</strong></div>
+        <div class="wheel-mode-tabs" role="tablist" aria-label="Spin mode">
+          <button type="button" data-wheel-mode="free" role="tab">FREE</button>
+          <button type="button" data-wheel-mode="paid" role="tab" class="active">COINS</button>
+          <button type="button" data-wheel-mode="bonus" role="tab">BONUS</button>
+        </div>
+      </div>
+      <section class="wheel-stage" aria-label="Lucky Wheel game">
+        <div class="wheel-ambient"></div>
+        <div class="wheel-pointer" aria-hidden="true"><i></i></div>
+        <canvas id="lucky-wheel-canvas" width="360" height="360" role="img" aria-label="Server-drawn Lucky Wheel"></canvas>
+        <div id="wheel-celebration" class="wheel-celebration" aria-hidden="true"></div>
+      </section>
+      <section id="wheel-result" class="wheel-result hidden" aria-live="polite">
+        <span>LAST RESULT</span><strong id="wheel-result-title"></strong><small id="wheel-result-detail"></small>
+      </section>
+      <div class="wheel-stake-heading"><span>COIN STAKE</span><b>1 FTA = 100 COINS</b></div>
+      <div class="wheel-stakes" aria-label="Coin stake">
+        <button type="button" data-wheel-stake="50" class="active" aria-pressed="true">50</button>
+        <button type="button" data-wheel-stake="100" aria-pressed="false">100</button>
+        <button type="button" data-wheel-stake="200" aria-pressed="false">200</button>
+        <button type="button" data-wheel-stake="500" aria-pressed="false">500</button>
+      </div>
+      <button id="wheel-spin-button" type="button" class="wheel-spin-button"><span>SPIN · 50 COINS</span><i aria-hidden="true"></i></button>
+      <p id="wheel-status" class="wheel-status hidden" role="alert"></p>
+    </div>
+    <section class="wheel-history">
+      <div class="wheel-section-heading"><h3>Spin history</h3><span>LIVE</span></div>
+      <p id="wheel-history-empty" class="wheel-history-empty">No spins yet</p>
+      <div id="wheel-history-list" class="wheel-history-list"></div>
+    </section>
   </div>
 </main>
 
@@ -725,6 +779,17 @@
 <!-- ═══════════════════════════════════════════════════════════════════
      MODALES
      ═══════════════════════════════════════════════════════════════════ -->
+
+<!-- Lucky Wheel : règles et probabilités -->
+<div id="modal-wheel-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="wheel-info-title">
+  <div class="modal-content wheel-info-modal">
+    <div class="modal-header"><h3 id="wheel-info-title">Rules & probabilities</h3><button id="wheel-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="wheel-probability-base"><span>REWARD BASE</span><strong id="wheel-probability-base">50 coins</strong></div>
+    <div class="wheel-probability-header"><span>REWARD</span><span>VALUE</span><span>CHANCE</span></div>
+    <div id="wheel-probability-list" class="wheel-probability-list"></div>
+    <div class="wheel-rule-chips"><span>SERVER DRAW</span><span>ONE DEBIT / SPIN</span><span>FREE / 24H</span></div>
+  </div>
+</div>
 
 <!-- Envoyer -->
 <div id="modal-send" class="modal">
@@ -1137,11 +1202,13 @@
 <script src="store-catalog.js"></script>
 <script src="store-order-protocol.js"></script>
 <script src="store.js"></script>
-<script src="farm-config.js"></script>
-<script src="farm-protocol.js"></script>
-<script src="farm-3d.js"></script>
-<script src="farm.js"></script>
-<script src="assistant.js"></script>
+  <script src="farm-config.js"></script>
+  <script src="farm-protocol.js"></script>
+  <script src="farm-3d.js"></script>
+  <script src="farm.js"></script>
+  <script src="wheel-config.js"></script>
+  <script src="wheel.js"></script>
+  <script src="assistant.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

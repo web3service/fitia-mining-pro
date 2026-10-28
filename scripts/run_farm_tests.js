@@ -6,6 +6,7 @@ const http = require('http');
 const ethers = require('../vendor/ethers.umd.min.js');
 const Config = require('../farm-config');
 const Protocol = require('../farm-protocol');
+const WheelConfig = require('../wheel-config');
 const { createFarmHandler } = require('../api/farm');
 const { createAdminHandler } = require('../api/admin');
 const {
@@ -23,7 +24,8 @@ const buyer = wallet.address.toLowerCase();
 let nowMs = Date.parse('2026-10-28T12:00:00.000Z');
 let verification = { confirmed: true };
 const repository = new MemoryFarmRepository();
-const service = createFarmService({ repository, now: () => new Date(nowMs), paymentVerifier: async () => verification });
+const randomValues = [];
+const service = createFarmService({ repository, now: () => new Date(nowMs), randomInt: () => randomValues.length ? randomValues.shift() : 0, paymentVerifier: async () => verification });
 const hash = () => `0x${crypto.randomBytes(32).toString('hex')}`;
 async function signed(action, signer, params = {}) {
   const body = { action, buyer: signer.address, timestamp: nowMs, ...params };
@@ -33,6 +35,17 @@ async function signed(action, signer, params = {}) {
 const actionId = () => crypto.randomUUID();
 async function callAction(type, params = {}, signer = wallet) {
   return service.action(await signed('action', signer, { actionId: actionId(), type, params }));
+}
+async function wheelAction(id, params, signer = wallet) {
+  return service.action(await signed('action', signer, { actionId: id, type: 'wheel_spin', params }));
+}
+function segmentStart(id) {
+  let cursor = 0;
+  for (const segment of WheelConfig.SEGMENTS) {
+    if (segment.id === id) return cursor;
+    cursor += segment.weight;
+  }
+  throw new Error('Unknown test segment.');
 }
 async function deposit(amountFta = '10', signer = wallet, txHash = hash(), id = actionId()) {
   const amountUnits = ethers.parseUnits(amountFta, 8).toString();
@@ -107,6 +120,74 @@ async function expectCode(promise, code) {
     result = await callAction('sell');
     assert.strictEqual(result.state.coins, before + 30 + 24 + 36);
     assert.ok(Object.values(result.state.inventory).every((quantity) => quantity === 0));
+  });
+
+  await test('Lucky Wheel : probabilités à 100 % et récompenses entières pour chaque mise autorisée', async () => {
+    assert.strictEqual(WheelConfig.TOTAL_WEIGHT, 100);
+    assert.deepStrictEqual(WheelConfig.STAKES, [50, 100, 200, 500]);
+    WheelConfig.SEGMENTS.forEach((segment) => {
+      assert.ok(segment.weight > 0);
+      WheelConfig.STAKES.forEach((stake) => {
+        const reward = WheelConfig.rewardFor(segment, stake);
+        assert.ok(Number.isSafeInteger(reward.coins) && reward.coins >= 0);
+        if (segment.kind === 'fta') assert.strictEqual(reward.ftaCoins, reward.coins);
+        if (segment.kind === 'product') assert.ok(Config.PRODUCTS[reward.product] && reward.quantity >= 1);
+      });
+    });
+    assert.strictEqual(WheelConfig.rewardFor('fta_small', 100).coins, 50);
+    assert.strictEqual(WheelConfig.rewardFor('fta_big', 100).coins, 200);
+  });
+
+  await test('Lucky Wheel : tour gratuit serveur, historique et rejeu sans nouveau débit ni tirage', async () => {
+    const id = actionId();
+    const body = await signed('action', wallet, { actionId: id, type: 'wheel_spin', params: { mode: 'free' } });
+    const before = (await service.view(buyer)).state.coins;
+    randomValues.push(segmentStart('coins_triple'));
+    const result = await service.action(body);
+    assert.strictEqual(result.spin.id, id); assert.strictEqual(result.spin.segmentId, 'coins_triple');
+    assert.strictEqual(result.spin.coins, 60); assert.strictEqual(result.state.coins, before + 60);
+    assert.strictEqual(result.state.wheel.totalSpins, 1); assert.strictEqual(result.state.wheel.recentSpins[0].id, id);
+    const replay = await service.action(body);
+    assert.strictEqual(replay.state.coins, result.state.coins); assert.strictEqual(replay.state.wheel.totalSpins, 1);
+    assert.strictEqual(replay.spin.id, id); assert.strictEqual(randomValues.length, 0);
+    await expectCode(wheelAction(actionId(), { mode: 'free' }), 'WHEEL_FREE_COOLDOWN');
+  });
+
+  await test('Lucky Wheel : mise autorisée, FTA converti en coins et paramètres client falsifiés ignorés', async () => {
+    let before = (await service.view(buyer)).state.coins;
+    randomValues.push(segmentStart('fta_big'));
+    let result = await wheelAction(actionId(), { mode: 'paid', stake: '100', segmentId: 'coins_half', coins: '99999999' });
+    assert.strictEqual(result.spin.segmentId, 'fta_big'); assert.strictEqual(result.spin.ftaCoins, 200);
+    assert.strictEqual(result.state.coins, before - 100 + 200); assert.strictEqual(result.state.wheel.totalStaked, 100);
+    before = result.state.coins; randomValues.push(segmentStart('coins_half'));
+    result = await wheelAction(actionId(), { mode: 'paid', stake: '50', segmentId: 'fta_big', coins: '99999999' });
+    assert.strictEqual(result.spin.segmentId, 'coins_half'); assert.strictEqual(result.spin.coins, 25);
+    assert.strictEqual(result.state.coins, before - 50 + 25);
+    const unchanged = result.state.coins;
+    await expectCode(wheelAction(actionId(), { mode: 'paid', stake: '55' }), 'WHEEL_STAKE');
+    assert.strictEqual((await service.view(buyer)).state.coins, unchanged);
+  });
+
+  await test('Lucky Wheel : toutes les récompenses créditées et tour bonus consommé sans mise', async () => {
+    for (const segment of WheelConfig.SEGMENTS) {
+      nowMs += WheelConfig.FREE_INTERVAL_MS;
+      const before = (await service.view(buyer)).state;
+      randomValues.push(segmentStart(segment.id));
+      const result = await wheelAction(actionId(), { mode: 'free' });
+      const reward = WheelConfig.rewardFor(segment, WheelConfig.FREE_BASE_COINS);
+      assert.strictEqual(result.spin.segmentId, segment.id);
+      assert.strictEqual(result.state.coins, before.coins + reward.coins);
+      assert.strictEqual(result.state.feed, before.feed + reward.feed);
+      assert.strictEqual(result.state.wheel.bonusSpins, before.wheel.bonusSpins + reward.bonusSpins);
+      if (reward.product) assert.strictEqual(result.state.inventory[reward.product], before.inventory[reward.product] + reward.quantity);
+    }
+    const before = (await service.view(buyer)).state;
+    assert.ok(before.wheel.bonusSpins >= 1); randomValues.push(segmentStart('feed'));
+    const bonus = await wheelAction(actionId(), { mode: 'bonus' });
+    assert.strictEqual(bonus.spin.mode, 'bonus'); assert.strictEqual(bonus.spin.stake, 0);
+    assert.strictEqual(bonus.state.coins, before.coins); assert.strictEqual(bonus.state.feed, before.feed + 1);
+    assert.strictEqual(bonus.state.wheel.bonusSpins, before.wheel.bonusSpins - 1);
+    await expectCode(wheelAction(actionId(), { mode: 'bonus' }), 'WHEEL_BONUS_EMPTY');
   });
 
   await test('Retrait FTA : débit atomique, demande persistante et rejet des montants invalides', async () => {
