@@ -145,6 +145,40 @@ function segmentStart(id) {
       await center.refresh({ quiet: true }); assert.strictEqual(notifications.length, 1);
     });
 
+    await test('Cycle de vie : aucun redraw masqué et annulation d’animation toujours résolue', async () => {
+      const originalDraw = wheel.draw; let drawCount = 0;
+      wheel.active = false; wheel.draw = () => { drawCount += 1; };
+      wheel.render(); assert.strictEqual(drawCount, 0);
+      wheel.draw = originalDraw; wheel.active = true;
+      const originalMatchMedia = window.matchMedia;
+      try {
+        window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+        const animation = wheel.animateResult({ segmentId: 'coins_half' });
+        wheel.cancelAnimation();
+        await Promise.race([animation, new Promise((_, reject) => setTimeout(() => reject(new Error('Animation cancellation blocked')), 100))]);
+      } finally { window.matchMedia = originalMatchMedia; }
+    });
+
+    await test('Sortie pendant un tour : arrêt du rendu, résultat serveur conservé et reprise sans blocage', async () => {
+      const originalMatchMedia = window.matchMedia;
+      try {
+        window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+        const before = center.state.coins; randomValues.push(segmentStart('coins_half'));
+        wheel.setMode('paid'); wheel.setStake(50);
+        const spinning = wheel.spin(); await new Promise((resolve) => setTimeout(resolve, 20));
+        wheel.exit();
+        await Promise.race([spinning, new Promise((_, reject) => setTimeout(() => reject(new Error('Spin blocked after exit')), 500))]);
+        assert.strictEqual(center.state.coins, before - 25); assert.strictEqual(wheel.pending, null); assert.strictEqual(wheel.operation, false);
+        wheel.enter(); assert.strictEqual(wheel.active, true);
+      } finally { window.matchMedia = originalMatchMedia; }
+    });
+
+    await test('Canvas indisponible : logo de secours et ouverture sans exception', async () => {
+      wheel.setCanvasFallback(); wheel.resize(); wheel.enter();
+      assert.strictEqual(wheel.context, null); assert.strictEqual(wheel.active, true);
+      assert.ok(window.document.querySelector('.wheel-stage').classList.contains('canvas-unavailable'));
+    });
+
     await test('Verrouillage : timers et reprise purgés sans fuite de secret', async () => {
       center.setAccount(null); wheel.setAccount(null);
       assert.strictEqual(wheel.account, null); assert.strictEqual(wheel.pending, null); assert.strictEqual(wheel.operation, false);
