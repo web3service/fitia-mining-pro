@@ -11,6 +11,7 @@
   <script src="/promotion-effects.js" defer></script>
   <script src="/admin/store-admin.js" defer></script>
   <script src="/admin/orders-admin.js" defer></script>
+  <script src="/admin/farm-admin.js" defer></script>
   <script src="/admin/admin.js" defer></script>
 </head>
 <body>
@@ -54,6 +55,9 @@
         </button>
         <button class="nav-button" type="button" data-section="orders">
           <span class="nav-icon" aria-hidden="true">✓</span><span class="nav-label">Commandes clients</span><span class="nav-short-label">Commandes</span>
+        </button>
+        <button class="nav-button" type="button" data-section="farm">
+          <span class="nav-icon" aria-hidden="true">◆</span><span class="nav-label">Retraits FITIA FARM</span><span class="nav-short-label">Farm</span>
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -252,6 +256,33 @@
             <img src="/assets/icon-192.png" width="52" height="52" alt="">
             <h3>Aucune commande payée</h3>
             <p>Les nouvelles commandes confirmées apparaîtront ici automatiquement.</p>
+          </div>
+        </section>
+
+        <section id="section-farm" class="page-section hidden">
+          <div class="section-heading">
+            <div><p class="eyebrow">Économie FITIA FARM</p><h2>Retraits en FTA</h2><p class="muted">Envoyez le montant exact depuis la trésorerie officielle, puis collez le hash Polygon. Le serveur vérifie le destinataire, le montant et les confirmations.</p></div>
+            <button id="farm-withdrawals-refresh" class="button button-secondary" type="button">Actualiser</button>
+          </div>
+          <div class="promotion-notice store-privacy-notice">
+            <strong>Aucun retrait automatique sans preuve on-chain</strong>
+            <p>Les coins sont débités lors de la demande. Ne clôturez jamais un retrait avec une capture d’écran : seul le transfert FTA vérifié depuis la trésorerie est accepté.</p>
+          </div>
+          <div class="stats-grid store-stats-grid farm-stats-grid" aria-label="Statistiques des retraits FARM">
+            <article class="stat-card stat-scheduled"><span>À payer</span><strong id="farm-stat-pending">0</strong><small>Demandes en attente</small></article>
+            <article class="stat-card stat-active"><span>Payés</span><strong id="farm-stat-paid">0</strong><small>Retraits vérifiés</small></article>
+            <article class="stat-card"><span>Coins bloqués</span><strong id="farm-stat-coins">0</strong><small>Total des demandes ouvertes</small></article>
+            <article class="stat-card"><span>FTA à envoyer</span><strong id="farm-stat-fta">0</strong><small>Montant total en attente</small></article>
+          </div>
+          <div class="list-toolbar orders-list-toolbar">
+            <label><span class="sr-only">Filtrer les retraits</span><select id="farm-withdrawals-filter"><option value="all">Tous les retraits</option><option value="pending">En attente</option><option value="paid">Payés</option></select></label>
+          </div>
+          <div id="farm-withdrawals-error" class="alert alert-error hidden" role="alert"></div>
+          <div id="farm-withdrawals-list" class="announcements-list"></div>
+          <div id="farm-withdrawals-empty" class="empty-state hidden">
+            <img src="/assets/icon-192.png" width="52" height="52" alt="">
+            <h3>Aucun retrait</h3>
+            <p>Les demandes de conversion des coins en FTA apparaîtront ici.</p>
           </div>
         </section>
       </main>

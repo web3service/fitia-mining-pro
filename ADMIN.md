@@ -84,6 +84,20 @@ Le catalogue est public : n’y enregistrez aucune donnée de client. Le wallet 
 
 Les routes d’administration associées sont `/api/admin/store-products` et `/api/admin/store-assets`. Elles utilisent la même session, la même protection CSRF et la même vérification de révision que les autres manifestes. Le stock public doit être actualisé par le vendeur après les ventes et auprès du fournisseur dropshipping.
 
+## FITIA FARM
+
+La section **Retraits FITIA FARM** affiche les demandes de conversion des coins en FTA. Le taux public est de **1 FTA = 100 coins**. Les retraits utilisent des multiples de 100 coins, avec une demande par 24 heures et au maximum une demande en attente par wallet. Aucune conversion en euros ou dollars n’est proposée.
+
+Pour clôturer une demande :
+
+1. envoyez depuis la trésorerie officielle le montant FTA exact vers le wallet indiqué ;
+2. attendez au moins trois confirmations Polygon ;
+3. collez le hash du transfert dans la carte du retrait, puis appuyez sur **Vérifier et clôturer**.
+
+Le serveur vérifie le contrat FTA, l’expéditeur, le destinataire, le montant et les confirmations avant de passer le statut à `paid`. Une capture d’écran ou un hash sans transfert correspondant ne suffit jamais. La route `/api/admin/farm-withdrawals` exige la session administrateur et le jeton CSRF.
+
+Les tables privées et leurs transactions atomiques sont définies dans `supabase/migrations/20261028000200_create_farm_game.sql`. Le service utilise les variables serveur `FITIA_SUPABASE_URL` et `FITIA_SUPABASE_SERVICE_ROLE_KEY`, déjà séparées du navigateur. Ne placez jamais de clé privée de trésorerie dans Vercel, Supabase, Git ou le panneau : le paiement est effectué depuis le wallet de la trésorerie, puis seulement vérifié par le serveur.
+
 ## Variables d’environnement
 
 | Variable | Rôle | Défaut |

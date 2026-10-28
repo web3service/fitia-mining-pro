@@ -6,6 +6,7 @@ const {
 } = require('../announcement-assets');
 const { validateManifest: validateStoreCatalog } = require('../store-catalog');
 const { getDefaultOrderService } = require('../store-order-service');
+const { getDefaultFarmService } = require('../farm-service');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -410,9 +411,14 @@ async function saveAnnouncementAsset(config, payload, kind = 'announcement') {
 
 function createAdminHandler(options = {}) {
   let orderService = options.orderService || null;
+  let farmService = options.farmService || null;
   const orders = () => {
     if (!orderService) orderService = getDefaultOrderService();
     return orderService;
+  };
+  const farm = () => {
+    if (!farmService) farmService = getDefaultFarmService();
+    return farmService;
   };
 
   return async function adminHandler(req, res) {
@@ -498,6 +504,22 @@ function createAdminHandler(options = {}) {
       if (!session || !requireCsrf(req, res, session)) return;
       const body = await readJson(req, MAX_BODY_BYTES);
       sendJson(res, 200, { order: await orders().updateAdminOrder(body) });
+      return;
+    }
+
+    if (action === 'farm-withdrawals' && req.method === 'GET') {
+      const session = requireSession(req, res, config);
+      if (!session) return;
+      sendJson(res, 200, { withdrawals: await farm().listWithdrawals(), serverTime: new Date().toISOString() });
+      return;
+    }
+
+    if (action === 'farm-withdrawals' && req.method === 'PATCH') {
+      const session = requireSession(req, res, config);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_BODY_BYTES);
+      const result = await farm().completeWithdrawal(body);
+      sendJson(res, result.pending ? 202 : 200, result);
       return;
     }
 

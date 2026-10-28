@@ -142,12 +142,12 @@ async function request(base, action, options = {}) {
   };
 
   try {
-    await runTest('Vercel sert /admin et réécrit les neuf routes API serverless', async () => {
+    await runTest('Vercel sert /admin et réécrit les dix routes API serverless', async () => {
       const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
       const rewrites = new Map(config.rewrites.map((item) => [item.source, item.destination]));
       assert.strictEqual(rewrites.get('/admin'), '/admin/index.html');
       assert.strictEqual(rewrites.get('/admin/'), '/admin/index.html');
-      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'store-products', 'store-assets', 'store-orders']) {
+      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'store-products', 'store-assets', 'store-orders', 'farm-withdrawals']) {
         assert.strictEqual(rewrites.get(`/api/admin/${action}`), `/api/admin?action=${action}`);
       }
       const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
@@ -156,10 +156,14 @@ async function request(base, action, options = {}) {
       const ignore = fs.readFileSync(path.join(ROOT, '.vercelignore'), 'utf8');
       assert.ok(!ignore.split('\n').includes('admin/'));
       assert.ok(ignore.split('\n').includes('admin-server.js'));
+      assert.ok(ignore.split('\n').includes('farm.js'));
+      assert.ok(ignore.split('\n').includes('farm-3d.js'));
       assert.ok(ignore.split('\n').includes('vendor/*'));
       assert.ok(ignore.split('\n').includes('!vendor/ethers.umd.min.js'));
       assert.ok(fs.existsSync(path.join(ROOT, 'api/store-orders.js')));
       assert.ok(fs.existsSync(path.join(ROOT, 'store-order-service.js')));
+      assert.ok(fs.existsSync(path.join(ROOT, 'api/farm.js')));
+      assert.ok(fs.existsSync(path.join(ROOT, 'farm-service.js')));
     });
 
     await runTest('Une configuration Vercel absente est signalée sans exposer de secret', async () => {

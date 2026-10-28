@@ -90,6 +90,7 @@
 
   let storeAdmin = null;
   let ordersAdmin = null;
+  let farmAdmin = null;
   const byId = (id) => document.getElementById(id);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const localized = (value) => value?.fr || value?.en || '';
@@ -209,6 +210,7 @@
     state.editingPromotionId = null;
     if (storeAdmin) storeAdmin.reset();
     if (ordersAdmin) ordersAdmin.reset();
+    if (farmAdmin) farmAdmin.reset();
     state.csrfToken = '';
     byId('admin-view').classList.add('hidden');
     byId('login-view').classList.remove('hidden');
@@ -616,12 +618,14 @@
     byId('section-promotions').classList.toggle('hidden', section !== 'promotions');
     byId('section-store').classList.toggle('hidden', section !== 'store');
     byId('section-orders').classList.toggle('hidden', section !== 'orders');
-    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', store: 'FITIA STORE', orders: 'Commandes clients' };
+    byId('section-farm').classList.toggle('hidden', section !== 'farm');
+    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', store: 'FITIA STORE', orders: 'Commandes clients', farm: 'Retraits FITIA FARM' };
     byId('page-title').textContent = titles[section] || titles.dashboard;
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.classList.toggle('active', button.dataset.section === section);
     });
     if (section === 'orders' && ordersAdmin) ordersAdmin.load().catch(() => {});
+    if (section === 'farm' && farmAdmin) farmAdmin.load().catch(() => {});
   }
 
   function fillPromotionLabels(values = {}) {
@@ -1047,6 +1051,7 @@
     });
     byId('refresh-button').addEventListener('click', () => {
       if (state.section === 'orders' && ordersAdmin) ordersAdmin.load().catch(() => {});
+      else if (state.section === 'farm' && farmAdmin) farmAdmin.load().catch(() => {});
       else loadData();
     });
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
@@ -1086,6 +1091,7 @@
     byId('promotion-form').addEventListener('change', updatePromotionPreview);
     storeAdmin.bindEvents();
     ordersAdmin.bindEvents();
+    farmAdmin.bindEvents();
     ['search-input', 'category-filter', 'status-filter'].forEach((id) => {
       byId(id).addEventListener('input', () => state.manifest && renderAnnouncements());
       byId(id).addEventListener('change', () => state.manifest && renderAnnouncements());
@@ -1134,6 +1140,9 @@
     getMode: () => state.mode
   });
   ordersAdmin = window.FitiaOrdersAdmin.create({
+    byId, api, showToast, setLoading, setConnection, makeButton, formatDate
+  });
+  farmAdmin = window.FitiaFarmAdmin.create({
     byId, api, showToast, setLoading, setConnection, makeButton, formatDate
   });
 

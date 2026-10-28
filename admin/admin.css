@@ -464,6 +464,23 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
   .orders-list-toolbar { grid-template-columns: 1fr; }
 }
 
+/* FITIA FARM — retraits FTA, optimisé pour le téléphone */
+.farm-stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.farm-withdrawal-card { grid-template-columns: minmax(0, 1fr) minmax(230px, 290px); align-items: start; gap: 20px; }
+.farm-withdrawal-controls { grid-template-columns: 1fr 1fr; }
+.farm-withdrawal-controls label, .farm-withdrawal-controls .button-primary, .farm-withdrawal-controls p { grid-column: 1 / -1; }
+.farm-withdrawal-controls .button { min-height: 44px; white-space: normal; }
+.farm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.66rem !important; user-select: all; }
+@media (max-width: 1000px) {
+  .farm-withdrawal-card { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .farm-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .farm-withdrawal-controls { grid-template-columns: 1fr; }
+  .farm-withdrawal-controls label, .farm-withdrawal-controls .button-primary, .farm-withdrawal-controls p { grid-column: auto; }
+  .farm-withdrawal-controls .button { min-height: 48px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
