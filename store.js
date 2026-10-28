@@ -44,7 +44,8 @@
       copyHash: 'Copy hash', copied: 'Transaction hash copied.',
       orderSent: 'Order sent automatically to the seller.', orderOffline: 'The private order service is unavailable. No new payment will be requested automatically.', orderPreparationFailed: 'The order could not be prepared. No payment was made.', trackOrder: 'TRACK ORDER', tracking: 'Tracking', carrier: 'Carrier', trackingNumber: 'Tracking number', progressPaid: 'Payment confirmed', progressPreparing: 'Preparing', progressShipped: 'Shipped', progressDelivered: 'Delivered', emptyCartConfirm: 'Clear all products from your cart?', quantity: 'Quantity', orderItems: 'items',
       cat_electronics: 'Electronics', cat_fashion: 'Fashion', cat_home: 'Home', cat_beauty: 'Beauty', cat_sports: 'Sports',
-      cat_toys: 'Toys', cat_automotive: 'Automotive', cat_grocery: 'Grocery', cat_jewelry: 'Jewelry', cat_office: 'Office', cat_other: 'Other'
+      cat_toys: 'Toys', cat_automotive: 'Automotive', cat_grocery: 'Grocery', cat_jewelry: 'Jewelry', cat_office: 'Office', cat_other: 'Other',
+      trackedDelivery: 'Tracked delivery', globalNetwork: 'GLOBAL DELIVERY', deliveryCountries: 'Partner & agent countries', catalogTitle: 'Products', lastUpdated: 'Last update'
     },
     fr: {
       tagline: 'Produits physiques, paiement direct en crypto.', privateDelivery: 'Livraison hors blockchain',
@@ -76,7 +77,8 @@
       copyHash: 'Copier le hash', copied: 'Hash de transaction copié.',
       orderSent: 'Commande transmise automatiquement au vendeur.', orderOffline: 'Le service privé de commandes est indisponible. Aucun nouveau paiement ne sera demandé automatiquement.', orderPreparationFailed: 'La commande n’a pas pu être préparée. Aucun paiement n’a été effectué.', trackOrder: 'SUIVRE LA COMMANDE', tracking: 'Suivi', carrier: 'Transporteur', trackingNumber: 'Numéro de suivi', progressPaid: 'Paiement confirmé', progressPreparing: 'En préparation', progressShipped: 'Expédiée', progressDelivered: 'Livrée', emptyCartConfirm: 'Retirer tous les produits du panier ?', quantity: 'Quantité', orderItems: 'articles',
       cat_electronics: 'Électronique', cat_fashion: 'Mode', cat_home: 'Maison', cat_beauty: 'Beauté', cat_sports: 'Sports',
-      cat_toys: 'Jouets', cat_automotive: 'Automobile', cat_grocery: 'Épicerie', cat_jewelry: 'Bijoux', cat_office: 'Bureau', cat_other: 'Autres'
+      cat_toys: 'Jouets', cat_automotive: 'Automobile', cat_grocery: 'Épicerie', cat_jewelry: 'Bijoux', cat_office: 'Bureau', cat_other: 'Autres',
+      trackedDelivery: 'Livraison suivie', globalNetwork: 'LIVRAISON INTERNATIONALE', deliveryCountries: 'Pays des partenaires & agents', catalogTitle: 'Produits', lastUpdated: 'Dernière mise à jour'
     }
   };
   COPY.de = COPY.en;
@@ -113,6 +115,9 @@
       this.orders = [];
       this.currentOrderId = '';
       this.ordersRefreshPromise = null;
+      this.orderAutoRefreshTimer = null;
+      this.orderAutoRefreshDelayMs = 30000;
+      this.ordersLastRefreshAt = 0;
       this.checkoutQuote = null;
       this.loaded = false;
       this.error = '';
@@ -315,6 +320,7 @@
       this.loadCachedCatalog();
       this.setAccount(this.app.user);
       document.getElementById('store-checkout-form')?.addEventListener('submit', (event) => this.pay(event));
+      document.addEventListener('visibilitychange', () => this.scheduleOrderAutoRefresh());
       this.render();
       void (async () => {
         await this.loadPackagedCatalog();
@@ -351,8 +357,10 @@
     }
 
     clearSensitive() {
+      this.stopOrderAutoRefresh();
       this.currentOrderId = '';
       this.ordersRefreshPromise = null;
+      this.ordersLastRefreshAt = 0;
       this.checkoutQuote = null;
       const form = document.getElementById('store-checkout-form');
       if (form) form.reset();
@@ -361,6 +369,7 @@
     }
 
     onModalsClosed() {
+      this.stopOrderAutoRefresh();
       this.checkoutQuote = null;
       const form = document.getElementById('store-checkout-form');
       if (form) form.reset();
@@ -435,6 +444,7 @@
       if (!this.account) return;
       const safeOrders = this.orders.slice(0, MAX_ORDERS).map((order) => this.normalizeStoredOrder(order)).filter(Boolean);
       this.storageSet(this.ordersKey(), JSON.stringify(safeOrders));
+      this.renderOrderAccess();
     }
 
     async refresh({ force = false } = {}) {
@@ -525,11 +535,67 @@
       });
     }
 
+    renderDeliveryCountries() {
+      const section = document.getElementById('store-delivery-network');
+      const track = document.getElementById('store-country-track');
+      if (!section || !track) return;
+      const countries = Array.isArray(this.manifest.shippingCountries) ? this.manifest.shippingCountries : [];
+      section.classList.toggle('hidden', countries.length === 0);
+      track.textContent = '';
+      if (!countries.length) return;
+      // Répéter les petites séquences garantit un ruban continu, même avec un
+      // seul pays. Seule la première séquence est exposée aux lecteurs d’écran.
+      const sequenceRepeats = Math.max(1, Math.ceil(8 / countries.length));
+      const itemsPerGroup = countries.length * sequenceRepeats;
+      track.style.setProperty('--store-country-duration', `${Math.max(28, itemsPerGroup * 3)}s`);
+      const buildGroup = (duplicate) => {
+        const group = document.createElement('div');
+        group.className = 'store-country-group';
+        if (duplicate) group.setAttribute('aria-hidden', 'true');
+        else group.setAttribute('role', 'list');
+        for (let repeat = 0; repeat < sequenceRepeats; repeat += 1) {
+          countries.forEach((code) => {
+            const name = this.catalog.countryName(code, this.app.currentLang || 'en');
+            const item = document.createElement('span');
+            item.className = 'store-country-card';
+            if (!duplicate && repeat === 0) item.setAttribute('role', 'listitem');
+            else item.setAttribute('aria-hidden', 'true');
+            const flag = document.createElement('img');
+            flag.className = 'store-country-flag';
+            flag.src = `assets/flags/${code.toLowerCase()}.svg`;
+            flag.alt = '';
+            flag.width = 36;
+            flag.height = 27;
+            flag.loading = 'lazy';
+            flag.decoding = 'async';
+            flag.setAttribute('aria-hidden', 'true');
+            const label = document.createElement('span');
+            label.className = 'store-country-name';
+            label.textContent = name;
+            item.append(flag, label);
+            group.appendChild(item);
+          });
+        }
+        return group;
+      };
+      track.append(buildGroup(false), buildGroup(true));
+    }
+
+    renderOrderAccess() {
+      const badge = document.getElementById('store-order-count');
+      if (!badge) return;
+      const active = this.orders.filter((order) => !['delivered', 'failed'].includes(order.status)).length;
+      badge.textContent = String(Math.min(active, 99));
+      badge.classList.toggle('hidden', active === 0);
+    }
+
     render() {
       if (!this.initialized) return;
       this.applyLanguage();
       this.renderProducts();
       this.renderCartBadge();
+      this.renderOrderAccess();
+      this.renderDeliveryCountries();
       if (document.getElementById('modal-store-cart')?.classList.contains('active')) this.renderCart();
       if (document.getElementById('modal-store-orders')?.classList.contains('active')) this.renderOrders();
     }
@@ -553,6 +619,8 @@
         if (search && ![product.sellerName, ...Object.values(product.name), ...Object.values(product.description)].join(' ').toLowerCase().includes(search)) return false;
         return true;
       }) : [];
+      const productCount = document.getElementById('store-product-count');
+      if (productCount) productCount.textContent = String(products.length);
       const empty = document.getElementById('store-empty');
       empty.classList.toggle('hidden', products.length > 0);
       if (!products.length) {
@@ -610,7 +678,7 @@
         add.textContent = product.stock ? this.t('add') : this.t('outOfStock');
         add.disabled = product.stock === 0;
         add.addEventListener('click', () => this.addToCart(product.id));
-        body.append(name, description, seller, delivery, priceRow, stock, add);
+        body.append(name, priceRow, delivery, description, seller, stock, add);
         card.append(visual, body);
         grid.appendChild(card);
       });
@@ -1004,6 +1072,29 @@
       }
     }
 
+    hasUndeliveredOrders() {
+      return this.orders.some((order) => UUID_PATTERN.test(order.id) && !['delivered', 'failed'].includes(order.status));
+    }
+
+    canAutoRefreshOrders() {
+      const trackingOpen = ['modal-store-orders', 'modal-store-receipt'].some((id) => document.getElementById(id)?.classList.contains('active'));
+      return Boolean(this.account && this.app.signer && trackingOpen && document.visibilityState !== 'hidden' && this.hasUndeliveredOrders());
+    }
+
+    stopOrderAutoRefresh() {
+      if (this.orderAutoRefreshTimer !== null) clearTimeout(this.orderAutoRefreshTimer);
+      this.orderAutoRefreshTimer = null;
+    }
+
+    scheduleOrderAutoRefresh() {
+      this.stopOrderAutoRefresh();
+      if (!this.canAutoRefreshOrders()) return;
+      this.orderAutoRefreshTimer = setTimeout(() => {
+        this.orderAutoRefreshTimer = null;
+        if (this.canAutoRefreshOrders()) void this.refreshOrders({ silent: true });
+      }, this.orderAutoRefreshDelayMs);
+    }
+
     resumePendingOrders() {
       if (!this.account || !this.app.signer || this.ordersRefreshPromise) return;
       const pending = this.orders.some((order) => UUID_PATTERN.test(order.id) && ['submitted', 'payment_pending'].includes(order.status));
@@ -1068,31 +1159,52 @@
       this.app.showToast(this.t('paymentPending'), false, 'pending');
     }
 
-    async refreshOrders() {
-      if (!this.account || !this.app.signer || this.ordersRefreshPromise) return this.ordersRefreshPromise;
+    async refreshOrders({ silent = false } = {}) {
+      if (!this.account || !this.app.signer) {
+        this.stopOrderAutoRefresh();
+        return null;
+      }
+      if (this.ordersRefreshPromise) return this.ordersRefreshPromise;
+      const account = this.account;
       this.ordersRefreshPromise = (async () => {
         let failed = false;
         try {
           const result = await this.orderRequest('list');
+          if (this.account !== account) return;
           if (Array.isArray(result.orders)) result.orders.forEach((order) => this.upsertServerOrder(order));
         } catch (_) {
           failed = true;
         }
-        const account = this.account;
         const pending = this.orders.filter((order) => UUID_PATTERN.test(order.id) && ['submitted', 'payment_pending'].includes(order.status)).slice(0, 5);
         for (const order of pending) {
           if (this.account !== account) return;
           try {
             const result = await this.orderRequest('attach', { orderId: order.id, txHash: order.txHash });
+            if (this.account !== account) return;
             this.upsertServerOrder(result.order);
             failed = false;
           } catch (_) { /* Aucun nouveau transfert ne sera créé lors d’une reprise. */ }
         }
-        if (failed) this.app.showToast(this.t('orderOffline'), true);
+        if (this.account !== account) return;
+        if (!failed) this.ordersLastRefreshAt = Date.now();
+        if (failed && !silent) this.app.showToast(this.t('orderOffline'), true);
         this.renderOrders();
       })();
       try { return await this.ordersRefreshPromise; }
-      finally { this.ordersRefreshPromise = null; }
+      finally {
+        this.ordersRefreshPromise = null;
+        this.scheduleOrderAutoRefresh();
+      }
+    }
+
+    formatOrderDate(value) {
+      const timestamp = Date.parse(value || '');
+      if (!Number.isFinite(timestamp)) return '';
+      try {
+        return new Intl.DateTimeFormat(this.app.currentLang || 'en', { dateStyle: 'medium', timeStyle: 'short' }).format(timestamp);
+      } catch (_) {
+        return new Date(timestamp).toLocaleString();
+      }
     }
 
     receiptRow(label, value) {
@@ -1110,6 +1222,7 @@
       this.currentOrderId = orderId;
       this.renderReceipt(orderId);
       document.getElementById('modal-store-receipt').classList.add('active');
+      this.scheduleOrderAutoRefresh();
     }
 
     renderReceipt(orderId) {
@@ -1121,12 +1234,15 @@
       const content = document.getElementById('store-receipt-content');
       content.textContent = '';
       content.append(
+        this.renderOrderTracker(order),
         this.receiptRow(this.t('orderRef'), order.orderNumber || order.id),
         this.receiptRow(this.t('seller'), order.sellerName),
         this.receiptRow(this.t('payment'), `${order.total} ${order.token} · ${this.t(order.status)}`),
         this.receiptRow(this.t('transaction'), order.txHash),
         this.receiptRow(this.t('products'), order.items.map((item) => `${item.quantity} × ${item.name}`).join('\n'))
       );
+      const updatedAt = this.formatOrderDate(order.updatedAt || order.createdAt);
+      if (updatedAt) content.appendChild(this.receiptRow(this.t('lastUpdated'), updatedAt));
       if (order.carrier || order.trackingNumber) {
         content.appendChild(this.receiptRow(this.t('tracking'), `${order.carrier}\n${order.trackingNumber}`.trim()));
       }
@@ -1136,6 +1252,7 @@
       this.app.closeModals();
       this.renderOrders();
       document.getElementById('modal-store-orders').classList.add('active');
+      this.scheduleOrderAutoRefresh();
       void this.refreshOrders();
     }
 
@@ -1149,6 +1266,7 @@
       stages.forEach((stage, index) => {
         const step = document.createElement('span');
         step.className = `store-order-step${current >= index ? ' done' : ''}${current === index ? ' current' : ''}`;
+        step.dataset.stage = stage;
         step.textContent = labels[index];
         tracker.appendChild(step);
       });
@@ -1176,7 +1294,10 @@
         const total = document.createElement('div');
         total.className = 'store-order-total'; total.textContent = `${order.total} ${order.token}`;
         const seller = document.createElement('p'); seller.textContent = order.sellerName;
-        card.append(head, this.renderOrderTracker(order), products, total, seller);
+        const updated = document.createElement('div');
+        updated.className = 'store-order-updated';
+        updated.textContent = `${this.t('lastUpdated')} · ${this.formatOrderDate(order.updatedAt || order.createdAt)}`;
+        card.append(head, this.renderOrderTracker(order), updated, products, total, seller);
         if (order.carrier || order.trackingNumber) {
           const tracking = document.createElement('div');
           tracking.className = 'store-order-tracking';

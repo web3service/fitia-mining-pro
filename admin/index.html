@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/admin/admin.css">
   <link rel="stylesheet" href="/promotion-effects.css">
   <script src="/promotion-effects.js" defer></script>
+  <script src="/store-catalog.js" defer></script>
   <script src="/admin/store-admin.js" defer></script>
   <script src="/admin/orders-admin.js" defer></script>
   <script src="/admin/farm-admin.js" defer></script>
@@ -206,6 +207,20 @@
             <strong>Catalogue public, livraison privée</strong>
             <p>Les fiches produits et les adresses crypto de réception sont publiques. N’enregistrez jamais ici d’adresse postale de client. Après vérification du paiement, les coordonnées chiffrées sont accessibles uniquement dans l’espace privé Commandes.</p>
           </div>
+
+          <fieldset class="design-fieldset store-country-admin">
+            <legend>Réseau international de livraison</legend>
+            <div class="store-country-admin-heading">
+              <div><strong>Pays desservis par vos partenaires ou agents</strong><small>Seuls les pays ajoutés ici seront présentés publiquement avec leur drapeau.</small></div>
+              <span id="store-country-count" class="category-badge category-information">0 pays</span>
+            </div>
+            <div class="store-country-controls">
+              <label for="store-delivery-country"><span class="sr-only">Choisir un pays desservi</span><select id="store-delivery-country"><option value="">Choisir un pays…</option></select></label>
+              <button id="store-add-country" class="button button-primary" type="button">Ajouter le pays</button>
+            </div>
+            <div id="store-country-list" class="store-country-list" aria-live="polite"></div>
+            <p id="store-country-empty" class="field-hint">Aucun pays confirmé. Le ruban de drapeaux est masqué dans la boutique.</p>
+          </fieldset>
 
           <div class="stats-grid store-stats-grid" aria-label="Statistiques FITIA STORE">
             <article class="stat-card"><span>Produits</span><strong id="store-stat-total">0</strong><small>Fiches enregistrées</small></article>

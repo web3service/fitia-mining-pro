@@ -224,6 +224,24 @@ async function createHarness(token = 'USDT', options = {}) {
     assert.strictEqual(cleaned.customerAddress, undefined);
   });
 
+  await runTest('Pays de livraison : codes ISO stricts, drapeaux locaux et aucun pays inventé', async () => {
+    const configured = Catalog.validateManifest({ ...manifest(), shippingCountries: ['fr', 'DE', 'CI'] });
+    assert.deepStrictEqual(configured.shippingCountries, ['FR', 'DE', 'CI']);
+    assert.strictEqual(Catalog.countryFlag('FR'), '🇫🇷');
+    assert.strictEqual(Catalog.countryName('DE', 'fr'), 'Allemagne');
+    assert.strictEqual(Catalog.COUNTRY_CODES.length, 249);
+    assert.strictEqual(new Set(Catalog.COUNTRY_CODES).size, 249);
+    Catalog.COUNTRY_CODES.forEach((code) => {
+      assert.ok(fs.statSync(path.join(ROOT, 'assets/flags', `${code.toLowerCase()}.svg`)).size > 100, `Drapeau local manquant: ${code}`);
+    });
+    assert.ok(fs.existsSync(path.join(ROOT, 'assets/flags/LICENSE.txt')));
+    for (const shippingCountries of [['XX'], ['FR', 'FR'], ['FR', 'not-a-country'], 'FR']) {
+      assert.throws(() => Catalog.validateManifest({ ...manifest(), shippingCountries }), Catalog.StoreValidationError);
+    }
+    const published = Catalog.validateManifest(JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8')));
+    assert.deepStrictEqual(published.shippingCountries, [], 'Aucun partenariat public n’est affirmé sans configuration admin');
+  });
+
   await runTest('Produits physiques uniquement : types numériques refusés et parcours retirés', async () => {
     assert.strictEqual(Catalog.validateManifest(manifest([product({ type: 'physical' })])).products.length, 1);
     for (const type of ['download', 'license']) {
@@ -297,6 +315,42 @@ async function createHarness(token = 'USDT', options = {}) {
       h.center.renderProducts();
       assert.strictEqual(h.win.document.querySelectorAll('#store-product-grid .store-product-card').length, 0);
       assert.ok(!h.win.document.getElementById('store-empty').classList.contains('hidden'));
+    } finally { h.close(); }
+  });
+
+  await runTest('Ruban international : masqué sans configuration puis drapeaux animés de droite à gauche', async () => {
+    const h = await createHarness();
+    try {
+      const section = h.win.document.getElementById('store-delivery-network');
+      assert.ok(section.classList.contains('hidden'));
+      assert.strictEqual(h.win.document.querySelectorAll('.store-country-card').length, 0);
+      const configured = h.getManifest();
+      configured.shippingCountries = ['FR', 'DE', 'CI'];
+      h.setManifest(configured);
+      await h.center.refresh({ force: true });
+      assert.ok(!section.classList.contains('hidden'));
+      assert.strictEqual(h.win.document.querySelectorAll('.store-country-group').length, 2);
+      assert.strictEqual(h.win.document.querySelectorAll('.store-country-card').length, 18);
+      assert.strictEqual(h.win.document.querySelectorAll('.store-country-group')[0].querySelectorAll('[role="listitem"]').length, 3);
+      assert.strictEqual(h.win.document.querySelector('.store-country-flag').getAttribute('src'), 'assets/flags/fr.svg');
+      assert.ok(h.win.document.querySelector('.store-country-group').textContent.includes('France'));
+      assert.ok(h.win.document.querySelector('.store-country-group').textContent.includes('Germany'));
+      assert.strictEqual(h.win.document.querySelectorAll('.store-country-group')[1].getAttribute('aria-hidden'), 'true');
+      assert.strictEqual(h.win.document.getElementById('store-country-track').style.getPropertyValue('--store-country-duration'), '28s');
+      const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
+      assert.ok(css.includes('@keyframes store-countries-scroll'));
+      assert.ok(css.includes('translate3d(-50%,0,0)'));
+      section.querySelectorAll('.store-country-flag').forEach((image) => {
+        assert.ok(image.getAttribute('src').startsWith('assets/flags/'), 'Chaque drapeau est un actif local embarqué');
+        assert.strictEqual(image.getAttribute('alt'), '');
+      });
+      h.app.currentLang = 'fr';
+      h.center.render();
+      assert.ok(h.win.document.querySelector('.store-country-group').textContent.includes('Allemagne'));
+      h.center.manifest.shippingCountries = ['FR'];
+      h.center.renderDeliveryCountries();
+      assert.strictEqual(h.win.document.querySelectorAll('.store-country-group')[0].children.length, 8, 'Un seul pays remplit encore le ruban sans vide');
+      assert.strictEqual(h.win.document.querySelectorAll('.store-country-group')[0].querySelectorAll('[role="listitem"]').length, 1, 'La répétition visuelle reste invisible aux lecteurs d’écran');
     } finally { h.close(); }
   });
 
@@ -509,6 +563,47 @@ async function createHarness(token = 'USDT', options = {}) {
       await h.center.ordersRefreshPromise;
       const serializedStorage = Object.keys(h.win.localStorage).map((key) => h.win.localStorage.getItem(key)).join('\n');
       assert.ok(!serializedStorage.includes('1 Private Test Street'));
+    } finally { h.close(); }
+  });
+
+  await runTest('Suivi continu : réouverture, actualisation automatique et arrêt après livraison', async () => {
+    const h = await createHarness('USDT');
+    h.center.orderMaxAttempts = 3;
+    h.center.orderRetryDelayMs = 1;
+    try {
+      h.center.addToCart('product-phone');
+      await h.center.openCheckout();
+      h.fillShipping();
+      await h.center.pay({ preventDefault() {} });
+      await waitFor(() => h.center.orders[0]?.status === 'paid', 'paid before automatic tracking');
+      h.center.orderAutoRefreshDelayMs = 5;
+      h.center.openOrders();
+      await waitFor(() => h.center.orderAutoRefreshTimer !== null, 'automatic tracking scheduled');
+      const serverOrder = h.serverOrders.get(h.center.orders[0].id);
+      serverOrder.status = 'shipped';
+      serverOrder.carrier = 'DHL';
+      serverOrder.trackingNumber = 'TRACK-AUTO-123';
+      serverOrder.updatedAt = new Date().toISOString();
+      await waitFor(() => h.center.orders[0]?.status === 'shipped', 'automatic shipped update');
+      let card = h.win.document.querySelector('#store-orders-list .store-order-card');
+      assert.strictEqual(card.querySelectorAll('.store-order-step.done').length, 3);
+      assert.ok(card.textContent.includes('TRACK-AUTO-123'));
+      assert.ok(card.textContent.includes('Last update'));
+      assert.strictEqual(h.win.document.getElementById('store-order-count').textContent, '1');
+      h.app.closeModals();
+      assert.strictEqual(h.center.orderAutoRefreshTimer, null, 'Fermer le suivi arrête les requêtes programmées');
+      h.center.openOrders();
+      await waitFor(() => h.center.orderAutoRefreshTimer !== null, 'tracking resumes on reopening');
+      serverOrder.status = 'delivered';
+      serverOrder.updatedAt = new Date().toISOString();
+      await waitFor(() => h.center.orders[0]?.status === 'delivered' && h.center.orderAutoRefreshTimer === null, 'automatic stop after delivery');
+      card = h.win.document.querySelector('#store-orders-list .store-order-card');
+      assert.strictEqual(card.querySelectorAll('.store-order-step.done').length, 4);
+      assert.ok(h.win.document.getElementById('store-order-count').classList.contains('hidden'));
+      assert.strictEqual(h.transfers.length, 1, 'Le suivi automatique ne crée jamais un second paiement');
+      h.center.showReceipt(h.center.orders[0].id);
+      assert.strictEqual(h.win.document.querySelectorAll('#store-receipt-content .store-order-step.done').length, 4);
+      assert.strictEqual(h.center.orderAutoRefreshTimer, null, 'Une commande livrée reste consultable sans polling');
     } finally { h.close(); }
   });
 

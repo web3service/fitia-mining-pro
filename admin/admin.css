@@ -405,6 +405,28 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
 }
 
 /* FITIA STORE — catalogue et aperçu produit */
+.store-country-admin { margin: 16px 0; }
+.store-country-admin-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.store-country-admin-heading > div { display: grid; gap: 5px; }
+.store-country-admin-heading strong { font-size: 0.84rem; }
+.store-country-admin-heading small { color: var(--muted); font-size: 0.7rem; line-height: 1.5; }
+.store-country-admin-heading .category-badge { flex: 0 0 auto; }
+.store-country-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin-top: 14px; }
+.store-country-controls select { width: 100%; min-height: 44px; }
+.store-country-controls .button { min-height: 44px; }
+.store-country-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+.store-country-list:empty { margin-top: 0; }
+.store-country-chip { display: inline-flex; min-height: 38px; align-items: center; gap: 7px; padding: 5px 6px 5px 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(255,255,255,0.035); }
+.store-country-chip-flag { display: block; width: 30px; height: 22px; border-radius: 4px; object-fit: cover; box-shadow: 0 1px 4px rgba(0,0,0,0.24); }
+.store-country-chip strong { font-size: 0.7rem; font-weight: 650; }
+.store-country-remove { display: grid; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: rgba(244,63,94,0.08); color: #fda4af; font-size: 1rem; place-items: center; }
+#store-country-empty { margin: 12px 0 0; }
+@media (max-width: 520px) {
+  .store-country-admin-heading { flex-direction: column; gap: 9px; }
+  .store-country-controls { grid-template-columns: 1fr; }
+  .store-country-controls select, .store-country-controls .button { min-height: 48px; font-size: 16px; }
+  .store-country-controls .button { font-size: 0.78rem; }
+}
 .store-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 0; }
 .store-privacy-notice { border-color: rgba(34, 211, 238, 0.22); background: rgba(34, 211, 238, 0.06); }
 .store-list-toolbar { margin-top: 16px; }
