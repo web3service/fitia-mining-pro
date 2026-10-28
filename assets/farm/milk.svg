@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+<defs><linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#73868b"/><stop offset=".22" stop-color="#e5f0ed"/><stop offset=".48" stop-color="#a9bab9"/><stop offset=".75" stop-color="#f2f7ef"/><stop offset="1" stop-color="#64777c"/></linearGradient><linearGradient id="milk" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#dbe9e4"/></linearGradient></defs>
+<ellipse cx="80" cy="140" rx="46" ry="10" fill="#14281d" opacity=".17"/>
+<path d="M52 39h56l8 23v69c-17 12-55 12-72 0V62Z" fill="url(#metal)" stroke="#5c7074" stroke-width="2.5"/>
+<path d="M55 25h50v18H55Z" fill="#71858a" stroke="#53696e" stroke-width="2.5"/><ellipse cx="80" cy="25" rx="25" ry="7" fill="#b9c9c7" stroke="#596e72" stroke-width="2.5"/>
+<path d="M57 47c-25-7-30 30-10 39m56-39c25-7 30 30 10 39" fill="none" stroke="#72878a" stroke-width="7"/><path d="M57 47c-20-4-23 24-9 31m55-31c20-4 23 24 9 31" fill="none" stroke="#d5e0dd" stroke-width="3"/>
+<path d="M44 76c20 8 52 8 72 0v50c-18 11-54 11-72 0Z" fill="url(#milk)" opacity=".95"/>
+<path d="M80 82c-9 13-15 21-15 29a15 15 0 0 0 30 0c0-8-6-16-15-29Z" fill="#7db7cf"/><path d="M74 116c4 4 10 4 14 0" fill="none" stroke="#d9f3fa" stroke-width="3" stroke-linecap="round"/>
+<path d="M45 65c20 7 50 7 70 0M45 132c20 8 50 8 70 0" fill="none" stroke="#536c72" stroke-width="3"/>
+</svg>

@@ -9,9 +9,9 @@
     eggs: 'Eggs', wool: 'Wool', milk: 'Milk'
   };
   const ACTION_SUCCESS = {
-    buy_land: 'Terrain purchased. Your farm is taking shape.', buy_animal: 'Animal added to your farm.',
-    buy_feed: 'Feed added to your barn.', plant: 'Crop planted. Watch it grow in 3D.', harvest: 'Crop harvested and stored in the barn.',
-    feed: 'Animal fed. Production has started.', collect: 'Animal product collected.', sell: 'Barn inventory sold for coins.'
+    buy_land: 'Terrain purchased.', buy_animal: 'Animal added.', buy_feed: 'Feed added.',
+    plant: 'Crop planted.', harvest: 'Crop harvested.', feed: 'Production started.',
+    collect: 'Product collected.', sell: 'Products sold.'
   };
   const ERROR_COPY = {
     FARM_AUTH: 'Your wallet signature expired. Please try again.', FARM_NOT_STARTED: 'Buy the terrain and at least one animal to unlock production.',
@@ -33,6 +33,20 @@
   function make(tag, className, text) {
     const element = document.createElement(tag); if (className) element.className = className;
     if (text !== undefined) element.textContent = String(text); return element;
+  }
+  const FARM_ICONS = new Set(['chicken', 'sheep', 'cow', 'wheat', 'carrot', 'eggs', 'wool', 'milk', 'terrain', 'feed', 'barn', 'coins']);
+  function farmIcon(key, className = 'farm-item-icon') {
+    const image = make('img', className);
+    image.src = `assets/farm/${FARM_ICONS.has(key) ? key : 'barn'}.svg`;
+    image.alt = ''; image.draggable = false; image.setAttribute('aria-hidden', 'true');
+    return image;
+  }
+  function farmVisual(key) {
+    const visual = make('div', 'farm-dialog-visual'); visual.appendChild(farmIcon(key)); return visual;
+  }
+  function tokenVisual() {
+    const visual = make('div', 'farm-dialog-visual'); const image = make('img');
+    image.src = 'assets/fta.png'; image.alt = ''; image.draggable = false; visual.appendChild(image); return visual;
   }
   function uuid() {
     if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -197,7 +211,7 @@
       this.tab = tab;
       document.querySelectorAll('[data-farm-tab]').forEach((button) => { const active = button.dataset.farmTab === tab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); });
       document.querySelectorAll('[data-farm-panel]').forEach((panel) => panel.classList.toggle('hidden', panel.dataset.farmPanel !== tab));
-      if (tab === 'animals' || tab === 'crops') this.focusCamera(tab);
+      this.focusCamera(tab);
     }
     started() { return Boolean(this.state?.land?.owned && this.state?.animals?.length); }
     render() {
@@ -227,7 +241,7 @@
       document.getElementById('farm-animals-empty').classList.toggle('hidden', Boolean(this.state?.animals?.length));
       (this.state?.animals || []).forEach((animal) => {
         const definition = Config.ANIMALS[animal.species]; const card = make('article', 'farm-item-card');
-        const icon = make('span', 'farm-item-icon', definition.icon); const main = make('div', 'farm-item-main');
+        const icon = farmIcon(animal.species); const main = make('div', 'farm-item-main');
         main.append(make('strong', '', NAMES[animal.species]), make('small', '', `${NAMES[definition.product]} · ${durationLabel(definition.durationMs)} cycle`));
         const status = make('span', `farm-item-status ${animal.produceAt && animal.produceAt <= Date.now() ? 'ready' : ''}`);
         status.dataset.farmAnimalStatus = animal.id; status.dataset.readyAt = animal.produceAt || 0;
@@ -241,7 +255,7 @@
       document.getElementById('farm-crops-empty').classList.toggle('hidden', Boolean(this.state?.crops?.length));
       (this.state?.crops || []).forEach((crop) => {
         const definition = Config.CROPS[crop.species]; const card = make('article', 'farm-item-card');
-        card.append(make('span', 'farm-item-icon', definition.icon));
+        card.append(farmIcon(crop.species));
         const main = make('div', 'farm-item-main'); main.append(make('strong', '', NAMES[crop.species]), make('small', '', `Yield ${definition.yield} · ${NAMES[crop.species]}`));
         const status = make('span', `farm-item-status ${crop.readyAt <= Date.now() ? 'ready' : ''}`); status.dataset.farmCropStatus = crop.id; status.dataset.readyAt = crop.readyAt;
         const action = make('button', 'farm-small-button', crop.readyAt <= Date.now() ? 'Harvest' : 'Growing'); action.addEventListener('click', () => this.openEntity('crop', crop.id));
@@ -251,7 +265,7 @@
     renderInventory() {
       const list = document.getElementById('farm-inventory-list'); if (!list) return; list.textContent = '';
       Object.entries(Config.PRODUCTS).forEach(([key, product]) => {
-        const card = make('article', 'farm-inventory-item'); card.append(make('span', '', product.icon), make('strong', '', this.state?.inventory?.[key] || 0), make('small', '', `${NAMES[key]} · ${product.price} coins`)); list.appendChild(card);
+        const card = make('article', 'farm-inventory-item'); card.append(farmIcon(key), make('strong', '', this.state?.inventory?.[key] || 0), make('small', '', `${NAMES[key]} · ${product.price} coins`)); list.appendChild(card);
       });
       const empty = Object.values(this.state?.inventory || {}).every((quantity) => !quantity);
       const sell = document.getElementById('farm-sell-inventory'); if (sell) sell.disabled = empty || !this.started() || this.operation;
@@ -281,7 +295,8 @@
     openDialog(title, subtitle) {
       const modal = document.getElementById('modal-farm-dialog');
       document.getElementById('farm-dialog-title').textContent = title;
-      document.getElementById('farm-dialog-subtitle').textContent = subtitle || '';
+      const subtitleElement = document.getElementById('farm-dialog-subtitle');
+      subtitleElement.textContent = subtitle || ''; subtitleElement.classList.toggle('hidden', !subtitle);
       document.getElementById('farm-dialog-content').textContent = '';
       document.getElementById('farm-dialog-actions').textContent = '';
       document.getElementById('farm-dialog-error').textContent = '';
@@ -302,44 +317,42 @@
       finally { this.operation = false; this.render(); }
     }
     openBuyLand() {
-      this.openDialog('Buy your terrain', 'The first required step to unlock FITIA FARM.');
+      this.openDialog('Terrain');
       const content = document.getElementById('farm-dialog-content');
-      const visual = make('div', 'farm-dialog-visual', '🌱'); const price = make('strong', 'farm-dialog-price', `${Config.LAND_PRICE} coins`);
-      const text = make('p', 'farm-dialog-copy', 'Includes six cultivated plots, the animal pasture and all future production on your farm.');
-      content.append(visual, price, text);
+      content.append(farmVisual('terrain'), make('strong', 'farm-dialog-price', `${Config.LAND_PRICE} coins`));
       this.addDialogButton(`BUY TERRAIN · ${Config.LAND_PRICE} COINS`, () => this.perform('buy_land'), false, Boolean(this.state?.land?.owned));
     }
     openBuyAnimal() {
       if (!this.state?.land?.owned) { this.openBuyLand(); return; }
-      this.openDialog('Add an animal', 'At least one animal is required to unlock farm production.');
+      this.openDialog('Animals');
       const grid = make('div', 'farm-shop-grid'); document.getElementById('farm-dialog-content').appendChild(grid);
       Object.entries(Config.ANIMALS).forEach(([species, animal]) => {
-        const card = make('article', 'farm-shop-card'); card.append(make('span', 'farm-shop-icon', animal.icon), make('strong', '', NAMES[species]), make('small', '', `${NAMES[animal.product]} every ${durationLabel(animal.durationMs)}`), make('b', '', `${animal.price} coins`));
+        const card = make('article', 'farm-shop-card'); card.append(farmIcon(species, 'farm-shop-icon'), make('strong', '', NAMES[species]), make('small', '', `${NAMES[animal.product]} · ${durationLabel(animal.durationMs)}`), make('b', '', `${animal.price} coins`));
         const button = make('button', 'farm-small-button', 'BUY'); button.disabled = this.operation || this.state.animals.length >= Config.MAX_ANIMALS;
         button.addEventListener('click', () => this.perform('buy_animal', { species })); card.appendChild(button); grid.appendChild(card);
       });
     }
     openPlant() {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
-      this.openDialog('Plant a crop', 'Choose a seed. Growth continues even when you leave the 3D view.');
+      this.openDialog('Crops');
       const grid = make('div', 'farm-shop-grid'); document.getElementById('farm-dialog-content').appendChild(grid);
       Object.entries(Config.CROPS).forEach(([species, crop]) => {
-        const card = make('article', 'farm-shop-card'); card.append(make('span', 'farm-shop-icon', crop.icon), make('strong', '', NAMES[species]), make('small', '', `${crop.yield} units · ${durationLabel(crop.durationMs)}`), make('b', '', `${crop.price} coins`));
+        const card = make('article', 'farm-shop-card'); card.append(farmIcon(species, 'farm-shop-icon'), make('strong', '', NAMES[species]), make('small', '', `${crop.yield} units · ${durationLabel(crop.durationMs)}`), make('b', '', `${crop.price} coins`));
         const button = make('button', 'farm-small-button', 'PLANT'); button.disabled = this.operation || this.state.crops.length >= Config.MAX_CROPS;
         button.addEventListener('click', () => this.perform('plant', { species })); card.appendChild(button); grid.appendChild(card);
       });
     }
     openBuyFeed() {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
-      this.openDialog('Buy animal feed', 'One feed unit starts one animal production cycle.');
-      const content = document.getElementById('farm-dialog-content'); content.append(make('div', 'farm-dialog-visual', '🌾'), make('strong', 'farm-dialog-price', `${Config.FEED_PACK_QUANTITY} feed · ${Config.FEED_PACK_PRICE} coins`));
+      this.openDialog('Animal feed');
+      const content = document.getElementById('farm-dialog-content'); content.append(farmVisual('feed'), make('strong', 'farm-dialog-price', `${Config.FEED_PACK_QUANTITY} feed · ${Config.FEED_PACK_PRICE} coins`));
       this.addDialogButton('BUY FEED PACK', () => this.perform('buy_feed'), false, this.operation);
     }
     openSell() {
       if (!this.started()) return;
       const total = Object.keys(Config.PRODUCTS).reduce((sum, key) => sum + (this.state.inventory[key] || 0) * Config.PRODUCTS[key].price, 0);
-      this.openDialog('Sell barn inventory', 'All harvested crops and animal products will be converted into coins.');
-      const content = document.getElementById('farm-dialog-content'); content.append(make('div', 'farm-dialog-visual', '🧺'), make('strong', 'farm-dialog-price', `${total} coins`));
+      this.openDialog('Sell products');
+      const content = document.getElementById('farm-dialog-content'); content.append(farmVisual('barn'), make('strong', 'farm-dialog-price', `${total} coins`));
       this.addDialogButton('SELL ALL PRODUCTS', () => this.perform('sell'), false, !total || this.operation);
     }
     openEntity(kind, id) {
@@ -347,37 +360,37 @@
       if (kind === 'animal') {
         const animal = this.state.animals.find((item) => item.id === id); if (!animal) return;
         const definition = Config.ANIMALS[animal.species]; const ready = animal.produceAt && animal.produceAt <= Date.now();
-        this.openDialog(NAMES[animal.species], `${NAMES[definition.product]} · production cycle ${durationLabel(definition.durationMs)}`);
-        const content = document.getElementById('farm-dialog-content'); content.append(make('div', 'farm-dialog-visual', definition.icon));
-        content.append(make('p', 'farm-dialog-copy', !animal.produceAt ? `Feed this animal to start production. Feed available: ${this.state.feed}.` : ready ? `${NAMES[definition.product]} is ready to collect.` : `Production in progress · ${countdown(animal.produceAt)} remaining.`));
+        this.openDialog(NAMES[animal.species]);
+        const content = document.getElementById('farm-dialog-content'); content.append(farmVisual(animal.species));
+        content.append(make('strong', 'farm-dialog-price', `${NAMES[definition.product]} · ${durationLabel(definition.durationMs)}`));
         if (ready) this.addDialogButton(`COLLECT ${NAMES[definition.product].toUpperCase()}`, () => this.perform('collect', { animalId: id }));
         else this.addDialogButton(animal.produceAt ? `PRODUCING · ${countdown(animal.produceAt)}` : `FEED · 1 UNIT`, () => this.perform('feed', { animalId: id }), false, Boolean(animal.produceAt) || this.state.feed < 1);
         this.setTab('animals');
       } else if (kind === 'crop') {
         const crop = this.state.crops.find((item) => item.id === id); if (!crop) return;
         const definition = Config.CROPS[crop.species]; const ready = crop.readyAt <= Date.now();
-        this.openDialog(NAMES[crop.species], `${definition.yield} units per harvest`); const content = document.getElementById('farm-dialog-content');
-        content.append(make('div', 'farm-dialog-visual', definition.icon), make('p', 'farm-dialog-copy', ready ? 'This crop is mature. Harvest it into your barn.' : `Growing in the 3D field · ${countdown(crop.readyAt)} remaining.`));
+        this.openDialog(NAMES[crop.species]); const content = document.getElementById('farm-dialog-content');
+        content.append(farmVisual(crop.species), make('strong', 'farm-dialog-price', `${definition.yield} units`));
         this.addDialogButton(ready ? 'HARVEST CROP' : `GROWING · ${countdown(crop.readyAt)}`, () => this.perform('harvest', { cropId: id }), false, !ready);
         this.setTab('crops');
       }
     }
     openDeposit() {
       if (this.pendingDeposit) {
-        this.openDialog('FTA deposit in progress', 'The same transaction is checked again safely. It cannot credit coins twice.');
+        this.openDialog('FTA deposit in progress');
         const content = document.getElementById('farm-dialog-content');
-        content.append(make('div', 'farm-dialog-visual', '⛓'), make('strong', 'farm-dialog-price', `${formatUnits(this.pendingDeposit.amountUnits)} FTA`), make('p', 'farm-dialog-copy', `Transaction ${this.pendingDeposit.txHash.slice(0, 12)}…${this.pendingDeposit.txHash.slice(-8)} · waiting for Polygon confirmations.`));
+        content.append(tokenVisual(), make('strong', 'farm-dialog-price', `${formatUnits(this.pendingDeposit.amountUnits)} FTA`), make('p', 'farm-transaction-hash', `${this.pendingDeposit.txHash.slice(0, 12)}…${this.pendingDeposit.txHash.slice(-8)}`));
         this.addDialogButton('CHECK CONFIRMATION', () => this.checkPendingDeposit().catch((error) => this.showError(error)));
         return;
       }
-      this.openDialog('Convert FTA into coins', `1 FTA = ${Config.COINS_PER_FTA} coins · no fiat conversion.`);
+      this.openDialog('Convert FTA');
       const content = document.getElementById('farm-dialog-content'); const label = make('label', 'farm-input-label', 'FTA amount');
       const input = make('input', 'game-input'); input.type = 'number'; input.min = '0.01'; input.step = '0.01'; input.value = '10'; input.inputMode = 'decimal'; input.maxLength = 18;
       const output = make('p', 'farm-conversion-preview'); const update = () => {
-        try { const units = ethers.parseUnits(input.value || '0', 8); output.textContent = `You receive ${(units / Config.UNITS_PER_COIN).toLocaleString('en-US')} coins`; }
-        catch (_) { output.textContent = 'Enter a valid FTA amount.'; }
+        try { const units = ethers.parseUnits(input.value || '0', 8); output.textContent = `${(units / Config.UNITS_PER_COIN).toLocaleString('en-US')} coins`; }
+        catch (_) { output.textContent = 'Invalid amount'; }
       };
-      input.addEventListener('input', update); label.appendChild(input); content.append(label, output, make('small', 'farm-dialog-hint', 'The exact FTA transfer is verified on Polygon. POL is required for network gas.')); update();
+      input.addEventListener('input', update); label.appendChild(input); content.append(label, output); update();
       this.addDialogButton('CONVERT WITH PIN', () => this.startDeposit(input.value));
     }
     async startDeposit(amount) {
@@ -434,23 +447,23 @@
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
       const latest = this.withdrawals[0];
       if (latest?.status === 'pending') {
-        this.openDialog('Withdrawal in progress', 'Your coins are already reserved for this request.');
-        document.getElementById('farm-dialog-content').append(make('div', 'farm-dialog-visual', '⛓'), make('strong', 'farm-dialog-price', `${formatUnits(latest.ftaUnits)} FTA`), make('p', 'farm-dialog-copy', 'Follow the PENDING status in your farm overview. A new request unlocks after payment and the 24 h interval.'));
+        this.openDialog('Withdrawal in progress');
+        document.getElementById('farm-dialog-content').append(tokenVisual(), make('strong', 'farm-dialog-price', `${formatUnits(latest.ftaUnits)} FTA`), make('span', 'farm-dialog-status', 'PENDING'));
         return;
       }
       if (latest && Date.now() - Date.parse(latest.createdAt) < Config.WITHDRAWAL_COOLDOWN_MS) {
         const availableAt = Date.parse(latest.createdAt) + Config.WITHDRAWAL_COOLDOWN_MS;
-        this.openDialog('Next withdrawal', `Available in ${countdown(availableAt)}.`);
-        document.getElementById('farm-dialog-content').append(make('p', 'farm-dialog-copy', 'One FTA withdrawal request is allowed every 24 hours to protect the game economy.'));
+        this.openDialog('Next withdrawal');
+        document.getElementById('farm-dialog-content').append(tokenVisual(), make('strong', 'farm-dialog-price', countdown(availableAt)));
         return;
       }
-      this.openDialog('Withdraw coins in FTA', `${Config.COINS_PER_FTA} coins = 1 FTA · one request every 24 h, up to ${Config.MAX_WITHDRAW_COINS / 100} FTA.`);
+      this.openDialog('Withdraw FTA');
       const content = document.getElementById('farm-dialog-content'); const label = make('label', 'farm-input-label', 'Coins to withdraw');
       const input = make('input', 'game-input'); input.type = 'number'; input.min = String(Config.MIN_WITHDRAW_COINS); input.step = String(Config.COINS_PER_FTA); input.value = String(Config.MIN_WITHDRAW_COINS); input.inputMode = 'numeric'; input.maxLength = 9;
       const output = make('p', 'farm-conversion-preview'); const update = () => {
-        const coins = Number(input.value); output.textContent = Number.isSafeInteger(coins) && coins > 0 && coins % 100 === 0 ? `You receive ${formatUnits(BigInt(coins / 100) * Config.COIN_UNITS_PER_FTA)} FTA` : 'Use a multiple of 100 coins.';
+        const coins = Number(input.value); output.textContent = Number.isSafeInteger(coins) && coins > 0 && coins % 100 === 0 ? `${formatUnits(BigInt(coins / 100) * Config.COIN_UNITS_PER_FTA)} FTA` : 'Multiple of 100 coins';
       };
-      input.addEventListener('input', update); label.appendChild(input); content.append(label, output, make('small', 'farm-dialog-hint', 'Coins are debited when the request is created. FTA is paid from the official treasury after on-chain processing.')); update();
+      input.addEventListener('input', update); label.appendChild(input); content.append(label, output); update();
       this.addDialogButton('REQUEST FTA WITHDRAWAL', () => this.withdraw(input.value));
     }
     async withdraw(value) {

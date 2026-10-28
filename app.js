@@ -4459,7 +4459,9 @@ class Application {
       activeView.style.display = 'block';
     }
     document.querySelectorAll('.nav-item').forEach((el) => el.classList.remove('active'));
-    if (btnEl) btnEl.classList.add('active');
+    const navView = ['shop', 'swap'].includes(viewId) ? 'hub' : viewId;
+    const activeNav = btnEl || document.querySelector(`.nav-item[data-nav="${navView}"]`);
+    if (activeNav) activeNav.classList.add('active');
     if (viewId === 'dashboard') {
       setTimeout(() => this.resizeCanvas(), 50);
       this.announcementCenter.start();

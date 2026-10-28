@@ -21,20 +21,20 @@
     MAX_WITHDRAW_COINS: 10000,
     WITHDRAWAL_COOLDOWN_MS: 86400000,
     ANIMALS: Object.freeze({
-      chicken: Object.freeze({ price: 250, durationMs: 14400000, product: 'eggs', icon: '🐔' }),
-      sheep: Object.freeze({ price: 500, durationMs: 28800000, product: 'wool', icon: '🐑' }),
-      cow: Object.freeze({ price: 700, durationMs: 43200000, product: 'milk', icon: '🐄' })
+      chicken: Object.freeze({ price: 250, durationMs: 14400000, product: 'eggs', icon: 'chicken' }),
+      sheep: Object.freeze({ price: 500, durationMs: 28800000, product: 'wool', icon: 'sheep' }),
+      cow: Object.freeze({ price: 700, durationMs: 43200000, product: 'milk', icon: 'cow' })
     }),
     CROPS: Object.freeze({
-      wheat: Object.freeze({ price: 10, durationMs: 1800000, yield: 2, icon: '🌾' }),
-      carrot: Object.freeze({ price: 15, durationMs: 3600000, yield: 2, icon: '🥕' })
+      wheat: Object.freeze({ price: 10, durationMs: 1800000, yield: 2, icon: 'wheat' }),
+      carrot: Object.freeze({ price: 15, durationMs: 3600000, yield: 2, icon: 'carrot' })
     }),
     PRODUCTS: Object.freeze({
-      wheat: Object.freeze({ price: 12, icon: '🌾' }),
-      carrot: Object.freeze({ price: 18, icon: '🥕' }),
-      eggs: Object.freeze({ price: 30, icon: '🥚' }),
-      wool: Object.freeze({ price: 65, icon: '🧶' }),
-      milk: Object.freeze({ price: 90, icon: '🥛' })
+      wheat: Object.freeze({ price: 12, icon: 'wheat' }),
+      carrot: Object.freeze({ price: 18, icon: 'carrot' }),
+      eggs: Object.freeze({ price: 30, icon: 'eggs' }),
+      wool: Object.freeze({ price: 65, icon: 'wool' }),
+      milk: Object.freeze({ price: 90, icon: 'milk' })
     }),
     FEED_PACK_PRICE: 20,
     FEED_PACK_QUANTITY: 5

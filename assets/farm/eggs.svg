@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+<defs><linearGradient id="egg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffef3"/><stop offset=".6" stop-color="#f1dfba"/><stop offset="1" stop-color="#c49a6c"/></linearGradient><linearGradient id="basket" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d59a50"/><stop offset="1" stop-color="#79502e"/></linearGradient></defs>
+<ellipse cx="80" cy="138" rx="54" ry="10" fill="#14281d" opacity=".17"/>
+<path d="M45 89C42 61 52 38 64 38s22 26 17 51m8 2c-2-29 9-52 22-52s20 26 15 52" fill="url(#egg)" stroke="#a8855e" stroke-width="2.5"/>
+<path d="M22 91c-1-24 8-43 19-43s20 22 17 46" fill="url(#egg)" stroke="#a8855e" stroke-width="2.5"/>
+<path d="M20 91h120l-13 43c-26 12-68 12-94 0Z" fill="url(#basket)" stroke="#71472a" stroke-width="3"/>
+<path d="M28 105h104M25 118h110M45 94l5 45m25-45 2 48m30-48-2 48m22-48-7 45" fill="none" stroke="#f0bf71" stroke-width="3" opacity=".72"/>
+<path d="M43 91c5-30 19-45 37-45s32 15 37 45" fill="none" stroke="#8b5a31" stroke-width="7"/><path d="M47 89c6-24 18-35 33-35s27 11 33 35" fill="none" stroke="#e1aa5e" stroke-width="3"/>
+</svg>

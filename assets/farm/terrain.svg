@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+<defs><linearGradient id="grass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b8dc65"/><stop offset="1" stop-color="#4c8b3f"/></linearGradient><linearGradient id="soil" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#9a633a"/><stop offset="1" stop-color="#4e3227"/></linearGradient></defs>
+<ellipse cx="81" cy="134" rx="65" ry="12" fill="#14281d" opacity=".18"/>
+<path d="m17 82 62-37 65 34-4 40-61 27-61-31Z" fill="url(#soil)" stroke="#503526" stroke-width="2.5"/>
+<path d="m17 81 62-37 65 34-62 38Z" fill="url(#grass)" stroke="#4e7437" stroke-width="2.5"/>
+<path d="m38 81 40-23 43 22-41 24Z" fill="#805238" stroke="#5d3b2c" stroke-width="2"/>
+<g fill="none" stroke="#c28a55" stroke-width="3"><path d="m48 81 33-18 31 16-33 18ZM57 86l33-18M69 93l33-19"/></g>
+<path d="M29 73v25m99-20v26M18 82v22m124-25v24" stroke="#6c462c" stroke-width="4" stroke-linecap="round"/><path d="m19 82 62 34 62-35" fill="none" stroke="#8e613c" stroke-width="3"/>
+<g fill="#f6cf4e"><circle cx="44" cy="66" r="4"/><circle cx="118" cy="72" r="4"/><circle cx="54" cy="105" r="3"/></g><g stroke="#477a38" stroke-width="3"><path d="M44 70v12m74-6v11M54 108v9"/></g>
+</svg>
