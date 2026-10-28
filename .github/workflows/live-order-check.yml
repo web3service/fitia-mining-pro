@@ -1,0 +1,98 @@
+name: Temporary live order API check
+
+on:
+  push:
+    branches:
+      - arena/9c798a72-fitia-mining-pro
+    paths:
+      - .github/workflows/live-order-check.yml
+
+permissions:
+  contents: write
+
+jobs:
+  live-order-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify signed production order flow without payment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          output="$(node 2>&1 <<'NODE'
+          const assert = require('assert');
+          const crypto = require('crypto');
+          const ethers = require('./vendor/ethers.umd.min.js');
+          const Protocol = require('./store-order-protocol');
+          const Catalog = require('./store-catalog');
+          const manifest = Catalog.validateManifest(require('./store-products.json'));
+          const product = manifest.products.find((item) => Catalog.isVisible(item) && item.stock > 0);
+          assert.ok(product, 'A visible physical product is required');
+          const wallet = ethers.Wallet.createRandom();
+          const requestId = crypto.randomUUID();
+          const txHash = `0x${crypto.randomBytes(32).toString('hex')}`;
+          const delivery = {
+            name: 'AUTOMATED_PRIVATE_TEST_DO_NOT_SHIP', phone: '+000000000',
+            country: 'TEST_ONLY', city: 'TEST_ONLY',
+            address: 'NO_REAL_ADDRESS_AUTOMATED_TEST', notes: ''
+          };
+          console.log(`REQUEST_ID=${requestId}`);
+          async function post(action, params = {}) {
+            const body = { action, buyer: wallet.address, timestamp: Date.now(), ...params };
+            body.signature = await wallet.signMessage(Protocol.message(action, body));
+            const response = await fetch('https://fitia-mining-pro.vercel.app/api/store-orders', {
+              method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify(body), signal: AbortSignal.timeout(45000)
+            });
+            const data = await response.json();
+            return { status: response.status, data };
+          }
+          (async () => {
+            const created = await post('create', { requestId, cart: [{ productId: product.id, quantity: 1 }], delivery });
+            assert.strictEqual(created.status, 201, JSON.stringify(created.data));
+            assert.strictEqual(created.data.order.id, requestId);
+            assert.strictEqual(created.data.order.status, 'awaiting_payment');
+            assert.ok(!Object.hasOwn(created.data.order, 'delivery'));
+            assert.ok(!JSON.stringify(created.data).includes(delivery.address));
+            console.log('CREATE_OK status=awaiting_payment private_response=true');
+
+            const before = await post('list');
+            assert.strictEqual(before.status, 200, JSON.stringify(before.data));
+            assert.strictEqual(before.data.orders.length, 0, 'Unpaid order must not appear as a customer purchase');
+            console.log('UNPAID_INVISIBLE_OK');
+
+            const attached = await post('attach', { orderId: requestId, txHash });
+            assert.strictEqual(attached.status, 202, JSON.stringify(attached.data));
+            assert.strictEqual(attached.data.order.status, 'payment_pending');
+            assert.strictEqual(attached.data.order.txHash, txHash);
+            assert.ok(!Object.hasOwn(attached.data.order, 'delivery'));
+            console.log('ATTACH_PENDING_OK');
+
+            const repeated = await post('attach', { orderId: requestId, txHash });
+            assert.strictEqual(repeated.status, 202, JSON.stringify(repeated.data));
+            const after = await post('list');
+            assert.strictEqual(after.status, 200, JSON.stringify(after.data));
+            assert.strictEqual(after.data.orders.length, 1);
+            assert.strictEqual(after.data.orders[0].id, requestId);
+            assert.strictEqual(after.data.orders[0].txHash, txHash);
+            assert.ok(!JSON.stringify(after.data).includes(delivery.address));
+            console.log('REUSE_AND_PRIVATE_TRACKING_OK');
+            console.log('LIVE_API_OK');
+          })().catch((error) => { console.error(error.message); process.exit(1); });
+          NODE
+          )"
+          code=$?
+          set -e
+          printf '%s\n' "$output"
+          printf '%s\n' "$output" > live-order-result.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add live-order-result.txt
+          git commit -m 'Record temporary live order API result'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          exit "$code"
