@@ -8,7 +8,7 @@ on:
       - .github/workflows/live-farm-check.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   live-farm-check:
@@ -22,7 +22,8 @@ jobs:
       - name: Verify public release and signed FARM API without payment
         shell: bash
         run: |
-          node <<'NODE'
+          set +e
+          output="$(node 2>&1 <<'NODE'
           const assert = require('node:assert/strict');
           const crypto = require('node:crypto');
           const fs = require('node:fs');
@@ -107,3 +108,17 @@ jobs:
             console.log('LIVE_ADMIN_AUTH_OK');
           })().catch((error) => { console.error(error); process.exit(1); });
           NODE
+          )"
+          code=$?
+          set -e
+          printf '%s\n' "$output"
+          {
+            printf 'RUN_ID=%s\n' "$GITHUB_RUN_ID"
+            printf '%s\n' "$output"
+          } > live-farm-result.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add live-farm-result.txt
+          git commit -m "Record temporary live FARM result $GITHUB_RUN_ID"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          exit "$code"
