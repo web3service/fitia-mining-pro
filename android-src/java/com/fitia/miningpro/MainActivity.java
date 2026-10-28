@@ -3,7 +3,6 @@ package com.fitia.miningpro;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.DownloadManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -15,7 +14,6 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.VibrationEffect;
@@ -646,40 +644,6 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean downloadAndInstallUpdate(String url, String expectedSha256) {
             return startUpdateDownload(url, expectedSha256);
-        }
-
-        @JavascriptInterface
-        public boolean downloadDigitalProduct(String url, String fileName) {
-            try {
-                Uri uri = Uri.parse(String.valueOf(url));
-                String scheme = uri.getScheme();
-                String host = uri.getHost();
-                String requestPath = uri.getPath();
-                String query = uri.getQuery();
-                if (!"https".equals(scheme) || !"fitia-mining-pro.vercel.app".equals(host)
-                    || !"/api/store-digital".equals(requestPath) || query == null
-                    || !query.matches("(?s).*download=[A-Za-z0-9_.-]+\\.[A-Za-z0-9_-]+.*")) {
-                    return false;
-                }
-                String safeName = String.valueOf(fileName).replaceAll("[^A-Za-z0-9._ -]", "_").trim();
-                if (safeName.length() == 0 || safeName.length() > 120 || safeName.startsWith(".")) return false;
-                DownloadManager.Request request = new DownloadManager.Request(uri);
-                request.setTitle(safeName);
-                request.setDescription("FITIA STORE — achat numérique vérifié");
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeName);
-                } else {
-                    // Aucun accès stockage dangereux n'est demandé sur Android 7–9.
-                    request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, safeName);
-                }
-                DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-                if (manager == null) return false;
-                manager.enqueue(request);
-                return true;
-            } catch (Exception e) {
-                return false;
-            }
         }
 
         @JavascriptInterface

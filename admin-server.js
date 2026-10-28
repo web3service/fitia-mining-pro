@@ -11,10 +11,6 @@ const {
   validateImagePayload
 } = require('./announcement-assets');
 const { validateManifest: validateStoreCatalog } = require('./store-catalog');
-const {
-  MAX_DIGITAL_BODY_BYTES, DigitalError, LocalDigitalStore,
-  createAsset, addLicenses, summarize, updateVault
-} = require('./digital-inventory');
 
 const ROOT = __dirname;
 const ADMIN_DIR = path.join(ROOT, 'admin');
@@ -304,16 +300,6 @@ function createAdminServer(options = {}) {
   const promotionsFile = path.resolve(options.promotionsFile || process.env.FITIA_ADMIN_PROMOTIONS_FILE || path.join(ROOT, 'promotions.json'));
   const assetDirectory = path.resolve(options.assetDirectory || process.env.FITIA_ADMIN_ASSET_DIRECTORY || path.join(ROOT, 'assets', 'announcements'));
   const storeAssetDirectory = path.resolve(options.storeAssetDirectory || process.env.FITIA_ADMIN_STORE_ASSET_DIRECTORY || path.join(ROOT, 'assets', 'store'));
-  const storeDataFile = path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json'));
-  const digitalStore = new LocalDigitalStore({
-    root: ROOT,
-    vaultFile: options.digitalVaultFile || process.env.FITIA_ADMIN_DIGITAL_VAULT_FILE,
-    assetDirectory: options.digitalAssetDirectory || process.env.FITIA_ADMIN_DIGITAL_ASSET_DIRECTORY,
-    catalogFile: storeDataFile,
-    password,
-    githubToken,
-    digitalKey: options.digitalKey || process.env.FITIA_DIGITAL_VAULT_KEY || ''
-  });
   const owner = options.owner || process.env.FITIA_ADMIN_GITHUB_OWNER || 'web3service';
   const repo = options.repo || process.env.FITIA_ADMIN_GITHUB_REPO || 'fitia-mining-pro';
   const branch = options.branch || process.env.FITIA_ADMIN_GITHUB_BRANCH || 'main';
@@ -436,7 +422,7 @@ function createAdminServer(options = {}) {
   }
 
   async function loadLocal(kind = 'announcements') {
-    const targetFile = kind === 'store' ? storeDataFile : kind === 'promotions' ? promotionsFile : dataFile;
+    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'promotions' ? promotionsFile : dataFile;
     let serialized;
     try {
       serialized = await fs.promises.readFile(targetFile, 'utf8');
@@ -453,7 +439,7 @@ function createAdminServer(options = {}) {
   }
 
   async function saveLocal(manifest, kind = 'announcements') {
-    const targetFile = kind === 'store' ? storeDataFile : kind === 'promotions' ? promotionsFile : dataFile;
+    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'promotions' ? promotionsFile : dataFile;
     const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
     const temporary = `${targetFile}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
     await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
@@ -539,32 +525,6 @@ function createAdminServer(options = {}) {
     ['/assets/avatars/team-3.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-3.svg'), type: 'image/svg+xml' }]
   ]);
 
-  async function digitalInventory(method, body) {
-    if (method === 'GET') {
-      const { vault, revision } = await digitalStore.loadVault();
-      return { inventory: summarize(vault), revision, assetStorage: digitalStore.assetStorageStatus() };
-    }
-    if (body.productType === 'download') {
-      let uploaded = null;
-      const updated = await updateVault(digitalStore, async (vault) => {
-        uploaded = createAsset(vault, body, digitalStore.key);
-        await digitalStore.writeAsset(uploaded.asset, uploaded.encrypted);
-        return uploaded.asset;
-      });
-      return { inventory: summarize(updated.vault), asset: {
-        id: uploaded.asset.id, productId: uploaded.asset.productId,
-        fileName: uploaded.asset.fileName, contentType: uploaded.asset.contentType,
-        size: uploaded.asset.size, sha256: uploaded.asset.sha256
-      } };
-    }
-    if (body.productType === 'license') {
-      let count = 0;
-      const updated = await updateVault(digitalStore, (vault) => { count = addLicenses(vault, body); return count; });
-      return { inventory: summarize(updated.vault), addedLicenses: count };
-    }
-    throw new DigitalError(400, 'Le type d’inventaire numérique est invalide.', 'DIGITAL_PRODUCT_TYPE');
-  }
-
   async function handleApi(req, res, pathname) {
     pathname = pathname.replace(/^\/api\/admin\//, '/api/');
     if (pathname === '/api/login' && req.method === 'POST') {
@@ -614,15 +574,6 @@ function createAdminServer(options = {}) {
       if (!session || !requireCsrf(req, res, session)) return;
       sessions.delete(session.id);
       sendJson(res, 200, { ok: true }, { 'Set-Cookie': 'fitia_admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
-      return;
-    }
-
-    if (pathname === '/api/digital-inventory' && (req.method === 'GET' || req.method === 'POST')) {
-      const session = requireSession(req, res);
-      if (!session || (req.method === 'POST' && !requireCsrf(req, res, session))) return;
-      const body = req.method === 'POST' ? await readJson(req, MAX_DIGITAL_BODY_BYTES) : null;
-      const result = await digitalInventory(req.method, body);
-      sendJson(res, req.method === 'POST' ? 201 : 200, { ...result, ...sourceInfo() });
       return;
     }
 
@@ -691,7 +642,7 @@ function createAdminServer(options = {}) {
       else fs.createReadStream(staticFile.file).pipe(res);
     } catch (error) {
       if (res.headersSent || res.writableEnded) return;
-      if (error instanceof ApiError || error instanceof DigitalError) {
+      if (error instanceof ApiError) {
         sendJson(res, error.status, { error: error.message, code: error.code });
         return;
       }

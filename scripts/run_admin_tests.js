@@ -65,12 +65,7 @@ function clone(value) {
   fs.copyFileSync(path.join(ROOT, 'announcements.json'), dataFile);
   fs.copyFileSync(path.join(ROOT, 'promotions.json'), promotionsFile);
   fs.copyFileSync(path.join(ROOT, 'store-products.json'), storeDataFile);
-  const digitalVaultFile = path.join(temporaryDirectory, 'digital-vault.json');
-  const digitalAssetDirectory = path.join(temporaryDirectory, 'digital-assets');
-  const localServer = createAdminServer({
-    password: PASSWORD, localMode: true, dataFile, promotionsFile, assetDirectory,
-    storeDataFile, storeAssetDirectory, digitalVaultFile, digitalAssetDirectory
-  });
+  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, assetDirectory, storeDataFile, storeAssetDirectory });
   const localPort = await listen(localServer);
   const localBase = `http://127.0.0.1:${localPort}`;
   let githubServer = null;
@@ -453,52 +448,6 @@ function clone(value) {
       const script = await request(localBase, '/admin/store-admin.js');
       assert.strictEqual(script.response.status, 200);
       assert.ok(script.text.includes('createStoreAdmin'));
-    });
-
-    await runTest('FITIA STORE numérique : inventaire protégé, ciphertext local et aucune clé exposée', async () => {
-      const unauthorized = await request(localBase, '/api/admin/digital-inventory');
-      assert.strictEqual(unauthorized.response.status, 401);
-      const empty = await request(localBase, '/api/admin/digital-inventory', { cookie });
-      assert.strictEqual(empty.response.status, 200, empty.text);
-      assert.deepStrictEqual(empty.data.inventory.products, []);
-
-      const licensed = await request(localBase, '/api/admin/digital-inventory', {
-        method: 'POST', cookie, csrf,
-        body: { productType: 'license', productId: 'product-local-license', keys: ['LOCAL-KEY-001', 'LOCAL-KEY-002'] }
-      });
-      assert.strictEqual(licensed.response.status, 201, licensed.text);
-      assert.strictEqual(licensed.data.addedLicenses, 2);
-      assert.ok(!licensed.text.includes('LOCAL-KEY-001'));
-
-      const plaintext = Buffer.from('PRIVATE-ANDROID-CONTENT-LOCAL');
-      const uploaded = await request(localBase, '/api/admin/digital-inventory', {
-        method: 'POST', cookie, csrf,
-        body: {
-          productType: 'download', productId: 'product-local-download', data: plaintext.toString('base64'),
-          fileName: 'private-app.apk', contentType: 'application/vnd.android.package-archive'
-        }
-      });
-      assert.strictEqual(uploaded.response.status, 201, uploaded.text);
-      assert.match(uploaded.data.asset.id, /^[a-f0-9]{24}$/);
-      assert.strictEqual(uploaded.data.asset.data, undefined);
-      const encryptedVault = fs.readFileSync(digitalVaultFile, 'utf8');
-      const encryptedAsset = fs.readFileSync(path.join(digitalAssetDirectory, `${uploaded.data.asset.id}.bin`), 'utf8');
-      for (const secret of ['LOCAL-KEY-001', 'LOCAL-KEY-002', plaintext.toString(), plaintext.toString('base64')]) {
-        assert.ok(!encryptedVault.includes(secret));
-        assert.ok(!encryptedAsset.includes(secret));
-      }
-      const inventory = await request(localBase, '/api/admin/digital-inventory', { cookie });
-      assert.strictEqual(inventory.data.inventory.products.find((entry) => entry.productId === 'product-local-license').availableLicenses, 2);
-      assert.strictEqual(inventory.data.inventory.products.find((entry) => entry.productId === 'product-local-download').downloads[0].fileName, 'private-app.apk');
-      assert.ok(!inventory.text.includes('LOCAL-KEY-001'));
-      const hiddenVault = await request(localBase, '/digital-vault.json');
-      assert.strictEqual(hiddenVault.response.status, 404);
-      const hiddenAsset = await request(localBase, `/digital-assets/${uploaded.data.asset.id}.bin`);
-      assert.strictEqual(hiddenAsset.response.status, 404);
-      const rejected = await request(localBase, '/api/admin/digital-inventory', {
-        method: 'POST', cookie, body: { productType: 'license', productId: 'product-local-license', keys: ['LOCAL-KEY-003'] }
-      });
-      assert.strictEqual(rejected.response.status, 403);
     });
 
     await runTest('Une révision obsolète ne peut pas écraser une modification concurrente', async () => {

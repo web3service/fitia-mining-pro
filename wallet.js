@@ -112,15 +112,6 @@
       return false;
     },
 
-    downloadDigitalProduct(url, fileName) {
-      try {
-        if (global.FitiaNative && typeof global.FitiaNative.downloadDigitalProduct === 'function') {
-          return !!global.FitiaNative.downloadDigitalProduct(String(url || ''), String(fileName || ''));
-        }
-      } catch (_) {}
-      return false;
-    },
-
     setScreenSecure(secure) {
       try {
         if (global.FitiaNative && typeof global.FitiaNative.setScreenSecure === 'function') {

@@ -31,8 +31,6 @@ let storeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.j
 storeManifest = { ...storeManifest, enabled: false, products: [] };
 let storeRevision = 'revision-store-initiale';
 const storeWrites = [];
-let digitalInventory = { products: [], awaitingInventory: 0, completedOrders: 0 };
-const digitalUploads = [];
 const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
 const { window } = dom;
 Object.defineProperty(window, 'crypto', { value: crypto.webcrypto });
@@ -71,18 +69,6 @@ window.fetch = async (url, options = {}) => {
   }
   if (url === '/api/admin/store-products' && (!options.method || options.method === 'GET')) {
     return response({ manifest: storeManifest, revision: storeRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
-  }
-  if (url === '/api/admin/digital-inventory' && (!options.method || options.method === 'GET')) {
-    return response({ inventory: digitalInventory, revision: null, assetStorage: { provider: 'supabase', configured: false }, mode: 'local', project: null, branch: null });
-  }
-  if (url === '/api/admin/digital-inventory' && options.method === 'POST') {
-    const body = JSON.parse(options.body);
-    digitalUploads.push(body);
-    assert.strictEqual(body.productType, 'license');
-    const summary = digitalInventory.products.find((entry) => entry.productId === body.productId) || { productId: body.productId, downloads: [], availableLicenses: 0, assignedLicenses: 0 };
-    summary.availableLicenses += body.keys.length;
-    digitalInventory.products = [...digitalInventory.products.filter((entry) => entry.productId !== body.productId), summary];
-    return response({ inventory: digitalInventory, addedLicenses: body.keys.length }, 201);
   }
   if (url === '/api/admin/store-products' && options.method === 'PUT') {
     const body = JSON.parse(options.body);
@@ -331,47 +317,6 @@ async function waitFor(condition, label) {
   assert.strictEqual(storeManifest.enabled, true);
   window.document.querySelector(`[data-store-product-id="${createdStoreProduct.id}"] .button-danger`).click();
   await waitFor(() => storeWrites.length === 3, 'suppression produit STORE');
-  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression produit STORE');
-  assert.strictEqual(storeManifest.products.length, 0);
-
-  window.document.querySelector('#section-store [data-new-store-product]').click();
-  const downloadType = window.document.getElementById('store-product-type');
-  downloadType.value = 'download';
-  downloadType.dispatchEvent(new window.Event('change', { bubbles: true }));
-  assert.ok(window.document.getElementById('store-digital-storage-status').textContent.includes('non connecté'));
-  const blockedFileInput = window.document.getElementById('store-digital-file');
-  Object.defineProperty(blockedFileInput, 'files', {
-    configurable: true,
-    value: [new window.File(['PRIVATE-CONTENT'], 'private.pdf', { type: 'application/pdf' })]
-  });
-  blockedFileInput.dispatchEvent(new window.Event('change', { bubbles: true }));
-  assert.ok(window.document.getElementById('store-editor-error').textContent.includes('Connectez d’abord'));
-  assert.strictEqual(digitalUploads.length, 0, 'Aucun upload ne doit être tenté sans stockage externe');
-  window.document.querySelector('[data-close-store-editor]').click();
-
-  window.document.querySelector('#section-store [data-new-store-product]').click();
-  const licenseType = window.document.getElementById('store-product-type');
-  licenseType.value = 'license';
-  licenseType.dispatchEvent(new window.Event('change', { bubbles: true }));
-  assert.ok(window.document.getElementById('store-shipping-fee-field').classList.contains('hidden'));
-  assert.ok(window.document.getElementById('store-stock').readOnly);
-  window.document.getElementById('store-name-fr').value = 'Licence logicielle test';
-  window.document.getElementById('store-name-en').value = 'Test software license';
-  window.document.getElementById('store-seller-id').value = 'seller-test';
-  window.document.getElementById('store-seller-name').value = 'Vendeur test';
-  window.document.getElementById('store-payment-address').value = '0x1111111111111111111111111111111111111111';
-  window.document.getElementById('store-price').value = '25';
-  window.document.getElementById('store-license-keys').value = 'TEST-LICENSE-A\nTEST-LICENSE-B';
-  window.document.getElementById('store-product-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
-  await waitFor(() => storeWrites.length === 4 && digitalUploads.length === 1, 'création produit licence');
-  await waitFor(() => window.document.getElementById('store-editor-modal').classList.contains('hidden'), 'fermeture éditeur licence');
-  const licenseProduct = storeManifest.products[0];
-  assert.strictEqual(licenseProduct.type, 'license');
-  assert.strictEqual(licenseProduct.shippingFee, '0');
-  assert.strictEqual(licenseProduct.stock, 2);
-  assert.ok(!JSON.stringify(storeManifest).includes('TEST-LICENSE-A'), 'Le catalogue public ne contient aucune clé');
-  window.document.querySelector(`[data-store-product-id="${licenseProduct.id}"] .button-danger`).click();
-  await waitFor(() => storeWrites.length === 5, 'suppression produit licence');
   assert.strictEqual(storeManifest.products.length, 0);
 
   manifest.announcements[0].title.fr = 'Annonce rechargée malgré la panne';
