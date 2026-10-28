@@ -61,6 +61,7 @@ async function createHarness(token = 'USDT', options = {}) {
   win.confirm = () => true;
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor/ethers.umd.min.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'store-catalog.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'store-order-protocol.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'store.js'), 'utf8'));
   win.CONFIG = {
     USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
@@ -91,6 +92,10 @@ async function createHarness(token = 'USDT', options = {}) {
   const errors = [];
   const transfers = [];
   const pinTitles = [];
+  const orderRequests = [];
+  const serverOrders = new Map();
+  const serverDeliveries = new Map();
+  let attachAttempts = 0;
   const hash = `0x${token === 'FTA' ? 'ab' : 'cd'}`.padEnd(66, '0').slice(0, 66);
   const makeToken = (symbol) => ({
     balanceOf: async () => symbol === 'USDT' ? win.ethers.parseUnits(String(options.balance ?? 100), 6) : win.ethers.parseUnits(String(options.balance ?? 100), 8),
@@ -104,7 +109,7 @@ async function createHarness(token = 'USDT', options = {}) {
     }
   });
   const app = {
-    currentLang: 'en', user: BUYER, signer: {}, usdtDecimals: 6, ftaDecimals: 8,
+    currentLang: 'en', user: BUYER, signer: { signMessage: async (message) => `0xsigned-${message.length}` }, usdtDecimals: 6, ftaDecimals: 8,
     usdtToken: makeToken('USDT'), ftaToken: makeToken('FTA'),
     showToast: (message, isError = false, tone = '') => toasts.push({ message, isError, tone }),
     showError: (error) => errors.push(error),
@@ -124,9 +129,52 @@ async function createHarness(token = 'USDT', options = {}) {
   };
   const center = new win.FitiaStoreCenter(app);
   app.storeCenter = center;
-  win.fetch = async (url) => {
+  win.fetch = async (url, init = {}) => {
     if (String(url) === 'store-products.json' || String(url).includes('/main/store-products.json')) {
-      return { ok: true, json: async () => clone(remoteManifest) };
+      return { ok: true, status: 200, json: async () => clone(remoteManifest) };
+    }
+    if (String(url) === 'https://fitia-mining-pro.vercel.app/api/store-orders') {
+      const body = JSON.parse(init.body || '{}');
+      orderRequests.push(body);
+      if (body.action === 'create') {
+        if (options.createFails) return { ok: false, status: 503, json: async () => ({ code: 'ORDER_CONFIG' }) };
+        const quote = Catalog.calculateCart(Catalog.validateManifest(remoteManifest).products, body.cart);
+        const order = {
+          id: body.requestId,
+          orderNumber: `FITS-TEST-${String(serverOrders.size + 1).padStart(4, '0')}`,
+          status: 'awaiting_payment', token: quote.token, total: quote.total,
+          totalUnits: quote.totalUnits.toString(), sellerName: quote.sellerName,
+          paymentAddress: quote.paymentAddress, txHash: null,
+          items: quote.items.map((item) => ({ productId: item.product.id, name: item.product.name, quantity: item.quantity, price: item.product.price })),
+          carrier: '', trackingNumber: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), paidAt: null
+        };
+        serverOrders.set(order.id, order);
+        serverDeliveries.set(order.id, clone(body.delivery));
+        return { ok: true, status: 201, json: async () => ({ order: clone(order) }) };
+      }
+      if (body.action === 'attach') {
+        attachAttempts += 1;
+        if (options.attachFailures === Infinity || attachAttempts <= (options.attachFailures || 0)) {
+          return { ok: false, status: 503, json: async () => ({ code: 'ORDER_NETWORK' }) };
+        }
+        if (options.revert || options.revertThrows) return { ok: false, status: 409, json: async () => ({ code: 'ORDER_PAYMENT_FAILED' }) };
+        if (options.paymentMismatch) return { ok: false, status: 409, json: async () => ({ code: 'ORDER_PAYMENT_MISMATCH' }) };
+        const order = serverOrders.get(body.orderId);
+        if (!order) return { ok: false, status: 404, json: async () => ({ code: 'ORDER_NOT_FOUND' }) };
+        order.txHash = body.txHash;
+        order.status = options.serverPending ? 'payment_pending' : 'paid';
+        order.paidAt = order.status === 'paid' ? new Date().toISOString() : null;
+        order.updatedAt = new Date().toISOString();
+        return { ok: true, status: order.status === 'paid' ? 200 : 202, json: async () => ({ order: clone(order) }) };
+      }
+      if (body.action === 'list') {
+        if (options.listFails) return { ok: false, status: 503, json: async () => ({ code: 'ORDER_NETWORK' }) };
+        return { ok: true, status: 200, json: async () => ({ orders: Array.from(serverOrders.values()).filter((order) => order.status !== 'awaiting_payment').map(clone) }) };
+      }
+      if (body.action === 'sync') {
+        const order = serverOrders.get(body.orderId);
+        return { ok: Boolean(order), status: order ? 200 : 404, json: async () => order ? ({ order: clone(order) }) : ({ code: 'ORDER_NOT_FOUND' }) };
+      }
     }
     throw new Error(`Unexpected fetch: ${url}`);
   };
@@ -134,6 +182,7 @@ async function createHarness(token = 'USDT', options = {}) {
   await waitFor(() => center.lastFetchAt > 0, 'initial catalog refresh');
   return {
     win, app, center, transfers, pinTitles, toasts, errors, sharedTexts, copiedTexts, hash,
+    orderRequests, serverOrders, serverDeliveries,
     productId: token === 'FTA' ? 'product-fta' : 'product-phone',
     setManifest: (next) => { remoteManifest = next; },
     getManifest: () => clone(remoteManifest),
@@ -282,8 +331,10 @@ async function createHarness(token = 'USDT', options = {}) {
   });
 
   for (const token of ['USDT', 'FTA']) {
-    await runTest(`Paiement ${token} : PIN, montant exact, reçu partagé et aucune adresse postale persistée`, async () => {
+    await runTest(`Paiement ${token} : transmission automatique au vendeur, suivi et aucune donnée privée locale`, async () => {
       const h = await createHarness(token);
+      h.center.orderMaxAttempts = 3;
+      h.center.orderRetryDelayMs = 1;
       try {
         h.center.addToCart(h.productId);
         h.center.addToCart(h.productId);
@@ -291,7 +342,7 @@ async function createHarness(token = 'USDT', options = {}) {
         assert.ok(h.win.document.getElementById('modal-store-checkout').classList.contains('active'));
         h.fillShipping();
         await h.center.pay({ preventDefault() {} });
-        await waitFor(() => h.center.orders[0]?.status === 'confirmed', `${token} confirmation`);
+        await waitFor(() => h.center.orders[0]?.status === 'paid', `${token} order sent`);
         assert.strictEqual(h.transfers.length, 1);
         assert.strictEqual(h.transfers[0].symbol, token);
         assert.strictEqual(h.transfers[0].to, h.win.ethers.getAddress(token === 'USDT' ? RECEIVER_USDT : RECEIVER_FTA));
@@ -301,18 +352,24 @@ async function createHarness(token = 'USDT', options = {}) {
         assert.strictEqual(h.center.cart.length, 0);
         assert.strictEqual(h.center.orders.length, 1);
         assert.strictEqual(h.center.orders[0].txHash, h.hash);
+        assert.strictEqual(h.serverDeliveries.size, 1);
+        assert.strictEqual(h.serverDeliveries.get(h.center.orders[0].id).address, '1 Private Test Street');
+        assert.deepStrictEqual(h.orderRequests.map((request) => request.action), ['create', 'attach']);
+        assert.ok(h.orderRequests.every((request) => request.signature));
         const serializedStorage = Object.keys(h.win.localStorage).map((key) => h.win.localStorage.getItem(key)).join('\n');
         for (const privateValue of ['Alice Example', '+49 170 0000000', '1 Private Test Street', 'Private delivery note']) {
           assert.ok(!serializedStorage.includes(privateValue), `Donnée privée persistée: ${privateValue}`);
         }
-        assert.ok(h.win.document.getElementById('store-receipt-content').textContent.includes('Alice Example'));
-        await h.center.shareCurrentReceipt();
-        assert.strictEqual(h.sharedTexts.length, 1);
-        assert.ok(h.sharedTexts[0].text.includes(h.hash));
-        assert.ok(h.sharedTexts[0].text.includes('1 Private Test Street'));
-        assert.ok(!h.sharedTexts[0].text.toLowerCase().includes('polygonscan'));
+        assert.ok(!h.win.document.getElementById('store-receipt-content').textContent.includes('Alice Example'));
+        assert.ok(h.win.document.getElementById('store-receipt-content').textContent.includes(h.center.orders[0].orderNumber));
+        assert.strictEqual(h.sharedTexts.length, 0, 'Le client ne doit plus partager de reçu');
+        assert.strictEqual(h.win.document.getElementById('store-receipt-share'), null);
+        h.center.openOrders();
+        await waitFor(() => h.win.document.querySelectorAll('#store-orders-list .store-order-card').length === 1, 'order tracking card');
+        assert.strictEqual(h.win.document.querySelectorAll('#store-orders-list .store-order-step.done').length, 1);
+        await h.center.ordersRefreshPromise;
         h.center.setAccount(null);
-        assert.strictEqual(h.center.receipts.size, 0);
+        assert.strictEqual(h.center.orders.length, 0);
         assert.strictEqual(h.win.document.getElementById('store-shipping-name').value, '');
       } finally { h.close(); }
     });
@@ -354,8 +411,10 @@ async function createHarness(token = 'USDT', options = {}) {
     } finally { h.close(); }
   });
 
-  await runTest('Sécurité : une transaction revertée est marquée échouée et non partageable comme paiement', async () => {
+  await runTest('Sécurité : une transaction revertée est échouée et jamais visible comme commande payée', async () => {
     const h = await createHarness('USDT', { revert: true });
+    h.center.orderMaxAttempts = 2;
+    h.center.orderRetryDelayMs = 1;
     try {
       h.center.addToCart('product-phone');
       await h.center.openCheckout();
@@ -363,21 +422,26 @@ async function createHarness(token = 'USDT', options = {}) {
       await h.center.pay({ preventDefault() {} });
       await waitFor(() => h.center.orders[0]?.status === 'failed', 'failed transaction status');
       assert.strictEqual(h.transfers.length, 1);
-      assert.ok(h.win.document.getElementById('store-receipt-share').classList.contains('hidden'));
-      await h.center.shareCurrentReceipt();
+      assert.strictEqual(h.serverOrders.get(h.center.orders[0].id).status, 'awaiting_payment');
+      assert.ok(h.win.document.getElementById('store-receipt-status').textContent.includes('failed on-chain'));
+      h.serverOrders.get(h.center.orders[0].id).status = 'payment_pending';
+      await h.center.refreshOrders();
+      assert.strictEqual(h.center.orders[0].status, 'failed', 'Un paiement échoué ne redevient pas simplement en attente');
       assert.strictEqual(h.sharedTexts.length, 0);
       assert.ok(h.toasts.some((entry) => entry.message.includes('failed on-chain')));
     } finally { h.close(); }
   });
 
   await runTest('Sécurité : 403 réseau en attente et exception de revert réellement échouée', async () => {
-    const pendingHarness = await createHarness('USDT', { waitThrows: { code: 'SERVER_ERROR', message: 'server response 403' } });
+    const pendingHarness = await createHarness('USDT', { attachFailures: Infinity, waitThrows: { code: 'SERVER_ERROR', message: 'server response 403' } });
+    pendingHarness.center.orderMaxAttempts = 2;
+    pendingHarness.center.orderRetryDelayMs = 1;
     try {
       pendingHarness.center.addToCart('product-phone');
       await pendingHarness.center.openCheckout();
       pendingHarness.fillShipping();
       await pendingHarness.center.pay({ preventDefault() {} });
-      await waitFor(() => pendingHarness.center.orders[0]?.status === 'submitted', 'submitted after RPC 403');
+      await waitFor(() => pendingHarness.center.orders[0]?.status === 'payment_pending', 'pending after RPC 403');
       const pendingToast = pendingHarness.toasts.at(-1);
       assert.ok(pendingToast.message.includes('confirmation is still pending'));
       assert.strictEqual(pendingToast.isError, false);
@@ -386,6 +450,8 @@ async function createHarness(token = 'USDT', options = {}) {
     } finally { pendingHarness.close(); }
 
     const failedHarness = await createHarness('USDT', { revertThrows: true });
+    failedHarness.center.orderMaxAttempts = 2;
+    failedHarness.center.orderRetryDelayMs = 1;
     try {
       failedHarness.center.addToCart('product-phone');
       await failedHarness.center.openCheckout();
@@ -394,8 +460,56 @@ async function createHarness(token = 'USDT', options = {}) {
       await waitFor(() => failedHarness.center.orders[0]?.status === 'failed', 'thrown revert status');
       assert.ok(failedHarness.toasts.at(-1).message.includes('failed on-chain'));
       assert.strictEqual(failedHarness.toasts.at(-1).isError, true);
-      assert.ok(failedHarness.win.document.getElementById('store-receipt-share').classList.contains('hidden'));
     } finally { failedHarness.close(); }
+  });
+
+  await runTest('Sécurité : échec de préparation de la commande = ni PIN ni transfert', async () => {
+    const h = await createHarness('USDT', { createFails: true });
+    try {
+      h.center.addToCart('product-phone');
+      await h.center.openCheckout();
+      h.fillShipping();
+      await h.center.pay({ preventDefault() {} });
+      assert.strictEqual(h.transfers.length, 0);
+      assert.strictEqual(h.pinTitles.length, 0);
+      assert.strictEqual(h.serverOrders.size, 0);
+      assert.ok(h.win.document.getElementById('store-checkout-error').textContent.includes('could not be prepared'));
+    } finally { h.close(); }
+  });
+
+  await runTest('Reprise réseau : même transaction, aucun second paiement et suivi d’expédition', async () => {
+    const h = await createHarness('USDT', { attachFailures: 1 });
+    h.center.orderMaxAttempts = 3;
+    h.center.orderRetryDelayMs = 1;
+    try {
+      h.center.addToCart('product-phone');
+      await h.center.openCheckout();
+      h.fillShipping();
+      await h.center.pay({ preventDefault() {} });
+      await waitFor(() => h.center.orders[0]?.status === 'paid', 'paid after network retry');
+      assert.strictEqual(h.transfers.length, 1);
+      assert.strictEqual(h.pinTitles.length, 1);
+      assert.strictEqual(h.orderRequests.filter((request) => request.action === 'attach').length, 2);
+      h.center.setLocalOrderStatus(h.center.orders[0].id, 'payment_pending');
+      h.center.resumePendingOrders();
+      await waitFor(() => h.center.orders[0]?.status === 'paid', 'automatic unlock recovery');
+      await h.center.ordersRefreshPromise;
+      assert.strictEqual(h.transfers.length, 1, 'La reprise automatique ne paie jamais une seconde fois');
+      const serverOrder = h.serverOrders.get(h.center.orders[0].id);
+      serverOrder.status = 'shipped';
+      serverOrder.carrier = 'DHL';
+      serverOrder.trackingNumber = 'TRACK-PRIVATE-123';
+      h.center.openOrders();
+      await waitFor(() => h.center.orders[0]?.status === 'shipped', 'shipped tracking refresh');
+      assert.strictEqual(h.transfers.length, 1, 'Le suivi ne doit jamais créer un autre transfert');
+      const card = h.win.document.querySelector('#store-orders-list .store-order-card');
+      assert.ok(card.textContent.includes('DHL'));
+      assert.ok(card.textContent.includes('TRACK-PRIVATE-123'));
+      assert.strictEqual(card.querySelectorAll('.store-order-step.done').length, 3);
+      await h.center.ordersRefreshPromise;
+      const serializedStorage = Object.keys(h.win.localStorage).map((key) => h.win.localStorage.getItem(key)).join('\n');
+      assert.ok(!serializedStorage.includes('1 Private Test Street'));
+    } finally { h.close(); }
   });
 
   await runTest('Sécurité : verrouillage ou changement de wallet pendant le PIN bloque le transfert', async () => {
@@ -408,7 +522,7 @@ async function createHarness(token = 'USDT', options = {}) {
       assert.strictEqual(h.pinTitles.length, 1);
       assert.strictEqual(h.transfers.length, 0);
       assert.strictEqual(h.center.orders.length, 0);
-      assert.strictEqual(h.center.receipts.size, 0);
+      assert.strictEqual(h.serverOrders.size, 1, 'La commande temporaire peut exister, mais aucun transfert ne doit partir');
     } finally { h.close(); }
   });
 

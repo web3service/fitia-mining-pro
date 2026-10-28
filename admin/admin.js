@@ -89,6 +89,7 @@
   };
 
   let storeAdmin = null;
+  let ordersAdmin = null;
   const byId = (id) => document.getElementById(id);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const localized = (value) => value?.fr || value?.en || '';
@@ -207,6 +208,7 @@
     state.promotionRevision = '';
     state.editingPromotionId = null;
     if (storeAdmin) storeAdmin.reset();
+    if (ordersAdmin) ordersAdmin.reset();
     state.csrfToken = '';
     byId('admin-view').classList.add('hidden');
     byId('login-view').classList.remove('hidden');
@@ -613,11 +615,13 @@
     byId('section-announcements').classList.toggle('hidden', section !== 'announcements');
     byId('section-promotions').classList.toggle('hidden', section !== 'promotions');
     byId('section-store').classList.toggle('hidden', section !== 'store');
-    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', store: 'FITIA STORE' };
+    byId('section-orders').classList.toggle('hidden', section !== 'orders');
+    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', store: 'FITIA STORE', orders: 'Commandes clients' };
     byId('page-title').textContent = titles[section] || titles.dashboard;
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.classList.toggle('active', button.dataset.section === section);
     });
+    if (section === 'orders' && ordersAdmin) ordersAdmin.load().catch(() => {});
   }
 
   function fillPromotionLabels(values = {}) {
@@ -1041,7 +1045,10 @@
       try { await api('/api/admin/logout', { method: 'POST', body: {} }); } catch (_) { /* La session est déjà invalidée. */ }
       showLogin();
     });
-    byId('refresh-button').addEventListener('click', () => loadData());
+    byId('refresh-button').addEventListener('click', () => {
+      if (state.section === 'orders' && ordersAdmin) ordersAdmin.load().catch(() => {});
+      else loadData();
+    });
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.addEventListener('click', () => setSection(button.dataset.section));
     });
@@ -1078,6 +1085,7 @@
     byId('promotion-form').addEventListener('input', updatePromotionPreview);
     byId('promotion-form').addEventListener('change', updatePromotionPreview);
     storeAdmin.bindEvents();
+    ordersAdmin.bindEvents();
     ['search-input', 'category-filter', 'status-filter'].forEach((id) => {
       byId(id).addEventListener('input', () => state.manifest && renderAnnouncements());
       byId(id).addEventListener('change', () => state.manifest && renderAnnouncements());
@@ -1124,6 +1132,9 @@
     byId, api, clone, generateId, showToast, setLoading, setConnection, updateSource,
     makeButton, optimizeImage, fromInputDate, toInputDate,
     getMode: () => state.mode
+  });
+  ordersAdmin = window.FitiaOrdersAdmin.create({
+    byId, api, showToast, setLoading, setConnection, makeButton, formatDate
   });
 
   init();

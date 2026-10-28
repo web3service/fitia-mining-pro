@@ -710,31 +710,32 @@
       </div>
       <label class="store-form-field"><span data-store-i18n="postalAddress">Full postal address</span><textarea id="store-shipping-address" class="game-input" rows="3" maxlength="240" autocomplete="off" required></textarea></label>
       <label class="store-form-field"><span data-store-i18n="deliveryNotes">Delivery note (optional)</span><textarea id="store-shipping-notes" class="game-input" rows="2" maxlength="300" autocomplete="off"></textarea></label>
-      <label class="store-consent"><input id="store-checkout-consent" type="checkbox" required><span data-store-i18n="consent">I understand that the crypto payment is irreversible and that I must share the order receipt with the seller for delivery.</span></label>
-      <p class="store-privacy-copy" data-store-i18n="shippingPrivacy">These details remain on this phone and are never written to Polygon or the public catalog. They are included only in the receipt you choose to share.</p>
+      <label class="store-consent"><input id="store-checkout-consent" type="checkbox" required><span data-store-i18n="consent">I understand that the crypto payment is irreversible and that my delivery details will be sent privately to the seller for this order.</span></label>
+      <p class="store-privacy-copy" data-store-i18n="shippingPrivacy">Delivery details are encrypted in the private order service. They are never written to Polygon, GitHub or local order history.</p>
       <p id="store-checkout-error" class="store-form-error" role="alert"></p>
       <button type="submit" id="store-pay-button" class="btn-primary" data-store-i18n="payNow">PAY WITH PIN</button>
     </form>
   </div>
 </div>
 
-<!-- FITIA STORE — Reçu à transmettre au vendeur -->
+<!-- FITIA STORE — Confirmation et suivi automatique -->
 <div id="modal-store-receipt" class="modal">
   <div class="modal-content modal-scrollable store-modal-content">
-    <div class="modal-header"><h3 data-store-i18n="receiptTitle">Order receipt</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
+    <div class="modal-header"><h3 data-store-i18n="receiptTitle">Order status</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
     <div id="store-receipt-status" class="store-receipt-status"></div>
     <div id="store-receipt-content" class="store-receipt-content"></div>
-    <p class="store-privacy-copy" data-store-i18n="shareRequired">Share this receipt with the seller so they can verify the transaction and ship your order.</p>
-    <button type="button" id="store-receipt-share" class="btn-primary" onclick="App.storeCenter.shareCurrentReceipt()" data-store-i18n="shareReceipt">SHARE WITH SELLER</button>
+    <p class="store-privacy-copy" data-store-i18n="shareRequired">After payment verification, your order is sent automatically. No receipt or delivery details need to be shared manually.</p>
+    <button type="button" id="store-receipt-track" class="btn-primary" onclick="App.storeCenter.openOrders()" data-store-i18n="trackOrder">TRACK ORDER</button>
     <button type="button" class="btn-secondary-outline" onclick="App.closeModals()" data-store-i18n="done">Done</button>
   </div>
 </div>
 
-<!-- FITIA STORE — Commandes locales -->
+<!-- FITIA STORE — Suivi privé des commandes -->
 <div id="modal-store-orders" class="modal">
   <div class="modal-content modal-scrollable store-modal-content">
     <div class="modal-header"><h3 data-store-i18n="ordersTitle">My orders</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
-    <p class="store-privacy-copy" data-store-i18n="ordersPrivacy">Only payment summaries are kept on this phone. Delivery addresses are not saved in order history.</p>
+    <p class="store-privacy-copy" data-store-i18n="ordersPrivacy">Private tracking is linked to your wallet. Delivery addresses are never saved in local order history.</p>
+    <button type="button" id="store-orders-refresh" class="btn-secondary-outline" onclick="App.storeCenter.refreshOrders()" data-store-i18n="refresh">Refresh</button>
     <div id="store-orders-list" class="store-orders-list"></div>
     <p id="store-orders-empty" class="store-empty-copy" data-store-i18n="ordersEmpty">No store orders yet.</p>
   </div>
@@ -1026,6 +1027,7 @@
 <script src="promotion-effects.js"></script>
 <script src="promotions.js"></script>
 <script src="store-catalog.js"></script>
+<script src="store-order-protocol.js"></script>
 <script src="store.js"></script>
 <script src="assistant.js"></script>
 <script src="app.js"></script>

@@ -15,6 +15,7 @@ const adminCss = fs.readFileSync(path.join(ROOT, 'admin/admin.css'), 'utf8');
 const script = fs.readFileSync(path.join(ROOT, 'admin/admin.js'), 'utf8');
 const effectsScript = fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8');
 const storeAdminScript = fs.readFileSync(path.join(ROOT, 'admin/store-admin.js'), 'utf8');
+const ordersAdminScript = fs.readFileSync(path.join(ROOT, 'admin/orders-admin.js'), 'utf8');
 let manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
 let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
@@ -31,6 +32,16 @@ let storeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.j
 storeManifest = { ...storeManifest, enabled: false, products: [] };
 let storeRevision = 'revision-store-initiale';
 const storeWrites = [];
+const orderUpdates = [];
+let orders = [{
+  id: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', orderNumber: 'FITS-ADMIN-0001',
+  buyerAddress: '0x9999999999999999999999999999999999999999',
+  sellerName: 'FITIA Seller', sellerContact: '@fitia-seller', paymentAddress: '0x1111111111111111111111111111111111111111',
+  txHash: `0x${'ab'.repeat(32)}`, status: 'paid', token: 'USDT', total: '26', totalUnits: '26000000',
+  items: [{ productId: 'product-phone', name: { fr: 'Téléphone FITIA' }, quantity: 2, price: '12.5' }],
+  delivery: { name: '<img src=x data-order-xss> Client privé', phone: '+49 000 111', country: 'Germany', city: 'Frankfurt', address: '1 Private Street', notes: '<script>window.__orderXss=true</script>' },
+  carrier: '', trackingNumber: '', createdAt: '2026-10-28T10:00:00.000Z', updatedAt: '2026-10-28T10:00:00.000Z', paidAt: '2026-10-28T10:00:00.000Z'
+}];
 const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
 const { window } = dom;
 Object.defineProperty(window, 'crypto', { value: crypto.webcrypto });
@@ -78,6 +89,16 @@ window.fetch = async (url, options = {}) => {
     storeWrites.push(body);
     return response({ manifest: storeManifest, revision: storeRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
+  if (url === '/api/admin/store-orders' && (!options.method || options.method === 'GET')) {
+    return response({ orders: JSON.parse(JSON.stringify(orders)), serverTime: new Date().toISOString() });
+  }
+  if (url === '/api/admin/store-orders' && options.method === 'PATCH') {
+    assert.ok(options.headers['X-CSRF-Token']);
+    const body = JSON.parse(options.body);
+    orderUpdates.push(body);
+    orders = orders.map((order) => order.id === body.orderId ? { ...order, status: body.status, carrier: body.carrier, trackingNumber: body.trackingNumber, updatedAt: new Date().toISOString() } : order);
+    return response({ order: JSON.parse(JSON.stringify(orders.find((order) => order.id === body.orderId))) });
+  }
   throw new Error(`Requête inattendue ${options.method || 'GET'} ${url}`);
 };
 
@@ -103,6 +124,7 @@ async function waitFor(condition, label) {
   assert.ok(adminCss.includes('.nav-short-label { display: inline; }'));
   window.eval(effectsScript);
   window.eval(storeAdminScript);
+  window.eval(ordersAdminScript);
   window.eval(script);
   await waitFor(() => !window.document.getElementById('admin-view').classList.contains('hidden'), 'connexion');
   await waitFor(() => window.document.querySelectorAll('#announcements-list .announcement-row').length === initialAnnouncementCount, 'liste initiale');
@@ -325,7 +347,26 @@ async function waitFor(condition, label) {
   await waitFor(() => !window.document.getElementById('promotions-list-error').classList.contains('hidden'), 'panne indépendante des décorations');
   assert.ok(window.document.querySelector('#announcements-list .announcement-row').textContent.includes('Annonce rechargée malgré la panne'));
   assert.strictEqual(window.document.getElementById('promotions-list-error').textContent, 'Canal décorations indisponible');
-  console.log('  ✅ UI admin : annonces, décorations et FITIA STORE — CRUD, aperçu, activation, panne isolée et blocage XSS validés');
+
+  window.document.querySelector('[data-section="orders"]').click();
+  await waitFor(() => window.document.querySelectorAll('#orders-list .seller-order-card').length === 1, 'chargement commandes privées');
+  assert.strictEqual(window.document.getElementById('page-title').textContent, 'Commandes clients');
+  const orderCard = window.document.querySelector('#orders-list .seller-order-card');
+  assert.ok(orderCard.textContent.includes('<img src=x data-order-xss> Client privé'));
+  assert.strictEqual(orderCard.querySelector('[data-order-xss]'), null);
+  assert.strictEqual(orderCard.querySelector('script'), null);
+  assert.notStrictEqual(window.__orderXss, true);
+  orderCard.querySelector('[data-order-status]').value = 'shipped';
+  orderCard.querySelector('[data-order-carrier]').value = 'DHL';
+  orderCard.querySelector('[data-order-tracking]').value = 'TRACK-ADMIN-123';
+  orderCard.querySelector('[data-order-save]').click();
+  await waitFor(() => orderUpdates.length === 1, 'mise à jour du suivi vendeur');
+  assert.strictEqual(orderUpdates[0].status, 'shipped');
+  assert.strictEqual(orderUpdates[0].trackingNumber, 'TRACK-ADMIN-123');
+  await waitFor(() => window.document.getElementById('orders-stat-shipped').textContent === '1', 'statut expédié affiché');
+  assert.ok(window.document.querySelector('#orders-list .seller-order-card').textContent.includes('Expédiée'));
+  assert.ok(adminCss.includes('.seller-order-controls'));
+  console.log('  ✅ UI admin : annonces, décorations, STORE et commandes — CRUD, suivi privé, mobile et blocage XSS validés');
   window.close();
 })().catch((error) => {
   console.error(error);

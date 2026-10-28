@@ -9,7 +9,9 @@
   const CACHE_KEY = 'fitia_store_public_catalog_v1';
   const CART_PREFIX = 'fitia_store_cart_v1:';
   const ORDERS_PREFIX = 'fitia_store_orders_v1:';
+  const ORDER_API_URL = 'https://fitia-mining-pro.vercel.app/api/store-orders';
   const MAX_ORDERS = 30;
+  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   const COPY = {
     en: {
@@ -20,11 +22,11 @@
       checkout: 'DELIVERY & PAYMENT', clearCart: 'Clear cart', singleSeller: 'One seller, one crypto and one receiving address per payment.',
       checkoutTitle: 'Delivery & payment', fullName: 'Full name', phone: 'Phone', country: 'Country', city: 'City',
       postalAddress: 'Full postal address', deliveryNotes: 'Delivery note (optional)',
-      consent: 'I understand that the crypto payment is irreversible and that I must share the order receipt with the seller for delivery.',
-      shippingPrivacy: 'These details remain on this phone and are never written to Polygon or the public catalog. They are included only in the receipt you choose to share.',
-      payNow: 'PAY WITH PIN', receiptTitle: 'Order receipt', shareRequired: 'Share this receipt with the seller so they can verify the transaction and ship your order.',
-      shareReceipt: 'SHARE WITH SELLER', done: 'Done', ordersTitle: 'My orders',
-      ordersPrivacy: 'Only payment summaries are kept on this phone. Delivery addresses are not saved in order history.', ordersEmpty: 'No store orders yet.',
+      consent: 'I understand that the crypto payment is irreversible and that my delivery details will be sent privately to the seller for this order.',
+      shippingPrivacy: 'Delivery details are encrypted in the private order service. They are never written to Polygon, GitHub or local order history.',
+      payNow: 'PAY WITH PIN', receiptTitle: 'Order status', shareRequired: 'After payment verification, your order is sent automatically. No receipt or delivery details need to be shared manually.',
+      done: 'Done', ordersTitle: 'My orders',
+      ordersPrivacy: 'Private tracking is linked to your wallet. Delivery addresses are never saved in local order history.', ordersEmpty: 'No store orders yet.',
       own: 'OWN STOCK', dropshipping: 'DROPSHIPPING', outOfStock: 'SOLD OUT', add: 'ADD TO CART', added: 'Added to cart.',
       stock: 'In stock', pieces: 'units', remove: 'Remove', differentSeller: 'Your cart already contains another seller, crypto or receiving address. Clear it before adding this product.',
       storeClosed: 'FITIA STORE is not open yet. Please check back soon.', offline: 'Catalog update failed. Payment requires a fresh online verification.',
@@ -35,13 +37,12 @@
       notReady: 'Unlock your wallet before making a store payment.', contractBlocked: 'This seller address is not allowed for payment.',
       decimalsBlocked: 'The token configuration changed. Payment was stopped for your safety.',
       paymentSent: 'Payment submitted. Polygon confirmation is in progress.',
-      paymentConfirmed: 'Purchase successful: payment confirmed on Polygon.', paymentPending: 'Transaction submitted; network confirmation is still pending.',
+      paymentConfirmed: 'Payment confirmed on Polygon and order sent automatically to the seller.', paymentPending: 'Transaction submitted; network confirmation is still pending.',
       paymentFailed: 'The transaction failed on-chain. No successful payment was confirmed; check your wallet before trying again.',
-      pending: 'PENDING', confirmed: 'CONFIRMED', submitted: 'SUBMITTED', failed: 'FAILED', orderRef: 'Order reference', seller: 'Seller',
+      pending: 'PENDING', confirmed: 'CONFIRMED', submitted: 'SUBMITTED', failed: 'FAILED', payment_pending: 'PAYMENT VERIFICATION', paid: 'PAID · SENT', preparing: 'PREPARING', shipped: 'SHIPPED', delivered: 'DELIVERED', orderRef: 'Order reference', seller: 'Seller',
       sellerContact: 'Seller contact', payment: 'Payment', transaction: 'Transaction', products: 'Products', deliveryTo: 'Delivery details',
-      share: 'Share receipt', copyHash: 'Copy hash', copied: 'Transaction hash copied.', receiptShared: 'Receipt shared or copied for the seller.',
-      receiptMissing: 'The private delivery receipt is no longer available in this session. No second payment is needed: contact the seller with the transaction hash.',
-      emptyCartConfirm: 'Clear all products from your cart?', quantity: 'Quantity', orderItems: 'items',
+      copyHash: 'Copy hash', copied: 'Transaction hash copied.',
+      orderSent: 'Order sent automatically to the seller.', orderOffline: 'The private order service is unavailable. No new payment will be requested automatically.', orderPreparationFailed: 'The order could not be prepared. No payment was made.', trackOrder: 'TRACK ORDER', tracking: 'Tracking', carrier: 'Carrier', trackingNumber: 'Tracking number', progressPaid: 'Payment confirmed', progressPreparing: 'Preparing', progressShipped: 'Shipped', progressDelivered: 'Delivered', emptyCartConfirm: 'Clear all products from your cart?', quantity: 'Quantity', orderItems: 'items',
       cat_electronics: 'Electronics', cat_fashion: 'Fashion', cat_home: 'Home', cat_beauty: 'Beauty', cat_sports: 'Sports',
       cat_toys: 'Toys', cat_automotive: 'Automotive', cat_grocery: 'Grocery', cat_jewelry: 'Jewelry', cat_office: 'Office', cat_other: 'Other'
     },
@@ -53,11 +54,11 @@
       checkout: 'LIVRAISON & PAIEMENT', clearCart: 'Vider le panier', singleSeller: 'Un vendeur, une crypto et une adresse de réception par paiement.',
       checkoutTitle: 'Livraison et paiement', fullName: 'Nom complet', phone: 'Téléphone', country: 'Pays', city: 'Ville',
       postalAddress: 'Adresse postale complète', deliveryNotes: 'Note de livraison (facultatif)',
-      consent: 'Je comprends que le paiement crypto est irréversible et que je dois partager le reçu de commande au vendeur pour la livraison.',
-      shippingPrivacy: 'Ces informations restent sur ce téléphone et ne sont jamais écrites sur Polygon ni dans le catalogue public. Elles figurent uniquement dans le reçu que vous choisissez de partager.',
-      payNow: 'PAYER AVEC LE PIN', receiptTitle: 'Reçu de commande', shareRequired: 'Partagez ce reçu au vendeur pour lui permettre de vérifier la transaction et d’expédier la commande.',
-      shareReceipt: 'PARTAGER AU VENDEUR', done: 'Terminé', ordersTitle: 'Mes commandes',
-      ordersPrivacy: 'Seuls les récapitulatifs de paiement sont conservés sur ce téléphone. Les adresses de livraison ne sont pas enregistrées dans l’historique.', ordersEmpty: 'Aucune commande STORE.',
+      consent: 'Je comprends que le paiement crypto est irréversible et que mes informations de livraison seront transmises confidentiellement au vendeur pour cette commande.',
+      shippingPrivacy: 'Les informations de livraison sont chiffrées dans le service privé de commandes. Elles ne sont jamais écrites sur Polygon, GitHub ou dans l’historique local.',
+      payNow: 'PAYER AVEC LE PIN', receiptTitle: 'Suivi de commande', shareRequired: 'Après vérification du paiement, votre commande est transmise automatiquement. Vous n’avez aucun reçu ni coordonnée à envoyer.',
+      done: 'Terminé', ordersTitle: 'Mes commandes',
+      ordersPrivacy: 'Le suivi privé est lié à votre wallet. Les adresses de livraison ne sont jamais enregistrées dans l’historique local.', ordersEmpty: 'Aucune commande STORE.',
       own: 'STOCK PROPRE', dropshipping: 'DROPSHIPPING', outOfStock: 'ÉPUISÉ', add: 'AJOUTER AU PANIER', added: 'Produit ajouté au panier.',
       stock: 'En stock', pieces: 'unités', remove: 'Retirer', differentSeller: 'Votre panier contient déjà un autre vendeur, une autre crypto ou une autre adresse. Videz-le avant d’ajouter ce produit.',
       storeClosed: 'FITIA STORE n’est pas encore ouvert. Revenez bientôt.', offline: 'La mise à jour du catalogue a échoué. Le paiement exige une vérification en ligne récente.',
@@ -68,13 +69,12 @@
       notReady: 'Déverrouillez votre wallet avant de payer dans STORE.', contractBlocked: 'Cette adresse vendeur n’est pas autorisée pour le paiement.',
       decimalsBlocked: 'La configuration du jeton a changé. Le paiement a été bloqué pour votre sécurité.',
       paymentSent: 'Paiement transmis. Confirmation Polygon en cours.',
-      paymentConfirmed: 'Achat réussi : paiement confirmé sur Polygon.', paymentPending: 'Transaction transmise ; confirmation réseau encore en attente.',
+      paymentConfirmed: 'Paiement confirmé sur Polygon et commande transmise automatiquement au vendeur.', paymentPending: 'Transaction transmise ; confirmation réseau encore en attente.',
       paymentFailed: 'La transaction a échoué on-chain. Aucun paiement réussi n’est confirmé ; vérifiez votre wallet avant de réessayer.',
-      pending: 'EN ATTENTE', confirmed: 'CONFIRMÉ', submitted: 'TRANSMIS', failed: 'ÉCHEC', orderRef: 'Référence de commande', seller: 'Vendeur',
+      pending: 'EN ATTENTE', confirmed: 'CONFIRMÉ', submitted: 'TRANSMIS', failed: 'ÉCHEC', payment_pending: 'VÉRIFICATION DU PAIEMENT', paid: 'PAYÉE · TRANSMISE', preparing: 'EN PRÉPARATION', shipped: 'EXPÉDIÉE', delivered: 'LIVRÉE', orderRef: 'Référence de commande', seller: 'Vendeur',
       sellerContact: 'Contact vendeur', payment: 'Paiement', transaction: 'Transaction', products: 'Produits', deliveryTo: 'Informations de livraison',
-      share: 'Partager le reçu', copyHash: 'Copier le hash', copied: 'Hash de transaction copié.', receiptShared: 'Reçu partagé ou copié pour le vendeur.',
-      receiptMissing: 'Le reçu privé de livraison n’est plus disponible dans cette session. Ne repayez pas : contactez le vendeur avec le hash de transaction.',
-      emptyCartConfirm: 'Retirer tous les produits du panier ?', quantity: 'Quantité', orderItems: 'articles',
+      copyHash: 'Copier le hash', copied: 'Hash de transaction copié.',
+      orderSent: 'Commande transmise automatiquement au vendeur.', orderOffline: 'Le service privé de commandes est indisponible. Aucun nouveau paiement ne sera demandé automatiquement.', orderPreparationFailed: 'La commande n’a pas pu être préparée. Aucun paiement n’a été effectué.', trackOrder: 'SUIVRE LA COMMANDE', tracking: 'Suivi', carrier: 'Transporteur', trackingNumber: 'Numéro de suivi', progressPaid: 'Paiement confirmé', progressPreparing: 'En préparation', progressShipped: 'Expédiée', progressDelivered: 'Livrée', emptyCartConfirm: 'Retirer tous les produits du panier ?', quantity: 'Quantité', orderItems: 'articles',
       cat_electronics: 'Électronique', cat_fashion: 'Mode', cat_home: 'Maison', cat_beauty: 'Beauté', cat_sports: 'Sports',
       cat_toys: 'Jouets', cat_automotive: 'Automobile', cat_grocery: 'Épicerie', cat_jewelry: 'Bijoux', cat_office: 'Bureau', cat_other: 'Autres'
     }
@@ -111,14 +111,16 @@
       this.account = '';
       this.cart = [];
       this.orders = [];
-      this.receipts = new Map();
-      this.currentReceiptId = '';
+      this.currentOrderId = '';
+      this.ordersRefreshPromise = null;
       this.checkoutQuote = null;
       this.loaded = false;
       this.error = '';
       this.lastFetchAt = 0;
       this.refreshPromise = null;
       this.paymentInProgress = false;
+      this.orderRetryDelayMs = 4000;
+      this.orderMaxAttempts = 12;
       this.initialized = false;
       this.filterEventsBound = false;
     }
@@ -349,8 +351,8 @@
     }
 
     clearSensitive() {
-      this.receipts.clear();
-      this.currentReceiptId = '';
+      this.currentOrderId = '';
+      this.ordersRefreshPromise = null;
       this.checkoutQuote = null;
       const form = document.getElementById('store-checkout-form');
       if (form) form.reset();
@@ -389,29 +391,50 @@
       this.renderCartBadge();
     }
 
+    normalizeStoredOrder(order) {
+      if (!order || typeof order !== 'object') return null;
+      const id = String(order.id || '');
+      const orderNumber = String(order.orderNumber || '');
+      if ((!UUID_PATTERN.test(id) && !/^FITS-[A-Z0-9-]{6,40}$/.test(id)) || !/^0x[a-f0-9]{64}$/i.test(order.txHash || '')) return null;
+      const statuses = ['pending', 'confirmed', 'submitted', 'failed', 'payment_pending', 'paid', 'preparing', 'shipped', 'delivered'];
+      return {
+        id: id.slice(0, 48),
+        orderNumber: /^FITS-[A-Z0-9-]{6,48}$/.test(orderNumber) ? orderNumber : (id.startsWith('FITS-') ? id : ''),
+        txHash: String(order.txHash).toLowerCase(),
+        createdAt: String(order.createdAt || '').slice(0, 32),
+        updatedAt: String(order.updatedAt || order.createdAt || '').slice(0, 32),
+        paidAt: order.paidAt ? String(order.paidAt).slice(0, 32) : null,
+        status: statuses.includes(order.status) ? order.status : 'submitted',
+        token: order.token === 'FTA' ? 'FTA' : 'USDT',
+        total: String(order.total || '').slice(0, 40),
+        totalUnits: String(order.totalUnits || '').replace(/[^0-9]/g, '').slice(0, 80),
+        sellerName: String(order.sellerName || '').slice(0, 80),
+        sellerContact: String(order.sellerContact || '').slice(0, 160),
+        paymentAddress: String(order.paymentAddress || '').slice(0, 42),
+        carrier: String(order.carrier || '').slice(0, 80),
+        trackingNumber: String(order.trackingNumber || '').slice(0, 120),
+        items: Array.isArray(order.items) ? order.items.slice(0, 50).map((item) => ({
+          productId: String(item.productId || '').slice(0, 64),
+          name: String(typeof item.name === 'string' ? item.name : this.localize(item.name)).slice(0, 100),
+          quantity: Number.isSafeInteger(item.quantity) ? Math.max(1, Math.min(99, item.quantity)) : 1,
+          price: String(item.price || '').slice(0, 40)
+        })) : []
+      };
+    }
+
     loadOrders() {
       if (!this.account) return [];
       try {
         const parsed = JSON.parse(this.storageGet(this.ordersKey()) || '[]');
         if (!Array.isArray(parsed)) return [];
-        return parsed.slice(0, MAX_ORDERS).filter((order) => order && typeof order.id === 'string' && /^FITS-[A-Z0-9-]{6,40}$/.test(order.id) && /^0x[a-f0-9]{64}$/.test(order.txHash))
-          .map((order) => ({
-            id: order.id.slice(0, 48), txHash: order.txHash, createdAt: String(order.createdAt || '').slice(0, 32),
-            status: ['pending', 'confirmed', 'submitted', 'failed'].includes(order.status) ? order.status : 'submitted',
-            token: order.token === 'FTA' ? 'FTA' : 'USDT', total: String(order.total || '').slice(0, 40),
-            sellerName: String(order.sellerName || '').slice(0, 80), sellerContact: String(order.sellerContact || '').slice(0, 160),
-            paymentAddress: String(order.paymentAddress || '').slice(0, 42),
-            items: Array.isArray(order.items) ? order.items.slice(0, 50).map((item) => ({
-              productId: String(item.productId || '').slice(0, 64), name: String(item.name || '').slice(0, 100),
-              quantity: Number.isSafeInteger(item.quantity) ? Math.max(1, Math.min(99, item.quantity)) : 1,
-              price: String(item.price || '').slice(0, 40)
-            })) : []
-          }));
+        return parsed.slice(0, MAX_ORDERS).map((order) => this.normalizeStoredOrder(order)).filter(Boolean);
       } catch (_) { return []; }
     }
 
     saveOrders() {
-      if (this.account) this.storageSet(this.ordersKey(), JSON.stringify(this.orders.slice(0, MAX_ORDERS)));
+      if (!this.account) return;
+      const safeOrders = this.orders.slice(0, MAX_ORDERS).map((order) => this.normalizeStoredOrder(order)).filter(Boolean);
+      this.storageSet(this.ordersKey(), JSON.stringify(safeOrders));
     }
 
     async refresh({ force = false } = {}) {
@@ -771,22 +794,138 @@
       return shipping;
     }
 
-    orderId() {
-      const bytes = new Uint8Array(5);
+    newOrderRequestId() {
+      if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+      const bytes = new Uint8Array(16);
       crypto.getRandomValues(bytes);
-      const suffix = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
-      return `FITS-${Date.now().toString(36).toUpperCase()}-${suffix}`;
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
     }
 
-    createOrder(quote, txHash) {
-      return {
-        id: this.orderId(), txHash, createdAt: new Date().toISOString(), status: 'pending',
-        token: quote.token, total: quote.total, sellerName: quote.sellerName,
-        sellerContact: quote.sellerContact, paymentAddress: quote.paymentAddress,
-        items: quote.items.map((item) => ({
-          productId: item.product.id, name: this.localize(item.product.name), quantity: item.quantity, price: item.product.price
+    async orderRequest(action, params = {}) {
+      if (!this.account || !this.app.signer || typeof this.app.signer.signMessage !== 'function') {
+        throw new StoreUiError(this.t('notReady'));
+      }
+      const protocol = globalThis.FitiaStoreOrderProtocol;
+      if (!protocol) throw new StoreUiError(this.t('orderPreparationFailed'));
+      const body = { action, buyer: this.account, timestamp: Date.now(), ...params };
+      let signature;
+      try {
+        const message = protocol.message(action, body);
+        signature = await this.app.signer.signMessage(message);
+      } catch (_) {
+        throw new StoreUiError(this.t('notReady'));
+      }
+      body.signature = signature;
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const timeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
+      let response;
+      let data = {};
+      try {
+        response = await fetch(ORDER_API_URL, {
+          method: 'POST',
+          credentials: 'omit',
+          referrerPolicy: 'no-referrer',
+          cache: 'no-store',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller?.signal
+        });
+        try { data = await response.json(); } catch (_) { data = {}; }
+      } catch (_) {
+        const error = new StoreUiError(this.t('orderOffline'));
+        error.code = 'ORDER_NETWORK';
+        throw error;
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
+      if (!response.ok) {
+        const code = String(data.code || 'ORDER_NETWORK');
+        let message = action === 'create' ? this.t('orderPreparationFailed') : this.t('orderOffline');
+        if (code === 'ORDER_AUTH') message = this.t('notReady');
+        if (code === 'ORDER_STORE_CLOSED') message = this.t('storeClosed');
+        if (code === 'ORDER_PAYMENT_FAILED' || code === 'ORDER_PAYMENT_MISMATCH' || code === 'ORDER_TX_USED') message = this.t('paymentFailed');
+        const error = new StoreUiError(message);
+        error.code = code;
+        throw error;
+      }
+      return data;
+    }
+
+    async prepareOrder(quote, shipping) {
+      const requestId = this.newOrderRequestId();
+      let result;
+      try {
+        result = await this.orderRequest('create', { requestId, cart: this.cart, delivery: shipping });
+      } catch (error) {
+        if (error.code === 'ORDER_NETWORK') error.message = this.t('orderPreparationFailed');
+        throw error;
+      }
+      const order = result.order;
+      if (!order || order.id !== requestId || order.token !== quote.token ||
+          String(order.totalUnits) !== quote.totalUnits.toString() ||
+          String(order.paymentAddress || '').toLowerCase() !== quote.paymentAddress.toLowerCase()) {
+        throw new StoreUiError(this.t('orderPreparationFailed'));
+      }
+      return order;
+    }
+
+    createOrder(serverOrder, quote, txHash) {
+      const order = this.normalizeStoredOrder({
+        ...serverOrder,
+        txHash,
+        status: 'submitted',
+        sellerName: quote.sellerName,
+        sellerContact: quote.sellerContact,
+        paymentAddress: quote.paymentAddress,
+        total: quote.total,
+        totalUnits: quote.totalUnits.toString(),
+        token: quote.token,
+        items: serverOrder.items.map((item) => ({
+          ...item,
+          name: typeof item.name === 'string' ? item.name : this.localize(item.name)
         }))
-      };
+      });
+      if (!order) throw new StoreUiError(this.t('orderOffline'));
+      return order;
+    }
+
+    persistOrderForAccount(account, order) {
+      const normalized = this.normalizeStoredOrder(order);
+      if (!normalized || !account) return;
+      let existing = [];
+      try {
+        const parsed = JSON.parse(this.storageGet(`${ORDERS_PREFIX}${account}`) || '[]');
+        if (Array.isArray(parsed)) existing = parsed.map((item) => this.normalizeStoredOrder(item)).filter(Boolean);
+      } catch (_) { existing = []; }
+      const orders = [normalized, ...existing.filter((item) => item.id !== normalized.id)].slice(0, MAX_ORDERS);
+      this.storageSet(`${ORDERS_PREFIX}${account}`, JSON.stringify(orders));
+      if (this.account === account) this.orders = orders;
+    }
+
+    upsertServerOrder(serverOrder) {
+      const current = this.orders.find((item) => item.id === serverOrder?.id);
+      if (current?.status === 'failed' && !['paid', 'preparing', 'shipped', 'delivered'].includes(serverOrder?.status)) return current;
+      const order = this.normalizeStoredOrder({
+        ...serverOrder,
+        sellerContact: serverOrder.sellerContact || current?.sellerContact || '',
+        items: Array.isArray(serverOrder.items) ? serverOrder.items.map((item) => ({
+          ...item,
+          name: typeof item.name === 'string' ? item.name : this.localize(item.name)
+        })) : []
+      });
+      if (!order) return null;
+      order.sellerContact = order.sellerContact || current?.sellerContact || '';
+      const index = this.orders.findIndex((item) => item.id === order.id);
+      if (index >= 0) this.orders[index] = { ...this.orders[index], ...order };
+      else this.orders.unshift(order);
+      this.orders = this.orders.slice(0, MAX_ORDERS);
+      this.saveOrders();
+      if (this.currentOrderId === order.id && document.getElementById('modal-store-receipt')?.classList.contains('active')) this.renderReceipt(order.id);
+      if (document.getElementById('modal-store-orders')?.classList.contains('active')) this.renderOrders();
+      return order;
     }
 
     async pay(event) {
@@ -827,6 +966,8 @@
         if (balance < quote.totalUnits) throw new StoreUiError(this.app.t('errInsufficientFunds'));
         if (!(await this.app.ensurePolGas())) return;
         assertActiveSession();
+        const serverOrder = await this.prepareOrder(quote, shipping);
+        assertActiveSession();
         const verified = await this.app.requestPinVerification(`FITIA STORE · ${quote.total} ${quote.token}`);
         if (!verified) return;
         assertActiveSession();
@@ -838,22 +979,17 @@
         loaderVisible = true;
         const tx = await contract.transfer(to, quote.totalUnits);
         if (!tx || !/^0x[a-fA-F0-9]{64}$/.test(tx.hash || '')) throw new Error('STORE_TRANSACTION_HASH');
+        const order = this.createOrder(serverOrder, quote, tx.hash.toLowerCase());
+        this.persistOrderForAccount(paymentAccount, order);
         if (this.account !== paymentAccount) {
           this.app.showToast(`${this.t('paymentSent')} ${tx.hash}`, false, 'pending');
           return;
         }
-        const order = this.createOrder(quote, tx.hash.toLowerCase());
-        this.orders.unshift(order);
-        this.orders = this.orders.slice(0, MAX_ORDERS);
-        this.saveOrders();
-        this.receipts.set(order.id, { order, shipping });
-        const retained = new Set(this.orders.map((item) => item.id));
-        Array.from(this.receipts.keys()).forEach((id) => { if (!retained.has(id)) this.receipts.delete(id); });
         this.clearCart(false);
         this.app.closeModals();
         this.showReceipt(order.id);
         this.app.showToast(this.t('paymentSent'), false, 'pending');
-        void this.trackPayment(order.id, tx);
+        void this.trackServerOrder(order.id, tx, paymentAccount);
       } catch (error) {
         const message = error instanceof StoreUiError ? error.message : '';
         if (message) {
@@ -868,39 +1004,95 @@
       }
     }
 
-    async trackPayment(orderId, tx) {
-      let status = 'submitted';
-      try {
-        const receipt = await tx.wait();
-        const receiptStatus = Number(receipt?.status ?? -1);
-        if (receiptStatus === 0) {
-          status = 'failed';
-          this.app.showToast(this.t('paymentFailed'), true);
-        } else if (receiptStatus === 1) {
-          status = 'confirmed';
-          this.app.showToast(this.t('paymentConfirmed'));
-          FitiaSecurity.Native.vibrate(35);
-        } else {
-          this.app.showToast(this.t('paymentPending'), false, 'pending');
+    resumePendingOrders() {
+      if (!this.account || !this.app.signer || this.ordersRefreshPromise) return;
+      const pending = this.orders.some((order) => UUID_PATTERN.test(order.id) && ['submitted', 'payment_pending'].includes(order.status));
+      if (pending) void this.refreshOrders();
+    }
+
+    setLocalOrderStatus(orderId, status) {
+      const order = this.orders.find((item) => item.id === orderId);
+      if (!order) return;
+      order.status = status;
+      this.saveOrders();
+      if (this.currentOrderId === orderId && document.getElementById('modal-store-receipt')?.classList.contains('active')) this.renderReceipt(orderId);
+      if (document.getElementById('modal-store-orders')?.classList.contains('active')) this.renderOrders();
+    }
+
+    async trackServerOrder(orderId, tx, paymentAccount) {
+      const initial = this.orders.find((item) => item.id === orderId);
+      if (!initial) return;
+      const txHash = initial.txHash;
+      let waited = false;
+      for (let attempt = 0; attempt < this.orderMaxAttempts; attempt += 1) {
+        if (this.account !== paymentAccount) return;
+        try {
+          const result = await this.orderRequest('attach', { orderId, txHash });
+          const order = this.upsertServerOrder(result.order);
+          if (order && ['paid', 'preparing', 'shipped', 'delivered'].includes(order.status)) {
+            this.app.showToast(this.t('orderSent'));
+            FitiaSecurity.Native.vibrate(35);
+            try { await this.app.updateData(); } catch (_) { /* Le suivi reste disponible. */ }
+            return;
+          }
+        } catch (error) {
+          if (['ORDER_PAYMENT_FAILED', 'ORDER_PAYMENT_MISMATCH', 'ORDER_TX_USED'].includes(error.code)) {
+            this.setLocalOrderStatus(orderId, 'failed');
+            this.app.showToast(this.t('paymentFailed'), true);
+            return;
+          }
         }
-      } catch (error) {
-        if (Number(error?.receipt?.status ?? -1) === 0) {
-          status = 'failed';
-          this.app.showToast(this.t('paymentFailed'), true);
-        } else {
-          this.app.showToast(this.t('paymentPending'), false, 'pending');
+        if (!waited) {
+          waited = true;
+          try {
+            const receipt = await tx.wait();
+            if (Number(receipt?.status ?? -1) === 0) {
+              this.setLocalOrderStatus(orderId, 'failed');
+              this.app.showToast(this.t('paymentFailed'), true);
+              return;
+            }
+          } catch (error) {
+            if (Number(error?.receipt?.status ?? -1) === 0) {
+              this.setLocalOrderStatus(orderId, 'failed');
+              this.app.showToast(this.t('paymentFailed'), true);
+              return;
+            }
+          }
         }
+        if (attempt < this.orderMaxAttempts - 1) await new Promise((resolve) => setTimeout(resolve, this.orderRetryDelayMs));
       }
       const order = this.orders.find((item) => item.id === orderId);
-      if (order) {
-        order.status = status;
-        this.saveOrders();
-        const privateReceipt = this.receipts.get(orderId);
-        if (privateReceipt) privateReceipt.order = order;
+      if (order && !['paid', 'preparing', 'shipped', 'delivered', 'failed'].includes(order.status)) {
+        this.setLocalOrderStatus(orderId, 'payment_pending');
       }
-      if (this.currentReceiptId === orderId && document.getElementById('modal-store-receipt')?.classList.contains('active')) this.renderReceipt(orderId);
-      if (document.getElementById('modal-store-orders')?.classList.contains('active')) this.renderOrders();
-      try { await this.app.updateData(); } catch (_) { /* Le statut du reçu reste inchangé. */ }
+      this.app.showToast(this.t('paymentPending'), false, 'pending');
+    }
+
+    async refreshOrders() {
+      if (!this.account || !this.app.signer || this.ordersRefreshPromise) return this.ordersRefreshPromise;
+      this.ordersRefreshPromise = (async () => {
+        let failed = false;
+        try {
+          const result = await this.orderRequest('list');
+          if (Array.isArray(result.orders)) result.orders.forEach((order) => this.upsertServerOrder(order));
+        } catch (_) {
+          failed = true;
+        }
+        const account = this.account;
+        const pending = this.orders.filter((order) => UUID_PATTERN.test(order.id) && ['submitted', 'payment_pending'].includes(order.status)).slice(0, 5);
+        for (const order of pending) {
+          if (this.account !== account) return;
+          try {
+            const result = await this.orderRequest('attach', { orderId: order.id, txHash: order.txHash });
+            this.upsertServerOrder(result.order);
+            failed = false;
+          } catch (_) { /* Aucun nouveau transfert ne sera créé lors d’une reprise. */ }
+        }
+        if (failed) this.app.showToast(this.t('orderOffline'), true);
+        this.renderOrders();
+      })();
+      try { return await this.ordersRefreshPromise; }
+      finally { this.ordersRefreshPromise = null; }
     }
 
     receiptRow(label, value) {
@@ -913,69 +1105,54 @@
     }
 
     showReceipt(orderId) {
-      if (!this.receipts.has(orderId)) {
-        this.app.showToast(this.t('receiptMissing'), true);
-        return;
-      }
+      if (!this.orders.some((order) => order.id === orderId)) return;
       this.app.closeModals();
-      this.currentReceiptId = orderId;
+      this.currentOrderId = orderId;
       this.renderReceipt(orderId);
       document.getElementById('modal-store-receipt').classList.add('active');
     }
 
     renderReceipt(orderId) {
-      const receipt = this.receipts.get(orderId);
-      if (!receipt) return;
-      const { order, shipping } = receipt;
+      const order = this.orders.find((item) => item.id === orderId);
+      if (!order) return;
       const status = document.getElementById('store-receipt-status');
-      status.textContent = order.status === 'confirmed' ? this.t('paymentConfirmed') : order.status === 'failed' ? this.t('paymentFailed') : this.t('paymentSent');
-      document.getElementById('store-receipt-share').classList.toggle('hidden', order.status === 'failed');
-      document.querySelector('#modal-store-receipt [data-store-i18n="shareRequired"]').classList.toggle('hidden', order.status === 'failed');
+      const delivered = ['paid', 'preparing', 'shipped', 'delivered'].includes(order.status);
+      status.textContent = order.status === 'failed' ? this.t('paymentFailed') : delivered ? this.t('orderSent') : this.t('paymentSent');
       const content = document.getElementById('store-receipt-content');
       content.textContent = '';
       content.append(
-        this.receiptRow(this.t('orderRef'), order.id),
-        this.receiptRow(this.t('seller'), `${order.sellerName}${order.sellerContact ? ` · ${order.sellerContact}` : ''}`),
+        this.receiptRow(this.t('orderRef'), order.orderNumber || order.id),
+        this.receiptRow(this.t('seller'), order.sellerName),
         this.receiptRow(this.t('payment'), `${order.total} ${order.token} · ${this.t(order.status)}`),
         this.receiptRow(this.t('transaction'), order.txHash),
-        this.receiptRow(this.t('products'), order.items.map((item) => `${item.quantity} × ${item.name}`).join('\n')),
-        this.receiptRow(this.t('deliveryTo'), `${shipping.name}\n${shipping.phone}\n${shipping.address}\n${shipping.city}, ${shipping.country}${shipping.notes ? `\n${shipping.notes}` : ''}`)
+        this.receiptRow(this.t('products'), order.items.map((item) => `${item.quantity} × ${item.name}`).join('\n'))
       );
-    }
-
-    receiptText(orderId) {
-      const receipt = this.receipts.get(orderId);
-      if (!receipt) return '';
-      const { order, shipping } = receipt;
-      return [
-        'FITIA STORE — ORDER / COMMANDE',
-        `${this.t('orderRef')}: ${order.id}`,
-        `${this.t('seller')}: ${order.sellerName}`,
-        order.sellerContact ? `${this.t('sellerContact')}: ${order.sellerContact}` : '',
-        `${this.t('payment')}: ${order.total} ${order.token}`,
-        `${this.t('transaction')}: ${order.txHash}`,
-        `${this.t('products')}:`,
-        ...order.items.map((item) => `- ${item.quantity} × ${item.name} — ${item.price} ${order.token}`),
-        `${this.t('deliveryTo')}:`,
-        shipping.name, shipping.phone, shipping.address, `${shipping.city}, ${shipping.country}`,
-        shipping.notes ? `Note: ${shipping.notes}` : ''
-      ].filter(Boolean).join('\n');
-    }
-
-    async shareCurrentReceipt() {
-      if (!this.currentReceiptId) return;
-      const current = this.receipts.get(this.currentReceiptId);
-      if (current?.order.status === 'failed') return this.app.showToast(this.t('paymentFailed'), true);
-      const text = this.receiptText(this.currentReceiptId);
-      if (!text) return this.app.showToast(this.t('receiptMissing'), true);
-      const shared = await FitiaSecurity.Native.shareText('FITIA STORE — Order receipt', text);
-      this.app.showToast(shared ? this.t('receiptShared') : this.t('receiptMissing'), !shared);
+      if (order.carrier || order.trackingNumber) {
+        content.appendChild(this.receiptRow(this.t('tracking'), `${order.carrier}\n${order.trackingNumber}`.trim()));
+      }
     }
 
     openOrders() {
       this.app.closeModals();
       this.renderOrders();
       document.getElementById('modal-store-orders').classList.add('active');
+      void this.refreshOrders();
+    }
+
+    renderOrderTracker(order) {
+      const tracker = document.createElement('div');
+      tracker.className = 'store-order-tracker';
+      const normalizedStatus = order.status === 'confirmed' ? 'paid' : order.status;
+      const stages = ['paid', 'preparing', 'shipped', 'delivered'];
+      const current = stages.indexOf(normalizedStatus);
+      const labels = [this.t('progressPaid'), this.t('progressPreparing'), this.t('progressShipped'), this.t('progressDelivered')];
+      stages.forEach((stage, index) => {
+        const step = document.createElement('span');
+        step.className = `store-order-step${current >= index ? ' done' : ''}${current === index ? ' current' : ''}`;
+        step.textContent = labels[index];
+        tracker.appendChild(step);
+      });
+      return tracker;
     }
 
     renderOrders() {
@@ -986,9 +1163,10 @@
       this.orders.forEach((order) => {
         const card = document.createElement('article');
         card.className = 'store-order-card';
+        card.dataset.orderId = order.id;
         const head = document.createElement('div');
         head.className = 'store-order-head';
-        const id = document.createElement('strong'); id.textContent = order.id;
+        const id = document.createElement('strong'); id.textContent = order.orderNumber || order.id;
         const status = document.createElement('span');
         status.className = `store-order-status ${order.status}`;
         status.textContent = this.t(order.status);
@@ -998,19 +1176,25 @@
         const total = document.createElement('div');
         total.className = 'store-order-total'; total.textContent = `${order.total} ${order.token}`;
         const seller = document.createElement('p'); seller.textContent = order.sellerName;
-        const actions = document.createElement('div'); actions.className = 'store-order-actions';
-        if (this.receipts.has(order.id) && order.status !== 'failed') {
-          const share = document.createElement('button'); share.type = 'button'; share.textContent = this.t('share');
-          share.addEventListener('click', () => this.showReceipt(order.id));
-          actions.appendChild(share);
+        card.append(head, this.renderOrderTracker(order), products, total, seller);
+        if (order.carrier || order.trackingNumber) {
+          const tracking = document.createElement('div');
+          tracking.className = 'store-order-tracking';
+          const carrier = document.createElement('strong'); carrier.textContent = order.carrier || this.t('tracking');
+          const number = document.createElement('span'); number.textContent = order.trackingNumber;
+          tracking.append(carrier, number);
+          card.appendChild(tracking);
         }
+        const actions = document.createElement('div'); actions.className = 'store-order-actions';
+        const details = document.createElement('button'); details.type = 'button'; details.textContent = this.t('trackOrder');
+        details.addEventListener('click', () => this.showReceipt(order.id));
         const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = this.t('copyHash');
         copy.addEventListener('click', async () => {
           await FitiaSecurity.Native.copyText(order.txHash);
           this.app.showToast(this.t('copied'));
         });
-        actions.appendChild(copy);
-        card.append(head, products, total, seller, actions);
+        actions.append(details, copy);
+        card.appendChild(actions);
         list.appendChild(card);
       });
     }

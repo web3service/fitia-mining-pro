@@ -11,6 +11,7 @@ const {
   validateImagePayload
 } = require('./announcement-assets');
 const { validateManifest: validateStoreCatalog } = require('./store-catalog');
+const { getDefaultOrderService } = require('./store-order-service');
 
 const ROOT = __dirname;
 const ADMIN_DIR = path.join(ROOT, 'admin');
@@ -306,6 +307,11 @@ function createAdminServer(options = {}) {
   const githubApiBase = String(options.githubApiBase || process.env.FITIA_ADMIN_GITHUB_API || 'https://api.github.com').replace(/\/$/, '');
   const fetchImpl = options.fetch || global.fetch;
   if (typeof fetchImpl !== 'function') throw new Error('Node.js 18+ est requis pour la connexion GitHub.');
+  let orderService = options.orderService || null;
+  const orders = () => {
+    if (!orderService) orderService = getDefaultOrderService();
+    return orderService;
+  };
 
   const sessions = new Map();
   const loginFailures = new Map();
@@ -516,6 +522,7 @@ function createAdminServer(options = {}) {
     ['/admin/admin.css', { file: path.join(ADMIN_DIR, 'admin.css'), type: 'text/css; charset=utf-8' }],
     ['/admin/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/store-admin.js', { file: path.join(ADMIN_DIR, 'store-admin.js'), type: 'application/javascript; charset=utf-8' }],
+    ['/admin/orders-admin.js', { file: path.join(ADMIN_DIR, 'orders-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.js', { file: path.join(ROOT, 'promotion-effects.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.css', { file: path.join(ROOT, 'promotion-effects.css'), type: 'text/css; charset=utf-8' }],
     ['/store-catalog.js', { file: path.join(ROOT, 'store-catalog.js'), type: 'application/javascript; charset=utf-8' }],
@@ -586,6 +593,21 @@ function createAdminServer(options = {}) {
       return;
     }
 
+    if (pathname === '/api/store-orders' && req.method === 'GET') {
+      const session = requireSession(req, res);
+      if (!session) return;
+      sendJson(res, 200, { orders: await orders().listAdminOrders(), serverTime: new Date().toISOString() });
+      return;
+    }
+
+    if (pathname === '/api/store-orders' && req.method === 'PATCH') {
+      const session = requireSession(req, res);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_BODY_BYTES);
+      sendJson(res, 200, { order: await orders().updateAdminOrder(body) });
+      return;
+    }
+
     if ((pathname === '/api/announcements' || pathname === '/api/promotions' || pathname === '/api/store-products') && req.method === 'GET') {
       const session = requireSession(req, res);
       if (!session) return;
@@ -642,11 +664,11 @@ function createAdminServer(options = {}) {
       else fs.createReadStream(staticFile.file).pipe(res);
     } catch (error) {
       if (res.headersSent || res.writableEnded) return;
-      if (error instanceof ApiError) {
+      if (error instanceof ApiError || (Number.isSafeInteger(error.status) && error.code)) {
         sendJson(res, error.status, { error: error.message, code: error.code });
         return;
       }
-      console.error('Admin server error:', error && error.message ? error.message : 'unknown error');
+      console.error('Admin server error:', error && error.code ? error.code : 'INTERNAL');
       sendJson(res, 500, { error: 'Une erreur interne est survenue.', code: 'INTERNAL' });
     }
   });
