@@ -1,8 +1,8 @@
 {
   "enabled": true,
-  "versionCode": 333,
-  "versionName": "3.3.27",
-  "apkUrl": "https://github.com/web3service/fitia-mining-pro/releases/download/v3.3.27/FITIA-PRO-Miner.apk",
-  "sha256": "4dfe5c32d5fa9a9ce1f8a841a916b5d2732c2ba851a9251cd46ea8971f8db7ef",
+  "versionCode": 334,
+  "versionName": "3.4.0",
+  "apkUrl": "https://github.com/web3service/fitia-mining-pro/releases/download/v3.4.0/FITIA-PRO-Miner.apk",
+  "sha256": "fe1845fc65927eddb9cb13e45a41cf2203ce7b81b04ff9a7f017cb4b60c52681",
   "notes": "Des améliorations de sécurité et de nouvelles fonctionnalités sont disponibles. Installez la dernière version pour continuer à utiliser FITIA PRO."
 }
