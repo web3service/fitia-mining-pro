@@ -1,8 +1,10 @@
 'use strict';
 
+const crypto = require('crypto');
 const ethers = require('./vendor/ethers.umd.min.js');
 const Config = require('./farm-config');
 const Protocol = require('./farm-protocol');
+const WheelConfig = require('./wheel-config');
 
 const DEFAULT_RPCS = [
   'https://polygon-bor-rpc.publicnode.com',
@@ -31,8 +33,35 @@ function defaultState(wallet, now = Date.now()) {
   return {
     version: 1, wallet, coins: 0, land: null, animals: [], crops: [], feed: 0,
     inventory: Object.fromEntries(PRODUCT_KEYS.map((key) => [key, 0])),
+    wheel: { version: WheelConfig.VERSION, lastFreeAt: 0, bonusSpins: 0, totalSpins: 0, totalStaked: 0, totalWonCoins: 0, recentSpins: [] },
     createdAt: now, updatedAt: now
   };
+}
+function normalizeWheel(raw) {
+  const wheel = { version: WheelConfig.VERSION, lastFreeAt: 0, bonusSpins: 0, totalSpins: 0, totalStaked: 0, totalWonCoins: 0, recentSpins: [] };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return wheel;
+  wheel.lastFreeAt = safeTime(raw.lastFreeAt);
+  wheel.bonusSpins = safeInteger(raw.bonusSpins, 0, WheelConfig.MAX_BONUS_SPINS);
+  wheel.totalSpins = safeInteger(raw.totalSpins, 0, Number.MAX_SAFE_INTEGER);
+  wheel.totalStaked = safeInteger(raw.totalStaked, 0, Number.MAX_SAFE_INTEGER);
+  wheel.totalWonCoins = safeInteger(raw.totalWonCoins, 0, Number.MAX_SAFE_INTEGER);
+  if (Array.isArray(raw.recentSpins)) {
+    wheel.recentSpins = raw.recentSpins.slice(0, WheelConfig.HISTORY_LIMIT).map((spin) => {
+      const segment = WheelConfig.segmentById(spin?.segmentId);
+      if (!segment || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(spin?.id || ''))) return null;
+      const createdAt = Date.parse(spin.createdAt);
+      if (!Number.isFinite(createdAt)) return null;
+      return {
+        id: String(spin.id).toLowerCase(), mode: ['free', 'paid', 'bonus'].includes(spin.mode) ? spin.mode : 'paid',
+        stake: safeInteger(spin.stake, 0, Config.MAX_COINS), baseCoins: safeInteger(spin.baseCoins, WheelConfig.FREE_BASE_COINS, Config.MAX_COINS),
+        segmentId: segment.id, kind: segment.kind, coins: safeInteger(spin.coins, 0, Config.MAX_COINS),
+        ftaCoins: safeInteger(spin.ftaCoins, 0, Config.MAX_COINS), feed: safeInteger(spin.feed, 0, 100000),
+        product: PRODUCT_KEYS.includes(spin.product) ? spin.product : null, quantity: safeInteger(spin.quantity, 0, 1000000),
+        bonusSpins: safeInteger(spin.bonusSpins, 0, 1), createdAt: new Date(createdAt).toISOString()
+      };
+    }).filter(Boolean);
+  }
+  return wheel;
 }
 function normalizeState(raw, wallet) {
   const base = defaultState(wallet, safeTime(raw?.createdAt) || Date.now());
@@ -41,6 +70,7 @@ function normalizeState(raw, wallet) {
   if (raw.land?.owned === true) base.land = { owned: true, level: 1, purchasedAt: safeTime(raw.land.purchasedAt) };
   base.feed = safeInteger(raw.feed, 0, 100000);
   PRODUCT_KEYS.forEach((key) => { base.inventory[key] = safeInteger(raw.inventory?.[key], 0, 1000000); });
+  base.wheel = normalizeWheel(raw.wheel);
   if (Array.isArray(raw.animals)) {
     base.animals = raw.animals.slice(0, Config.MAX_ANIMALS).map((animal) => {
       if (!animal || !Config.ANIMALS[animal.species]) return null;
@@ -207,6 +237,7 @@ function createFarmService(options = {}) {
   if (!options.repository) throw new Error('Un stockage FARM est requis.');
   const repository = options.repository;
   const now = options.now || (() => new Date());
+  const randomInt = options.randomInt || ((maximum) => crypto.randomInt(maximum));
   const verifier = options.paymentVerifier || ((expectation, hash) => verifyFtaTransfer(expectation, hash, options.rpc));
 
   function authenticate(action, body) {
@@ -219,21 +250,24 @@ function createFarmService(options = {}) {
       return buyer;
     } catch (_) { throw new FarmError(401, 'Signature du wallet invalide.', 'FARM_AUTH'); }
   }
-  async function view(wallet) {
+  async function view(wallet, spinId = null) {
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
     const withdrawals = await repository.listWithdrawals(wallet);
-    return { state, revision: record?.revision || 0, withdrawals };
+    const result = { state, revision: record?.revision || 0, withdrawals };
+    if (spinId) result.spin = state.wheel.recentSpins.find((spin) => spin.id === spinId) || null;
+    return result;
   }
   async function getState(body) { return view(authenticate('state', body)); }
   async function applyIdempotent(wallet, actionId, actionType, state, expectedRevision, extra = {}) {
+    const spinId = actionType === 'wheel_spin' ? actionId : null;
     try {
       await repository.apply(wallet, expectedRevision, state, actionId, actionType, extra);
     } catch (error) {
-      if (await repository.isActionProcessed(actionId, wallet)) return view(wallet);
+      if (await repository.isActionProcessed(actionId, wallet)) return view(wallet, spinId);
       throw error;
     }
-    return view(wallet);
+    return view(wallet, spinId);
   }
   async function deposit(body) {
     const wallet = authenticate('deposit', body);
@@ -254,7 +288,53 @@ function createFarmService(options = {}) {
     state.coins += coins; state.updatedAt = now().getTime();
     return { pending: false, ...(await applyIdempotent(wallet, actionId, 'deposit', state, record?.revision || 0, { txHash })) };
   }
+  function spinWheel(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const mode = String(params.mode || '');
+    if (!['free', 'paid', 'bonus'].includes(mode)) throw new FarmError(400, 'Mode de roue invalide.', 'WHEEL_MODE');
+    let stake = 0;
+    if (mode === 'paid') {
+      stake = WheelConfig.normalizeStake(params.stake);
+      if (!stake) throw new FarmError(400, 'Mise de roue invalide.', 'WHEEL_STAKE');
+      if (state.coins < stake) throw new FarmError(409, 'Coins insuffisants pour cette mise.', 'FARM_INSUFFICIENT_COINS');
+    } else if (params.stake !== undefined && params.stake !== '0') {
+      throw new FarmError(400, 'Mise de roue invalide.', 'WHEEL_STAKE');
+    }
+    if (mode === 'free' && timestamp - state.wheel.lastFreeAt < WheelConfig.FREE_INTERVAL_MS) {
+      throw new FarmError(409, 'Le tour gratuit est disponible toutes les 24 heures.', 'WHEEL_FREE_COOLDOWN');
+    }
+    if (mode === 'bonus' && state.wheel.bonusSpins < 1) throw new FarmError(409, 'Aucun tour bonus disponible.', 'WHEEL_BONUS_EMPTY');
+
+    if (mode === 'paid') state.coins -= stake;
+    else if (mode === 'free') state.wheel.lastFreeAt = timestamp;
+    else state.wheel.bonusSpins -= 1;
+
+    const segment = WheelConfig.selectSegment(randomInt(WheelConfig.TOTAL_WEIGHT));
+    const baseCoins = mode === 'paid' ? stake : (mode === 'free' ? WheelConfig.FREE_BASE_COINS : WheelConfig.BONUS_BASE_COINS);
+    const reward = WheelConfig.rewardFor(segment, baseCoins);
+    if (state.coins + reward.coins > Config.MAX_COINS) throw new FarmError(409, 'Limite de coins atteinte.', 'FARM_LIMIT');
+    if (state.feed + reward.feed > 100000) throw new FarmError(409, 'Limite de nourriture atteinte.', 'FARM_LIMIT');
+    if (reward.product && state.inventory[reward.product] + reward.quantity > 1000000) throw new FarmError(409, 'Limite de grange atteinte.', 'FARM_LIMIT');
+    if (reward.bonusSpins && state.wheel.bonusSpins + reward.bonusSpins > WheelConfig.MAX_BONUS_SPINS) throw new FarmError(409, 'Limite de tours bonus atteinte.', 'FARM_LIMIT');
+    state.coins += reward.coins;
+    state.feed += reward.feed;
+    if (reward.product) state.inventory[reward.product] += reward.quantity;
+    state.wheel.bonusSpins += reward.bonusSpins;
+    state.wheel.totalSpins += 1;
+    state.wheel.totalStaked += stake;
+    state.wheel.totalWonCoins += reward.coins;
+    if (!Number.isSafeInteger(state.wheel.totalSpins) || !Number.isSafeInteger(state.wheel.totalStaked) || !Number.isSafeInteger(state.wheel.totalWonCoins)) throw new FarmError(409, 'Limite de statistiques atteinte.', 'FARM_LIMIT');
+    state.wheel.recentSpins.unshift({
+      id: actionId, mode, stake, baseCoins, segmentId: segment.id, kind: reward.kind,
+      coins: reward.coins, ftaCoins: reward.ftaCoins, feed: reward.feed, product: reward.product,
+      quantity: reward.quantity, bonusSpins: reward.bonusSpins, createdAt: new Date(timestamp).toISOString()
+    });
+    state.wheel.recentSpins = state.wheel.recentSpins.slice(0, WheelConfig.HISTORY_LIMIT);
+    state.updatedAt = timestamp;
+    return state;
+  }
   function transition(state, type, params, actionId, timestamp) {
+    if (type === 'wheel_spin') return spinWheel(state, params, actionId, timestamp);
     const deduct = (amount) => {
       if (state.coins < amount) throw new FarmError(409, 'Coins insuffisants.', 'FARM_INSUFFICIENT_COINS');
       state.coins -= amount;
@@ -320,7 +400,7 @@ function createFarmService(options = {}) {
   async function action(body) {
     const wallet = authenticate('action', body);
     const actionId = Protocol.requireUuid(body.actionId);
-    if (await repository.isActionProcessed(actionId, wallet)) return view(wallet);
+    if (await repository.isActionProcessed(actionId, wallet)) return view(wallet, actionId);
     const type = Protocol.requireType(body.type);
     const params = Protocol.normalizeParams(body.params);
     const record = await repository.get(wallet);

@@ -94,15 +94,52 @@
       this.app = app; this.account = null; this.state = null; this.revision = 0; this.withdrawals = [];
       this.scene = null; this.active = false; this.initialized = false; this.operation = false;
       this.refreshPromise = null; this.pendingCheck = null; this.pendingDeposit = null;
-      this.pollTimer = null; this.clockTimer = null; this.retryTimer = null; this.session = 0; this.tab = 'overview';
+      this.pollTimer = null; this.clockTimer = null; this.retryTimer = null; this.backgroundPollTimer = null; this.session = 0; this.tab = 'overview';
+      this.withdrawalStatuses = {};
     }
     init() {
       this.initialized = true;
       this.clockTimer = globalThis.setInterval(() => this.tick(), 1000);
+      this.backgroundPollTimer = globalThis.setInterval(() => {
+        if (this.account && !document.hidden && !this.operation) this.refresh({ quiet: true }).catch(() => {});
+      }, 45000);
       this.render();
+    }
+    startSession() {
+      const session = this.session;
+      globalThis.setTimeout(() => {
+        if (this.account && session === this.session) this.refresh({ quiet: true }).catch(() => {});
+      }, 0);
+    }
+    withdrawalStorageKey() { return this.account ? `fitia_farm_withdrawal_status_v1:${this.account}` : null; }
+    loadWithdrawalStatuses() {
+      this.withdrawalStatuses = {};
+      const key = this.withdrawalStorageKey(); if (!key) return;
+      try {
+        const raw = localStorage.getItem(key); if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+        Object.entries(parsed).slice(-100).forEach(([id, status]) => {
+          if (/^[0-9a-f-]{36}$/i.test(id) && ['pending', 'paid'].includes(status)) this.withdrawalStatuses[id] = status;
+        });
+      } catch (_) { this.withdrawalStatuses = {}; }
+    }
+    synchronizeWithdrawals(withdrawals) {
+      const previous = this.withdrawalStatuses || {}; const next = { ...previous };
+      withdrawals.forEach((withdrawal) => {
+        if (!withdrawal?.id || !['pending', 'paid'].includes(withdrawal.status)) return;
+        if (withdrawal.status === 'paid' && previous[withdrawal.id] === 'pending') {
+          this.app.activity?.notify('success', 'FARM withdrawal paid', `${formatUnits(withdrawal.ftaUnits)} FTA · ${Number(withdrawal.coins).toLocaleString('en-US')} coins`);
+        }
+        next[withdrawal.id] = previous[withdrawal.id] === 'paid' ? 'paid' : withdrawal.status;
+      });
+      this.withdrawalStatuses = Object.fromEntries(Object.entries(next).slice(-100));
+      const key = this.withdrawalStorageKey();
+      if (key) { try { localStorage.setItem(key, JSON.stringify(this.withdrawalStatuses)); } catch (_) { /* Notification history remains available in memory. */ } }
     }
     setAccount(account) {
       this.session += 1; this.account = account && ethers.isAddress(account) ? account.toLowerCase() : null;
+      this.loadWithdrawalStatuses();
       this.state = null; this.revision = 0; this.withdrawals = []; this.pendingDeposit = null;
       this.refreshPromise = null; this.pendingCheck = null; this.operation = false;
       clearTimeout(this.retryTimer); this.retryTimer = null;
@@ -182,6 +219,7 @@
       const revision = Number(data.revision || 0);
       if (revision < this.revision) return;
       this.revision = revision; this.state = data.state; this.withdrawals = Array.isArray(data.withdrawals) ? data.withdrawals : [];
+      this.synchronizeWithdrawals(this.withdrawals);
       this.scene?.setState(this.state); this.render();
     }
     async refresh(options = {}) {
@@ -235,6 +273,7 @@
       document.querySelectorAll('[data-farm-requires-land]').forEach((button) => { button.disabled = !state.land?.owned || this.operation; });
       byId('farm-deposit-pending').classList.toggle('hidden', !this.pendingDeposit);
       this.renderAnimals(); this.renderCrops(); this.renderInventory(); this.renderWithdrawals(); this.tick();
+      this.app.luckyWheel?.render();
     }
     renderAnimals() {
       const list = document.getElementById('farm-animal-list'); if (!list) return; list.textContent = '';

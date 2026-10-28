@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.4.2 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.4.3 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -401,7 +401,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.Uint8Array = Uint8Array;
   win.ArrayBuffer = ArrayBuffer;
   win.fetch = async (url, opts) => {
-    if (String(url).includes('/announcements.json') || String(url).includes('/promotions.json') || String(url).includes('store-products.json')) throw new Error('offline-sandbox');
+    if (String(url).includes('/announcements.json') || String(url).includes('/promotions.json') || String(url).includes('store-products.json') || String(url).includes('/api/farm')) throw new Error('offline-sandbox');
     // Bloque les appels prix externes (DexScreener/CoinGecko) en sandbox pour rapidité instantanée
     if (String(url).includes('dexscreener') || String(url).includes('coingecko')) {
       throw new Error('offline-sandbox');
@@ -422,11 +422,18 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.indexedDB = createMockIndexedDB();
   win.FitiaNative = createMockAndroidBridge();
   win.confirm = () => true;
-  win.HTMLCanvasElement.prototype.getContext = () => ({
-    canvas: { width: 300, height: 80, offsetWidth: 150, offsetHeight: 40 },
-    clearRect() {},
-    fillRect() {}
-  });
+  win.HTMLCanvasElement.prototype.getContext = function () {
+    const gradient = { addColorStop() {} };
+    const target = {
+      canvas: this, clearRect() {}, fillRect() {},
+      createRadialGradient: () => gradient, createLinearGradient: () => gradient,
+      measureText: (text) => ({ width: String(text).length * 8 })
+    };
+    return new Proxy(target, {
+      get(object, property) { return property in object ? object[property] : (() => {}); },
+      set(object, property, value) { object[property] = value; return true; }
+    });
+  };
 
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor', 'ethers.umd.min.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor', 'three.min.js'), 'utf8'));
@@ -442,6 +449,8 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'farm-protocol.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'farm-3d.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'farm.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'wheel-config.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'wheel.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'assistant.js'), 'utf8'));
 
   if (mockRpcUrl) {
@@ -478,7 +487,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.4.2\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.4.3\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -816,13 +825,14 @@ function httpRequest(port, method, reqPath) {
       App.closeModals();
     });
 
-    await runTest('NAV-HUB', 'Navigation limitée à cinq entrées et Hub actif pour FARM et Swap', async () => {
+    await runTest('NAV-HUB', 'Navigation limitée à cinq entrées et Hub actif pour FARM, Lucky Wheel et Swap', async () => {
       const document = e2eWin.document;
       const items = Array.from(document.querySelectorAll('.bottom-nav .nav-item'));
       assert.strictEqual(items.length, 5);
       assert.deepStrictEqual(items.map((item) => item.dataset.nav), ['dashboard', 'shop', 'store', 'my-rigs', 'hub']);
-      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 2);
-      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Swap']);
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 3);
+      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Lucky Wheel', 'Swap']);
+      assert.ok(document.querySelector('#view-hub .hub-card-wheel img[src="assets/lucky-wheel.svg"]'), 'Lucky Wheel possède son logo dans le Hub');
       assert.ok(document.querySelector('#view-hub .hub-card-farm img[src="assets/farm/barn.svg"]'), 'FARM possède son logo dans le Hub');
       assert.strictEqual(document.querySelectorAll('#view-hub .hub-swap-icons img').length, 2, 'Swap possède ses deux logos dans le Hub');
       assert.strictEqual(document.querySelector('#view-hub small'), null, 'Le Hub ne contient aucun texte secondaire');
@@ -831,9 +841,13 @@ function httpRequest(port, method, reqPath) {
       const originalRefresh = App.promotionCenter.refresh;
       const originalFarmEnter = App.farmCenter.enter;
       const originalFarmExit = App.farmCenter.exit;
+      const originalWheelEnter = App.luckyWheel.enter;
+      const originalWheelExit = App.luckyWheel.exit;
       App.promotionCenter.refresh = () => {};
       App.farmCenter.enter = () => {};
       App.farmCenter.exit = () => {};
+      App.luckyWheel.enter = () => {};
+      App.luckyWheel.exit = () => {};
       try {
         App.nav('hub');
         assert.ok(document.getElementById('view-hub').classList.contains('active'));
@@ -847,6 +861,10 @@ function httpRequest(port, method, reqPath) {
         assert.ok(document.getElementById('view-farm').classList.contains('active'));
         assert.ok(hubButton.classList.contains('active'), 'FARM conserve le Hub actif');
         assert.strictEqual(document.querySelectorAll('.bottom-nav .nav-item.active').length, 1);
+        App.nav('wheel');
+        assert.ok(document.getElementById('view-wheel').classList.contains('active'));
+        assert.ok(hubButton.classList.contains('active'), 'Lucky Wheel conserve le Hub actif');
+        assert.strictEqual(document.querySelectorAll('.bottom-nav .nav-item.active').length, 1);
         App.nav('swap');
         assert.ok(document.getElementById('view-swap').classList.contains('active'));
         assert.ok(hubButton.classList.contains('active'), 'Le Swap conserve le Hub actif');
@@ -855,6 +873,8 @@ function httpRequest(port, method, reqPath) {
         App.promotionCenter.refresh = originalRefresh;
         App.farmCenter.enter = originalFarmEnter;
         App.farmCenter.exit = originalFarmExit;
+        App.luckyWheel.enter = originalWheelEnter;
+        App.luckyWheel.exit = originalWheelExit;
         App.nav('dashboard', document.querySelector('.nav-item[data-nav="dashboard"]'));
       }
     });
@@ -1172,9 +1192,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 336,
-        versionName: '3.4.2',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.4.2/FITIA-PRO-Miner.apk',
+        versionCode: 337,
+        versionName: '3.4.3',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.4.3/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1217,7 +1237,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 336;
+        nativeState.appVersionCode = 337;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2600,9 +2620,10 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/store.js'), 'Le module FITIA STORE est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/store-catalog.js'), 'Les validations STORE sont embarquées dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/store-products.json'), 'Le catalogue local de secours est embarqué dans l’APK');
-      for (const farmFile of ['farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'vendor/three.min.js', 'vendor/THREE-LICENSE.txt']) {
+      for (const farmFile of ['farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'vendor/three.min.js', 'vendor/THREE-LICENSE.txt']) {
         assert.ok(packagedFiles.includes(`assets/www/${farmFile}`), `Le module FARM ${farmFile} est embarqué dans l’APK`);
       }
+      assert.ok(packagedFiles.includes('assets/www/assets/lucky-wheel.svg'), 'Le logo Lucky Wheel est embarqué dans l’APK');
       for (const farmAsset of ['barn.svg', 'chicken.svg', 'sheep.svg', 'cow.svg', 'wheat.svg', 'carrot.svg', 'feed.svg', 'terrain.svg', 'eggs.svg', 'wool.svg', 'milk.svg', 'coins.svg']) {
         assert.ok(packagedFiles.includes(`assets/www/assets/farm/${farmAsset}`), `L’illustration FARM ${farmAsset} est embarquée dans l’APK`);
       }
@@ -2618,7 +2639,7 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
       assert.ok(!packagedFiles.includes('assets/www/store-order-service.js'), 'Le service privé de chiffrement serveur n’est pas embarqué dans l’APK');
       assert.ok(!packagedFiles.includes('assets/www/farm-service.js'), 'Le registre privé FARM n’est pas embarqué dans l’APK');
-      for (const sourceFile of ['app.js', 'wallet.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js']) {
+      for (const sourceFile of ['app.js', 'wallet.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js']) {
         const packagedSource = execFileSync('python3', ['-c', [
           'import zipfile, sys',
           'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'
@@ -2647,11 +2668,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 336);
-      assert.strictEqual(updateManifest.versionName, '3.4.2');
-      assert.ok(updateManifest.apkUrl.includes('/v3.4.2/'));
+      assert.strictEqual(updateManifest.versionCode, 337);
+      assert.strictEqual(updateManifest.versionName, '3.4.3');
+      assert.ok(updateManifest.apkUrl.includes('/v3.4.3/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.4.2 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.4.3 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2669,8 +2690,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=336'), 'versionCode=336 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.4.2"'), 'versionName=3.4.2 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=337'), 'versionCode=337 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.4.3"'), 'versionName=3.4.3 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
