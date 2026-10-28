@@ -23,7 +23,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
-          output="$(node <<'NODE'
+          output="$(node 2>&1 <<'NODE'
           const assert = require('assert');
           const crypto = require('crypto');
           const ethers = require('./vendor/ethers.umd.min.js');
