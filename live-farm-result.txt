@@ -1,4 +1,0 @@
-RUN_ID=40626619131
-PUBLIC_RELEASE_OK version=3.4.0 code=334 hash_match=true
-LIVE_FARM_API_OK signed_state=true invalid_auth_rejected=true no_payment=true no_mutation=true
-LIVE_ADMIN_AUTH_OK
