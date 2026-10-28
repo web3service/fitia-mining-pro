@@ -37,7 +37,7 @@
       this.active = false; this.operation = false; this.waiting = false; this.mode = 'paid';
       this.selectedStake = Config.DEFAULT_STAKE; this.pending = null; this.currentResult = null;
       this.rotation = 0; this.canvas = null; this.context = null; this.animationFrame = 0;
-      this.animationGeneration = 0; this.clockTimer = null; this.resizeObserver = null;
+      this.animationGeneration = 0; this.clockTimer = null; this.resizeObserver = null; this.animationResolve = null;
       this.layout = this.createLayout();
     }
 
@@ -53,6 +53,7 @@
     init() {
       this.canvas = document.getElementById('lucky-wheel-canvas');
       try { this.context = this.canvas?.getContext('2d') || null; } catch (_) { this.context = null; }
+      if (!this.context) this.setCanvasFallback();
       document.querySelectorAll('[data-wheel-mode]').forEach((button) => button.addEventListener('click', () => this.setMode(button.dataset.wheelMode)));
       document.querySelectorAll('[data-wheel-stake]').forEach((button) => button.addEventListener('click', () => this.setStake(Number(button.dataset.wheelStake))));
       document.getElementById('wheel-spin-button')?.addEventListener('click', () => this.spin());
@@ -78,13 +79,14 @@
 
     enter() {
       this.active = true; this.render(); this.resize();
+      if (this.operation && this.waiting && !this.animationFrame) this.beginWaiting();
       if (!this.farm.state) this.farm.refresh({ quiet: false }).catch((error) => this.showError(error));
       if (this.pending && !this.operation) globalThis.setTimeout(() => {
         if (this.active && this.pending && !this.operation) this.spin();
       }, 0);
     }
 
-    exit() { this.active = false; }
+    exit() { this.active = false; this.cancelAnimation(); }
 
     storageKey() { return this.account ? `fitia_wheel_pending_v1:${this.account}` : null; }
     loadPending() {
@@ -171,7 +173,7 @@
       const frame = (time) => {
         if (generation !== this.animationGeneration || !this.waiting) return;
         const elapsed = Math.min(50, time - previous); previous = time;
-        this.rotation = mod(this.rotation + elapsed * 0.009, TWO_PI); this.draw();
+        this.rotation = mod(this.rotation + elapsed * 0.009, TWO_PI); this.paintRotation();
         this.animationFrame = requestAnimationFrame(frame);
       };
       this.animationFrame = requestAnimationFrame(frame);
@@ -182,19 +184,21 @@
       if (!entry) return Promise.reject(new Error('Unknown server wheel result.'));
       const desired = -Math.PI / 2 - (entry.start + entry.end) / 2;
       const start = this.rotation; const distance = mod(desired - start, TWO_PI) + TWO_PI * 6;
-      if (!this.context || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-        this.rotation = mod(start + distance, TWO_PI); this.cancelAnimation(); this.draw(); return Promise.resolve();
+      if (!this.active || !this.context || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        this.rotation = mod(start + distance, TWO_PI); this.cancelAnimation(); this.paintRotation(); return Promise.resolve();
       }
       this.cancelAnimation(); this.waiting = false; const generation = this.animationGeneration;
       const duration = 3900; const startedAt = performance.now();
       return new Promise((resolve) => {
+        this.animationResolve = resolve;
         const frame = (time) => {
-          if (generation !== this.animationGeneration) { resolve(); return; }
+          if (generation !== this.animationGeneration) { this.animationResolve = null; resolve(); return; }
           const progress = Math.min(1, (time - startedAt) / duration);
           const eased = 1 - Math.pow(1 - progress, 4);
-          this.rotation = start + distance * eased; this.draw();
-          if (progress >= 1) { this.rotation = mod(this.rotation, TWO_PI); this.draw(); resolve(); }
-          else this.animationFrame = requestAnimationFrame(frame);
+          this.rotation = start + distance * eased; this.paintRotation();
+          if (progress >= 1) {
+            this.rotation = mod(this.rotation, TWO_PI); this.paintRotation(); this.animationFrame = 0; this.animationResolve = null; resolve();
+          } else this.animationFrame = requestAnimationFrame(frame);
         };
         this.animationFrame = requestAnimationFrame(frame);
       });
@@ -204,14 +208,29 @@
       this.animationGeneration += 1;
       if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
       this.animationFrame = 0;
+      const resolve = this.animationResolve; this.animationResolve = null;
+      if (resolve) resolve();
+    }
+
+    paintRotation() {
+      if (this.canvas) this.canvas.style.transform = `rotate(${this.rotation}rad)`;
+    }
+
+    setCanvasFallback() {
+      this.context = null; this.canvas?.closest('.wheel-stage')?.classList.add('canvas-unavailable');
     }
 
     resize() {
       if (!this.canvas || !this.context) return;
-      const bounds = this.canvas.getBoundingClientRect();
-      const size = Math.max(220, Math.round(bounds.width || 320)); const ratio = Math.min(2, globalThis.devicePixelRatio || 1);
-      if (this.canvas.width !== Math.round(size * ratio)) { this.canvas.width = Math.round(size * ratio); this.canvas.height = Math.round(size * ratio); }
-      this.context.setTransform(ratio, 0, 0, ratio, 0, 0); this.draw();
+      try {
+        const bounds = this.canvas.getBoundingClientRect();
+        if (!this.active && bounds.width <= 0) return;
+        const size = Math.max(220, Math.round(bounds.width || 320)); const ratio = Math.min(2, globalThis.devicePixelRatio || 1);
+        const width = Math.round(size * ratio); const height = Math.round(size * ratio);
+        if (this.canvas.width === width && this.canvas.height === height) { this.paintRotation(); return; }
+        this.canvas.width = width; this.canvas.height = height;
+        this.context.setTransform(ratio, 0, 0, ratio, 0, 0); this.draw();
+      } catch (_) { this.setCanvasFallback(); }
     }
 
     draw() {
@@ -224,9 +243,9 @@
       ctx.beginPath(); ctx.arc(0, 0, radius, 0, TWO_PI); ctx.fillStyle = rim; ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 18; ctx.fill(); ctx.shadowBlur = 0;
       const wheelRadius = radius - 13;
       this.layout.forEach(({ segment, start, end }) => {
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, wheelRadius, start + this.rotation, end + this.rotation); ctx.closePath();
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, wheelRadius, start, end); ctx.closePath();
         ctx.fillStyle = segment.color; ctx.fill(); ctx.strokeStyle = 'rgba(255,240,180,.38)'; ctx.lineWidth = 1.2; ctx.stroke();
-        const middle = (start + end) / 2 + this.rotation; const narrow = segment.weight < 5;
+        const middle = (start + end) / 2; const narrow = segment.weight < 5;
         ctx.save(); ctx.rotate(middle); ctx.translate(wheelRadius * .61, 0); if (!narrow) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = segment.id === 'fta_big' ? '#382332' : '#fff9e9'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = segment.id === 'fta_big' ? 0 : 3;
         ctx.font = `800 ${narrow ? Math.max(7, size * .021) : Math.max(8, size * .027)}px Inter, sans-serif`;
@@ -250,7 +269,7 @@
       ctx.fillStyle = '#2b1b22'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = `800 ${size * .037}px Inter, sans-serif`; ctx.fillText('FITIA', 0, -size * .018);
       ctx.font = `800 ${size * .024}px Inter, sans-serif`; ctx.fillText('LUCKY', 0, size * .027);
-      ctx.restore();
+      ctx.restore(); this.paintRotation();
     }
 
     rewardText(reward, detailed = false) {
@@ -295,7 +314,7 @@
       button.disabled = disabled;
       this.renderResult(); this.renderHistory();
       if (document.getElementById('modal-wheel-info')?.classList.contains('active')) this.renderProbabilities();
-      this.draw();
+      this.paintRotation();
     }
 
     renderResult() {
@@ -336,6 +355,7 @@
     }
 
     celebrate(result) {
+      if (!this.active) return;
       const layer = document.getElementById('wheel-celebration'); if (!layer || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
       if (!['fta', 'coins', 'extra_spin'].includes(result.kind)) return;
       layer.textContent = '';
