@@ -156,8 +156,10 @@ async function request(base, action, options = {}) {
       const ignore = fs.readFileSync(path.join(ROOT, '.vercelignore'), 'utf8');
       assert.ok(!ignore.split('\n').includes('admin/'));
       assert.ok(ignore.split('\n').includes('admin-server.js'));
-      assert.ok(ignore.split('\n').includes('farm.js'));
-      assert.ok(ignore.split('\n').includes('farm-3d.js'));
+      assert.ok(ignore.split('\n').includes('/farm.js'));
+      assert.ok(ignore.split('\n').includes('/farm-3d.js'));
+      assert.ok(!ignore.split('\n').includes('farm.js'), 'L’API api/farm.js ne doit pas être exclue');
+      assert.ok(!ignore.split('\n').includes('farm-3d.js'));
       assert.ok(ignore.split('\n').includes('vendor/*'));
       assert.ok(ignore.split('\n').includes('!vendor/ethers.umd.min.js'));
       assert.ok(fs.existsSync(path.join(ROOT, 'api/store-orders.js')));
