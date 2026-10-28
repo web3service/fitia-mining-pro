@@ -21,6 +21,7 @@
       assetUploads: 0
     };
     const { byId, api, clone } = deps;
+    const catalog = window.FitiaStoreCatalog;
     const localized = (value) => value?.fr || value?.en || '';
 
     function reset() {
@@ -56,6 +57,70 @@
       return ({ active: 'En vente', disabled: 'Masqué', scheduled: 'Programmé', expired: 'Expiré', soldout: 'Épuisé' })[status] || status;
     }
 
+    function renderCountryOptions() {
+      const select = byId('store-delivery-country');
+      if (!select || select.options.length > 1 || !catalog) return;
+      const countries = catalog.COUNTRY_CODES.map((code) => ({
+        code,
+        name: catalog.countryName(code, 'fr')
+      })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+      countries.forEach(({ code, name }) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = `${name} (${code})`;
+        select.appendChild(option);
+      });
+    }
+
+    function renderDeliveryCountries() {
+      const list = byId('store-country-list');
+      if (!list || !state.manifest || !catalog) return;
+      const countries = state.manifest.shippingCountries || [];
+      list.textContent = '';
+      byId('store-country-count').textContent = `${countries.length} pays`;
+      byId('store-country-empty').classList.toggle('hidden', countries.length > 0);
+      const select = byId('store-delivery-country');
+      Array.from(select.options).forEach((option) => {
+        if (option.value) option.disabled = countries.includes(option.value);
+      });
+      byId('store-add-country').disabled = !select.value || countries.includes(select.value);
+      countries.forEach((code) => {
+        const name = catalog.countryName(code, 'fr');
+        const chip = document.createElement('span');
+        chip.className = 'store-country-chip';
+        chip.dataset.countryCode = code;
+        const flag = document.createElement('img');
+        flag.className = 'store-country-chip-flag';
+        flag.src = `/assets/flags/${code.toLowerCase()}.svg`;
+        flag.alt = '';
+        flag.width = 30;
+        flag.height = 22;
+        flag.loading = 'lazy';
+        flag.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('strong');
+        label.textContent = name;
+        const remove = deps.makeButton('×', 'store-country-remove', async () => {
+          const next = clone(state.manifest);
+          next.shippingCountries = (next.shippingCountries || []).filter((country) => country !== code);
+          await save(next, 'Pays de livraison mis à jour.');
+        });
+        remove.type = 'button';
+        remove.setAttribute('aria-label', `Retirer ${name}`);
+        chip.append(flag, label, remove);
+        list.appendChild(chip);
+      });
+    }
+
+    async function addDeliveryCountry() {
+      const select = byId('store-delivery-country');
+      const code = select.value;
+      if (!code || !catalog.COUNTRY_CODES.includes(code) || state.saving || (state.manifest.shippingCountries || []).includes(code)) return;
+      const next = clone(state.manifest);
+      next.shippingCountries = catalog.normalizeShippingCountries([...(next.shippingCountries || []), code]);
+      const success = await save(next, 'Pays de livraison mis à jour.');
+      if (success) select.value = '';
+    }
+
     function render() {
       if (!state.manifest) return;
       byId('store-enabled').checked = state.manifest.enabled;
@@ -64,6 +129,7 @@
       byId('store-stat-total').textContent = String(state.manifest.products.length);
       byId('store-stat-active').textContent = String(state.manifest.products.filter((item) => productStatus(item) === 'active').length);
       byId('store-stat-stock').textContent = String(state.manifest.products.reduce((sum, item) => sum + item.stock, 0));
+      renderDeliveryCountries();
       const search = byId('store-search').value.trim().toLowerCase();
       const source = byId('store-source-filter').value;
       const token = byId('store-token-filter').value;
@@ -317,6 +383,12 @@
     }
 
     function bindEvents() {
+      renderCountryOptions();
+      byId('store-add-country').addEventListener('click', addDeliveryCountry);
+      byId('store-delivery-country').addEventListener('change', (event) => {
+        byId('store-add-country').disabled = !event.target.value;
+      });
+      byId('store-add-country').disabled = true;
       document.querySelectorAll('[data-new-store-product]').forEach((button) => button.addEventListener('click', () => openEditor()));
       document.querySelectorAll('[data-close-store-editor]').forEach((button) => button.addEventListener('click', closeEditor));
       byId('store-product-form').addEventListener('submit', submitEditor);

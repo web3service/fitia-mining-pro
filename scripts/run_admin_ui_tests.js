@@ -14,6 +14,7 @@ const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
 const adminCss = fs.readFileSync(path.join(ROOT, 'admin/admin.css'), 'utf8');
 const script = fs.readFileSync(path.join(ROOT, 'admin/admin.js'), 'utf8');
 const effectsScript = fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8');
+const storeCatalogScript = fs.readFileSync(path.join(ROOT, 'store-catalog.js'), 'utf8');
 const storeAdminScript = fs.readFileSync(path.join(ROOT, 'admin/store-admin.js'), 'utf8');
 const ordersAdminScript = fs.readFileSync(path.join(ROOT, 'admin/orders-admin.js'), 'utf8');
 const farmAdminScript = fs.readFileSync(path.join(ROOT, 'admin/farm-admin.js'), 'utf8');
@@ -138,6 +139,7 @@ async function waitFor(condition, label) {
   assert.ok(adminCss.includes('input, select { min-height: 48px; font-size: 16px; }'));
   assert.ok(adminCss.includes('.nav-short-label { display: inline; }'));
   window.eval(effectsScript);
+  window.eval(storeCatalogScript);
   window.eval(storeAdminScript);
   window.eval(ordersAdminScript);
   window.eval(farmAdminScript);
@@ -355,7 +357,31 @@ async function waitFor(condition, label) {
   assert.strictEqual(storeManifest.enabled, true);
   window.document.querySelector(`[data-store-product-id="${createdStoreProduct.id}"] .button-danger`).click();
   await waitFor(() => storeWrites.length === 3, 'suppression produit STORE');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression produit STORE');
   assert.strictEqual(storeManifest.products.length, 0);
+
+  const countrySelect = window.document.getElementById('store-delivery-country');
+  assert.strictEqual(countrySelect.options.length, 250, 'Tous les codes ISO pays sont disponibles, avec le choix vide');
+  countrySelect.value = 'FR';
+  countrySelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  window.document.getElementById('store-add-country').click();
+  await waitFor(() => storeWrites.length === 4, 'ajout du pays France');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin ajout du pays France');
+  assert.deepStrictEqual(storeManifest.shippingCountries, ['FR']);
+  assert.ok(window.document.querySelector('[data-country-code="FR"]').textContent.includes('France'));
+  assert.strictEqual(window.document.querySelector('[data-country-code="FR"] img').getAttribute('src'), '/assets/flags/fr.svg');
+  countrySelect.value = 'DE';
+  countrySelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  window.document.getElementById('store-add-country').click();
+  await waitFor(() => storeWrites.length === 5, 'ajout du pays Allemagne');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin ajout du pays Allemagne');
+  assert.deepStrictEqual(storeManifest.shippingCountries, ['FR', 'DE']);
+  assert.strictEqual(window.document.querySelectorAll('#store-country-list .store-country-chip').length, 2);
+  window.document.querySelector('[data-country-code="FR"] .store-country-remove').click();
+  await waitFor(() => storeWrites.length === 6, 'retrait du pays France');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin retrait du pays France');
+  assert.deepStrictEqual(storeManifest.shippingCountries, ['DE']);
+  assert.strictEqual(window.document.querySelectorAll('#store-country-list .store-country-chip').length, 1);
 
   manifest.announcements[0].title.fr = 'Annonce rechargée malgré la panne';
   failPromotions = true;

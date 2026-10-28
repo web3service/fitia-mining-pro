@@ -1,6 +1,7 @@
 {
   "version": 1,
   "enabled": true,
+  "shippingCountries": [],
   "products": [
     {
       "id": "product-mvpwszmt-422259a2",

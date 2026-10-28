@@ -80,7 +80,9 @@ La branche configurée doit autoriser cette écriture. Chaque enregistrement ne 
 
 La section **FITIA STORE** gère `store-products.json` et les photos de `assets/store/`. Chaque fiche accepte un produit en stock propre ou en dropshipping, un prix en USDT ou FTA, un stock public, un délai de livraison et l’adresse Polygon de réception du vendeur.
 
-Le catalogue est public : n’y enregistrez aucune donnée de client. Le wallet ne transmet pas les adresses postales à GitHub, Vercel ou Polygon. Après le paiement direct au vendeur, l’acheteur partage explicitement un reçu contenant la référence, le hash de transaction et ses informations de livraison. L’historique local ne conserve que le récapitulatif du paiement, sans coordonnées postales.
+Le catalogue est public : n’y enregistrez aucune donnée de client. Après le paiement direct au vendeur, la commande et ses coordonnées chiffrées sont transmises automatiquement au service privé, sans reçu manuel. Les adresses postales ne sont jamais écrites sur Polygon, dans GitHub ni dans l’historique local du wallet. Le client peut rouvrir son suivi privé à tout moment ; son statut se rafraîchit pendant la consultation jusqu’à la livraison.
+
+Le champ `shippingCountries` contient uniquement les codes ISO des pays réellement desservis par vos partenaires ou agents. Ajoutez-les depuis la section **Réseau international de livraison** : le ruban public reste masqué tant que la liste est vide. Les noms sont localisés par l’appareil et les drapeaux SVG de `assets/flags/` sont embarqués localement. Ne mettez dans cette liste ni coordonnées d’agent, ni adresse de client.
 
 Les routes d’administration associées sont `/api/admin/store-products` et `/api/admin/store-assets`. Elles utilisent la même session, la même protection CSRF et la même vérification de révision que les autres manifestes. Le stock public doit être actualisé par le vendeur après les ventes et auprès du fournisseur dropshipping.
 
