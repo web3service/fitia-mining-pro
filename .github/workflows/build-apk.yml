@@ -1,6 +1,16 @@
 name: Build signed Android APK
 
 on:
+  push:
+    branches:
+      - arena/10ce3227-fitia-mining-pro
+    paths:
+      - 'android-src/**'
+      - 'app.js'
+      - 'style.css'
+      - 'scripts/run_farm_ui_tests.js'
+      - 'scripts/run_security_tests.js'
+      - 'package.json'
   workflow_dispatch:
     inputs:
       commit_build:
@@ -141,7 +151,7 @@ jobs:
           retention-days: 30
 
   commit-build:
-    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
+    if: ${{ (inputs.commit_build || github.event_name == 'push') && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:

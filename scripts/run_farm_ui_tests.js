@@ -146,9 +146,12 @@ async function waitFor(condition, label) {
       const document = window.document;
       const navItems = Array.from(document.querySelectorAll('.bottom-nav .nav-item'));
       assert.strictEqual(navItems.length, 5);
-      assert.deepStrictEqual(navItems.map((item) => item.dataset.nav), ['dashboard', 'farm', 'store', 'my-rigs', 'hub']);
+      assert.deepStrictEqual(navItems.map((item) => item.dataset.nav), ['dashboard', 'shop', 'store', 'my-rigs', 'hub']);
       assert.ok(document.getElementById('view-hub'));
-      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 6);
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 2);
+      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Swap']);
+      assert.ok(document.querySelector('#view-hub .hub-card-farm img[src="assets/farm/barn.svg"]'));
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-swap-icons img').length, 2);
       assert.strictEqual(document.querySelector('.farm-camera-hint'), null);
       assert.strictEqual(document.querySelector('.farm-hero p'), null);
       assert.strictEqual(document.querySelector('.farm-quick-actions small'), null);
