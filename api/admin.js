@@ -5,6 +5,7 @@ const {
   validateImagePayload
 } = require('../announcement-assets');
 const { validateManifest: validateStoreCatalog } = require('../store-catalog');
+const { getDefaultOrderService } = require('../store-order-service');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -407,7 +408,14 @@ async function saveAnnouncementAsset(config, payload, kind = 'announcement') {
   return { path: asset.path, contentType: asset.contentType, size: asset.size };
 }
 
-module.exports = async function adminHandler(req, res) {
+function createAdminHandler(options = {}) {
+  let orderService = options.orderService || null;
+  const orders = () => {
+    if (!orderService) orderService = getDefaultOrderService();
+    return orderService;
+  };
+
+  return async function adminHandler(req, res) {
   setSecurityHeaders(res);
   try {
     const config = getConfig();
@@ -478,14 +486,34 @@ module.exports = async function adminHandler(req, res) {
       return;
     }
 
+    if (action === 'store-orders' && req.method === 'GET') {
+      const session = requireSession(req, res, config);
+      if (!session) return;
+      sendJson(res, 200, { orders: await orders().listAdminOrders(), serverTime: new Date().toISOString() });
+      return;
+    }
+
+    if (action === 'store-orders' && req.method === 'PATCH') {
+      const session = requireSession(req, res, config);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_BODY_BYTES);
+      sendJson(res, 200, { order: await orders().updateAdminOrder(body) });
+      return;
+    }
+
     sendJson(res, 404, { error: 'Route API introuvable.', code: 'NOT_FOUND' });
   } catch (error) {
     if (res.headersSent || res.writableEnded) return;
-    if (error instanceof ApiError) {
+    if (error instanceof ApiError || (Number.isSafeInteger(error.status) && error.code)) {
       sendJson(res, error.status, { error: error.message, code: error.code });
       return;
     }
-    console.error('Vercel admin error:', error && error.message ? error.message : 'unknown error');
+    console.error('Vercel admin error:', error && error.code ? error.code : 'INTERNAL');
     sendJson(res, 500, { error: 'Une erreur interne est survenue.', code: 'INTERNAL' });
   }
-};
+  };
+}
+
+const handler = createAdminHandler();
+module.exports = handler;
+module.exports.createAdminHandler = createAdminHandler;

@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/promotion-effects.css">
   <script src="/promotion-effects.js" defer></script>
   <script src="/admin/store-admin.js" defer></script>
+  <script src="/admin/orders-admin.js" defer></script>
   <script src="/admin/admin.js" defer></script>
 </head>
 <body>
@@ -50,6 +51,9 @@
         </button>
         <button class="nav-button" type="button" data-section="store">
           <span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">FITIA STORE</span><span class="nav-short-label">Store</span>
+        </button>
+        <button class="nav-button" type="button" data-section="orders">
+          <span class="nav-icon" aria-hidden="true">✓</span><span class="nav-label">Commandes clients</span><span class="nav-short-label">Commandes</span>
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -196,7 +200,7 @@
 
           <div class="promotion-notice store-privacy-notice">
             <strong>Catalogue public, livraison privée</strong>
-            <p>Les fiches produits et les adresses crypto de réception sont publiques. N’enregistrez jamais ici d’adresse postale de client. Le wallet transmet les informations de livraison uniquement dans le reçu partagé par l’acheteur avec le vendeur.</p>
+            <p>Les fiches produits et les adresses crypto de réception sont publiques. N’enregistrez jamais ici d’adresse postale de client. Après vérification du paiement, les coordonnées chiffrées sont accessibles uniquement dans l’espace privé Commandes.</p>
           </div>
 
           <div class="stats-grid store-stats-grid" aria-label="Statistiques FITIA STORE">
@@ -218,6 +222,36 @@
             <h3>Aucun produit trouvé</h3>
             <p>Ajoutez un produit physique ou modifiez les filtres.</p>
             <button class="button button-secondary" type="button" data-new-store-product>Créer un produit</button>
+          </div>
+        </section>
+
+        <section id="section-orders" class="page-section hidden">
+          <div class="section-heading">
+            <div><p class="eyebrow">Paiements vérifiés</p><h2>Commandes clients</h2><p class="muted">Les commandes apparaissent automatiquement après confirmation du paiement. Les coordonnées sont déchiffrées uniquement dans cet espace privé.</p></div>
+            <button id="orders-refresh" class="button button-secondary" type="button">Actualiser</button>
+          </div>
+
+          <div class="promotion-notice store-privacy-notice">
+            <strong>Transmission automatique et confidentielle</strong>
+            <p>Le client ne partage aucun reçu manuellement. Ne copiez ses coordonnées ni dans le catalogue public, ni dans une annonce, ni sur Polygon.</p>
+          </div>
+
+          <div class="stats-grid store-stats-grid" aria-label="Statistiques des commandes">
+            <article class="stat-card stat-scheduled"><span>À préparer</span><strong id="orders-stat-paid">0</strong><small>Paiements confirmés</small></article>
+            <article class="stat-card"><span>En préparation</span><strong id="orders-stat-preparing">0</strong><small>Commandes en cours</small></article>
+            <article class="stat-card"><span>Expédiées</span><strong id="orders-stat-shipped">0</strong><small>Suivi à surveiller</small></article>
+            <article class="stat-card stat-active"><span>Livrées</span><strong id="orders-stat-delivered">0</strong><small>Commandes terminées</small></article>
+          </div>
+
+          <div class="list-toolbar orders-list-toolbar">
+            <label><span class="sr-only">Filtrer les commandes</span><select id="orders-status-filter"><option value="all">Tous les statuts</option><option value="paid">Payées · à préparer</option><option value="preparing">En préparation</option><option value="shipped">Expédiées</option><option value="delivered">Livrées</option></select></label>
+          </div>
+          <div id="orders-list-error" class="alert alert-error hidden" role="alert"></div>
+          <div id="orders-list" class="announcements-list seller-orders-list"></div>
+          <div id="orders-empty" class="empty-state hidden">
+            <img src="/assets/icon-192.png" width="52" height="52" alt="">
+            <h3>Aucune commande payée</h3>
+            <p>Les nouvelles commandes confirmées apparaîtront ici automatiquement.</p>
           </div>
         </section>
       </main>

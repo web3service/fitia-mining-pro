@@ -43,6 +43,10 @@
     {
       "source": "/api/admin/store-assets",
       "destination": "/api/admin?action=store-assets"
+    },
+    {
+      "source": "/api/admin/store-orders",
+      "destination": "/api/admin?action=store-orders"
     }
   ],
   "headers": [

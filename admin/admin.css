@@ -309,7 +309,7 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
   .sidebar-brand img { width: 36px; height: 36px; }
   .sidebar-brand strong { font-size: 0.78rem; }
   .sidebar-brand span { font-size: 0.64rem; }
-  .sidebar-nav { display: grid; grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; overflow: visible; }
+  .sidebar-nav { display: grid; grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; overflow: visible; }
   .nav-button { min-width: 0; min-height: 52px; flex-direction: column; justify-content: center; gap: 3px; padding: 7px 4px; border-radius: 10px; font-size: 0.67rem; line-height: 1.15; text-align: center; white-space: normal; }
   .nav-icon { width: auto; font-size: 0.94rem; line-height: 1; }
   .nav-label { display: none; }
@@ -432,6 +432,36 @@ input:focus, textarea:focus, select:focus { border-color: rgba(240, 185, 11, 0.7
   .store-stats-grid { gap: 7px; }
   .store-stats-grid .stat-card { padding: 12px 9px; }
   .store-price-grid { grid-template-columns: 1fr; }
+}
+
+/* FITIA STORE — suivi privé des commandes vendeur */
+#section-orders .store-stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.orders-list-toolbar { grid-template-columns: minmax(180px, 280px); }
+.seller-order-card { grid-template-columns: minmax(0, 1fr) minmax(210px, 270px); align-items: start; gap: 20px; }
+.seller-order-main { min-width: 0; }
+.seller-order-main .announcement-meta { align-items: center; flex-wrap: wrap; }
+.seller-order-main .announcement-meta strong { overflow-wrap: anywhere; font-size: 0.78rem; }
+.seller-order-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 12px; }
+.order-detail-row { min-width: 0; padding: 9px 10px; border: 1px solid var(--border); border-radius: 9px; background: rgba(255,255,255,0.025); }
+.order-detail-row small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 0.61rem; text-transform: uppercase; }
+.order-detail-row span { display: block; overflow-wrap: anywhere; color: var(--text); font-size: 0.72rem; line-height: 1.45; white-space: pre-line; }
+.seller-order-delivery { margin-top: 13px; padding: 12px; border: 1px solid rgba(34,211,238,0.18); border-radius: 11px; background: rgba(34,211,238,0.045); }
+.seller-order-delivery > strong { color: #a5f3fc; font-size: 0.75rem; }
+.seller-order-delivery .seller-order-details { margin-top: 9px; }
+.seller-order-controls { display: grid; align-content: start; gap: 11px; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.025); }
+.seller-order-controls label { display: grid; gap: 6px; color: var(--muted); font-size: 0.68rem; font-weight: 700; }
+.seller-order-controls input, .seller-order-controls select { min-height: 42px; font-size: 0.78rem; }
+.seller-order-controls .button { width: 100%; min-height: 44px; margin-top: 3px; white-space: normal; }
+@media (max-width: 1000px) {
+  .seller-order-card { grid-template-columns: 1fr; }
+  .seller-order-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+  .seller-order-controls .button { align-self: end; }
+}
+@media (max-width: 760px) {
+  #section-orders .store-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .seller-order-details, .seller-order-controls { grid-template-columns: 1fr; }
+  .seller-order-controls input, .seller-order-controls select { min-height: 48px; font-size: 16px; }
+  .orders-list-toolbar { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -2160,6 +2160,7 @@ class Application {
     secret.privateKey = '';
     secret.mnemonic = '';
     this.configureSessionContracts();
+    this.storeCenter.resumePendingOrders();
 
     // L'interface devient utilisable sans dépendre de la disponibilité du RPC,
     // des contrats ou des services de prix externes.

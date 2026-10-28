@@ -87,6 +87,9 @@ function clone(value) {
       assert.ok(page.response.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
       assert.ok(page.response.headers.get('content-security-policy').includes("script-src 'self'"));
       assert.strictEqual(page.response.headers.get('x-frame-options'), 'DENY');
+      const ordersScript = await request(localBase, '/admin/orders-admin.js');
+      assert.strictEqual(ordersScript.response.status, 200);
+      assert.ok(ordersScript.text.includes('FitiaOrdersAdmin'));
       for (const asset of ['/promotion-effects.js', '/promotion-effects.css']) {
         const result = await request(localBase, asset);
         assert.strictEqual(result.response.status, 200, asset);
@@ -119,6 +122,8 @@ function clone(value) {
       assert.strictEqual(updatePromotions.response.status, 401);
       const upload = await request(localBase, '/api/admin/announcement-assets', { method: 'POST', body: {} });
       assert.strictEqual(upload.response.status, 401);
+      const orders = await request(localBase, '/api/admin/store-orders');
+      assert.strictEqual(orders.response.status, 401);
     });
 
     await runTest('Connexion par mot de passe, cookie HttpOnly et jeton CSRF temporaire', async () => {
