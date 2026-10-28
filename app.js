@@ -1081,6 +1081,7 @@ class Application {
     this.announcementCenter = new FitiaAnnouncementCenter(this);
     this.promotionCenter = new FitiaPromotionCenter(this);
     this.storeCenter = new FitiaStoreCenter(this);
+    this.farmCenter = new FitiaFarmCenter(this);
 
     this.chatInitialized = false;
     this.chatHistory = [];
@@ -1156,6 +1157,7 @@ class Application {
     this.announcementCenter.init();
     this.promotionCenter.init();
     this.storeCenter.init();
+    this.farmCenter.init();
     this.setupLifecycleListeners();
 
     // Masquer les bannières de téléchargement APK lorsqu'on est déjà dans l'APK Android installé
@@ -1875,6 +1877,7 @@ class Application {
     this.cancelPinVerification();
     this.closeModals();
     this.storeCenter?.setAccount(null);
+    this.farmCenter?.setAccount(null);
     this.closeRevealModal();
     this.stopMiningCounter();
     this.announcementCenter.stop();
@@ -2154,6 +2157,7 @@ class Application {
     this.user = secret.address;
     this.activity.setAccount(this.user);
     this.storeCenter.setAccount(this.user);
+    this.farmCenter.setAccount(this.user);
     this.installActivityTracking();
     this.lastUserActivityAt = Date.now();
     // Efface immédiatement la copie de secret passée en paramètre.
@@ -4312,6 +4316,7 @@ class Application {
     this.myReferralCode = '';
     this.signer = null;
     this.storeCenter?.setAccount(null);
+    this.farmCenter?.setAccount(null);
     this.plugTransactionInProgress = false;
     document.getElementById('plug-machine-id').value = '';
     document.getElementById('plug-battery-type').value = '';
@@ -4443,6 +4448,7 @@ class Application {
   }
 
   nav(viewId, btnEl) {
+    this.farmCenter?.exit();
     document.querySelectorAll('.view').forEach((el) => {
       el.classList.remove('active');
       el.style.display = 'none';
@@ -4465,6 +4471,7 @@ class Application {
       this.storeCenter.render();
       void this.storeCenter.refresh({ force: false });
     }
+    if (viewId === 'farm') this.farmCenter.enter();
   }
 
   setLoader(show) {

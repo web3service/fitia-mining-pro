@@ -12,6 +12,7 @@ const {
 } = require('./announcement-assets');
 const { validateManifest: validateStoreCatalog } = require('./store-catalog');
 const { getDefaultOrderService } = require('./store-order-service');
+const { getDefaultFarmService } = require('./farm-service');
 
 const ROOT = __dirname;
 const ADMIN_DIR = path.join(ROOT, 'admin');
@@ -308,9 +309,14 @@ function createAdminServer(options = {}) {
   const fetchImpl = options.fetch || global.fetch;
   if (typeof fetchImpl !== 'function') throw new Error('Node.js 18+ est requis pour la connexion GitHub.');
   let orderService = options.orderService || null;
+  let farmService = options.farmService || null;
   const orders = () => {
     if (!orderService) orderService = getDefaultOrderService();
     return orderService;
+  };
+  const farm = () => {
+    if (!farmService) farmService = getDefaultFarmService();
+    return farmService;
   };
 
   const sessions = new Map();
@@ -523,6 +529,7 @@ function createAdminServer(options = {}) {
     ['/admin/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/store-admin.js', { file: path.join(ADMIN_DIR, 'store-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/orders-admin.js', { file: path.join(ADMIN_DIR, 'orders-admin.js'), type: 'application/javascript; charset=utf-8' }],
+    ['/admin/farm-admin.js', { file: path.join(ADMIN_DIR, 'farm-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.js', { file: path.join(ROOT, 'promotion-effects.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.css', { file: path.join(ROOT, 'promotion-effects.css'), type: 'text/css; charset=utf-8' }],
     ['/store-catalog.js', { file: path.join(ROOT, 'store-catalog.js'), type: 'application/javascript; charset=utf-8' }],
@@ -605,6 +612,22 @@ function createAdminServer(options = {}) {
       if (!session || !requireCsrf(req, res, session)) return;
       const body = await readJson(req, MAX_BODY_BYTES);
       sendJson(res, 200, { order: await orders().updateAdminOrder(body) });
+      return;
+    }
+
+    if (pathname === '/api/farm-withdrawals' && req.method === 'GET') {
+      const session = requireSession(req, res);
+      if (!session) return;
+      sendJson(res, 200, { withdrawals: await farm().listWithdrawals(), serverTime: new Date().toISOString() });
+      return;
+    }
+
+    if (pathname === '/api/farm-withdrawals' && req.method === 'PATCH') {
+      const session = requireSession(req, res);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_BODY_BYTES);
+      const result = await farm().completeWithdrawal(body);
+      sendJson(res, result.pending ? 202 : 200, result);
       return;
     }
 

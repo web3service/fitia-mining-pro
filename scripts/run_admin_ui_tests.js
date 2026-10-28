@@ -16,6 +16,7 @@ const script = fs.readFileSync(path.join(ROOT, 'admin/admin.js'), 'utf8');
 const effectsScript = fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8');
 const storeAdminScript = fs.readFileSync(path.join(ROOT, 'admin/store-admin.js'), 'utf8');
 const ordersAdminScript = fs.readFileSync(path.join(ROOT, 'admin/orders-admin.js'), 'utf8');
+const farmAdminScript = fs.readFileSync(path.join(ROOT, 'admin/farm-admin.js'), 'utf8');
 let manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
 let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
@@ -42,6 +43,11 @@ let orders = [{
   delivery: { name: '<img src=x data-order-xss> Client privé', phone: '+49 000 111', country: 'Germany', city: 'Frankfurt', address: '1 Private Street', notes: '<script>window.__orderXss=true</script>' },
   carrier: '', trackingNumber: '', createdAt: '2026-10-28T10:00:00.000Z', updatedAt: '2026-10-28T10:00:00.000Z', paidAt: '2026-10-28T10:00:00.000Z'
 }];
+let farmWithdrawals = [{
+  id: '0eb65a4e-2d33-4cbe-a834-f2f76d9b98f0', wallet: '0x9999999999999999999999999999999999999999',
+  coins: 500, ftaUnits: '500000000', status: 'pending', createdAt: '2026-10-28T10:00:00.000Z', paidAt: null, payoutTxHash: null
+}];
+const farmUpdates = [];
 const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
 const { window } = dom;
 Object.defineProperty(window, 'crypto', { value: crypto.webcrypto });
@@ -99,6 +105,15 @@ window.fetch = async (url, options = {}) => {
     orders = orders.map((order) => order.id === body.orderId ? { ...order, status: body.status, carrier: body.carrier, trackingNumber: body.trackingNumber, updatedAt: new Date().toISOString() } : order);
     return response({ order: JSON.parse(JSON.stringify(orders.find((order) => order.id === body.orderId))) });
   }
+  if (url === '/api/admin/farm-withdrawals' && (!options.method || options.method === 'GET')) {
+    return response({ withdrawals: JSON.parse(JSON.stringify(farmWithdrawals)), serverTime: new Date().toISOString() });
+  }
+  if (url === '/api/admin/farm-withdrawals' && options.method === 'PATCH') {
+    assert.ok(options.headers['X-CSRF-Token']);
+    const body = JSON.parse(options.body); farmUpdates.push(body);
+    farmWithdrawals = farmWithdrawals.map((item) => item.id === body.id ? { ...item, status: 'paid', payoutTxHash: body.txHash, paidAt: new Date().toISOString() } : item);
+    return response({ pending: false, withdrawal: JSON.parse(JSON.stringify(farmWithdrawals.find((item) => item.id === body.id))) });
+  }
   throw new Error(`Requête inattendue ${options.method || 'GET'} ${url}`);
 };
 
@@ -125,6 +140,7 @@ async function waitFor(condition, label) {
   window.eval(effectsScript);
   window.eval(storeAdminScript);
   window.eval(ordersAdminScript);
+  window.eval(farmAdminScript);
   window.eval(script);
   await waitFor(() => !window.document.getElementById('admin-view').classList.contains('hidden'), 'connexion');
   await waitFor(() => window.document.querySelectorAll('#announcements-list .announcement-row').length === initialAnnouncementCount, 'liste initiale');
@@ -366,7 +382,20 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('orders-stat-shipped').textContent === '1', 'statut expédié affiché');
   assert.ok(window.document.querySelector('#orders-list .seller-order-card').textContent.includes('Expédiée'));
   assert.ok(adminCss.includes('.seller-order-controls'));
-  console.log('  ✅ UI admin : annonces, décorations, STORE et commandes — CRUD, suivi privé, mobile et blocage XSS validés');
+
+  window.document.querySelector('[data-section="farm"]').click();
+  await waitFor(() => window.document.querySelectorAll('#farm-withdrawals-list .farm-withdrawal-card').length === 1, 'chargement retraits FARM');
+  assert.strictEqual(window.document.getElementById('page-title').textContent, 'Retraits FITIA FARM');
+  const farmCard = window.document.querySelector('#farm-withdrawals-list .farm-withdrawal-card');
+  assert.ok(farmCard.textContent.includes('5 FTA'));
+  farmCard.querySelector('[data-farm-payout-tx]').value = `0x${'cd'.repeat(32)}`;
+  farmCard.querySelector('[data-farm-pay]').click();
+  await waitFor(() => farmUpdates.length === 1, 'clôture retrait FARM');
+  assert.strictEqual(farmUpdates[0].txHash, `0x${'cd'.repeat(32)}`);
+  await waitFor(() => window.document.getElementById('farm-stat-paid').textContent === '1', 'retrait payé affiché');
+  assert.ok(window.document.querySelector('#farm-withdrawals-list .farm-withdrawal-card').textContent.includes('Payé · vérifié'));
+  assert.ok(adminCss.includes('.farm-withdrawal-controls'));
+  console.log('  ✅ UI admin : annonces, décorations, STORE, commandes et retraits FARM — CRUD, suivi privé, mobile et blocage XSS validés');
   window.close();
 })().catch((error) => {
   console.error(error);

@@ -47,6 +47,10 @@
     {
       "source": "/api/admin/store-orders",
       "destination": "/api/admin?action=store-orders"
+    },
+    {
+      "source": "/api/admin/farm-withdrawals",
+      "destination": "/api/admin?action=farm-withdrawals"
     }
   ],
   "headers": [
