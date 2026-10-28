@@ -2562,7 +2562,8 @@ function httpRequest(port, method, reqPath) {
         'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/wallet.html"))'
       ].join(';'), apkPath]);
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
-      for (const sourceFile of ['app.js', 'wallet.js', 'store.js']) {
+      assert.ok(!packagedFiles.includes('assets/www/store-order-service.js'), 'Le service privé de chiffrement serveur n’est pas embarqué dans l’APK');
+      for (const sourceFile of ['app.js', 'wallet.js', 'store.js', 'store-order-protocol.js']) {
         const packagedSource = execFileSync('python3', ['-c', [
           'import zipfile, sys',
           'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'
