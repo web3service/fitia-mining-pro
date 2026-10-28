@@ -7,8 +7,8 @@ README.md
 app.js
 activity.js
 wallet.js
-farm.js
-farm-3d.js
+/farm.js
+/farm-3d.js
 style.css
 vendor/*
 !vendor/ethers.umd.min.js
