@@ -13,8 +13,9 @@ const TOKEN_CONTRACTS = Object.freeze({
 });
 const DEFAULT_RPCS = [
   'https://polygon-bor-rpc.publicnode.com',
-  'https://polygon-rpc.com',
-  'https://rpc.ankr.com/polygon'
+  'https://polygon.drpc.org',
+  'https://1rpc.io/matic',
+  'https://polygon-rpc.com'
 ];
 const TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 
