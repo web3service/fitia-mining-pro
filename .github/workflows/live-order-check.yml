@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - arena/9c798a72-fitia-mining-pro
+    paths:
+      - .github/workflows/live-order-check.yml
 
 permissions:
-  contents: read
-  statuses: write
-  issues: write
+  contents: write
 
 jobs:
   live-order-check:
@@ -89,6 +89,10 @@ jobs:
           code=$?
           set -e
           printf '%s\n' "$output"
-          comment_body="Temporary live API diagnostic (automatically removed).\n\n\`\`\`text\n$output\n\`\`\`"
-          gh api "repos/${GITHUB_REPOSITORY}/issues/46/comments" -f body="$comment_body" >/dev/null
+          printf '%s\n' "$output" > live-order-result.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add live-order-result.txt
+          git commit -m 'Record temporary live order API result'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
           exit "$code"
