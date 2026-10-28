@@ -8,8 +8,7 @@ app.js
 activity.js
 wallet.js
 style.css
-vendor/*
-!vendor/ethers.umd.min.js
+vendor/
 manifest.json
 admin-server.js
 ADMIN.md

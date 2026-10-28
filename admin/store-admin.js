@@ -18,13 +18,7 @@
       editorImage: '',
       editorAssetData: {},
       editorSession: 0,
-      assetUploads: 0,
-      inventory: { products: [], awaitingInventory: 0, completedOrders: 0 },
-      assetStorage: { provider: 'supabase', configured: false },
-      editorProductId: '',
-      editorDigital: null,
-      editorFile: null,
-      preparing: false
+      assetUploads: 0
     };
     const { byId, api, clone } = deps;
     const localized = (value) => value?.fr || value?.en || '';
@@ -35,23 +29,12 @@
       state.editingId = null;
       state.editorSession += 1;
       state.assetUploads = 0;
-      state.inventory = { products: [], awaitingInventory: 0, completedOrders: 0 };
-      state.assetStorage = { provider: 'supabase', configured: false };
-      state.editorProductId = '';
-      state.editorDigital = null;
-      state.editorFile = null;
-      state.preparing = false;
     }
 
     async function load() {
-      const [data, digital] = await Promise.all([
-        api('/api/admin/store-products'),
-        api('/api/admin/digital-inventory')
-      ]);
+      const data = await api('/api/admin/store-products');
       state.manifest = data.manifest;
       state.revision = data.revision;
-      state.inventory = digital.inventory || { products: [], awaitingInventory: 0, completedOrders: 0 };
-      state.assetStorage = digital.assetStorage || { provider: 'supabase', configured: false };
       return data;
     }
 
@@ -117,13 +100,10 @@
         const supply = document.createElement('span');
         supply.className = 'category-badge category-event';
         supply.textContent = item.sourceType === 'own' ? 'Stock propre' : 'Dropshipping';
-        const productType = document.createElement('span');
-        productType.className = 'category-badge category-referral';
-        productType.textContent = ({ physical: 'Physique', download: 'Téléchargement', license: 'Licence' })[item.type || 'physical'];
         const statusBadge = document.createElement('span');
         statusBadge.className = `status-pill status-${status === 'active' ? 'active' : status === 'scheduled' ? 'scheduled' : 'disabled'}`;
         statusBadge.textContent = statusLabel(status);
-        meta.append(category, supply, productType, statusBadge);
+        meta.append(category, supply, statusBadge);
         const title = document.createElement('h3');
         title.textContent = localized(item.name);
         const description = document.createElement('p');
@@ -134,12 +114,6 @@
         price.textContent = `${item.price} ${item.priceToken}`;
         const stock = document.createElement('span');
         stock.textContent = `Stock affiché : ${item.stock}`;
-        if ((item.type || 'physical') !== 'physical') {
-          const inventory = state.inventory.products.find((entry) => entry.productId === item.id);
-          stock.textContent = item.type === 'license'
-            ? `Licences : ${inventory?.availableLicenses || 0} disponibles · ${inventory?.assignedLicenses || 0} attribuées`
-            : `Fichier : ${item.digital?.fileName || 'à enregistrer'}`;
-        }
         const seller = document.createElement('span');
         seller.textContent = `Vendeur : ${item.sellerName}`;
         details.append(price, stock, seller);
@@ -206,130 +180,6 @@
       return state.editorAssetData[state.editorImage] || `/${state.editorImage}`;
     }
 
-    function inventorySummary(productId) {
-      return state.inventory.products.find((entry) => entry.productId === productId) || null;
-    }
-
-    function renderStorageStatus(type) {
-      const element = byId('store-digital-storage-status');
-      if (type === 'license') {
-        element.textContent = 'Les licences restent chiffrées dans le coffre ; aucun bucket de fichiers n’est nécessaire.';
-        return;
-      }
-      if (state.assetStorage?.provider === 'local') {
-        element.textContent = 'Mode local : fichier chiffré sur ce serveur, hors du catalogue et des routes statiques.';
-      } else if (state.assetStorage?.configured) {
-        element.textContent = 'Stockage externe privé Supabase configuré : aucun octet du fichier, même chiffré, n’est écrit sur GitHub.';
-      } else {
-        element.textContent = 'Stockage externe privé non connecté. Le dépôt de fichiers est bloqué ; aucun repli vers GitHub n’est autorisé.';
-      }
-    }
-
-    function syncProductType(force = false) {
-      const type = byId('store-product-type').value;
-      const digital = type !== 'physical';
-      byId('store-digital-inventory-fields').classList.toggle('hidden', !digital);
-      byId('store-download-fields').classList.toggle('hidden', type !== 'download');
-      byId('store-license-fields').classList.toggle('hidden', type !== 'license');
-      byId('store-shipping-fee-field').classList.toggle('hidden', digital);
-      byId('store-shipping-fee').required = !digital;
-      byId('store-stock').readOnly = type === 'license';
-      byId('store-stock-hint').textContent = type === 'license'
-        ? 'Calculé depuis les licences réellement disponibles dans le coffre.'
-        : type === 'download' ? 'Stock public indicatif : actualisez-le après les ventes, comme pour un produit physique.' : 'Actualisez-le après les ventes et auprès du fournisseur.';
-      if (digital) {
-        byId('store-shipping-fee').value = '0';
-        if (force || !byId('store-delivery-estimate').value.trim()) byId('store-delivery-estimate').value = 'Instant after confirmed payment';
-      }
-      const summary = inventorySummary(state.editorProductId);
-      byId('store-license-stock-status').textContent = type === 'license'
-        ? `${summary?.availableLicenses || 0} disponibles · ${summary?.assignedLicenses || 0} déjà attribuées` : '';
-      byId('store-digital-file-status').textContent = type === 'download'
-        ? state.editorFile ? `Prêt à chiffrer : ${state.editorFile.name} (${state.editorFile.size} octets)`
-          : state.editorDigital ? `Fichier enregistré : ${state.editorDigital.fileName}` : 'Sélectionnez le fichier à vendre avant la publication.' : '';
-      renderStorageStatus(type);
-      updatePreview();
-    }
-
-    function handleDigitalFileSelection(event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      if (!state.assetStorage?.configured) {
-        state.editorFile = null;
-        byId('store-digital-file').value = '';
-        byId('store-editor-error').textContent = 'Connectez d’abord le stockage externe privé. Aucun fichier ne sera envoyé vers GitHub.';
-        return;
-      }
-      if (!file.size || file.size > 3 * 1024 * 1024) {
-        state.editorFile = null;
-        byId('store-digital-file').value = '';
-        byId('store-editor-error').textContent = 'Le fichier numérique doit contenir entre 1 octet et 3 Mo.';
-        return;
-      }
-      state.editorFile = file;
-      byId('store-editor-error').textContent = '';
-      syncProductType();
-    }
-
-    function readFileBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Impossible de lire ce fichier sur le téléphone.'));
-        reader.onload = () => {
-          const result = String(reader.result || '');
-          const marker = result.indexOf(';base64,');
-          if (marker < 0) reject(new Error('Le fichier ne peut pas être préparé.'));
-          else resolve(result.slice(marker + 8));
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function prepareDigitalInventory(item) {
-      if (item.type === 'download') {
-        if (state.editorFile) {
-          if (!state.assetStorage?.configured) throw new Error('Le stockage externe privé n’est pas connecté. Aucun repli vers GitHub n’est autorisé.');
-          const data = await readFileBase64(state.editorFile);
-          const result = await api('/api/admin/digital-inventory', {
-            method: 'POST',
-            body: {
-              productType: 'download', productId: item.id, data,
-              fileName: state.editorFile.name,
-              contentType: state.editorFile.type || 'application/octet-stream'
-            }
-          });
-          state.inventory = result.inventory;
-          state.editorDigital = result.asset;
-          state.editorFile = null;
-          byId('store-digital-file').value = '';
-        }
-        if (!state.editorDigital?.id) throw new Error('Enregistrez un fichier avant de publier ce produit.');
-        item.digital = {
-          assetId: state.editorDigital.id,
-          fileName: state.editorDigital.fileName,
-          contentType: state.editorDigital.contentType,
-          size: state.editorDigital.size
-        };
-        return;
-      }
-      if (item.type === 'license') {
-        const keys = byId('store-license-keys').value.split(/[\r\n]+/).map((key) => key.trim()).filter(Boolean);
-        if (keys.length) {
-          const result = await api('/api/admin/digital-inventory', {
-            method: 'POST', body: { productType: 'license', productId: item.id, keys }
-          });
-          state.inventory = result.inventory;
-          byId('store-license-keys').value = '';
-        }
-        const summary = inventorySummary(item.id);
-        if (!summary || summary.availableLicenses + summary.assignedLicenses < 1) {
-          throw new Error('Ajoutez au moins une clé de licence avant de publier ce produit.');
-        }
-        item.stock = summary.availableLicenses;
-        syncProductType();
-      }
-    }
-
     function updatePreview() {
       byId('store-preview-name').textContent = byId('store-name-fr').value.trim() || byId('store-name-en').value.trim() || 'Nom du produit';
       byId('store-preview-description').textContent = byId('store-description-fr').value.trim() || byId('store-description-en').value.trim() || 'Description du produit';
@@ -346,20 +196,11 @@
       state.editorSession += 1;
       state.assetUploads = 0;
       state.editingId = item && !duplicate ? item.id : null;
-      state.editorProductId = state.editingId || deps.generateId('product');
-      state.editorDigital = item && !duplicate && item.digital ? {
-        id: item.digital.assetId, fileName: item.digital.fileName,
-        contentType: item.digital.contentType, size: item.digital.size
-      } : null;
-      state.editorFile = null;
       state.editorImage = item?.image || '';
       state.editorAssetData = {};
       byId('store-product-form').reset();
       byId('store-editor-error').textContent = '';
       byId('store-image-upload-status').textContent = '';
-      byId('store-digital-file').value = '';
-      byId('store-license-keys').value = '';
-      byId('store-product-type').value = item?.type || 'physical';
       byId('store-source-type').value = item?.sourceType || 'own';
       byId('store-category').value = item?.category || 'electronics';
       byId('store-active').checked = item ? item.active : true;
@@ -378,20 +219,16 @@
       byId('store-starts-at').value = item ? deps.toInputDate(item.startsAt) : '';
       byId('store-expires-at').value = item ? deps.toInputDate(item.expiresAt) : '';
       byId('store-editor-title').textContent = state.editingId ? 'Modifier le produit' : duplicate ? 'Dupliquer le produit' : 'Nouveau produit';
-      syncProductType(true);
+      updatePreview();
       byId('store-editor-modal').classList.remove('hidden');
       document.body.classList.add('modal-open');
       byId('store-name-fr').focus();
     }
 
     function closeEditor() {
-      if (state.preparing) return;
       byId('store-editor-modal').classList.add('hidden');
       document.body.classList.remove('modal-open');
       state.editingId = null;
-      state.editorProductId = '';
-      state.editorDigital = null;
-      state.editorFile = null;
       state.editorSession += 1;
       state.assetUploads = 0;
       byId('store-editor-error').textContent = '';
@@ -436,7 +273,6 @@
 
     async function submitEditor(event) {
       event.preventDefault();
-      if (state.preparing || state.saving) return;
       if (state.assetUploads) {
         byId('store-editor-error').textContent = 'Attendez la fin de l’enregistrement de la photo.';
         return;
@@ -447,12 +283,10 @@
         byId('store-editor-error').textContent = 'La date de fin doit être postérieure à la date de début.';
         return;
       }
-      const type = byId('store-product-type').value;
       const item = {
-        id: state.editorProductId,
+        id: state.editingId || deps.generateId('product'),
         active: byId('store-active').checked,
         sourceType: byId('store-source-type').value,
-        type,
         category: byId('store-category').value,
         name: readLocalized('name'),
         description: readLocalized('description'),
@@ -463,28 +297,12 @@
         paymentAddress: byId('store-payment-address').value.trim(),
         priceToken: byId('store-price-token').value,
         price: byId('store-price').value.trim().replace(',', '.'),
-        shippingFee: type === 'physical' ? byId('store-shipping-fee').value.trim().replace(',', '.') || '0' : '0',
+        shippingFee: byId('store-shipping-fee').value.trim().replace(',', '.') || '0',
         stock: Number(byId('store-stock').value),
         deliveryEstimate: byId('store-delivery-estimate').value.trim()
       };
       if (startsAt) item.startsAt = startsAt;
       if (expiresAt) item.expiresAt = expiresAt;
-      if (type !== 'physical') {
-        state.preparing = true;
-        byId('save-store-product').disabled = true;
-        deps.setLoading(true, type === 'download' ? 'Chiffrement et enregistrement du fichier…' : 'Enregistrement chiffré des licences…');
-        try {
-          await prepareDigitalInventory(item);
-          byId('store-stock').value = String(item.stock);
-        } catch (error) {
-          byId('store-editor-error').textContent = error.message;
-          return;
-        } finally {
-          state.preparing = false;
-          byId('save-store-product').disabled = false;
-          deps.setLoading(false);
-        }
-      }
       const next = clone(state.manifest);
       if (state.editingId) {
         const index = next.products.findIndex((candidate) => candidate.id === state.editingId);
@@ -506,8 +324,6 @@
       byId('store-product-form').addEventListener('change', updatePreview);
       byId('store-image-upload').addEventListener('click', () => byId('store-image-file').click());
       byId('store-image-file').addEventListener('change', handleImageSelection);
-      byId('store-product-type').addEventListener('change', () => syncProductType());
-      byId('store-digital-file').addEventListener('change', handleDigitalFileSelection);
       byId('store-image-remove').addEventListener('click', () => {
         state.editorImage = '';
         byId('store-image-upload-status').textContent = '';

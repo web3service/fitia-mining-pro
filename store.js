@@ -9,12 +9,11 @@
   const CACHE_KEY = 'fitia_store_public_catalog_v1';
   const CART_PREFIX = 'fitia_store_cart_v1:';
   const ORDERS_PREFIX = 'fitia_store_orders_v1:';
-  const DIGITAL_API_URL = 'https://fitia-mining-pro.vercel.app/api/store-digital';
   const MAX_ORDERS = 30;
 
   const COPY = {
     en: {
-      tagline: 'Physical and digital products, direct crypto payments.', privateDelivery: 'Delivery details stay off-chain',
+      tagline: 'Physical products, direct crypto payments.', privateDelivery: 'Delivery details stay off-chain',
       myOrders: 'My orders', refresh: 'Refresh', search: 'Search products…', allSources: 'All fulfillment',
       ownStock: 'Own stock', emptyTitle: 'No products available',
       cartTitle: 'Your cart', cartEmpty: 'Your cart is empty.', subtotal: 'Subtotal', delivery: 'Delivery', total: 'Total',
@@ -43,22 +42,11 @@
       share: 'Share receipt', copyHash: 'Copy hash', copied: 'Transaction hash copied.', receiptShared: 'Receipt shared or copied for the seller.',
       receiptMissing: 'The private delivery receipt is no longer available in this session. No second payment is needed: contact the seller with the transaction hash.',
       emptyCartConfirm: 'Clear all products from your cart?', quantity: 'Quantity', orderItems: 'items',
-      physical: 'PHYSICAL', download: 'DOWNLOAD', license: 'LICENSE KEY', digitalDelivery: 'Digital delivery',
-      digitalConsent: 'I understand that the crypto payment is irreversible. My signed wallet request only unlocks the digital items paid for in this transaction.',
-      digitalPrivacy: 'No postal address is needed. The paid file or license is delivered only after independent Polygon verification and a signature from your wallet.',
-      consentMissing: 'Please accept the payment notice before continuing.',
-      digitalPending: 'Payment confirmed. Preparing your secure digital delivery…',
-      digitalInventoryPending: 'Payment confirmed. The seller is preparing the digital inventory; you can retry safely without paying again.',
-      digitalFailed: 'Digital delivery could not be verified. Do not pay again; retry from My orders or contact the seller with the transaction hash.',
-      digitalReady: 'Your digital items are ready.', digitalRetrieve: 'GET DIGITAL ITEMS', digitalRetry: 'RETRY DIGITAL DELIVERY',
-      digitalDownload: 'DOWNLOAD', digitalCopy: 'Copy license', digitalCopied: 'License copied securely.',
-      digitalSaved: 'Download started. Check your device downloads.', digitalUnlock: 'Unlock your wallet to sign the delivery request.',
-      digitalNoShipping: 'Digital order — no postal delivery details required.',
       cat_electronics: 'Electronics', cat_fashion: 'Fashion', cat_home: 'Home', cat_beauty: 'Beauty', cat_sports: 'Sports',
       cat_toys: 'Toys', cat_automotive: 'Automotive', cat_grocery: 'Grocery', cat_jewelry: 'Jewelry', cat_office: 'Office', cat_other: 'Other'
     },
     fr: {
-      tagline: 'Produits physiques et numériques, paiement direct en crypto.', privateDelivery: 'Livraison hors blockchain',
+      tagline: 'Produits physiques, paiement direct en crypto.', privateDelivery: 'Livraison hors blockchain',
       myOrders: 'Mes commandes', refresh: 'Actualiser', search: 'Rechercher un produit…', allSources: 'Tous les modes',
       ownStock: 'Stock propre', emptyTitle: 'Aucun produit disponible',
       cartTitle: 'Votre panier', cartEmpty: 'Votre panier est vide.', subtotal: 'Sous-total', delivery: 'Livraison', total: 'Total',
@@ -87,17 +75,6 @@
       share: 'Partager le reçu', copyHash: 'Copier le hash', copied: 'Hash de transaction copié.', receiptShared: 'Reçu partagé ou copié pour le vendeur.',
       receiptMissing: 'Le reçu privé de livraison n’est plus disponible dans cette session. Ne repayez pas : contactez le vendeur avec le hash de transaction.',
       emptyCartConfirm: 'Retirer tous les produits du panier ?', quantity: 'Quantité', orderItems: 'articles',
-      physical: 'PHYSIQUE', download: 'TÉLÉCHARGEMENT', license: 'CLÉ DE LICENCE', digitalDelivery: 'Livraison numérique',
-      digitalConsent: 'Je comprends que le paiement crypto est irréversible. Ma demande signée débloque uniquement les articles numériques payés dans cette transaction.',
-      digitalPrivacy: 'Aucune adresse postale n’est nécessaire. Le fichier ou la licence est remis après vérification indépendante sur Polygon et signature de votre wallet.',
-      consentMissing: 'Acceptez l’avis de paiement avant de continuer.',
-      digitalPending: 'Paiement confirmé. Préparation de votre livraison numérique sécurisée…',
-      digitalInventoryPending: 'Paiement confirmé. Le vendeur prépare l’inventaire numérique ; réessayez sans jamais repayer.',
-      digitalFailed: 'La livraison numérique n’a pas pu être vérifiée. Ne repayez pas ; réessayez depuis Mes commandes ou contactez le vendeur avec le hash.',
-      digitalReady: 'Vos articles numériques sont prêts.', digitalRetrieve: 'RÉCUPÉRER MES ARTICLES', digitalRetry: 'RÉESSAYER LA LIVRAISON',
-      digitalDownload: 'TÉLÉCHARGER', digitalCopy: 'Copier la licence', digitalCopied: 'Licence copiée de façon sécurisée.',
-      digitalSaved: 'Téléchargement lancé. Consultez les téléchargements de votre appareil.', digitalUnlock: 'Déverrouillez votre wallet pour signer la demande de livraison.',
-      digitalNoShipping: 'Commande numérique — aucune adresse postale nécessaire.',
       cat_electronics: 'Électronique', cat_fashion: 'Mode', cat_home: 'Maison', cat_beauty: 'Beauté', cat_sports: 'Sports',
       cat_toys: 'Jouets', cat_automotive: 'Automobile', cat_grocery: 'Épicerie', cat_jewelry: 'Bijoux', cat_office: 'Bureau', cat_other: 'Autres'
     }
@@ -135,13 +112,8 @@
       this.cart = [];
       this.orders = [];
       this.receipts = new Map();
-      this.digitalDeliveries = new Map();
-      this.digitalRetryTimers = new Map();
-      this.digitalRetryCounts = new Map();
-      this.digitalInFlight = new Set();
       this.currentReceiptId = '';
       this.checkoutQuote = null;
-      this.checkoutHasPhysical = true;
       this.loaded = false;
       this.error = '';
       this.lastFetchAt = 0;
@@ -378,11 +350,6 @@
 
     clearSensitive() {
       this.receipts.clear();
-      this.digitalDeliveries.clear();
-      this.digitalRetryTimers.forEach((timer) => clearTimeout(timer));
-      this.digitalRetryTimers.clear();
-      this.digitalRetryCounts.clear();
-      this.digitalInFlight.clear();
       this.currentReceiptId = '';
       this.checkoutQuote = null;
       const form = document.getElementById('store-checkout-form');
@@ -428,25 +395,18 @@
         const parsed = JSON.parse(this.storageGet(this.ordersKey()) || '[]');
         if (!Array.isArray(parsed)) return [];
         return parsed.slice(0, MAX_ORDERS).filter((order) => order && typeof order.id === 'string' && /^FITS-[A-Z0-9-]{6,40}$/.test(order.id) && /^0x[a-f0-9]{64}$/.test(order.txHash))
-          .map((order) => {
-            const items = Array.isArray(order.items) ? order.items.slice(0, 50).map((item) => ({
+          .map((order) => ({
+            id: order.id.slice(0, 48), txHash: order.txHash, createdAt: String(order.createdAt || '').slice(0, 32),
+            status: ['pending', 'confirmed', 'submitted', 'failed'].includes(order.status) ? order.status : 'submitted',
+            token: order.token === 'FTA' ? 'FTA' : 'USDT', total: String(order.total || '').slice(0, 40),
+            sellerName: String(order.sellerName || '').slice(0, 80), sellerContact: String(order.sellerContact || '').slice(0, 160),
+            paymentAddress: String(order.paymentAddress || '').slice(0, 42),
+            items: Array.isArray(order.items) ? order.items.slice(0, 50).map((item) => ({
               productId: String(item.productId || '').slice(0, 64), name: String(item.name || '').slice(0, 100),
-              type: ['physical', 'download', 'license'].includes(item.type) ? item.type : 'physical',
               quantity: Number.isSafeInteger(item.quantity) ? Math.max(1, Math.min(99, item.quantity)) : 1,
               price: String(item.price || '').slice(0, 40)
-            })) : [];
-            return {
-              id: order.id.slice(0, 48), txHash: order.txHash, createdAt: String(order.createdAt || '').slice(0, 32),
-              status: ['pending', 'confirmed', 'submitted', 'failed'].includes(order.status) ? order.status : 'submitted',
-              digitalStatus: ['pending', 'complete', 'awaiting_inventory', 'error'].includes(order.digitalStatus) ? order.digitalStatus : '',
-              paymentIntent: typeof order.paymentIntent === 'string' && order.paymentIntent.length <= 16384 && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(order.paymentIntent) ? order.paymentIntent : '',
-              token: order.token === 'FTA' ? 'FTA' : 'USDT', total: String(order.total || '').slice(0, 40),
-              sellerName: String(order.sellerName || '').slice(0, 80), sellerContact: String(order.sellerContact || '').slice(0, 160),
-              paymentAddress: String(order.paymentAddress || '').slice(0, 42), items,
-              hasDigital: items.some((item) => item.type !== 'physical'),
-              hasPhysical: items.some((item) => item.type === 'physical')
-            };
-          });
+            })) : []
+          }));
       } catch (_) { return []; }
     }
 
@@ -587,10 +547,7 @@
         const sourceBadge = document.createElement('span');
         sourceBadge.className = `store-source-badge ${product.sourceType}`;
         sourceBadge.textContent = this.t(product.sourceType);
-        const typeBadge = document.createElement('span');
-        typeBadge.className = `store-product-type-badge ${product.type || 'physical'}`;
-        typeBadge.textContent = this.t(product.type || 'physical');
-        visual.append(image, sourceBadge, typeBadge);
+        visual.append(image, sourceBadge);
         if (product.stock === 0) {
           const soldOut = document.createElement('span');
           soldOut.className = 'store-soldout-badge';
@@ -681,7 +638,7 @@
       return JSON.stringify({
         sellerId: quote.sellerId, paymentAddress: quote.paymentAddress, token: quote.token,
         total: quote.totalUnits.toString(),
-        items: quote.items.map((item) => [item.product.id, item.product.type || 'physical', item.product.digital?.assetId || '', item.quantity, item.unitUnits.toString(), item.feeUnits.toString()])
+        items: quote.items.map((item) => [item.product.id, item.quantity, item.unitUnits.toString(), item.feeUnits.toString()])
       });
     }
 
@@ -779,18 +736,6 @@
     }
 
     renderCheckoutSummary(quote) {
-      this.checkoutHasPhysical = quote.items.some((item) => (item.product.type || 'physical') === 'physical');
-      const shippingFields = document.getElementById('store-shipping-fields');
-      shippingFields.classList.toggle('hidden', !this.checkoutHasPhysical);
-      ['store-shipping-name', 'store-shipping-phone', 'store-shipping-country', 'store-shipping-city', 'store-shipping-address'].forEach((id) => {
-        document.getElementById(id).required = this.checkoutHasPhysical;
-      });
-      const consent = document.querySelector('#store-checkout-form [data-store-i18n="consent"], #store-checkout-form [data-store-i18n="digitalConsent"]');
-      consent.dataset.storeI18n = this.checkoutHasPhysical ? 'consent' : 'digitalConsent';
-      consent.textContent = this.t(this.checkoutHasPhysical ? 'consent' : 'digitalConsent');
-      const privacy = document.querySelector('#store-checkout-form [data-store-i18n="shippingPrivacy"], #store-checkout-form [data-store-i18n="digitalPrivacy"]');
-      privacy.dataset.storeI18n = this.checkoutHasPhysical ? 'shippingPrivacy' : 'digitalPrivacy';
-      privacy.textContent = this.t(this.checkoutHasPhysical ? 'shippingPrivacy' : 'digitalPrivacy');
       const container = document.getElementById('store-checkout-summary');
       container.textContent = '';
       const seller = document.createElement('div');
@@ -811,9 +756,7 @@
       return text.slice(0, maxLength).trim();
     }
 
-    readShipping(hasPhysical = true) {
-      if (!document.getElementById('store-checkout-consent').checked) throw new StoreUiError(this.t(this.checkoutHasPhysical ? 'shippingMissing' : 'consentMissing'));
-      if (!hasPhysical) return null;
+    readShipping() {
       const shipping = {
         name: this.privateText(document.getElementById('store-shipping-name').value, 80),
         phone: this.privateText(document.getElementById('store-shipping-phone').value, 32),
@@ -835,53 +778,15 @@
       return `FITS-${Date.now().toString(36).toUpperCase()}-${suffix}`;
     }
 
-    createOrder(quote, txHash, paymentIntent = '') {
+    createOrder(quote, txHash) {
       return {
         id: this.orderId(), txHash, createdAt: new Date().toISOString(), status: 'pending',
         token: quote.token, total: quote.total, sellerName: quote.sellerName,
         sellerContact: quote.sellerContact, paymentAddress: quote.paymentAddress,
         items: quote.items.map((item) => ({
-          productId: item.product.id, name: this.localize(item.product.name), type: item.product.type || 'physical',
-          quantity: item.quantity, price: item.product.price
-        })),
-        hasDigital: quote.items.some((item) => (item.product.type || 'physical') !== 'physical'),
-        hasPhysical: quote.items.some((item) => (item.product.type || 'physical') === 'physical'),
-        digitalStatus: quote.items.some((item) => (item.product.type || 'physical') !== 'physical') ? 'pending' : '',
-        paymentIntent
+          productId: item.product.id, name: this.localize(item.product.name), quantity: item.quantity, price: item.product.price
+        }))
       };
-    }
-
-    async createDigitalIntent(quote) {
-      const items = quote.items.map((item) => ({ productId: item.product.id, quantity: item.quantity }))
-        .sort((a, b) => a.productId.localeCompare(b.productId));
-      let response;
-      let result;
-      try {
-        response = await fetch(this.app.storeDigitalApiUrl || DIGITAL_API_URL, {
-          method: 'POST', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ action: 'intent', token: quote.token, items })
-        });
-        result = await response.json();
-      } catch (_) { throw new StoreUiError(this.t('digitalFailed')); }
-      if (!response.ok || !result || typeof result.paymentIntent !== 'string' || !result.paymentIntent || result.paymentIntent.length > 16384 || !result.intent) {
-        throw new StoreUiError(this.t('digitalFailed'));
-      }
-      const intent = result.intent;
-      const expectedItems = quote.items.map((item) => ({
-        productId: item.product.id, type: item.product.type || 'physical', quantity: item.quantity,
-        assetId: item.product.digital?.assetId || null
-      })).sort((a, b) => a.productId.localeCompare(b.productId));
-      const actualItems = Array.isArray(intent.items) ? intent.items.map((item) => ({
-        productId: item?.productId, type: item?.type, quantity: item?.quantity, assetId: item?.assetId
-      })).sort((a, b) => a.productId.localeCompare(b.productId)) : [];
-      if (intent.v !== 1 || !Number.isSafeInteger(intent.expiresAt) || intent.expiresAt <= Date.now() + 60000 ||
-          intent.token !== quote.token || intent.totalUnits !== quote.totalUnits.toString() ||
-          intent.paymentAddress !== quote.paymentAddress.toLowerCase() || intent.sellerId !== quote.sellerId ||
-          JSON.stringify(actualItems) !== JSON.stringify(expectedItems)) {
-        throw new StoreUiError(this.t('catalogChanged'));
-      }
-      return result.paymentIntent;
     }
 
     async pay(event) {
@@ -893,7 +798,7 @@
       document.getElementById('store-checkout-error').textContent = '';
       let loaderVisible = false;
       try {
-        const shipping = this.readShipping(this.checkoutHasPhysical);
+        const shipping = this.readShipping();
         if (!this.checkoutQuote) throw new StoreUiError(this.t('catalogChanged'));
         const paymentAccount = this.account;
         const assertActiveSession = () => {
@@ -931,16 +836,13 @@
         }
         this.app.setLoader(true);
         loaderVisible = true;
-        const paymentIntent = quote.items.some((item) => (item.product.type || 'physical') !== 'physical')
-          ? await this.createDigitalIntent(quote) : '';
-        assertActiveSession();
         const tx = await contract.transfer(to, quote.totalUnits);
         if (!tx || !/^0x[a-fA-F0-9]{64}$/.test(tx.hash || '')) throw new Error('STORE_TRANSACTION_HASH');
         if (this.account !== paymentAccount) {
           this.app.showToast(`${this.t('paymentSent')} ${tx.hash}`, false, 'pending');
           return;
         }
-        const order = this.createOrder(quote, tx.hash.toLowerCase(), paymentIntent);
+        const order = this.createOrder(quote, tx.hash.toLowerCase());
         this.orders.unshift(order);
         this.orders = this.orders.slice(0, MAX_ORDERS);
         this.saveOrders();
@@ -998,203 +900,7 @@
       }
       if (this.currentReceiptId === orderId && document.getElementById('modal-store-receipt')?.classList.contains('active')) this.renderReceipt(orderId);
       if (document.getElementById('modal-store-orders')?.classList.contains('active')) this.renderOrders();
-      if (status === 'confirmed' && order?.hasDigital) void this.fulfillDigitalOrder(order.id);
       try { await this.app.updateData(); } catch (_) { /* Le statut du reçu reste inchangé. */ }
-    }
-
-    digitalMessage(request) {
-      return [
-        'FITIA STORE — DIGITAL DELIVERY',
-        `Transaction: ${request.txHash}`,
-        `Buyer: ${request.buyer}`,
-        `Token: ${request.token}`,
-        `Intent: ${request.paymentIntent}`,
-        `Items: ${request.items.map((item) => `${item.productId}:${item.quantity}`).join(',')}`,
-        `Expires: ${request.expiresAt}`
-      ].join('\n');
-    }
-
-    validateDigitalDeliveries(order, deliveries) {
-      if (!Array.isArray(deliveries) || deliveries.length > 100) throw new Error('DIGITAL_RESPONSE');
-      const licenseCounts = new Map();
-      return deliveries.map((delivery) => {
-        const productId = String(delivery?.productId || '');
-        const item = order.items.find((candidate) => candidate.productId === productId && candidate.type === delivery.type);
-        if (!item) throw new Error('DIGITAL_RESPONSE');
-        if (delivery.type === 'license') {
-          const count = (licenseCounts.get(productId) || 0) + 1;
-          if (count > item.quantity || typeof delivery.key !== 'string' || !delivery.key || delivery.key.length > 512) throw new Error('DIGITAL_RESPONSE');
-          licenseCounts.set(productId, count);
-          return { type: 'license', productId, key: delivery.key };
-        }
-        if (delivery.type === 'download') {
-          if (!/^[a-f0-9]{24}$/.test(delivery.assetId || '') || typeof delivery.downloadToken !== 'string' ||
-              delivery.downloadToken.length > 8192 || typeof delivery.fileName !== 'string' || !delivery.fileName ||
-              delivery.fileName.length > 120 || !Number.isSafeInteger(delivery.size) || delivery.size < 1 ||
-              !/^[a-f0-9]{64}$/.test(delivery.sha256 || '')) throw new Error('DIGITAL_RESPONSE');
-          return {
-            type: 'download', productId, assetId: delivery.assetId, downloadToken: delivery.downloadToken,
-            fileName: delivery.fileName, contentType: String(delivery.contentType || 'application/octet-stream').slice(0, 104),
-            size: delivery.size, sha256: delivery.sha256
-          };
-        }
-        throw new Error('DIGITAL_RESPONSE');
-      });
-    }
-
-    scheduleDigitalRetry(orderId) {
-      if (this.digitalRetryTimers.has(orderId)) return;
-      const count = this.digitalRetryCounts.get(orderId) || 0;
-      if (count >= 12) return;
-      this.digitalRetryCounts.set(orderId, count + 1);
-      const timer = setTimeout(() => {
-        this.digitalRetryTimers.delete(orderId);
-        const order = this.orders.find((candidate) => candidate.id === orderId);
-        if (order?.hasDigital && order.status !== 'failed') void this.fulfillDigitalOrder(orderId);
-      }, 5000);
-      this.digitalRetryTimers.set(orderId, timer);
-    }
-
-    async fulfillDigitalOrder(orderId, manual = false) {
-      const order = this.orders.find((candidate) => candidate.id === orderId);
-      if (!order?.hasDigital || order.status === 'failed' || this.digitalInFlight.has(orderId)) return;
-      if (!order.paymentIntent) {
-        order.digitalStatus = 'error';
-        this.saveOrders();
-        if (this.currentReceiptId === orderId) this.renderDigitalDelivery(orderId);
-        this.app.showToast(this.t('digitalFailed'), true);
-        return;
-      }
-      if (!this.account || !this.app.signer || typeof this.app.signer.signMessage !== 'function') {
-        this.app.showToast(this.t('digitalUnlock'), true);
-        return;
-      }
-      if (manual) this.digitalRetryCounts.delete(orderId);
-      const buyer = this.account;
-      this.digitalInFlight.add(orderId);
-      order.digitalStatus = 'pending';
-      this.saveOrders();
-      if (this.currentReceiptId === orderId) this.renderDigitalDelivery(orderId);
-      try {
-        const request = {
-          txHash: order.txHash, buyer, token: order.token, paymentIntent: order.paymentIntent,
-          items: order.items.map((item) => ({ productId: item.productId, quantity: item.quantity }))
-            .sort((a, b) => a.productId.localeCompare(b.productId)),
-          expiresAt: Date.now() + 10 * 60 * 1000
-        };
-        const signature = await this.app.signer.signMessage(this.digitalMessage(request));
-        if (this.account !== buyer) return;
-        const response = await fetch(this.app.storeDigitalApiUrl || DIGITAL_API_URL, {
-          method: 'POST', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ ...request, signature })
-        });
-        const result = await response.json();
-        if (this.account !== buyer) return;
-        if (response.status === 202) {
-          order.digitalStatus = result.code === 'DIGITAL_INVENTORY_PENDING' ? 'awaiting_inventory' : 'pending';
-          if (result.code === 'DIGITAL_INVENTORY_PENDING') order.status = 'confirmed';
-          else this.scheduleDigitalRetry(orderId);
-        } else if (!response.ok || result.status !== 'complete') {
-          throw new StoreUiError(this.t('digitalFailed'));
-        } else {
-          const deliveries = this.validateDigitalDeliveries(order, result.deliveries);
-          this.digitalDeliveries.set(orderId, deliveries);
-          order.digitalStatus = 'complete';
-          order.status = 'confirmed';
-          this.digitalRetryCounts.delete(orderId);
-          const timer = this.digitalRetryTimers.get(orderId);
-          if (timer) clearTimeout(timer);
-          this.digitalRetryTimers.delete(orderId);
-          FitiaSecurity.Native.vibrate(35);
-        }
-        this.saveOrders();
-      } catch (error) {
-        if (this.account !== buyer) return;
-        order.digitalStatus = 'error';
-        this.saveOrders();
-        this.app.showToast(error instanceof StoreUiError ? error.message : this.t('digitalFailed'), true);
-      } finally {
-        this.digitalInFlight.delete(orderId);
-        if (this.currentReceiptId === orderId && document.getElementById('modal-store-receipt')?.classList.contains('active')) this.renderDigitalDelivery(orderId);
-        if (document.getElementById('modal-store-orders')?.classList.contains('active')) this.renderOrders();
-      }
-    }
-
-    async downloadDigitalFile(delivery) {
-      try {
-        const url = `${this.app.storeDigitalApiUrl || DIGITAL_API_URL}?download=${encodeURIComponent(delivery.downloadToken)}`;
-        if (typeof FitiaSecurity.Native.downloadDigitalProduct === 'function' && FitiaSecurity.Native.downloadDigitalProduct(url, delivery.fileName)) {
-          this.app.showToast(this.t('digitalSaved'));
-          return;
-        }
-        const response = await fetch(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
-        if (!response.ok) throw new Error('DOWNLOAD');
-        const buffer = await response.arrayBuffer();
-        if (buffer.byteLength !== delivery.size) throw new Error('INTEGRITY');
-        const digest = await crypto.subtle.digest('SHA-256', buffer);
-        const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-        if (hex !== delivery.sha256) throw new Error('INTEGRITY');
-        const blobUrl = URL.createObjectURL(new Blob([buffer], { type: delivery.contentType }));
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = delivery.fileName.replace(/[\\/]/g, '_');
-        link.rel = 'noopener';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-        this.app.showToast(this.t('digitalSaved'));
-      } catch (_) { this.app.showToast(this.t('digitalFailed'), true); }
-    }
-
-    renderDigitalDelivery(orderId) {
-      const order = this.orders.find((candidate) => candidate.id === orderId);
-      const container = document.getElementById('store-digital-delivery');
-      if (!container) return;
-      container.textContent = '';
-      if (!order?.hasDigital) { container.classList.add('hidden'); return; }
-      container.classList.remove('hidden');
-      const heading = document.createElement('strong');
-      heading.textContent = this.t('digitalDelivery');
-      container.appendChild(heading);
-      const deliveries = this.digitalDeliveries.get(orderId);
-      if (!deliveries) {
-        const status = document.createElement('p');
-        status.textContent = this.t(order.digitalStatus === 'awaiting_inventory' ? 'digitalInventoryPending' : order.digitalStatus === 'error' ? 'digitalFailed' : 'digitalPending');
-        container.appendChild(status);
-        if (order.digitalStatus === 'awaiting_inventory' || order.digitalStatus === 'error') {
-          const retry = document.createElement('button');
-          retry.type = 'button'; retry.className = 'btn-secondary-outline'; retry.textContent = this.t('digitalRetry');
-          retry.addEventListener('click', () => this.fulfillDigitalOrder(orderId, true));
-          container.appendChild(retry);
-        }
-        return;
-      }
-      const ready = document.createElement('p'); ready.textContent = this.t('digitalReady'); container.appendChild(ready);
-      deliveries.forEach((delivery) => {
-        const item = order.items.find((candidate) => candidate.productId === delivery.productId);
-        const row = document.createElement('div'); row.className = 'store-digital-item';
-        const copy = document.createElement('div');
-        const name = document.createElement('small'); name.textContent = item?.name || delivery.productId;
-        copy.appendChild(name);
-        if (delivery.type === 'license') {
-          const key = document.createElement('code'); key.textContent = delivery.key; copy.appendChild(key);
-        } else {
-          const file = document.createElement('span'); file.textContent = `${delivery.fileName} · ${Math.ceil(delivery.size / 1024)} KB`; copy.appendChild(file);
-        }
-        const button = document.createElement('button'); button.type = 'button';
-        button.textContent = this.t(delivery.type === 'license' ? 'digitalCopy' : 'digitalDownload');
-        button.addEventListener('click', async () => {
-          if (delivery.type === 'download') await this.downloadDigitalFile(delivery);
-          else {
-            await FitiaSecurity.Native.copyText(delivery.key);
-            this.app.showToast(this.t('digitalCopied'));
-          }
-        });
-        row.append(copy, button);
-        container.appendChild(row);
-      });
     }
 
     receiptRow(label, value) {
@@ -1208,12 +914,8 @@
 
     showReceipt(orderId) {
       if (!this.receipts.has(orderId)) {
-        const order = this.orders.find((candidate) => candidate.id === orderId);
-        if (!order?.hasDigital) {
-          this.app.showToast(this.t('receiptMissing'), true);
-          return;
-        }
-        this.receipts.set(orderId, { order, shipping: null });
+        this.app.showToast(this.t('receiptMissing'), true);
+        return;
       }
       this.app.closeModals();
       this.currentReceiptId = orderId;
@@ -1227,28 +929,24 @@
       const { order, shipping } = receipt;
       const status = document.getElementById('store-receipt-status');
       status.textContent = order.status === 'confirmed' ? this.t('paymentConfirmed') : order.status === 'failed' ? this.t('paymentFailed') : this.t('paymentSent');
-      document.getElementById('store-receipt-share').classList.toggle('hidden', order.status === 'failed' || !shipping || !order.hasPhysical);
-      document.querySelector('#modal-store-receipt [data-store-i18n="shareRequired"]').classList.toggle('hidden', order.status === 'failed' || !shipping || !order.hasPhysical);
+      document.getElementById('store-receipt-share').classList.toggle('hidden', order.status === 'failed');
+      document.querySelector('#modal-store-receipt [data-store-i18n="shareRequired"]').classList.toggle('hidden', order.status === 'failed');
       const content = document.getElementById('store-receipt-content');
       content.textContent = '';
-      const rows = [
+      content.append(
         this.receiptRow(this.t('orderRef'), order.id),
         this.receiptRow(this.t('seller'), `${order.sellerName}${order.sellerContact ? ` · ${order.sellerContact}` : ''}`),
         this.receiptRow(this.t('payment'), `${order.total} ${order.token} · ${this.t(order.status)}`),
         this.receiptRow(this.t('transaction'), order.txHash),
-        this.receiptRow(this.t('products'), order.items.map((item) => `${item.quantity} × ${item.name}`).join('\n'))
-      ];
-      if (shipping) rows.push(this.receiptRow(this.t('deliveryTo'), `${shipping.name}\n${shipping.phone}\n${shipping.address}\n${shipping.city}, ${shipping.country}${shipping.notes ? `\n${shipping.notes}` : ''}`));
-      else if (order.hasDigital) rows.push(this.receiptRow(this.t('digitalDelivery'), this.t('digitalNoShipping')));
-      content.append(...rows);
-      this.renderDigitalDelivery(orderId);
+        this.receiptRow(this.t('products'), order.items.map((item) => `${item.quantity} × ${item.name}`).join('\n')),
+        this.receiptRow(this.t('deliveryTo'), `${shipping.name}\n${shipping.phone}\n${shipping.address}\n${shipping.city}, ${shipping.country}${shipping.notes ? `\n${shipping.notes}` : ''}`)
+      );
     }
 
     receiptText(orderId) {
       const receipt = this.receipts.get(orderId);
       if (!receipt) return '';
       const { order, shipping } = receipt;
-      if (!shipping) return '';
       return [
         'FITIA STORE — ORDER / COMMANDE',
         `${this.t('orderRef')}: ${order.id}`,
@@ -1301,19 +999,10 @@
         total.className = 'store-order-total'; total.textContent = `${order.total} ${order.token}`;
         const seller = document.createElement('p'); seller.textContent = order.sellerName;
         const actions = document.createElement('div'); actions.className = 'store-order-actions';
-        if (this.receipts.has(order.id) && order.hasPhysical && order.status !== 'failed') {
+        if (this.receipts.has(order.id) && order.status !== 'failed') {
           const share = document.createElement('button'); share.type = 'button'; share.textContent = this.t('share');
           share.addEventListener('click', () => this.showReceipt(order.id));
           actions.appendChild(share);
-        }
-        if (order.hasDigital && order.status !== 'failed') {
-          const digital = document.createElement('button'); digital.type = 'button';
-          digital.textContent = this.t(order.digitalStatus === 'error' || order.digitalStatus === 'awaiting_inventory' ? 'digitalRetry' : 'digitalRetrieve');
-          digital.addEventListener('click', () => {
-            this.showReceipt(order.id);
-            if (!this.digitalDeliveries.has(order.id)) void this.fulfillDigitalOrder(order.id, true);
-          });
-          actions.appendChild(digital);
         }
         const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = this.t('copyHash');
         copy.addEventListener('click', async () => {

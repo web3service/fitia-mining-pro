@@ -181,7 +181,7 @@
 
         <section id="section-store" class="page-section hidden">
           <div class="section-heading">
-            <div><p class="eyebrow">Produits physiques &amp; numériques</p><h2>FITIA STORE</h2><p class="muted">Vendez des articles physiques, des téléchargements et des licences, avec paiement direct en USDT ou FTA.</p></div>
+            <div><p class="eyebrow">Produits physiques</p><h2>FITIA STORE</h2><p class="muted">Vendez vos propres produits ou des articles expédiés par un fournisseur, avec paiement en USDT ou FTA.</p></div>
             <button class="button button-primary" type="button" data-new-store-product>Nouveau produit</button>
           </div>
 
@@ -196,7 +196,7 @@
 
           <div class="promotion-notice store-privacy-notice">
             <strong>Catalogue public, livraison privée</strong>
-            <p>Les fiches produits et les adresses crypto de réception sont publiques. N’enregistrez jamais ici d’adresse postale de client. Les fichiers et licences sont chiffrés côté serveur ; seul un acheteur qui prouve la propriété de son wallet peut les récupérer après paiement vérifié.</p>
+            <p>Les fiches produits et les adresses crypto de réception sont publiques. N’enregistrez jamais ici d’adresse postale de client. Le wallet transmet les informations de livraison uniquement dans le reçu partagé par l’acheteur avec le vendeur.</p>
           </div>
 
           <div class="stats-grid store-stats-grid" aria-label="Statistiques FITIA STORE">
@@ -440,7 +440,6 @@
         </header>
         <div class="modal-body">
           <div class="editor-fields">
-            <div class="field-group"><label for="store-product-type">Type de produit</label><select id="store-product-type" required><option value="physical">Produit physique / livraison postale</option><option value="download">Produit numérique / fichier à télécharger</option><option value="license">Produit numérique / clé de licence</option></select><small class="field-hint">Le formulaire de livraison du wallet sera masqué si le panier est entièrement numérique.</small></div>
             <div class="date-grid">
               <div class="field-group"><label for="store-source-type">Approvisionnement</label><select id="store-source-type" required><option value="own">Mes produits / stock propre</option><option value="dropshipping">Dropshipping / fournisseur</option></select></div>
               <div class="field-group"><label for="store-category">Catégorie</label><select id="store-category" required><option value="electronics">Électronique</option><option value="fashion">Mode</option><option value="home">Maison</option><option value="beauty">Beauté</option><option value="sports">Sports</option><option value="toys">Jouets</option><option value="automotive">Automobile</option><option value="grocery">Épicerie</option><option value="jewelry">Bijoux</option><option value="office">Bureau</option><option value="other">Autres</option></select></div>
@@ -474,24 +473,6 @@
               </div>
             </fieldset>
 
-            <fieldset id="store-digital-inventory-fields" class="design-fieldset hidden">
-              <legend>Inventaire numérique privé</legend>
-              <p class="field-hint">Le contenu est chiffré par le serveur avant enregistrement. Il n’apparaît jamais en clair dans le catalogue public ou sur Polygon.</p>
-              <p id="store-digital-storage-status" class="field-hint" role="status"></p>
-              <div id="store-download-fields" class="field-group hidden">
-                <label for="store-digital-file">Fichier vendu <span>3 Mo maximum</span></label>
-                <input id="store-digital-file" type="file" accept=".pdf,.epub,.apk,.exe,.msi,.zip,.txt,.doc,.docx,application/pdf,application/vnd.android.package-archive,application/zip">
-                <small class="field-hint">E-book, APK, application Windows, logiciel ou archive. Pour un fichier plus volumineux, un stockage privé adapté sera nécessaire.</small>
-                <p id="store-digital-file-status" class="field-hint" role="status"></p>
-              </div>
-              <div id="store-license-fields" class="field-group hidden">
-                <label for="store-license-keys">Nouvelles clés de licence <span>une par ligne</span></label>
-                <textarea id="store-license-keys" rows="6" maxlength="256000" autocomplete="off" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX"></textarea>
-                <small class="field-hint">500 clés maximum par ajout. Les clés enregistrées ne sont jamais réaffichées ; les clés déjà attribuées ne peuvent pas être réutilisées.</small>
-                <p id="store-license-stock-status" class="field-hint" role="status"></p>
-              </div>
-            </fieldset>
-
             <fieldset class="design-fieldset">
               <legend>Vendeur et réception du paiement</legend>
               <p class="field-hint">Ces informations sont publiques. Utilisez une adresse Polygon qui reçoit réellement USDT et FTA, jamais l’adresse d’un contrat de jeton.</p>
@@ -506,10 +487,10 @@
             <div class="date-grid store-price-grid">
               <div class="field-group"><label for="store-price-token">Crypto de paiement</label><select id="store-price-token" required><option value="USDT">USDT</option><option value="FTA">FTA</option></select></div>
               <div class="field-group"><label for="store-price">Prix unitaire</label><input id="store-price" inputmode="decimal" autocomplete="off" placeholder="0.00" required></div>
-              <div id="store-shipping-fee-field" class="field-group"><label for="store-shipping-fee">Livraison par unité <span>même crypto</span></label><input id="store-shipping-fee" inputmode="decimal" autocomplete="off" value="0" required></div>
-              <div class="field-group"><label for="store-stock">Stock public affiché</label><input id="store-stock" type="number" min="0" max="1000000" step="1" value="1" required><small id="store-stock-hint" class="field-hint">Actualisez-le après les ventes et auprès du fournisseur.</small></div>
+              <div class="field-group"><label for="store-shipping-fee">Livraison par unité <span>même crypto</span></label><input id="store-shipping-fee" inputmode="decimal" autocomplete="off" value="0" required></div>
+              <div class="field-group"><label for="store-stock">Stock public affiché</label><input id="store-stock" type="number" min="0" max="1000000" step="1" value="1" required><small class="field-hint">Actualisez-le après les ventes et auprès du fournisseur.</small></div>
             </div>
-            <div class="field-group"><label for="store-delivery-estimate">Délai de livraison ou d’attribution</label><input id="store-delivery-estimate" maxlength="80" placeholder="Ex. 3 à 7 jours ouvrés" required></div>
+            <div class="field-group"><label for="store-delivery-estimate">Délai de livraison indicatif</label><input id="store-delivery-estimate" maxlength="80" placeholder="Ex. 3 à 7 jours ouvrés" required></div>
             <div class="date-grid">
               <div class="field-group"><label for="store-starts-at">Début de vente <span>facultatif</span></label><input id="store-starts-at" type="datetime-local"></div>
               <div class="field-group"><label for="store-expires-at">Fin de vente <span>facultatif</span></label><input id="store-expires-at" type="datetime-local"></div>

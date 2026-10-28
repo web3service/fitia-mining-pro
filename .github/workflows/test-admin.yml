@@ -6,8 +6,6 @@ on:
       - 'admin/**'
       - 'admin-server.js'
       - 'api/admin.js'
-      - 'api/store-digital.js'
-      - 'digital-inventory.js'
       - 'announcement-assets.js'
       - 'store-catalog.js'
       - 'store-products.json'
@@ -18,7 +16,6 @@ on:
       - 'scripts/run_vercel_admin_tests.js'
       - 'scripts/run_admin_tests.js'
       - 'scripts/run_admin_ui_tests.js'
-      - 'scripts/run_digital_tests.js'
       - 'package.json'
       - '.github/workflows/test-admin.yml'
   push:
@@ -28,8 +25,6 @@ on:
       - 'admin/**'
       - 'admin-server.js'
       - 'api/admin.js'
-      - 'api/store-digital.js'
-      - 'digital-inventory.js'
       - 'announcement-assets.js'
       - 'store-catalog.js'
       - 'store-products.json'
@@ -40,7 +35,6 @@ on:
       - 'scripts/run_vercel_admin_tests.js'
       - 'scripts/run_admin_tests.js'
       - 'scripts/run_admin_ui_tests.js'
-      - 'scripts/run_digital_tests.js'
       - 'package.json'
       - '.github/workflows/test-admin.yml'
 
@@ -64,6 +58,3 @@ jobs:
 
       - name: Run admin server and UI tests
         run: npm run test:admin
-
-      - name: Run secure digital delivery tests
-        run: npm run test:digital

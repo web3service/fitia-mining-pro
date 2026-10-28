@@ -43,10 +43,6 @@
     {
       "source": "/api/admin/store-assets",
       "destination": "/api/admin?action=store-assets"
-    },
-    {
-      "source": "/api/admin/digital-inventory",
-      "destination": "/api/admin?action=digital-inventory"
     }
   ],
   "headers": [

@@ -702,7 +702,6 @@
     <div class="modal-header"><h3 data-store-i18n="checkoutTitle">Delivery & payment</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
     <div id="store-checkout-summary" class="store-checkout-summary"></div>
     <form id="store-checkout-form" autocomplete="off">
-      <div id="store-shipping-fields">
       <div class="store-form-grid">
         <label><span data-store-i18n="fullName">Full name</span><input id="store-shipping-name" class="game-input" maxlength="80" autocomplete="off" required></label>
         <label><span data-store-i18n="phone">Phone</span><input id="store-shipping-phone" class="game-input" type="tel" maxlength="32" autocomplete="off" required></label>
@@ -711,7 +710,6 @@
       </div>
       <label class="store-form-field"><span data-store-i18n="postalAddress">Full postal address</span><textarea id="store-shipping-address" class="game-input" rows="3" maxlength="240" autocomplete="off" required></textarea></label>
       <label class="store-form-field"><span data-store-i18n="deliveryNotes">Delivery note (optional)</span><textarea id="store-shipping-notes" class="game-input" rows="2" maxlength="300" autocomplete="off"></textarea></label>
-      </div>
       <label class="store-consent"><input id="store-checkout-consent" type="checkbox" required><span data-store-i18n="consent">I understand that the crypto payment is irreversible and that I must share the order receipt with the seller for delivery.</span></label>
       <p class="store-privacy-copy" data-store-i18n="shippingPrivacy">These details remain on this phone and are never written to Polygon or the public catalog. They are included only in the receipt you choose to share.</p>
       <p id="store-checkout-error" class="store-form-error" role="alert"></p>
@@ -726,7 +724,6 @@
     <div class="modal-header"><h3 data-store-i18n="receiptTitle">Order receipt</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
     <div id="store-receipt-status" class="store-receipt-status"></div>
     <div id="store-receipt-content" class="store-receipt-content"></div>
-    <div id="store-digital-delivery" class="store-digital-delivery"></div>
     <p class="store-privacy-copy" data-store-i18n="shareRequired">Share this receipt with the seller so they can verify the transaction and ship your order.</p>
     <button type="button" id="store-receipt-share" class="btn-primary" onclick="App.storeCenter.shareCurrentReceipt()" data-store-i18n="shareReceipt">SHARE WITH SELLER</button>
     <button type="button" class="btn-secondary-outline" onclick="App.closeModals()" data-store-i18n="done">Done</button>
