@@ -2561,14 +2561,16 @@ main::-webkit-scrollbar { display: none; }
 .hub-header h2 { margin: 3px 0 0; color: #f8fafc; font-size: 1.65rem; letter-spacing: .08em; }
 .hub-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 11px; }
 .hub-card { --hub-accent: #f0b90b; position: relative; display: flex; min-width: 0; min-height: 126px; align-items: flex-start; flex-direction: column; padding: 15px; border: 1px solid rgba(255,255,255,.1); border: 1px solid color-mix(in srgb,var(--hub-accent) 25%,transparent); border-radius: 19px; background: linear-gradient(145deg,#1b2639,#111927); background: linear-gradient(145deg,color-mix(in srgb,var(--hub-accent) 9%,#172033),#111927); color: var(--text); cursor: pointer; box-shadow: 0 10px 26px rgba(0,0,0,.16); transition: transform .18s,border-color .18s; }
-.hub-card:nth-child(2) { --hub-accent: #60a5fa; }
-.hub-card:nth-child(3) { --hub-accent: #34d399; }
-.hub-card:nth-child(4) { --hub-accent: #c084fc; }
-.hub-card:nth-child(5) { --hub-accent: #94a3b8; }
-.hub-card:nth-child(6) { --hub-accent: #fb7185; }
+.hub-card-farm { --hub-accent: #f0b90b; }
+.hub-card-swap { --hub-accent: #60a5fa; }
 .hub-card:active { transform: scale(.97); }
 .hub-card-icon { display: grid; width: 45px; height: 45px; place-items: center; border-radius: 14px; background: rgba(255,255,255,.07); background: color-mix(in srgb,var(--hub-accent) 15%,transparent); color: var(--hub-accent); }
 .hub-card-icon svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.hub-card-icon img { display: block; object-fit: contain; }
+.hub-card-icon .hub-farm-logo { width: 40px; height: 40px; }
+.hub-swap-icons { display: flex; align-items: center; justify-content: center; }
+.hub-swap-icons img { width: 27px; height: 27px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,.28); }
+.hub-swap-icons img + img { margin-left: -8px; }
 .hub-card strong { margin-top: auto; font-size: .78rem; }
 .hub-chevron { position: absolute; top: 12px; right: 14px; color: var(--hub-accent); font-size: 1.4rem; }
 .bottom-nav .nav-item { position: relative; max-width: 20%; }
@@ -2670,7 +2672,7 @@ main::-webkit-scrollbar { display: none; }
 .farm-modal-content .game-input { border: 1px solid #cfc09d; background: #fffdf7; color: #2d402e; }
 .farm-conversion-preview { border: 1px solid #e0d2a9; background: #f2e7c8; color: #75561e; }
 @media (min-width: 650px) {
-  .hub-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .hub-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 420px) {
   .farm-hero { padding: 12px 14px; }
