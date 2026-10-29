@@ -1,11 +1,10 @@
 {
   "version": 1,
   "enabled": true,
-  "shippingCountries": [],
   "products": [
     {
       "id": "product-mvpwszmt-422259a2",
-      "active": true,
+      "active": false,
       "sourceType": "own",
       "category": "other",
       "name": {
@@ -23,5 +22,6 @@
       "stock": 980,
       "deliveryEstimate": "3 à 5 jours"
     }
-  ]
+  ],
+  "shippingCountries": []
 }
