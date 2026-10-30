@@ -1,9 +1,6 @@
 name: Build signed Android APK
 
 on:
-  push:
-    branches:
-      - arena/44bb4d95-fitia-mining-pro
   workflow_dispatch:
     inputs:
       commit_build:
@@ -144,7 +141,7 @@ jobs:
           retention-days: 30
 
   commit-build:
-    if: ${{ (inputs.commit_build || github.event_name == 'push') && github.ref != 'refs/heads/main' }}
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:
@@ -188,5 +185,5 @@ jobs:
             echo 'The tested build is already committed on this branch.'
             exit 0
           fi
-          git commit -m 'Build signed Android APK and update current manifest [skip ci]'
+          git commit -m 'Build signed Android APK and update current manifest'
           git push origin "HEAD:${GITHUB_REF_NAME}"
