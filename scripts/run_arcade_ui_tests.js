@@ -112,16 +112,26 @@ function setAccounts(account, signer) {
     });
 
     await test('Crash : cible 2×, tirage exact, animation et historique', async () => {
-      const before = center.state.coins; crash.setStake(100); crash.setTarget(200); randomValues.push(525000); await crash.play();
+      const before = center.state.coins; crash.setStake(100); crash.setTarget(200);
+      assert.strictEqual(window.document.getElementById('crash-stage-target-value').textContent, '2.00×');
+      assert.strictEqual(window.document.getElementById('crash-stage-payout-value').textContent, '200 coins');
+      randomValues.push(525000); await crash.play();
       assert.strictEqual(center.state.coins, before + 100); assert.strictEqual(crash.currentResult.crashBps, 200); assert.strictEqual(crash.currentResult.coins, 200);
       assert.strictEqual(calls.crash.at(-1).id, crash.currentResult.id); assert.ok(window.document.getElementById('crash-result-title').textContent.includes('2.00× TARGET REACHED'));
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'won');
+      assert.strictEqual(window.document.getElementById('crash-multiplier-caption').textContent, 'AUTO CASHED OUT');
       assert.strictEqual(window.document.querySelectorAll('#crash-history-list .arcade-history-row').length, 1);
+      assert.strictEqual(window.document.querySelectorAll('#crash-recent-multipliers .crash-recent-chip').length, 1);
+      assert.strictEqual(window.document.querySelector('#crash-recent-multipliers .crash-recent-chip').textContent, '2.00×');
     });
 
     await test('Crash : réponse perdue, reprise du même vol sans nouveau hasard', async () => {
       crash.setStake(50); crash.setTarget(300); const before = center.state.coins; randomValues.push(0, 525000); dropTypes.add('crash_play'); await crash.play();
       assert.ok(crash.pending); assert.strictEqual(center.state.coins, before); const id = crash.pending.actionId; await crash.play();
       assert.strictEqual(crash.currentResult.id, id); assert.strictEqual(crash.currentResult.crashBps, 100); assert.strictEqual(center.state.coins, before - 50);
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'lost');
+      assert.strictEqual(window.document.querySelectorAll('#crash-recent-multipliers .crash-recent-chip').length, 2);
+      assert.strictEqual(window.document.querySelector('#crash-recent-multipliers .crash-recent-chip').textContent, '1.00×');
       assert.strictEqual(randomValues.length, 1); randomValues.length = 0; assert.strictEqual(crash.pending, null);
     });
 

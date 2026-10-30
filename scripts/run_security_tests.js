@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.5.0 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.5.1 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -493,7 +493,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.5.0\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.5.1\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -1209,9 +1209,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 350,
-        versionName: '3.5.0',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.5.0/FITIA-PRO-Miner.apk',
+        versionCode: 351,
+        versionName: '3.5.1',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.5.1/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1254,7 +1254,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 350;
+        nativeState.appVersionCode = 351;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2690,11 +2690,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 350);
-      assert.strictEqual(updateManifest.versionName, '3.5.0');
-      assert.ok(updateManifest.apkUrl.includes('/v3.5.0/'));
+      assert.strictEqual(updateManifest.versionCode, 351);
+      assert.strictEqual(updateManifest.versionName, '3.5.1');
+      assert.ok(updateManifest.apkUrl.includes('/v3.5.1/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.5.0 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.5.1 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2712,8 +2712,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=350'), 'versionCode=350 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.5.0"'), 'versionName=3.5.0 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=351'), 'versionCode=350 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.5.1"'), 'versionName=3.5.1 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

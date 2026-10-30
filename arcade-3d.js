@@ -137,52 +137,139 @@
     if (!container || !globalThis.THREE) return fallback(container, 'assets/crash.svg');
     try {
       const THREE = globalThis.THREE; const renderer = rendererFor(container); const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 60); camera.position.set(0, 2.3, 8); camera.lookAt(0, 0.8, 0); camera.__scene = scene; addLights(scene, 0x4b79d8);
+      const camera = new THREE.PerspectiveCamera(37, 1, 0.1, 80); camera.position.set(0, 0.3, 8.8); camera.lookAt(0, 0.25, 0); camera.__scene = scene;
+      addLights(scene, 0x8b52ff);
+      const coolRim = new THREE.PointLight(0x527cff, 18, 15, 2); coolRim.position.set(-3, 1, 3); scene.add(coolRim);
+
+      const baseline = -1.45; const start = new THREE.Vector3(-2.75, baseline, 0.25);
+      const control = new THREE.Vector3(-0.85, -1.12, 0.25); const end = new THREE.Vector3(2.25, 1.65, 0.25);
+      const curve = new THREE.QuadraticBezierCurve3(start, control, end); const maxPoints = 81;
+
+      const gridPoints = [];
+      for (let x = -3.25; x <= 3.26; x += 0.65) gridPoints.push(new THREE.Vector3(x, baseline, -0.9), new THREE.Vector3(x, 2.75, -0.9));
+      for (let y = baseline; y <= 2.76; y += 0.55) gridPoints.push(new THREE.Vector3(-3.25, y, -0.9), new THREE.Vector3(3.25, y, -0.9));
+      const grid = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints), new THREE.LineBasicMaterial({ color: 0x7277b5, transparent: true, opacity: 0.13, depthWrite: false })); scene.add(grid);
+      const baseLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3.3, baseline, -0.2), new THREE.Vector3(3.3, baseline, -0.2)]), new THREE.LineBasicMaterial({ color: 0xa98aff, transparent: true, opacity: 0.28 })); scene.add(baseLine);
+
+      const starPositions = new Float32Array(120 * 3);
+      for (let index = 0; index < 120; index += 1) {
+        starPositions[index * 3] = Math.sin(index * 12.37) * 5.4;
+        starPositions[index * 3 + 1] = (index % 20) * 0.31 - 1.4;
+        starPositions[index * 3 + 2] = -1.5 - (index % 7) * 0.38;
+      }
+      const starGeometry = new THREE.BufferGeometry(); starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+      const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xdde5ff, size: 0.035, transparent: true, opacity: 0.78, depthWrite: false })); scene.add(stars);
+      const dust = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xa968ff, size: 0.085, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false })); dust.rotation.z = 0.7; scene.add(dust);
+
+      const pathPositions = new Float32Array(maxPoints * 3); const areaPositions = new Float32Array(maxPoints * 2 * 3);
+      const areaIndices = new Uint16Array((maxPoints - 1) * 6);
+      for (let index = 0; index < maxPoints - 1; index += 1) {
+        const offset = index * 6; const top = index * 2;
+        areaIndices.set([top, top + 1, top + 2, top + 1, top + 3, top + 2], offset);
+      }
+      const pathGeometry = new THREE.BufferGeometry(); pathGeometry.setAttribute('position', new THREE.BufferAttribute(pathPositions, 3).setUsage(THREE.DynamicDrawUsage)); pathGeometry.setDrawRange(0, 1);
+      const areaGeometry = new THREE.BufferGeometry(); areaGeometry.setAttribute('position', new THREE.BufferAttribute(areaPositions, 3).setUsage(THREE.DynamicDrawUsage)); areaGeometry.setIndex(new THREE.BufferAttribute(areaIndices, 1)); areaGeometry.setDrawRange(0, 0);
+      const area = new THREE.Mesh(areaGeometry, new THREE.MeshBasicMaterial({ color: 0x9b55ff, transparent: true, opacity: 0.19, side: THREE.DoubleSide, depthWrite: false })); scene.add(area);
+      const glowLine = new THREE.Line(pathGeometry, new THREE.LineBasicMaterial({ color: 0xb56cff, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false })); glowLine.position.z = 0.015; scene.add(glowLine);
+      const flightLine = new THREE.Line(pathGeometry, new THREE.LineBasicMaterial({ color: 0xff9a69, transparent: true, opacity: 0.98, depthWrite: false })); flightLine.position.z = 0.035; scene.add(flightLine);
+
       const rocket = new THREE.Group();
-      const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xdde8fa, metalness: 0.68, roughness: 0.25 });
-      const goldMaterial = new THREE.MeshStandardMaterial({ color: 0xe5ad32, metalness: 0.85, roughness: 0.2, emissive: 0x4a2600, emissiveIntensity: 0.25 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.34, 1.35, 32), bodyMaterial); body.castShadow = true; rocket.add(body);
-      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.65, 32), goldMaterial); nose.position.y = 1; nose.castShadow = true; rocket.add(nose);
-      const windowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.17, 24, 16), new THREE.MeshStandardMaterial({ color: 0x56c4e5, emissive: 0x123e6e, emissiveIntensity: 0.8, metalness: 0.5, roughness: 0.15 })); windowMesh.scale.z = 0.35; windowMesh.position.set(0, 0.3, 0.29); rocket.add(windowMesh);
-      for (const side of [-1, 1]) { const fin = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.55, 0.5), goldMaterial); fin.position.set(side * 0.35, -0.48, 0); fin.rotation.z = side * -0.25; rocket.add(fin); }
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.23, 1.15, 24), new THREE.MeshBasicMaterial({ color: 0xffa43d, transparent: true, opacity: 0.82 })); flame.position.y = -1.22; flame.rotation.z = Math.PI; rocket.add(flame);
-      rocket.rotation.z = -0.62; scene.add(rocket);
-      const start = new THREE.Vector3(-2.5, -0.9, 0); const control = new THREE.Vector3(-0.3, 0.15, 0); const end = new THREE.Vector3(2.3, 2.6, 0);
-      const curve = new THREE.QuadraticBezierCurve3(start, control, end); rocket.position.copy(start);
-      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(64)), new THREE.LineBasicMaterial({ color: 0x8c74d5, transparent: true, opacity: 0.3 })); scene.add(line);
-      const grid = new THREE.GridHelper(14, 20, 0x5b4c8c, 0x293149); grid.position.y = -1.25; grid.material.transparent = true; grid.material.opacity = 0.26; scene.add(grid);
-      const starPositions = new Float32Array(70 * 3); for (let index = 0; index < 70; index += 1) { starPositions[index * 3] = Math.sin(index * 12.37) * 5; starPositions[index * 3 + 1] = (index % 14) * 0.38 - 1; starPositions[index * 3 + 2] = -1 - (index % 5) * 0.4; }
-      const starGeometry = new THREE.BufferGeometry(); starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3)); const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xf7d675, size: 0.035, transparent: true, opacity: 0.65 })); scene.add(stars);
-      const explosion = new THREE.Group(); const explosionMaterial = new THREE.MeshBasicMaterial({ color: 0xff7b62, transparent: true, opacity: 0.85 });
-      for (let index = 0; index < 18; index += 1) { const particle = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), explosionMaterial); particle.userData.direction = new THREE.Vector3(Math.cos(index * 2.4), Math.sin(index * 2.4), (index % 3 - 1) * 0.4); explosion.add(particle); }
-      explosion.visible = false; scene.add(explosion);
-      let active = false; let waiting = false; let frame = 0; let previous = performance.now(); let animation = null; let resolveAnimation = null; let observer = null;
-      const render = () => renderer.render(scene, camera); const resize = () => { resizeRenderer(container, renderer, camera); render(); };
+      const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xe9edf8, metalness: 0.78, roughness: 0.22 });
+      const darkMaterial = new THREE.MeshStandardMaterial({ color: 0x20283a, metalness: 0.9, roughness: 0.2 });
+      const coralMaterial = new THREE.MeshStandardMaterial({ color: 0xff635f, metalness: 0.48, roughness: 0.24, emissive: 0x4a0c18, emissiveIntensity: 0.28 });
+      const goldMaterial = new THREE.MeshStandardMaterial({ color: 0xf4b95f, metalness: 0.85, roughness: 0.18 });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.295, 1.38, 48), bodyMaterial); body.castShadow = true; rocket.add(body);
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.237, 0.65, 48), coralMaterial); nose.position.y = 1.01; nose.castShadow = true; rocket.add(nose);
+      for (const y of [-0.42, 0.69]) { const band = new THREE.Mesh(new THREE.TorusGeometry(y < 0 ? 0.285 : 0.245, 0.022, 10, 48), goldMaterial); band.rotation.x = Math.PI / 2; band.position.y = y; rocket.add(band); }
+      const windowRing = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.03, 12, 40), darkMaterial); windowRing.position.set(0, 0.28, 0.265); rocket.add(windowRing);
+      const windowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.145, 32, 20), new THREE.MeshStandardMaterial({ color: 0x74d9ff, emissive: 0x164b88, emissiveIntensity: 1.15, metalness: 0.55, roughness: 0.1 })); windowMesh.scale.z = 0.28; windowMesh.position.set(0, 0.28, 0.275); rocket.add(windowMesh);
+      const finShape = new THREE.Shape(); finShape.moveTo(0, 0.35); finShape.lineTo(0.48, -0.28); finShape.lineTo(0.15, -0.36); finShape.lineTo(0, -0.15); finShape.closePath();
+      const finGeometry = new THREE.ExtrudeGeometry(finShape, { depth: 0.12, bevelEnabled: true, bevelSize: 0.025, bevelThickness: 0.025, bevelSegments: 2 });
+      for (const side of [-1, 1]) { const fin = new THREE.Mesh(finGeometry, coralMaterial); fin.scale.x = side; fin.position.set(side * 0.19, -0.52, -0.06); fin.castShadow = true; rocket.add(fin); }
+      const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.245, 0.3, 40), darkMaterial); nozzle.position.y = -0.83; rocket.add(nozzle);
+      const nozzleRing = new THREE.Mesh(new THREE.TorusGeometry(0.235, 0.025, 10, 40), goldMaterial); nozzleRing.rotation.x = Math.PI / 2; nozzleRing.position.y = -0.98; rocket.add(nozzleRing);
+      const flameOuter = new THREE.Mesh(new THREE.ConeGeometry(0.23, 1.15, 32), new THREE.MeshBasicMaterial({ color: 0xff713e, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending, depthWrite: false })); flameOuter.position.y = -1.52; flameOuter.rotation.z = Math.PI; rocket.add(flameOuter);
+      const flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.115, 0.78, 24), new THREE.MeshBasicMaterial({ color: 0xfff1a6, transparent: true, opacity: 0.94, blending: THREE.AdditiveBlending, depthWrite: false })); flameInner.position.y = -1.32; flameInner.rotation.z = Math.PI; rocket.add(flameInner);
+      const engineLight = new THREE.PointLight(0xff7b43, 6, 4, 2); engineLight.position.y = -1.12; rocket.add(engineLight);
+      const sparkGeometry = new THREE.SphereGeometry(0.025, 8, 6); const sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xffb15d, transparent: true, opacity: 0.78, blending: THREE.AdditiveBlending, depthWrite: false });
+      const sparks = []; for (let index = 0; index < 14; index += 1) { const spark = new THREE.Mesh(sparkGeometry, sparkMaterial); rocket.add(spark); sparks.push(spark); }
+      rocket.scale.setScalar(0.72); scene.add(rocket);
+
+      const explosion = new THREE.Group(); const explosionMaterial = new THREE.MeshBasicMaterial({ color: 0xff657d, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+      const particleGeometry = new THREE.SphereGeometry(0.04, 8, 6); const explosionParticles = [];
+      for (let index = 0; index < 30; index += 1) { const particle = new THREE.Mesh(particleGeometry, explosionMaterial); const angle = index * 2.39996; particle.userData.direction = new THREE.Vector3(Math.cos(angle), Math.sin(angle), (index % 5 - 2) * 0.18); explosion.add(particle); explosionParticles.push(particle); }
+      const blastRing = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.025, 8, 48), explosionMaterial); explosion.add(blastRing); explosion.visible = false; scene.add(explosion);
+      const winBurst = new THREE.Group(); const winMaterial = new THREE.MeshBasicMaterial({ color: 0x79f2c1, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }); const winParticles = [];
+      for (let index = 0; index < 22; index += 1) { const particle = new THREE.Mesh(particleGeometry, winMaterial); const angle = index * 2.39996; particle.userData.direction = new THREE.Vector3(Math.cos(angle), Math.sin(angle), (index % 3 - 1) * 0.22); winBurst.add(particle); winParticles.push(particle); }
+      winBurst.visible = false; scene.add(winBurst);
+      const flash = new THREE.PointLight(0xff637d, 0, 7, 2); scene.add(flash);
+
+      let active = false; let waiting = false; let frame = 0; let previous = performance.now(); let animation = null; let resolveAnimation = null; let observer = null; let travel = 0;
+      const render = () => renderer.render(scene, camera);
+      const resize = () => {
+        const bounds = container.getBoundingClientRect(); if (bounds.width < 2 || bounds.height < 2) return;
+        renderer.setSize(Math.round(bounds.width), Math.round(bounds.height), false); camera.aspect = bounds.width / bounds.height;
+        camera.position.z = camera.aspect < 1.25 ? 10.3 : 8.8; camera.updateProjectionMatrix(); render();
+      };
+      const updateFlight = (progress) => {
+        const count = Math.max(1, Math.min(maxPoints, Math.ceil(progress * (maxPoints - 1)) + 1));
+        for (let index = 0; index < count; index += 1) {
+          const point = curve.getPoint(count === 1 ? 0 : progress * index / (count - 1));
+          pathPositions[index * 3] = point.x; pathPositions[index * 3 + 1] = point.y; pathPositions[index * 3 + 2] = point.z;
+          const areaOffset = index * 6; areaPositions[areaOffset] = point.x; areaPositions[areaOffset + 1] = point.y; areaPositions[areaOffset + 2] = point.z - 0.08;
+          areaPositions[areaOffset + 3] = point.x; areaPositions[areaOffset + 4] = baseline; areaPositions[areaOffset + 5] = point.z - 0.08;
+        }
+        pathGeometry.attributes.position.needsUpdate = true; pathGeometry.setDrawRange(0, count);
+        areaGeometry.attributes.position.needsUpdate = true; areaGeometry.setDrawRange(0, Math.max(0, count - 1) * 6);
+      };
+      const positionRocket = (progress, time = 0) => {
+        rocket.position.copy(curve.getPoint(progress)); if (waiting && !animation) rocket.position.y += Math.sin(time * 0.004) * 0.045;
+        const tangent = curve.getTangent(Math.max(0.001, Math.min(0.999, progress))); rocket.rotation.z = Math.max(-1.15, Math.min(-0.35, Math.atan2(tangent.y, tangent.x) - Math.PI / 2));
+      };
       const cancelAnimation = () => { waiting = false; animation = null; const resolve = resolveAnimation; resolveAnimation = null; if (resolve) resolve(); };
+      const reset = () => {
+        cancelAnimation(); travel = 0; updateFlight(0); positionRocket(0); rocket.visible = true; explosion.visible = false; winBurst.visible = false; flash.intensity = 0;
+        explosionMaterial.opacity = 0.9; winMaterial.opacity = 0.85; camera.position.x = 0; camera.position.y = 0.3; camera.lookAt(0, 0.25, 0); options.onMultiplier?.(1); render();
+      };
       const tick = (time) => {
-        if (!active) return; const delta = Math.min(0.05, Math.max(0, (time - previous) / 1000)); previous = time; stars.rotation.z += delta * 0.015;
-        flame.scale.y = 0.9 + Math.sin(time * 0.025) * 0.13;
-        if (waiting && !animation) { rocket.position.copy(start); rocket.position.y += Math.sin(time * 0.004) * 0.07; rocket.visible = true; explosion.visible = false; }
+        if (!active) return; const delta = Math.min(0.05, Math.max(0, (time - previous) / 1000)); previous = time;
+        stars.rotation.z += delta * 0.008; dust.rotation.z -= delta * 0.005;
+        flameOuter.scale.y = 0.92 + Math.sin(time * 0.026) * 0.14; flameInner.scale.y = 0.9 + Math.sin(time * 0.033 + 1) * 0.12;
+        engineLight.intensity = 5.5 + Math.sin(time * 0.025) * 1.1;
+        sparks.forEach((spark, index) => { const phase = (time * 0.0018 + index / sparks.length) % 1; spark.position.set(Math.sin(index * 4.7) * (0.06 + phase * 0.15), -1.04 - phase * 1.15, Math.cos(index * 3.1) * 0.09); spark.scale.setScalar(Math.max(0.05, 1 - phase)); });
+        if (waiting && !animation) { travel = 0; updateFlight(0); positionRocket(0, time); rocket.visible = true; }
         if (animation) {
-          const progress = Math.min(1, (time - animation.startedAt) / animation.duration); const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-          const travel = eased * animation.endProgress; rocket.position.copy(curve.getPoint(travel)); options.onMultiplier?.((100 + (animation.endBps - 100) * eased) / 100);
-          if (!animation.won && progress > 0.82) {
-            const blast = (progress - 0.82) / 0.18; explosion.visible = true; explosion.position.copy(rocket.position); explosion.scale.setScalar(0.3 + blast * 2.2); explosionMaterial.opacity = 0.85 * (1 - blast); rocket.visible = blast < 0.35;
+          const progress = Math.min(1, (time - animation.startedAt) / animation.duration); const eased = Math.pow(progress, 1.55);
+          travel = eased * animation.endProgress; updateFlight(travel); positionRocket(travel); options.onMultiplier?.((100 + (animation.endBps - 100) * eased) / 100);
+          camera.position.x = rocket.position.x * 0.025; camera.position.y = 0.3 + Math.max(0, rocket.position.y) * 0.025; camera.lookAt(0, 0.25, 0);
+          if (!animation.won && progress > 0.78) {
+            const blast = (progress - 0.78) / 0.22; explosion.visible = true; explosion.position.copy(rocket.position); flash.position.copy(rocket.position); flash.intensity = 14 * (1 - blast);
+            explosionParticles.forEach((particle) => particle.position.copy(particle.userData.direction).multiplyScalar(0.2 + blast * 1.15));
+            blastRing.scale.setScalar(0.4 + blast * 3.2); explosionMaterial.opacity = 0.9 * (1 - blast); rocket.visible = blast < 0.32;
           }
-          if (progress >= 1) { animation = null; const resolve = resolveAnimation; resolveAnimation = null; if (resolve) resolve(); }
+          if (animation.won && progress > 0.8) {
+            const burst = (progress - 0.8) / 0.2; winBurst.visible = true; winBurst.position.copy(rocket.position);
+            winParticles.forEach((particle) => particle.position.copy(particle.userData.direction).multiplyScalar(0.15 + burst * 0.9)); winMaterial.opacity = 0.85 * (1 - burst * 0.55);
+          }
+          if (progress >= 1) {
+            options.onMultiplier?.(animation.endBps / 100); animation = null; flash.intensity = 0; const resolve = resolveAnimation; resolveAnimation = null; if (resolve) resolve();
+          }
         }
         render(); frame = requestAnimationFrame(tick);
       };
       const setActive = (value) => { active = Boolean(value); if (!active) { cancelAnimation(); cancelAnimationFrame(frame); frame = 0; return; } resize(); previous = performance.now(); if (!frame) frame = requestAnimationFrame(tick); };
       const animateResult = (result) => {
-        cancelAnimation(); rocket.visible = true; rocket.position.copy(start); explosion.visible = false; explosionMaterial.opacity = 0.85; options.onMultiplier?.(1);
-        const won = result.won; const endBps = won ? result.targetBps : result.crashBps;
+        reset(); const won = result.won; const endBps = won ? result.targetBps : result.crashBps;
         const endProgress = won ? 1 : Math.max(0, Math.min(0.96, (result.crashBps - 100) / Math.max(1, result.targetBps - 100)));
-        if (!active || reducedMotion()) { rocket.position.copy(curve.getPoint(endProgress)); options.onMultiplier?.(endBps / 100); render(); return Promise.resolve(); }
-        animation = { won, endBps, endProgress, startedAt: performance.now(), duration: 2100 }; return new Promise((resolve) => { resolveAnimation = resolve; });
+        if (!active || reducedMotion()) {
+          travel = endProgress; updateFlight(travel); positionRocket(travel); options.onMultiplier?.(endBps / 100);
+          if (!won) { explosion.visible = true; explosion.position.copy(rocket.position); explosionMaterial.opacity = 0.45; rocket.visible = false; }
+          render(); return Promise.resolve();
+        }
+        animation = { won, endBps, endProgress, startedAt: performance.now(), duration: 2450 }; return new Promise((resolve) => { resolveAnimation = resolve; });
       };
-      if (globalThis.ResizeObserver) { observer = new ResizeObserver(resize); observer.observe(container); }
-      return { available: true, setActive, startWaiting() { cancelAnimation(); options.onMultiplier?.(1); waiting = !reducedMotion(); }, animateResult, cancelAnimation, resize, dispose() { setActive(false); disposeScene(scene, renderer, observer); } };
+      reset(); if (globalThis.ResizeObserver) { observer = new ResizeObserver(resize); observer.observe(container); }
+      return { available: true, setActive, reset, startWaiting() { reset(); waiting = !reducedMotion(); }, animateResult, cancelAnimation, resize, dispose() { setActive(false); disposeScene(scene, renderer, observer); } };
     } catch (_) { return fallback(container, 'assets/crash.svg'); }
   }
 
