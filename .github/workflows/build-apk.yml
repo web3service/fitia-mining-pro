@@ -8,13 +8,6 @@ on:
         required: true
         default: false
         type: boolean
-  push:
-    branches:
-      - arena/ef690d74-fitia-mining-pro
-    paths-ignore:
-      - FITIA-PRO-Miner.apk
-      - update-current.json
-      - fitia-test-output.log
 
 jobs:
   build-apk:
@@ -129,16 +122,8 @@ jobs:
           node server.js &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          { npm test && npm run test:admin; } 2>&1 | tee /tmp/fitia-test-output.log
-
-      - name: Upload failed test output
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: FITIA-test-output
-          path: /tmp/fitia-test-output.log
-          if-no-files-found: ignore
-          retention-days: 1
+          npm test
+          npm run test:admin
 
       - name: Remove restored private key
         if: always()
@@ -155,33 +140,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  commit-test-output:
-    if: ${{ always() && needs.build-apk.result == 'failure' && github.event_name == 'push' }}
-    needs: build-apk
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: FITIA-test-output
-          path: /tmp/fitia-test-output
-      - name: Commit only the failed test report
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s /tmp/fitia-test-output/fitia-test-output.log
-          cp /tmp/fitia-test-output/fitia-test-output.log fitia-test-output.log
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add fitia-test-output.log
-          git commit -m 'Report failed Arcade build tests'
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-
   commit-build:
-    if: ${{ (inputs.commit_build || github.event_name == 'push') && github.ref != 'refs/heads/main' }}
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:
