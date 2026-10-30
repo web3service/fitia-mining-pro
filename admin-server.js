@@ -13,6 +13,7 @@ const {
 const { validateManifest: validateStoreCatalog } = require('./store-catalog');
 const { getDefaultOrderService } = require('./store-order-service');
 const { getDefaultFarmService } = require('./farm-service');
+const GameVisibility = require('./game-visibility-config');
 
 const ROOT = __dirname;
 const ADMIN_DIR = path.join(ROOT, 'admin');
@@ -195,21 +196,30 @@ function validatePromotionManifest(raw) {
   return { enabled: raw.enabled, hiddenShopItems: normalizeHiddenShopItems(raw.hiddenShopItems), promotions };
 }
 
+function validateGameVisibilityManifest(raw) {
+  const normalized = GameVisibility.normalizeManifest(raw);
+  if (!normalized) throw new ApiError(400, 'Les paramètres de visibilité des jeux sont invalides.', 'VALIDATION');
+  return normalized;
+}
+
 function validateManifestKind(raw, kind = 'announcements') {
   if (kind === 'store') {
     try { return validateStoreCatalog(raw); }
     catch (error) { throw new ApiError(error.status || 400, error.message, error.code || 'VALIDATION'); }
   }
+  if (kind === 'games') return validateGameVisibilityManifest(raw);
   return kind === 'promotions' ? validatePromotionManifest(raw) : validateManifest(raw);
 }
 
 function manifestFile(kind) {
   if (kind === 'store') return 'store-products.json';
+  if (kind === 'games') return 'game-visibility.json';
   return kind === 'promotions' ? 'promotions.json' : 'announcements.json';
 }
 
 function manifestName(kind) {
   if (kind === 'store') return 'produits FITIA STORE';
+  if (kind === 'games') return 'paramètres de visibilité des jeux';
   return kind === 'promotions' ? 'décorations' : 'annonces';
 }
 
@@ -300,6 +310,7 @@ function createAdminServer(options = {}) {
 
   const dataFile = path.resolve(options.dataFile || process.env.FITIA_ADMIN_DATA_FILE || path.join(ROOT, 'announcements.json'));
   const promotionsFile = path.resolve(options.promotionsFile || process.env.FITIA_ADMIN_PROMOTIONS_FILE || path.join(ROOT, 'promotions.json'));
+  const gameVisibilityFile = path.resolve(options.gameVisibilityFile || process.env.FITIA_ADMIN_GAME_VISIBILITY_FILE || path.join(ROOT, 'game-visibility.json'));
   const assetDirectory = path.resolve(options.assetDirectory || process.env.FITIA_ADMIN_ASSET_DIRECTORY || path.join(ROOT, 'assets', 'announcements'));
   const storeAssetDirectory = path.resolve(options.storeAssetDirectory || process.env.FITIA_ADMIN_STORE_ASSET_DIRECTORY || path.join(ROOT, 'assets', 'store'));
   const owner = options.owner || process.env.FITIA_ADMIN_GITHUB_OWNER || 'web3service';
@@ -420,7 +431,7 @@ function createAdminServer(options = {}) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: kind === 'store' ? 'Update FITIA STORE catalog' : kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements',
+        message: kind === 'store' ? 'Update FITIA STORE catalog' : kind === 'games' ? 'Update FITIA game visibility' : kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements',
         content: Buffer.from(serialized, 'utf8').toString('base64'),
         sha: revision,
         branch
@@ -434,7 +445,7 @@ function createAdminServer(options = {}) {
   }
 
   async function loadLocal(kind = 'announcements') {
-    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'promotions' ? promotionsFile : dataFile;
+    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'games' ? gameVisibilityFile : kind === 'promotions' ? promotionsFile : dataFile;
     let serialized;
     try {
       serialized = await fs.promises.readFile(targetFile, 'utf8');
@@ -451,7 +462,7 @@ function createAdminServer(options = {}) {
   }
 
   async function saveLocal(manifest, kind = 'announcements') {
-    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'promotions' ? promotionsFile : dataFile;
+    const targetFile = kind === 'store' ? path.resolve(options.storeDataFile || process.env.FITIA_ADMIN_STORE_DATA_FILE || path.join(ROOT, 'store-products.json')) : kind === 'games' ? gameVisibilityFile : kind === 'promotions' ? promotionsFile : dataFile;
     const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
     const temporary = `${targetFile}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
     await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
@@ -527,16 +538,23 @@ function createAdminServer(options = {}) {
     ['/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/admin.css', { file: path.join(ADMIN_DIR, 'admin.css'), type: 'text/css; charset=utf-8' }],
     ['/admin/admin.js', { file: path.join(ADMIN_DIR, 'admin.js'), type: 'application/javascript; charset=utf-8' }],
+    ['/admin/games-admin.js', { file: path.join(ADMIN_DIR, 'games-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/store-admin.js', { file: path.join(ADMIN_DIR, 'store-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/orders-admin.js', { file: path.join(ADMIN_DIR, 'orders-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/farm-admin.js', { file: path.join(ADMIN_DIR, 'farm-admin.js'), type: 'application/javascript; charset=utf-8' }],
+    ['/game-visibility-config.js', { file: path.join(ROOT, 'game-visibility-config.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.js', { file: path.join(ROOT, 'promotion-effects.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.css', { file: path.join(ROOT, 'promotion-effects.css'), type: 'text/css; charset=utf-8' }],
     ['/store-catalog.js', { file: path.join(ROOT, 'store-catalog.js'), type: 'application/javascript; charset=utf-8' }],
     ['/assets/icon-192.png', { file: path.join(ROOT, 'assets/icon-192.png'), type: 'image/png' }],
     ['/assets/avatars/team-1.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-1.svg'), type: 'image/svg+xml' }],
     ['/assets/avatars/team-2.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-2.svg'), type: 'image/svg+xml' }],
-    ['/assets/avatars/team-3.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-3.svg'), type: 'image/svg+xml' }]
+    ['/assets/avatars/team-3.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-3.svg'), type: 'image/svg+xml' }],
+    ['/assets/lucky-wheel.svg', { file: path.join(ROOT, 'assets', 'lucky-wheel.svg'), type: 'image/svg+xml' }],
+    ['/assets/dice.svg', { file: path.join(ROOT, 'assets', 'dice.svg'), type: 'image/svg+xml' }],
+    ['/assets/mines.svg', { file: path.join(ROOT, 'assets', 'mines.svg'), type: 'image/svg+xml' }],
+    ['/assets/crash.svg', { file: path.join(ROOT, 'assets', 'crash.svg'), type: 'image/svg+xml' }],
+    ['/assets/coin-flip.svg', { file: path.join(ROOT, 'assets', 'coin-flip.svg'), type: 'image/svg+xml' }]
   ]);
 
   async function handleApi(req, res, pathname) {
@@ -631,19 +649,19 @@ function createAdminServer(options = {}) {
       return;
     }
 
-    if ((pathname === '/api/announcements' || pathname === '/api/promotions' || pathname === '/api/store-products') && req.method === 'GET') {
+    if ((pathname === '/api/announcements' || pathname === '/api/promotions' || pathname === '/api/game-visibility' || pathname === '/api/store-products') && req.method === 'GET') {
       const session = requireSession(req, res);
       if (!session) return;
-      const kind = pathname.endsWith('/store-products') ? 'store' : pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
+      const kind = pathname.endsWith('/store-products') ? 'store' : pathname.endsWith('/game-visibility') ? 'games' : pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
       const result = await loadManifest(kind);
       sendJson(res, 200, { ...result, ...sourceInfo(), serverTime: new Date().toISOString() });
       return;
     }
 
-    if ((pathname === '/api/announcements' || pathname === '/api/promotions' || pathname === '/api/store-products') && req.method === 'PUT') {
+    if ((pathname === '/api/announcements' || pathname === '/api/promotions' || pathname === '/api/game-visibility' || pathname === '/api/store-products') && req.method === 'PUT') {
       const session = requireSession(req, res);
       if (!session || !requireCsrf(req, res, session)) return;
-      const kind = pathname.endsWith('/store-products') ? 'store' : pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
+      const kind = pathname.endsWith('/store-products') ? 'store' : pathname.endsWith('/game-visibility') ? 'games' : pathname.endsWith('/promotions') ? 'promotions' : 'announcements';
       const body = await readJson(req, kind === 'store' ? 2 * 1024 * 1024 : MAX_BODY_BYTES);
       const result = await updateManifest(body.manifest, body.revision, kind);
       sendJson(res, 200, { ...result, ...sourceInfo(), serverTime: new Date().toISOString() });
@@ -708,4 +726,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createAdminServer, validateManifest, validatePromotionManifest, ApiError };
+module.exports = { createAdminServer, validateManifest, validatePromotionManifest, validateGameVisibilityManifest, ApiError };

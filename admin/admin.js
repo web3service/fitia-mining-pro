@@ -88,6 +88,7 @@
     section: 'dashboard'
   };
 
+  let gamesAdmin = null;
   let storeAdmin = null;
   let ordersAdmin = null;
   let farmAdmin = null;
@@ -208,6 +209,7 @@
     state.promotionManifest = null;
     state.promotionRevision = '';
     state.editingPromotionId = null;
+    if (gamesAdmin) gamesAdmin.reset();
     if (storeAdmin) storeAdmin.reset();
     if (ordersAdmin) ordersAdmin.reset();
     if (farmAdmin) farmAdmin.reset();
@@ -230,10 +232,12 @@
     byId('list-error').classList.add('hidden');
     byId('promotions-list-error').classList.add('hidden');
     byId('store-list-error').classList.add('hidden');
+    gamesAdmin.showError(null);
     try {
-      const [announcementResult, promotionResult, storeResult] = await Promise.allSettled([
+      const [announcementResult, promotionResult, gamesResult, storeResult] = await Promise.allSettled([
         api('/api/admin/announcements'),
         api('/api/admin/promotions'),
+        gamesAdmin.load(),
         storeAdmin.load()
       ]);
       const errors = [];
@@ -259,13 +263,19 @@
           byId('promotions-list-error').classList.remove('hidden');
         }
       }
+      if (gamesResult.status === 'fulfilled') {
+        if (announcementResult.status !== 'fulfilled' && promotionResult.status !== 'fulfilled') updateSource(gamesResult.value);
+      } else {
+        errors.push(gamesResult.reason);
+        if (gamesResult.reason.code !== 'AUTH_REQUIRED') gamesAdmin.showError(gamesResult.reason);
+      }
       if (storeResult.status === 'fulfilled') {
-        if (announcementResult.status !== 'fulfilled' && promotionResult.status !== 'fulfilled') updateSource(storeResult.value);
+        if (announcementResult.status !== 'fulfilled' && promotionResult.status !== 'fulfilled' && gamesResult.status !== 'fulfilled') updateSource(storeResult.value);
       } else {
         errors.push(storeResult.reason);
         storeAdmin.showError(storeResult.reason);
       }
-      if (announcementResult.status === 'fulfilled' || promotionResult.status === 'fulfilled' || storeResult.status === 'fulfilled') state.lastSync = new Date();
+      if ([announcementResult, promotionResult, gamesResult, storeResult].some((result) => result.status === 'fulfilled')) state.lastSync = new Date();
       renderAll();
       setConnection(errors.length ? 'offline' : 'online');
       const visibleErrors = errors.filter((error) => error.code !== 'AUTH_REQUIRED');
@@ -344,6 +354,7 @@
       renderAnnouncements();
     }
     if (state.promotionManifest) renderPromotions();
+    if (gamesAdmin) gamesAdmin.render();
     if (storeAdmin) storeAdmin.render();
   }
 
@@ -616,10 +627,11 @@
     byId('section-dashboard').classList.toggle('hidden', section !== 'dashboard');
     byId('section-announcements').classList.toggle('hidden', section !== 'announcements');
     byId('section-promotions').classList.toggle('hidden', section !== 'promotions');
+    byId('section-games').classList.toggle('hidden', section !== 'games');
     byId('section-store').classList.toggle('hidden', section !== 'store');
     byId('section-orders').classList.toggle('hidden', section !== 'orders');
     byId('section-farm').classList.toggle('hidden', section !== 'farm');
-    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', store: 'FITIA STORE', orders: 'Commandes clients', farm: 'Retraits FITIA FARM' };
+    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', games: 'Visibilité des jeux', store: 'FITIA STORE', orders: 'Commandes clients', farm: 'Retraits FITIA FARM' };
     byId('page-title').textContent = titles[section] || titles.dashboard;
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.classList.toggle('active', button.dataset.section === section);
@@ -1134,6 +1146,10 @@
     }, 60000);
   }
 
+  gamesAdmin = window.FitiaGamesAdmin.create({
+    byId, api, clone, showToast, setLoading, setConnection, updateSource,
+    getMode: () => state.mode
+  });
   storeAdmin = window.FitiaStoreAdmin.create({
     byId, api, clone, generateId, showToast, setLoading, setConnection, updateSource,
     makeButton, optimizeImage, fromInputDate, toInputDate,

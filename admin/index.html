@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="/promotion-effects.css">
   <script src="/promotion-effects.js" defer></script>
   <script src="/store-catalog.js" defer></script>
+  <script src="/game-visibility-config.js" defer></script>
+  <script src="/admin/games-admin.js" defer></script>
   <script src="/admin/store-admin.js" defer></script>
   <script src="/admin/orders-admin.js" defer></script>
   <script src="/admin/farm-admin.js" defer></script>
@@ -50,6 +52,9 @@
         </button>
         <button class="nav-button" type="button" data-section="promotions">
           <span class="nav-icon" aria-hidden="true">◇</span><span class="nav-label">Cartes cadeaux &amp; effets</span><span class="nav-short-label">Effets</span>
+        </button>
+        <button class="nav-button" type="button" data-section="games">
+          <span class="nav-icon" aria-hidden="true">♢</span><span class="nav-label">Visibilité des jeux</span><span class="nav-short-label">Jeux</span>
         </button>
         <button class="nav-button" type="button" data-section="store">
           <span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">FITIA STORE</span><span class="nav-short-label">Store</span>
@@ -185,6 +190,20 @@
             <h3>Aucune décoration enregistrée</h3>
             <p>Créez un cadeau, des cloches ou un effet saisonnier pour une machine ou une batterie.</p>
             <button class="button button-secondary" type="button" data-new-promotion>Créer une décoration</button>
+          </div>
+        </section>
+
+        <section id="section-games" class="page-section hidden">
+          <div class="section-heading">
+            <div><p class="eyebrow">Présentation du Hub</p><h2>Visibilité des jeux</h2><p class="muted">Choisissez les cartes de jeux affichées dans l’application.</p></div>
+            <span id="game-visible-count" class="source-badge">5 / 5 visibles</span>
+          </div>
+          <div class="game-visibility-panel">
+            <div class="game-visibility-heading">
+              <div><strong>Masquage visuel uniquement</strong><p>Un jeu masqué disparaît du Hub. Ses règles, ses parties côté serveur, les soldes et les historiques ne sont pas modifiés. FARM et Swap restent toujours disponibles.</p></div>
+            </div>
+            <div id="game-visibility-error" class="alert alert-error hidden" role="alert"></div>
+            <div id="game-visibility-list" class="game-visibility-list" aria-live="polite"></div>
           </div>
         </section>
 

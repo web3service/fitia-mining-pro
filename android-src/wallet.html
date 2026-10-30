@@ -722,19 +722,19 @@
       <button type="button" class="hub-card hub-card-swap" onclick="App.nav('swap')">
         <span class="hub-card-icon hub-swap-icons" aria-hidden="true"><img src="assets/usdt.svg" width="26" height="26" alt="" draggable="false"><img src="assets/fta.png" width="26" height="26" alt="" draggable="false"></span><strong>Swap</strong><span class="hub-chevron">›</span>
       </button>
-      <button type="button" class="hub-card hub-card-wheel" onclick="App.nav('wheel')">
+      <button type="button" class="hub-card hub-card-wheel" data-game-id="wheel" onclick="App.nav('wheel')">
         <span class="hub-card-icon" aria-hidden="true"><img class="hub-wheel-logo" src="assets/lucky-wheel.svg" width="44" height="44" alt="" draggable="false"></span><strong>Lucky Wheel</strong><span class="hub-chevron">›</span>
       </button>
-      <button type="button" class="hub-card hub-card-dice" onclick="App.nav('dice')">
+      <button type="button" class="hub-card hub-card-dice" data-game-id="dice" onclick="App.nav('dice')">
         <span class="hub-card-icon" aria-hidden="true"><img class="hub-dice-logo" src="assets/dice.svg" width="48" height="48" alt="" draggable="false"></span><strong>FITA Dice 3D</strong><span class="hub-chevron">›</span>
       </button>
-      <button type="button" class="hub-card hub-card-mines" onclick="App.nav('mines')">
+      <button type="button" class="hub-card hub-card-mines" data-game-id="mines" onclick="App.nav('mines')">
         <span class="hub-card-icon" aria-hidden="true"><img src="assets/mines.svg" width="48" height="48" alt="" draggable="false"></span><strong>FITA Mines 3D</strong><span class="hub-chevron">›</span>
       </button>
-      <button type="button" class="hub-card hub-card-crash" onclick="App.nav('crash')">
+      <button type="button" class="hub-card hub-card-crash" data-game-id="crash" onclick="App.nav('crash')">
         <span class="hub-card-icon" aria-hidden="true"><img src="assets/crash.svg" width="48" height="48" alt="" draggable="false"></span><strong>FITA Crash</strong><span class="hub-chevron">›</span>
       </button>
-      <button type="button" class="hub-card hub-card-coin-flip" onclick="App.nav('coin-flip')">
+      <button type="button" class="hub-card hub-card-coin-flip" data-game-id="coin-flip" onclick="App.nav('coin-flip')">
         <span class="hub-card-icon" aria-hidden="true"><img src="assets/coin-flip.svg" width="54" height="54" alt="" draggable="false"></span><strong>Coin Flip 3D</strong><span class="hub-chevron">›</span>
       </button>
     </div>
@@ -1451,6 +1451,8 @@
 <script src="announcements.js"></script>
 <script src="promotion-effects.js"></script>
 <script src="promotions.js"></script>
+<script src="game-visibility-config.js"></script>
+<script src="game-visibility.js"></script>
 <script src="store-catalog.js"></script>
 <script src="store-order-protocol.js"></script>
 <script src="store.js"></script>

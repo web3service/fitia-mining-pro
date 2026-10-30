@@ -1080,6 +1080,7 @@ class Application {
     this.currentLang = savedLang && i18n[savedLang] ? savedLang : 'en';
     this.announcementCenter = new FitiaAnnouncementCenter(this);
     this.promotionCenter = new FitiaPromotionCenter(this);
+    this.gameVisibility = new FitiaGameVisibilityCenter(this);
     this.storeCenter = new FitiaStoreCenter(this);
     this.farmCenter = new FitiaFarmCenter(this);
     this.luckyWheel = new FitiaLuckyWheel(this, this.farmCenter);
@@ -1161,6 +1162,7 @@ class Application {
     this.setLanguage(this.currentLang);
     this.announcementCenter.init();
     this.promotionCenter.init();
+    this.gameVisibility.init();
     this.storeCenter.init();
     this.farmCenter.init();
     this.luckyWheel.init();
@@ -4499,6 +4501,10 @@ class Application {
       this.announcementCenter.start();
     } else {
       this.announcementCenter.stop();
+    }
+    if (viewId === 'hub') {
+      this.gameVisibility.apply();
+      void this.gameVisibility.refresh();
     }
     if (viewId === 'shop') this.promotionCenter.refresh();
     if (viewId === 'store') {

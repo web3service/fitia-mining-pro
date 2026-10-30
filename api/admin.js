@@ -7,6 +7,7 @@ const {
 const { validateManifest: validateStoreCatalog } = require('../store-catalog');
 const { getDefaultOrderService } = require('../store-order-service');
 const { getDefaultFarmService } = require('../farm-service');
+const GameVisibility = require('../game-visibility-config');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -168,21 +169,30 @@ function validatePromotionManifest(raw) {
   return { enabled: raw.enabled, hiddenShopItems: normalizeHiddenShopItems(raw.hiddenShopItems), promotions };
 }
 
+function validateGameVisibilityManifest(raw) {
+  const normalized = GameVisibility.normalizeManifest(raw);
+  if (!normalized) throw new ApiError(400, 'Les paramètres de visibilité des jeux sont invalides.', 'VALIDATION');
+  return normalized;
+}
+
 function validateManifest(raw, kind = 'announcements') {
   if (kind === 'store') {
     try { return validateStoreCatalog(raw); }
     catch (error) { throw new ApiError(error.status || 400, error.message, error.code || 'VALIDATION'); }
   }
+  if (kind === 'games') return validateGameVisibilityManifest(raw);
   return kind === 'promotions' ? validatePromotionManifest(raw) : validateAnnouncementManifest(raw);
 }
 
 function manifestFile(kind) {
   if (kind === 'store') return 'store-products.json';
+  if (kind === 'games') return 'game-visibility.json';
   return kind === 'promotions' ? 'promotions.json' : 'announcements.json';
 }
 
 function manifestName(kind) {
   if (kind === 'store') return 'produits FITIA STORE';
+  if (kind === 'games') return 'paramètres de visibilité des jeux';
   return kind === 'promotions' ? 'décorations' : 'annonces';
 }
 
@@ -381,7 +391,7 @@ async function saveManifest(config, manifest, expectedRevision, kind = 'announce
   const response = await githubRequest(config, url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: kind === 'store' ? 'Update FITIA STORE catalog' : kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements', content: Buffer.from(serialized).toString('base64'), sha: current.revision, branch: config.branch })
+    body: JSON.stringify({ message: kind === 'store' ? 'Update FITIA STORE catalog' : kind === 'games' ? 'Update FITIA game visibility' : kind === 'promotions' ? 'Update FITIA promotions' : 'Update FITIA announcements', content: Buffer.from(serialized).toString('base64'), sha: current.revision, branch: config.branch })
   });
   if (response.status === 409) throw new ApiError(409, `Les ${manifestName(kind)} ont changé ailleurs. Rechargez avant de réessayer.`, 'CONFLICT');
   if (!response.ok) throw new ApiError(503, 'La publication GitHub a été refusée. Vérifiez la configuration du serveur.', 'GITHUB_WRITE');
@@ -472,19 +482,19 @@ function createAdminHandler(options = {}) {
       return;
     }
 
-    if ((action === 'announcements' || action === 'promotions' || action === 'store-products') && req.method === 'GET') {
+    if ((action === 'announcements' || action === 'promotions' || action === 'game-visibility' || action === 'store-products') && req.method === 'GET') {
       const session = requireSession(req, res, config);
       if (!session) return;
-      const kind = action === 'store-products' ? 'store' : action;
+      const kind = action === 'store-products' ? 'store' : action === 'game-visibility' ? 'games' : action;
       const result = await loadManifest(config, kind);
       sendJson(res, 200, { ...result, ...sourceInfo(config), serverTime: new Date().toISOString() });
       return;
     }
 
-    if ((action === 'announcements' || action === 'promotions' || action === 'store-products') && req.method === 'PUT') {
+    if ((action === 'announcements' || action === 'promotions' || action === 'game-visibility' || action === 'store-products') && req.method === 'PUT') {
       const session = requireSession(req, res, config);
       if (!session || !requireCsrf(req, res, session)) return;
-      const kind = action === 'store-products' ? 'store' : action;
+      const kind = action === 'store-products' ? 'store' : action === 'game-visibility' ? 'games' : action;
       const body = await readJson(req, action === 'store-products' ? 2 * 1024 * 1024 : MAX_BODY_BYTES);
       const manifest = validateManifest(body.manifest, kind);
       const revision = await saveManifest(config, manifest, body.revision, kind);

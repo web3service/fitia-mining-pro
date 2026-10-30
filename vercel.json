@@ -37,6 +37,10 @@
       "destination": "/api/admin?action=promotions"
     },
     {
+      "source": "/api/admin/game-visibility",
+      "destination": "/api/admin?action=game-visibility"
+    },
+    {
       "source": "/api/admin/store-products",
       "destination": "/api/admin?action=store-products"
     },

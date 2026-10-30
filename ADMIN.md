@@ -1,6 +1,6 @@
 # FITIA PRO — Panneau d’administration
 
-Le panneau d’administration est une application Node.js séparée du wallet et de la vitrine publique. Il gère indépendamment `announcements.json` pour les annonces et `promotions.json` pour les cartes cadeaux et badges de la boutique.
+Le panneau d’administration est une application Node.js séparée du wallet et de la vitrine publique. Il gère indépendamment `announcements.json` pour les annonces, `promotions.json` pour les cartes cadeaux et badges de la boutique, et `game-visibility.json` pour les cartes de jeux du Hub.
 
 ## Fonctions
 
@@ -12,6 +12,7 @@ Le panneau d’administration est une application Node.js séparée du wallet et
 - aperçu mobile avant enregistrement ;
 - recherche, filtres et réorganisation de l’ordre d’affichage ;
 - activation ou désactivation du canal distant ;
+- masquage ou réaffichage individuel des cinq cartes de jeux du Hub ;
 - détection des modifications concurrentes grâce à la révision du manifeste ;
 - sélection d’une machine ou d’une batterie par son numéro visible dans la boutique ;
 - présentations `gift` (carte cadeau de Noël) et `badge` (badge promotionnel) ;
@@ -28,6 +29,12 @@ Les dates `startsAt` et `expiresAt` sont facultatives. Le wallet ignore les entr
 Ce canal est **strictement visuel** : il ne change ni les prix lus sur la blockchain, ni les boutons, ni les transactions d’achat. Une promotion tarifaire réelle reste une opération distincte du propriétaire du contrat. Les annonces et les décorations possèdent des fichiers, des révisions et des publications indépendants.
 
 L’administration peut publier `promotions.json` sans reconstruire l’APK, mais l’affichage exige une version du wallet qui embarque `promotions.js`. L’APK signé existant n’est pas modifié par une publication JSON.
+
+## Visibilité des jeux
+
+La section **Visibilité des jeux** gère les cartes Lucky Wheel, FITA Dice 3D, FITA Mines 3D, FITA Crash et Coin Flip 3D. Chaque interrupteur modifie uniquement `game-visibility.json`. Un jeu masqué disparaît du Hub ; FARM, Swap et les cinq navigations principales restent inchangés.
+
+Ce réglage est **strictement visuel** : il ne suspend aucune partie côté serveur et ne modifie ni les tirages, ni les soldes, ni les historiques. Le wallet actualise le manifeste à l’ouverture du Hub. Tous les jeux sont visibles par défaut si aucune configuration valide n’a encore été chargée.
 
 ## Sécurité
 
@@ -48,10 +55,12 @@ Le mode local modifie uniquement le fichier configuré sur le serveur. Il ne pub
 ```bash
 cp announcements.json /tmp/fitia-admin-announcements.json
 cp promotions.json /tmp/fitia-admin-promotions.json
+cp game-visibility.json /tmp/fitia-admin-game-visibility.json
 export FITIA_ADMIN_PASSWORD='remplacer-par-un-mot-de-passe-long'
 export FITIA_ADMIN_LOCAL_MODE=1
 export FITIA_ADMIN_DATA_FILE=/tmp/fitia-admin-announcements.json
 export FITIA_ADMIN_PROMOTIONS_FILE=/tmp/fitia-admin-promotions.json
+export FITIA_ADMIN_GAME_VISIBILITY_FILE=/tmp/fitia-admin-game-visibility.json
 npm run admin
 ```
 
@@ -59,7 +68,7 @@ Ouvrez ensuite `http://localhost:8090`. Le port d’écoute est `0.0.0.0:8090` a
 
 ## 2. Publication dans l’application
 
-Le mode GitHub lit et met à jour `announcements.json` ou `promotions.json` avec l’API Contents de GitHub. Le wallet récupère ensuite chaque manifeste depuis la branche `main` lors de son prochain rafraîchissement.
+Le mode GitHub lit et met à jour `announcements.json`, `promotions.json` ou `game-visibility.json` avec l’API Contents de GitHub. Le wallet récupère ensuite chaque manifeste depuis la branche `main` lors de son prochain rafraîchissement.
 
 Configurez côté serveur un secret GitHub limité au dépôt et autorisant **Contents: Read and write**. Ne placez jamais ce secret dans le code, le navigateur, Git ou une conversation.
 
@@ -109,6 +118,7 @@ Les tables privées et leurs transactions atomiques sont définies dans `supabas
 | `FITIA_ADMIN_LOCAL_MODE` | `1` pour utiliser le fichier local | actif si aucun token |
 | `FITIA_ADMIN_DATA_FILE` | Annonces utilisées en mode local | `announcements.json` |
 | `FITIA_ADMIN_PROMOTIONS_FILE` | Décorations utilisées en mode local | `promotions.json` |
+| `FITIA_ADMIN_GAME_VISIBILITY_FILE` | Visibilité des jeux utilisée en mode local | `game-visibility.json` |
 | `FITIA_ADMIN_STORE_DATA_FILE` | Catalogue STORE utilisé en mode local | `store-products.json` |
 | `FITIA_ADMIN_STORE_ASSET_DIRECTORY` | Photos STORE utilisées en mode local | `assets/store/` |
 | `FITIA_ADMIN_GITHUB_OWNER` | Propriétaire du dépôt | `web3service` |
@@ -147,6 +157,6 @@ npm install --prefix /tmp/test-deps --no-package-lock --no-audit --no-fund jsdom
 npm run test:admin
 ```
 
-La suite comprend 15 contrôles du serveur autonome, un test d’interface et 8 contrôles Vercel : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, décorations ciblées, catalogue et photos STORE, limitation des tentatives, sessions serverless, publication GitHub simulée et prévention XSS. Les paiements et la confidentialité STORE sont vérifiés séparément avec `npm run test:store`.
+La suite comprend 16 contrôles du serveur autonome, un test d’interface et 9 contrôles Vercel : authentification, CSRF, origines, validation, dates, conflits, réorganisation, suppression, décorations ciblées, visibilité des jeux, catalogue et photos STORE, limitation des tentatives, sessions serverless, publication GitHub simulée et prévention XSS. Les paiements et la confidentialité STORE sont vérifiés séparément avec `npm run test:store`.
 
 Le workflow **Test FITIA admin panel** exécute ces contrôles sur les pull requests concernées et sur `main`.
