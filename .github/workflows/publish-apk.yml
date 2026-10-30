@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - main
+      - arena/5266458e-fitia-mining-pro
     paths:
       - FITIA-PRO-Miner.apk
       - update-current.json
