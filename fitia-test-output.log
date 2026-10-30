@@ -1,0 +1,54 @@
+
+> fitia-mining-pro@3.5.0 test
+> node scripts/run_farm_tests.js && node scripts/run_arcade_tests.js && node scripts/run_farm_ui_tests.js && node scripts/run_wheel_ui_tests.js && node scripts/run_dice_ui_tests.js && node scripts/run_arcade_ui_tests.js && node scripts/run_security_tests.js && node scripts/run_store_order_tests.js && node scripts/run_store_tests.js
+
+
+🚜  TESTS FITIA FARM
+════════════════════════════════════════════════════════════════════
+  ✅ Compte signé : état initial privé et signature falsifiée refusée
+  ✅ Dépôt FTA : attente, confirmation, 100 coins/FTA et aucune double créditation
+  ✅ Démarrage : terrain et animal obligatoires, prix débités et production verrouillée
+  ✅ Élevage : nourrissage, temps réel, collecte et interdiction de double production
+  ✅ Cultures et vente : blé, carotte, récolte et conversion en coins
+  ✅ Lucky Wheel : probabilités à 100 % et récompenses entières pour chaque mise autorisée
+  ✅ Lucky Wheel payant : avantage trésorerie après coins, FTA, feed, produits et bonus récursifs
+  ✅ Lucky Wheel : tour gratuit serveur, historique et rejeu sans nouveau débit ni tirage
+  ✅ Lucky Wheel : mise autorisée, FTA converti en coins et paramètres client falsifiés ignorés
+  ✅ Lucky Wheel : toutes les récompenses créditées et tour bonus consommé sans mise
+  ✅ FITA Dice : rendement théorique ≤ 95 % pour chaque mise et chaque cible
+  ✅ FITA Dice : tirage serveur, gain exact, historique et rejeu sans nouveau débit
+  ✅ FITA Dice : réponse perdue après commit, récupération du même résultat sans double mutation
+  ✅ Retrait FTA : minimum 10 FTA, débit atomique, demande persistante et montants invalides
+  ✅ Clôture du retrait : preuve exacte treasury → wallet puis statut paid
+  ✅ Une transaction de dépôt ne peut pas être réutilisée par un autre wallet
+  ✅ Un identifiant d’action ne peut pas être rejoué par un autre wallet
+  ✅ Reçu Polygon : token, expéditeur, destinataire, montant et trois confirmations
+  ✅ API client : OPTIONS, 202 en attente, signature obligatoire et aucune donnée sensible
+  ✅ API admin FARM : session obligatoire, CSRF, attente puis clôture du retrait
+  ✅ Révision concurrente : une ancienne version ne peut pas écraser le compte
+  ✅ Migration Supabase : Dice atomique, minimum SQL de 1 000 coins et privilèges serveur
+  ✅ Client Supabase : apikey secret et appels RPC atomiques sans JWT legacy
+════════════════════════════════════════════════════════════════════
+📊 RÉSULTAT FARM : 23 réussis, 0 échoués
+
+🎮  TESTS FITIA ARCADE
+════════════════════════════════════════════════════════════════════════
+  ✅ Économie : Mines, Crash et Coin Flip conservent un RTP maximal de 95 %
+  ✅ Compte FARM partagé : activation et solde initial pour les jeux
+  ✅ Mines : tirage secret, rejeu du démarrage et aucune fuite vers le client
+  ✅ Mines : case sûre, cote exacte, encaissement atomique et rejeu sans double crédit
+  ✅ Mines : mine touchée, perte exacte et révélation complète seulement après clôture
+  ✅ Mines : réponse perdue après commit, récupération de la même révélation
+  ✅ Crash : résultat serveur, cible atteinte, perte et rejeu sans nouveau hasard
+  ✅ Crash : réponse perdue après commit, récupération sans second débit
+  ✅ Coin Flip 3D : côté serveur, paiement 1,90×, perte et paramètres invalides
+  ✅ Coin Flip 3D : réponse perdue et rejeu du même identifiant
+  ❌ Migration Supabase : cinq actions Arcade atomiques et privilèges service-role
+     ↳ Error: ENOENT: no such file or directory, open '/home/runner/work/fitia-mining-pro/fitia-mining-pro/scripts/../supabase/migrations/20261030023000_add_arcade_games.sql'
+    at Object.readFileSync (node:fs:440:20)
+    at /home/runner/work/fitia-mining-pro/fitia-mining-pro/scripts/run_arcade_tests.js:167:26
+    at test (/home/runner/work/fitia-mining-pro/fitia-mining-pro/scripts/run_arcade_tests.js:13:15)
+    at /home/runner/work/fitia-mining-pro/fitia-mining-pro/scripts/run_arcade_tests.js:166:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+════════════════════════════════════════════════════════════════════════
+🎮 RÉSULTAT ARCADE : 10 réussis, 1 échoués
