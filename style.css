@@ -3183,3 +3183,77 @@ main::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion:reduce) {
   .arcade-action-button i,.mines-grid button img,.mines-grid button.hit,.arcade-result { animation: none; }
 }
+
+/* FITA Crash — cockpit de vol, courbe progressive et panneau de mise premium. */
+.crash-view { --arcade-accent: #ff8a68; --arcade-accent-rgb: 255,138,104; }
+.crash-view .arcade-header { margin-bottom: 11px; }
+.crash-view .arcade-header h2 { letter-spacing: -.01em; }
+.crash-view .arcade-hero { min-height: 68px; padding: 8px 14px; border-color: rgba(155,111,255,.24); border-radius: 18px; background: radial-gradient(circle at 8% 0,rgba(147,85,255,.17),transparent 45%),linear-gradient(140deg,#211d39,#111827); box-shadow: 0 10px 28px rgba(3,5,15,.25),inset 0 1px rgba(255,255,255,.04); }
+.crash-view .arcade-hero > img { width: 50px; height: 50px; }
+.crash-view .arcade-hero strong { font-size: 1.24rem; }
+.crash-view .arcade-hero .arcade-hero-stat strong { color: #c4a5ff; }
+.crash-stage { height: 300px; margin-bottom: 9px; border-color: rgba(150,110,255,.32); border-radius: 25px; background: radial-gradient(ellipse at 50% 112%,rgba(70,88,230,.36),transparent 48%),radial-gradient(circle at 87% 5%,rgba(175,72,255,.2),transparent 38%),linear-gradient(180deg,#11142b 0%,#090d1c 66%,#11162c 100%); box-shadow: 0 20px 45px rgba(2,4,14,.38),inset 0 1px rgba(255,255,255,.055),inset 0 0 45px rgba(103,60,179,.08); transition: border-color .3s,box-shadow .3s; }
+.crash-stage::before { z-index: 0; opacity: .12; background-size: 42px 42px; mask-image: linear-gradient(to bottom,black,transparent 88%); }
+.crash-stage::after { position: absolute; z-index: 0; bottom: -128px; left: 50%; width: 520px; height: 210px; transform: translateX(-50%); border-top: 1px solid rgba(137,154,255,.32); border-radius: 50% 50% 0 0; background: radial-gradient(ellipse at 50% 0,rgba(107,116,255,.25),rgba(27,35,86,.19) 42%,rgba(6,10,25,.05) 70%); box-shadow: 0 -12px 55px rgba(91,89,255,.16); content: ''; pointer-events: none; }
+.crash-stage .arcade-3d-container { z-index: 1; }
+.crash-target-badge { position: absolute; z-index: 3; top: 14px; left: 14px; display: flex; align-items: flex-start; flex-direction: column; padding: 8px 10px; border: 1px solid rgba(192,157,255,.22); border-radius: 12px; background: rgba(12,14,32,.58); box-shadow: inset 0 1px rgba(255,255,255,.04); backdrop-filter: blur(10px); }
+.crash-target-badge span,.crash-stage-payout span { color: #938ba9; font-size: .43rem; font-weight: 850; letter-spacing: .1em; }
+.crash-target-badge strong { margin-top: 2px; color: #d7bdff; font-family: 'JetBrains Mono',monospace; font-size: .74rem; }
+.crash-multiplier-wrap { position: absolute; z-index: 2; top: 34%; left: 50%; display: flex; align-items: center; flex-direction: column; transform: translate(-50%,-50%); pointer-events: none; }
+.crash-view .crash-multiplier { position: static; padding: 0; border: 0; background: none; color: #f7f5ff; font-size: 3.35rem; font-weight: 850; letter-spacing: -.075em; line-height: 1; text-shadow: 0 3px 28px rgba(171,119,255,.35); backdrop-filter: none; transition: color .25s,text-shadow .25s; }
+.crash-multiplier-caption { margin-top: 10px; padding: 5px 9px; border: 1px solid rgba(255,255,255,.09); border-radius: 999px; background: rgba(12,15,31,.48); color: #aaa2bd; font-size: .43rem; font-weight: 850; letter-spacing: .13em; white-space: nowrap; backdrop-filter: blur(8px); }
+.crash-stage-payout { position: absolute; z-index: 3; right: 16px; bottom: 14px; left: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.065); pointer-events: none; }
+.crash-stage-payout strong { color: #f4cf83; font-family: 'JetBrains Mono',monospace; font-size: .66rem; }
+.crash-stage[data-state="flying"] { border-color: rgba(177,126,255,.48); box-shadow: 0 20px 48px rgba(2,4,14,.4),0 0 35px rgba(130,72,255,.09),inset 0 1px rgba(255,255,255,.06); }
+.crash-stage[data-state="flying"] .crash-multiplier-caption { border-color: rgba(179,130,255,.25); color: #d1b5ff; }
+.crash-stage[data-state="won"] { border-color: rgba(93,230,178,.48); box-shadow: 0 20px 48px rgba(2,4,14,.4),0 0 35px rgba(62,218,163,.1),inset 0 1px rgba(255,255,255,.06); }
+.crash-stage[data-state="won"] .crash-multiplier { color: #81f1c5; text-shadow: 0 3px 30px rgba(72,229,172,.3); }
+.crash-stage[data-state="won"] .crash-multiplier-caption { border-color: rgba(93,230,178,.26); color: #91e8c8; }
+.crash-stage[data-state="lost"] { border-color: rgba(255,100,128,.42); animation: crashStageImpact .34s ease-out; }
+.crash-stage[data-state="lost"] .crash-multiplier { color: #ff8197; text-shadow: 0 3px 30px rgba(255,73,110,.26); }
+.crash-stage[data-state="lost"] .crash-multiplier-caption { border-color: rgba(255,100,128,.24); color: #ff9cac; }
+.crash-stage .crash-result { position: absolute; z-index: 4; right: 14px; bottom: 46px; left: 14px; min-height: 58px; margin: 0; padding: 8px 12px; border-color: rgba(105,232,183,.25); border-radius: 14px; background: rgba(15,38,38,.82); box-shadow: 0 10px 24px rgba(0,0,0,.2); backdrop-filter: blur(12px); }
+.crash-stage .crash-result.lost { border-color: rgba(255,111,137,.2); background: rgba(42,22,38,.84); }
+.crash-stage .crash-result strong { color: #8bf0c8; }
+.crash-stage .crash-result.lost strong { color: #ff9daf; }
+.crash-history-strip { display: flex; min-height: 34px; align-items: center; gap: 9px; margin-bottom: 9px; }
+.crash-history-strip > span { flex: 0 0 auto; color: #797185; font-size: .42rem; font-weight: 850; letter-spacing: .11em; }
+#crash-recent-multipliers { display: flex; min-width: 0; flex: 1; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+#crash-recent-multipliers::-webkit-scrollbar { display: none; }
+.crash-recent-chip { flex: 0 0 auto; padding: 6px 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 9px; background: #191b2c; color: #b4adbd; font-family: 'JetBrains Mono',monospace; font-size: .53rem; font-weight: 800; }
+.crash-recent-chip.medium { border-color: rgba(167,116,255,.2); background: rgba(128,77,211,.12); color: #c5a3ff; }
+.crash-recent-chip.high { border-color: rgba(244,190,91,.25); background: rgba(216,144,47,.12); color: #f4cc79; }
+.crash-recent-chip.low { color: #92909e; }
+.crash-betting-panel { padding: 12px 13px 13px; border: 1px solid rgba(154,116,221,.17); border-radius: 21px; background: radial-gradient(circle at 100% 0,rgba(132,75,211,.09),transparent 36%),linear-gradient(145deg,rgba(29,28,49,.96),rgba(17,22,36,.98)); box-shadow: 0 14px 32px rgba(2,4,12,.24),inset 0 1px rgba(255,255,255,.035); }
+.crash-betting-panel .arcade-control-heading { margin-top: 6px; }
+.crash-betting-panel .arcade-control-heading:first-child { margin-top: 0; }
+.crash-betting-panel .arcade-stakes button,.crash-betting-panel .arcade-choices button { min-height: 43px; border-color: rgba(169,139,211,.12); background: rgba(14,17,31,.72); color: #a9a0b5; }
+.crash-betting-panel .arcade-stakes button.active { border-color: rgba(176,126,255,.6); background: linear-gradient(145deg,rgba(139,82,223,.26),rgba(104,63,173,.15)); color: #dfc8ff; box-shadow: inset 0 0 0 1px rgba(210,181,255,.04),0 4px 14px rgba(94,46,163,.12); }
+.crash-betting-panel .arcade-choices button.active { border-color: rgba(255,139,103,.62); background: linear-gradient(145deg,rgba(255,118,91,.23),rgba(194,76,89,.13)); color: #ffd0ba; }
+.crash-betting-panel .arcade-quote { margin-top: 11px; background: rgba(7,11,23,.3); }
+.crash-view .crash-launch-button { display: flex; min-height: 59px; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; border: 1px solid rgba(255,179,131,.55); border-radius: 16px; background: linear-gradient(115deg,#ee536d 0%,#ff815c 54%,#f3ae51 115%); color: #fff9f5; box-shadow: 0 10px 26px rgba(238,83,109,.22),inset 0 1px rgba(255,255,255,.38); font-size: .75rem; text-shadow: 0 1px 2px rgba(104,25,35,.25); }
+.crash-launch-button svg { position: relative; z-index: 2; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+.crash-view .crash-launch-button i { display: none; }
+.crash-view .crash-launch-button:disabled { border-color: rgba(255,255,255,.09); background: #2b2938; color: #77717f; text-shadow: none; }
+.crash-view .arcade-history { margin-top: 16px; }
+.crash-view .arcade-history-row.won { border-color: rgba(105,222,179,.1); }
+.crash-view .arcade-history-row.won .arcade-history-mark { border-color: rgba(105,222,179,.2); background: rgba(74,187,147,.08); color: #80dbb8; }
+@keyframes crashStageImpact { 0%,100% { transform: translateX(0); } 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+@media (min-width:650px) {
+  .crash-stage { height: 340px; }
+  .crash-view .crash-multiplier { font-size: 4.2rem; }
+  .crash-betting-panel { padding: 16px; }
+}
+@media (max-width:350px) {
+  .crash-stage { height: 268px; }
+  .crash-view .crash-multiplier { font-size: 2.8rem; }
+  .crash-target-badge { top: 11px; left: 11px; padding: 7px 8px; }
+  .crash-target-badge span,.crash-stage-payout span { font-size: .38rem; }
+  .crash-stage-payout { right: 12px; bottom: 11px; left: 12px; }
+  .crash-betting-panel { padding: 10px; }
+  .crash-betting-panel .arcade-stakes button,.crash-betting-panel .arcade-choices button { min-height: 41px; }
+  .crash-stage .crash-result { right: 10px; bottom: 42px; left: 10px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .crash-stage,.crash-view .crash-multiplier { animation: none; transition: none; }
+}

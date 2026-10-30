@@ -283,6 +283,7 @@
 
   class FitiaCrash extends ArcadeBase {
     constructor(app, farm) { super(app, farm, 'crash'); this.selectedTarget = 200; }
+    setAccount(account) { super.setAccount(account); this.scene?.reset?.(); }
     init() {
       this.initBase();
       document.querySelectorAll('[data-crash-stake]').forEach((button) => button.addEventListener('click', () => this.setStake(Number(button.dataset.crashStake))));
@@ -296,8 +297,8 @@
     }
     restorePending(pending) { if (pending) { this.selectedStake = pending.params.stake; this.selectedTarget = pending.params.targetBps; } }
     crashState() { return this.farm.state?.crash || { totalRounds: 0, recentRounds: [] }; }
-    setStake(stake) { if (this.operation || this.pending || !Config.STAKES.includes(stake)) return; this.selectedStake = stake; this.currentResult = null; this.render(); }
-    setTarget(target) { if (this.operation || this.pending || !Config.CRASH_TARGETS_BPS.includes(target)) return; this.selectedTarget = target; this.currentResult = null; this.render(); }
+    setStake(stake) { if (this.operation || this.pending || !Config.STAKES.includes(stake)) return; this.selectedStake = stake; this.currentResult = null; this.scene?.reset?.(); this.render(); }
+    setTarget(target) { if (this.operation || this.pending || !Config.CRASH_TARGETS_BPS.includes(target)) return; this.selectedTarget = target; this.currentResult = null; this.scene?.reset?.(); this.render(); }
     play() {
       if (this.pending) return this.resume();
       if (this.operation || !this.account) return Promise.resolve();
@@ -318,6 +319,11 @@
       document.querySelectorAll('[data-crash-target]').forEach((button) => { const active = Number(button.dataset.crashTarget) === target; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); button.disabled = this.operation || Boolean(this.pending); });
       const payout = Config.crashPayout(stake, target); const chance = Config.crashWinningOutcomes(target) / Config.CRASH_RANDOM_RANGE;
       byId('crash-chance-value').textContent = percent(chance); byId('crash-payout-value').textContent = `${formatCoins(payout)} coins`; byId('crash-net-value').textContent = `+${formatCoins(payout - stake)} coins`;
+      byId('crash-stage-target-value').textContent = multiplier(target); byId('crash-stage-payout-value').textContent = `${formatCoins(payout)} coins`;
+      const stageState = this.currentResult ? (this.currentResult.won ? 'won' : 'lost') : this.operation ? (this.waiting ? 'preparing' : 'flying') : 'ready';
+      byId('crash-stage').dataset.state = stageState;
+      const captions = { ready: 'READY FOR LAUNCH', preparing: 'LAUNCHING', flying: 'IN FLIGHT', won: 'AUTO CASHED OUT', lost: 'CRASHED' };
+      byId('crash-multiplier-caption').textContent = captions[stageState];
       const button = byId('crash-play-button');
       button.querySelector('span').textContent = this.operation ? this.waiting ? 'LAUNCHING…' : 'IN FLIGHT' : this.pending ? 'RESUME FLIGHT' : `LAUNCH · ${formatCoins(stake)} COINS`;
       button.disabled = this.operation || !unlocked || (!this.pending && Number(state?.coins || 0) < stake);
@@ -337,6 +343,14 @@
         const row = make('article', `arcade-history-row ${round.won ? 'won' : 'lost'}`);
         const main = make('div'); main.append(make('strong', '', round.won ? `+${formatCoins(round.coins)} coins` : `−${formatCoins(round.stake)} coins`), make('small', '', `Auto ${multiplier(round.targetBps)} · Crash ${multiplier(round.crashBps)}`));
         row.append(make('span', 'arcade-history-mark', multiplier(round.crashBps)), main, make('span', 'arcade-history-stake', `${round.stake}`)); list.appendChild(row);
+      });
+      const strip = document.getElementById('crash-history-strip'); const recent = document.getElementById('crash-recent-multipliers');
+      strip.classList.toggle('hidden', !rounds.length); recent.textContent = '';
+      rounds.slice(0, 8).forEach((round) => {
+        const level = round.crashBps >= 500 ? 'high' : round.crashBps >= 200 ? 'medium' : 'low';
+        const chip = make('span', `crash-recent-chip ${level}`, multiplier(round.crashBps));
+        chip.setAttribute('role', 'listitem'); chip.setAttribute('aria-label', `Crash ${multiplier(round.crashBps)}, auto cashout ${multiplier(round.targetBps)}`);
+        recent.appendChild(chip);
       });
     }
     renderProbabilities() {

@@ -926,19 +926,25 @@
     </section>
     <section id="crash-locked" class="arcade-locked hidden"><strong>FARM activation required</strong><button id="crash-open-farm" type="button" class="farm-small-button">OPEN FARM</button></section>
     <div id="crash-game" class="arcade-game">
-      <section class="arcade-stage crash-stage" aria-label="FITA Crash game">
-        <div id="crash-3d-container" class="arcade-3d-container" role="img" aria-label="Animated rocket and crash trajectory"><img src="assets/crash.svg" width="145" height="145" alt="" draggable="false"></div>
-        <strong id="crash-multiplier" class="crash-multiplier" aria-hidden="true">1.00×</strong>
+      <section id="crash-stage" class="arcade-stage crash-stage" data-state="ready" aria-label="FITA Crash game">
+        <div id="crash-3d-container" class="arcade-3d-container" role="img" aria-label="Animated FITIA rocket following a rising multiplier curve"><img src="assets/crash.svg" width="145" height="145" alt="" draggable="false"></div>
+        <div class="crash-target-badge"><span>AUTO CASHOUT</span><strong id="crash-stage-target-value">2.00×</strong></div>
+        <div class="crash-multiplier-wrap"><strong id="crash-multiplier" class="crash-multiplier" aria-hidden="true">1.00×</strong><span id="crash-multiplier-caption">READY FOR LAUNCH</span></div>
+        <div class="crash-stage-payout"><span>POTENTIAL PAYOUT</span><strong id="crash-stage-payout-value">100 coins</strong></div>
+        <section id="crash-result" class="arcade-result crash-result hidden" aria-live="polite"><span>LAST RESULT</span><strong id="crash-result-title"></strong><small id="crash-result-detail"></small></section>
       </section>
-      <section id="crash-result" class="arcade-result hidden" aria-live="polite"><span>LAST RESULT</span><strong id="crash-result-title"></strong><small id="crash-result-detail"></small></section>
-      <div class="arcade-control-heading"><span>AUTO CASHOUT</span><b>1.50× – 10.00×</b></div>
-      <div class="arcade-choices crash-targets" role="group" aria-label="Auto cashout target">
-        <button type="button" data-crash-target="150" aria-pressed="false">1.50×</button><button type="button" data-crash-target="200" class="active" aria-pressed="true">2.00×</button><button type="button" data-crash-target="300" aria-pressed="false">3.00×</button><button type="button" data-crash-target="500" aria-pressed="false">5.00×</button><button type="button" data-crash-target="1000" aria-pressed="false">10.00×</button>
-      </div>
-      <section class="arcade-quote" aria-label="Potential Crash payout" aria-live="polite" aria-atomic="true"><div><span>WIN CHANCE</span><strong id="crash-chance-value">47.5%</strong></div><div><span>GROSS PAYOUT</span><strong id="crash-payout-value">100 coins</strong></div><div><span>NET WIN</span><strong id="crash-net-value">+50 coins</strong></div></section>
-      <div class="arcade-control-heading"><span>COIN STAKE</span><b>1 FTA = 100 COINS</b></div>
-      <div class="arcade-stakes" role="group" aria-label="Coin stake"><button type="button" data-crash-stake="50" class="active" aria-pressed="true">50</button><button type="button" data-crash-stake="100" aria-pressed="false">100</button><button type="button" data-crash-stake="200" aria-pressed="false">200</button><button type="button" data-crash-stake="500" aria-pressed="false">500</button></div>
-      <button id="crash-play-button" type="button" class="arcade-action-button"><span>LAUNCH · 50 COINS</span><i aria-hidden="true"></i></button><p id="crash-status" class="arcade-status hidden" role="alert"></p>
+      <section id="crash-history-strip" class="crash-history-strip hidden" aria-label="Recent crash multipliers"><span>RECENT</span><div id="crash-recent-multipliers" role="list"></div></section>
+      <section class="crash-betting-panel" aria-label="Crash betting controls">
+        <div class="arcade-control-heading"><span>COIN STAKE</span><b>1 FTA = 100 COINS</b></div>
+        <div class="arcade-stakes crash-stakes" role="group" aria-label="Coin stake"><button type="button" data-crash-stake="50" class="active" aria-pressed="true">50</button><button type="button" data-crash-stake="100" aria-pressed="false">100</button><button type="button" data-crash-stake="200" aria-pressed="false">200</button><button type="button" data-crash-stake="500" aria-pressed="false">500</button></div>
+        <div class="arcade-control-heading"><span>AUTO CASHOUT</span><b>1.50× – 10.00×</b></div>
+        <div class="arcade-choices crash-targets" role="group" aria-label="Auto cashout target">
+          <button type="button" data-crash-target="150" aria-pressed="false">1.50×</button><button type="button" data-crash-target="200" class="active" aria-pressed="true">2.00×</button><button type="button" data-crash-target="300" aria-pressed="false">3.00×</button><button type="button" data-crash-target="500" aria-pressed="false">5.00×</button><button type="button" data-crash-target="1000" aria-pressed="false">10.00×</button>
+        </div>
+        <section class="arcade-quote" aria-label="Potential Crash payout" aria-live="polite" aria-atomic="true"><div><span>WIN CHANCE</span><strong id="crash-chance-value">47.5%</strong></div><div><span>GROSS PAYOUT</span><strong id="crash-payout-value">100 coins</strong></div><div><span>NET WIN</span><strong id="crash-net-value">+50 coins</strong></div></section>
+        <button id="crash-play-button" type="button" class="arcade-action-button crash-launch-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 3.5c2.6-2 5-1.9 5-1.9s.1 2.4-1.9 5c-1.2 1.5-2.8 2.8-4.7 3.8l-3.3-3.3c1-1.9 2.3-3.5 3.8-4.7l1.1 1.1ZM9.5 10.6l3.9 3.9M7.7 12.2l-3.2.6.6-3.2 2.1-.4.5 3ZM11.8 16.3l-.6 3.2 3.2-.6.4-2.1-3-.5ZM6.2 15.1c-1.6.6-2.7 2.1-3.2 4.7 2.6-.5 4.1-1.6 4.7-3.2"/></svg><span>LAUNCH · 50 COINS</span><i aria-hidden="true"></i></button>
+        <p id="crash-status" class="arcade-status hidden" role="alert"></p>
+      </section>
     </div>
     <section class="arcade-history"><div class="arcade-section-heading"><h3>Flight history</h3><span>RECENT</span></div><p id="crash-history-empty" class="arcade-history-empty">No flights yet</p><div id="crash-history-list" class="arcade-history-list"></div></section>
   </div>
