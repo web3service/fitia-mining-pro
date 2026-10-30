@@ -2,6 +2,7 @@
   "hiddenGames": [
     "dice",
     "mines",
-    "crash"
+    "crash",
+    "coin-flip"
   ]
 }
