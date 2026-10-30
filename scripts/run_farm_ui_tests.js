@@ -116,9 +116,18 @@ async function waitFor(condition, label) {
       center.closeDialog(); center.setTab('animals'); assert.ok(sceneCalls.focus.includes('animals'));
     });
 
-    await test('Retrait UI : débit de 100 coins, statut pending puis paid et intervalle de 24 h', async () => {
-      await center.withdraw('100'); assert.strictEqual(center.state.coins, 890);
+    await test('Retrait UI : minimum 1 000 coins / 10 FTA, statut pending puis paid et intervalle de 24 h', async () => {
+      await center.withdraw('100'); assert.strictEqual(center.state.coins, 990);
+      assert.strictEqual(center.withdrawals.length, 0);
+      await center.startDeposit('10'); await waitFor(() => center.state.coins === 1990, 'solde du retrait minimum');
+      center.openWithdraw();
+      const input = window.document.querySelector('#farm-dialog-content input');
+      assert.strictEqual(input.min, '1000'); assert.strictEqual(input.max, '10000'); assert.strictEqual(input.value, '1000');
+      assert.strictEqual(window.document.querySelector('#farm-dialog-content .farm-conversion-preview').textContent, '10 FTA');
+      center.closeDialog();
+      await center.withdraw('1000'); assert.strictEqual(center.state.coins, 990);
       assert.strictEqual(center.withdrawals[0].status, 'pending');
+      assert.strictEqual(center.withdrawals[0].ftaUnits, '1000000000');
       center.openWithdraw(); assert.strictEqual(window.document.getElementById('farm-dialog-title').textContent, 'Withdrawal in progress'); center.closeDialog();
       const withdrawal = center.withdrawals[0];
       await service.completeWithdrawal({ id: withdrawal.id, txHash: `0x${'ab'.repeat(32)}` });
@@ -138,7 +147,7 @@ async function waitFor(condition, label) {
       assert.strictEqual(saved.txHash, transfers.at(-1).hash); assert.strictEqual(saved.amountUnits, '100000000');
       verification = { confirmed: true }; app.user = wallet.address; app.signer = wallet; center.setAccount(wallet.address);
       await center.checkPendingDeposit();
-      await waitFor(() => center.state?.coins === 990 && !center.pendingDeposit, 'reprise après changement de wallet');
+      await waitFor(() => center.state?.coins === 1090 && !center.pendingDeposit, 'reprise après changement de wallet');
       assert.strictEqual(window.localStorage.getItem(`fitia_farm_pending_deposit_v1:${wallet.address.toLowerCase()}`), null);
     });
 
@@ -148,9 +157,10 @@ async function waitFor(condition, label) {
       assert.strictEqual(navItems.length, 5);
       assert.deepStrictEqual(navItems.map((item) => item.dataset.nav), ['dashboard', 'shop', 'store', 'my-rigs', 'hub']);
       assert.ok(document.getElementById('view-hub'));
-      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 3);
-      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Lucky Wheel', 'Swap']);
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 4);
+      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Swap', 'Lucky Wheel', 'FITA Dice 3D']);
       assert.ok(document.querySelector('#view-hub .hub-card-wheel img[src="assets/lucky-wheel.svg"]'));
+      assert.ok(document.querySelector('#view-hub .hub-card-dice img[src="assets/dice.svg"]'));
       assert.ok(document.querySelector('#view-hub .hub-card-farm img[src="assets/farm/barn.svg"]'));
       assert.strictEqual(document.querySelectorAll('#view-hub .hub-swap-icons img').length, 2);
       assert.strictEqual(document.querySelector('.farm-camera-hint'), null);

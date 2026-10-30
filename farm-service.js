@@ -5,6 +5,7 @@ const ethers = require('./vendor/ethers.umd.min.js');
 const Config = require('./farm-config');
 const Protocol = require('./farm-protocol');
 const WheelConfig = require('./wheel-config');
+const DiceConfig = require('./dice-config');
 
 const DEFAULT_RPCS = [
   'https://polygon-bor-rpc.publicnode.com',
@@ -34,6 +35,7 @@ function defaultState(wallet, now = Date.now()) {
     version: 1, wallet, coins: 0, land: null, animals: [], crops: [], feed: 0,
     inventory: Object.fromEntries(PRODUCT_KEYS.map((key) => [key, 0])),
     wheel: { version: WheelConfig.VERSION, lastFreeAt: 0, bonusSpins: 0, totalSpins: 0, totalStaked: 0, totalWonCoins: 0, recentSpins: [] },
+    dice: { version: DiceConfig.VERSION, totalRolls: 0, totalStaked: 0, totalWonCoins: 0, recentRolls: [] },
     createdAt: now, updatedAt: now
   };
 }
@@ -63,6 +65,30 @@ function normalizeWheel(raw) {
   }
   return wheel;
 }
+function normalizeDice(raw) {
+  const dice = { version: DiceConfig.VERSION, totalRolls: 0, totalStaked: 0, totalWonCoins: 0, recentRolls: [] };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return dice;
+  dice.totalRolls = safeInteger(raw.totalRolls, 0, Number.MAX_SAFE_INTEGER);
+  dice.totalStaked = safeInteger(raw.totalStaked, 0, Number.MAX_SAFE_INTEGER);
+  dice.totalWonCoins = safeInteger(raw.totalWonCoins, 0, Number.MAX_SAFE_INTEGER);
+  if (Array.isArray(raw.recentRolls)) {
+    dice.recentRolls = raw.recentRolls.slice(0, DiceConfig.HISTORY_LIMIT).map((entry) => {
+      if (!entry || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(entry.id || ''))) return null;
+      const stake = DiceConfig.normalizeStake(entry.stake);
+      const target = DiceConfig.normalizeTarget(entry.target);
+      const createdAt = Date.parse(entry.createdAt);
+      if (!stake || !target || !Number.isSafeInteger(entry.roll) || entry.roll < 1 || entry.roll > 6 || !Number.isFinite(createdAt)) return null;
+      const expected = DiceConfig.rewardFor(stake, target, entry.roll);
+      if (entry.won !== expected.won || safeInteger(entry.coins, -1) !== expected.coins) return null;
+      return {
+        id: String(entry.id).toLowerCase(), stake, target, roll: entry.roll,
+        won: expected.won, coins: expected.coins, payout: expected.payout,
+        createdAt: new Date(createdAt).toISOString()
+      };
+    }).filter(Boolean);
+  }
+  return dice;
+}
 function normalizeState(raw, wallet) {
   const base = defaultState(wallet, safeTime(raw?.createdAt) || Date.now());
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return base;
@@ -71,6 +97,7 @@ function normalizeState(raw, wallet) {
   base.feed = safeInteger(raw.feed, 0, 100000);
   PRODUCT_KEYS.forEach((key) => { base.inventory[key] = safeInteger(raw.inventory?.[key], 0, 1000000); });
   base.wheel = normalizeWheel(raw.wheel);
+  base.dice = normalizeDice(raw.dice);
   if (Array.isArray(raw.animals)) {
     base.animals = raw.animals.slice(0, Config.MAX_ANIMALS).map((animal) => {
       if (!animal || !Config.ANIMALS[animal.species]) return null;
@@ -250,24 +277,26 @@ function createFarmService(options = {}) {
       return buyer;
     } catch (_) { throw new FarmError(401, 'Signature du wallet invalide.', 'FARM_AUTH'); }
   }
-  async function view(wallet, spinId = null) {
+  async function view(wallet, spinId = null, rollId = null) {
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
     const withdrawals = await repository.listWithdrawals(wallet);
     const result = { state, revision: record?.revision || 0, withdrawals };
     if (spinId) result.spin = state.wheel.recentSpins.find((spin) => spin.id === spinId) || null;
+    if (rollId) result.roll = state.dice.recentRolls.find((roll) => roll.id === rollId) || null;
     return result;
   }
   async function getState(body) { return view(authenticate('state', body)); }
   async function applyIdempotent(wallet, actionId, actionType, state, expectedRevision, extra = {}) {
     const spinId = actionType === 'wheel_spin' ? actionId : null;
+    const rollId = actionType === 'dice_roll' ? actionId : null;
     try {
       await repository.apply(wallet, expectedRevision, state, actionId, actionType, extra);
     } catch (error) {
-      if (await repository.isActionProcessed(actionId, wallet)) return view(wallet, spinId);
+      if (await repository.isActionProcessed(actionId, wallet)) return view(wallet, spinId, rollId);
       throw error;
     }
-    return view(wallet, spinId);
+    return view(wallet, spinId, rollId);
   }
   async function deposit(body) {
     const wallet = authenticate('deposit', body);
@@ -333,8 +362,36 @@ function createFarmService(options = {}) {
     state.updatedAt = timestamp;
     return state;
   }
+  function rollDice(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const stake = DiceConfig.normalizeStake(params.stake);
+    const target = DiceConfig.normalizeTarget(params.target);
+    if (!stake) throw new FarmError(400, 'Mise de dés invalide.', 'DICE_STAKE');
+    if (!target) throw new FarmError(400, 'Cible de dés invalide.', 'DICE_TARGET');
+    if (state.coins < stake) throw new FarmError(409, 'Coins insuffisants pour cette mise.', 'FARM_INSUFFICIENT_COINS');
+
+    state.coins -= stake;
+    const roll = DiceConfig.selectRoll(randomInt(DiceConfig.MAX_ROLL));
+    const result = DiceConfig.rewardFor(stake, target, roll);
+    if (state.coins + result.coins > Config.MAX_COINS) throw new FarmError(409, 'Limite de coins atteinte.', 'FARM_LIMIT');
+    state.coins += result.coins;
+    state.dice.totalRolls += 1;
+    state.dice.totalStaked += stake;
+    state.dice.totalWonCoins += result.coins;
+    if (!Number.isSafeInteger(state.dice.totalRolls) || !Number.isSafeInteger(state.dice.totalStaked) || !Number.isSafeInteger(state.dice.totalWonCoins)) {
+      throw new FarmError(409, 'Limite de statistiques atteinte.', 'FARM_LIMIT');
+    }
+    state.dice.recentRolls.unshift({
+      id: actionId, stake, target, roll, won: result.won,
+      coins: result.coins, payout: result.payout, createdAt: new Date(timestamp).toISOString()
+    });
+    state.dice.recentRolls = state.dice.recentRolls.slice(0, DiceConfig.HISTORY_LIMIT);
+    state.updatedAt = timestamp;
+    return state;
+  }
   function transition(state, type, params, actionId, timestamp) {
     if (type === 'wheel_spin') return spinWheel(state, params, actionId, timestamp);
+    if (type === 'dice_roll') return rollDice(state, params, actionId, timestamp);
     const deduct = (amount) => {
       if (state.coins < amount) throw new FarmError(409, 'Coins insuffisants.', 'FARM_INSUFFICIENT_COINS');
       state.coins -= amount;
@@ -400,8 +457,10 @@ function createFarmService(options = {}) {
   async function action(body) {
     const wallet = authenticate('action', body);
     const actionId = Protocol.requireUuid(body.actionId);
-    if (await repository.isActionProcessed(actionId, wallet)) return view(wallet, actionId);
     const type = Protocol.requireType(body.type);
+    if (await repository.isActionProcessed(actionId, wallet)) {
+      return view(wallet, type === 'wheel_spin' ? actionId : null, type === 'dice_roll' ? actionId : null);
+    }
     const params = Protocol.normalizeParams(body.params);
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
@@ -414,7 +473,7 @@ function createFarmService(options = {}) {
     if (await repository.isActionProcessed(actionId, wallet)) return view(wallet);
     const coins = Protocol.requireCoins(body.coins);
     if (coins < Config.MIN_WITHDRAW_COINS || coins > Config.MAX_WITHDRAW_COINS || coins % Config.COINS_PER_FTA !== 0) {
-      throw new FarmError(400, 'Le retrait doit être un multiple de 100 coins.', 'FARM_AMOUNT');
+      throw new FarmError(400, 'Le montant de retrait est invalide.', 'FARM_AMOUNT');
     }
     const recent = await repository.listWithdrawals(wallet);
     if (recent.some((item) => item.status === 'pending')) throw new FarmError(409, 'Un retrait est déjà en cours.', 'FARM_WITHDRAWAL_PENDING');

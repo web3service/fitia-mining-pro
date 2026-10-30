@@ -19,7 +19,7 @@
     FARM_INSUFFICIENT_COINS: 'Not enough coins for this action.', FARM_FEED_REQUIRED: 'Buy feed before feeding this animal.',
     FARM_NOT_READY: 'Production is not ready yet.', FARM_NOT_FOUND: 'This farm item no longer exists. Refresh and try again.',
     FARM_INVENTORY_EMPTY: 'Your barn is empty. Harvest or collect a product first.', FARM_LIMIT: 'Your farm has reached its capacity limit.',
-    FARM_AMOUNT: 'Enter a valid amount. FTA deposits and withdrawals must follow the displayed increments.',
+    FARM_AMOUNT: 'Enter a valid amount. Withdrawals start at 10 FTA (1,000 coins) in multiples of 100 coins.',
     FARM_WITHDRAWAL_PENDING: 'You already have a withdrawal in progress. Wait for its FTA payment before creating another.',
     FARM_WITHDRAWAL_COOLDOWN: 'One withdrawal is allowed every 24 hours. Your next available time is shown with your latest request.',
     FARM_REVISION: 'Your farm changed in another session. It has been refreshed.', FARM_CONFLICT: 'This action was already processed. Refresh your farm.',
@@ -498,9 +498,11 @@
       }
       this.openDialog('Withdraw FTA');
       const content = document.getElementById('farm-dialog-content'); const label = make('label', 'farm-input-label', 'Coins to withdraw');
-      const input = make('input', 'game-input'); input.type = 'number'; input.min = String(Config.MIN_WITHDRAW_COINS); input.step = String(Config.COINS_PER_FTA); input.value = String(Config.MIN_WITHDRAW_COINS); input.inputMode = 'numeric'; input.maxLength = 9;
+      const input = make('input', 'game-input'); input.type = 'number'; input.min = String(Config.MIN_WITHDRAW_COINS); input.max = String(Config.MAX_WITHDRAW_COINS); input.step = String(Config.COINS_PER_FTA); input.value = String(Config.MIN_WITHDRAW_COINS); input.inputMode = 'numeric'; input.maxLength = 9;
       const output = make('p', 'farm-conversion-preview'); const update = () => {
-        const coins = Number(input.value); output.textContent = Number.isSafeInteger(coins) && coins > 0 && coins % 100 === 0 ? `${formatUnits(BigInt(coins / 100) * Config.COIN_UNITS_PER_FTA)} FTA` : 'Multiple of 100 coins';
+        const coins = Number(input.value);
+        const valid = Number.isSafeInteger(coins) && coins >= Config.MIN_WITHDRAW_COINS && coins <= Config.MAX_WITHDRAW_COINS && coins % Config.COINS_PER_FTA === 0;
+        output.textContent = valid ? `${formatUnits(BigInt(coins / Config.COINS_PER_FTA) * Config.COIN_UNITS_PER_FTA)} FTA` : 'Minimum 1,000 coins · multiples of 100';
       };
       input.addEventListener('input', update); label.appendChild(input); content.append(label, output); update();
       this.addDialogButton('REQUEST FTA WITHDRAWAL', () => this.withdraw(input.value));

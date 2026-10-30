@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.4.5 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.4.6 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -451,6 +451,9 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'farm.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'wheel-config.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'wheel.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'dice-config.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'dice-3d.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'dice.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'assistant.js'), 'utf8'));
 
   if (mockRpcUrl) {
@@ -487,7 +490,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.4.5\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.4.6\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -784,7 +787,7 @@ function httpRequest(port, method, reqPath) {
       await new Promise((r) => setTimeout(r, 200));
       assert.strictEqual(App.setPinStage, 'confirm');
       for (const ch of '739184') await App.onSetPinDigit(ch);
-      await new Promise((r) => setTimeout(r, 180));
+      await withDeadline(App.sessionBootstrapPromise, 2500, 'La synchronisation Polygon après création du wallet');
 
       assert.ok(ethersLib.isAddress(App.user), 'Adresse utilisateur active');
       assert.strictEqual(App.pendingWalletSecret, null, 'Secret temporaire effacé de la RAM');
@@ -825,14 +828,15 @@ function httpRequest(port, method, reqPath) {
       App.closeModals();
     });
 
-    await runTest('NAV-HUB', 'Navigation limitée à cinq entrées et Hub actif pour FARM, Lucky Wheel et Swap', async () => {
+    await runTest('NAV-HUB', 'Navigation limitée à cinq entrées et Hub actif pour FARM, Lucky Wheel, Dice et Swap', async () => {
       const document = e2eWin.document;
       const items = Array.from(document.querySelectorAll('.bottom-nav .nav-item'));
       assert.strictEqual(items.length, 5);
       assert.deepStrictEqual(items.map((item) => item.dataset.nav), ['dashboard', 'shop', 'store', 'my-rigs', 'hub']);
-      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 3);
-      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Lucky Wheel', 'Swap']);
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 4);
+      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Swap', 'Lucky Wheel', 'FITA Dice 3D']);
       assert.ok(document.querySelector('#view-hub .hub-card-wheel img[src="assets/lucky-wheel.svg"]'), 'Lucky Wheel possède son logo dans le Hub');
+      assert.ok(document.querySelector('#view-hub .hub-card-dice img[src="assets/dice.svg"]'), 'FITA Dice possède son logo dans le Hub');
       assert.ok(document.querySelector('#view-hub .hub-card-farm img[src="assets/farm/barn.svg"]'), 'FARM possède son logo dans le Hub');
       assert.strictEqual(document.querySelectorAll('#view-hub .hub-swap-icons img').length, 2, 'Swap possède ses deux logos dans le Hub');
       assert.strictEqual(document.querySelector('#view-hub small'), null, 'Le Hub ne contient aucun texte secondaire');
@@ -843,11 +847,15 @@ function httpRequest(port, method, reqPath) {
       const originalFarmExit = App.farmCenter.exit;
       const originalWheelEnter = App.luckyWheel.enter;
       const originalWheelExit = App.luckyWheel.exit;
+      const originalDiceEnter = App.fitaDice.enter;
+      const originalDiceExit = App.fitaDice.exit;
       App.promotionCenter.refresh = () => {};
       App.farmCenter.enter = () => {};
       App.farmCenter.exit = () => {};
       App.luckyWheel.enter = () => {};
       App.luckyWheel.exit = () => {};
+      App.fitaDice.enter = () => {};
+      App.fitaDice.exit = () => {};
       try {
         App.nav('hub');
         assert.ok(document.getElementById('view-hub').classList.contains('active'));
@@ -865,6 +873,10 @@ function httpRequest(port, method, reqPath) {
         assert.ok(document.getElementById('view-wheel').classList.contains('active'));
         assert.ok(hubButton.classList.contains('active'), 'Lucky Wheel conserve le Hub actif');
         assert.strictEqual(document.querySelectorAll('.bottom-nav .nav-item.active').length, 1);
+        App.nav('dice');
+        assert.ok(document.getElementById('view-dice').classList.contains('active'));
+        assert.ok(hubButton.classList.contains('active'), 'FITA Dice conserve le Hub actif');
+        assert.strictEqual(document.querySelectorAll('.bottom-nav .nav-item.active').length, 1);
         App.nav('swap');
         assert.ok(document.getElementById('view-swap').classList.contains('active'));
         assert.ok(hubButton.classList.contains('active'), 'Le Swap conserve le Hub actif');
@@ -875,6 +887,8 @@ function httpRequest(port, method, reqPath) {
         App.farmCenter.exit = originalFarmExit;
         App.luckyWheel.enter = originalWheelEnter;
         App.luckyWheel.exit = originalWheelExit;
+        App.fitaDice.enter = originalDiceEnter;
+        App.fitaDice.exit = originalDiceExit;
         App.nav('dashboard', document.querySelector('.nav-item[data-nav="dashboard"]'));
       }
     });
@@ -1192,9 +1206,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 339,
-        versionName: '3.4.5',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.4.5/FITIA-PRO-Miner.apk',
+        versionCode: 340,
+        versionName: '3.4.6',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.4.6/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1237,7 +1251,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 339;
+        nativeState.appVersionCode = 340;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2624,10 +2638,11 @@ function httpRequest(port, method, reqPath) {
         assert.ok(packagedFiles.includes(`assets/www/assets/flags/${flag}`), `Le drapeau local ${flag} est embarqué dans l’APK`);
       }
       assert.ok(packagedFiles.includes('assets/www/assets/flags/LICENSE.txt'), 'La licence des drapeaux locaux est embarquée dans l’APK');
-      for (const farmFile of ['farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'vendor/three.min.js', 'vendor/THREE-LICENSE.txt']) {
+      for (const farmFile of ['farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js', 'vendor/three.min.js', 'vendor/THREE-LICENSE.txt']) {
         assert.ok(packagedFiles.includes(`assets/www/${farmFile}`), `Le module FARM ${farmFile} est embarqué dans l’APK`);
       }
       assert.ok(packagedFiles.includes('assets/www/assets/lucky-wheel.svg'), 'Le logo Lucky Wheel est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/assets/dice.svg'), 'Le logo FITA Dice est embarqué dans l’APK');
       for (const farmAsset of ['barn.svg', 'chicken.svg', 'sheep.svg', 'cow.svg', 'wheat.svg', 'carrot.svg', 'feed.svg', 'terrain.svg', 'eggs.svg', 'wool.svg', 'milk.svg', 'coins.svg']) {
         assert.ok(packagedFiles.includes(`assets/www/assets/farm/${farmAsset}`), `L’illustration FARM ${farmAsset} est embarquée dans l’APK`);
       }
@@ -2643,7 +2658,7 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
       assert.ok(!packagedFiles.includes('assets/www/store-order-service.js'), 'Le service privé de chiffrement serveur n’est pas embarqué dans l’APK');
       assert.ok(!packagedFiles.includes('assets/www/farm-service.js'), 'Le registre privé FARM n’est pas embarqué dans l’APK');
-      for (const sourceFile of ['app.js', 'wallet.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js']) {
+      for (const sourceFile of ['app.js', 'wallet.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js']) {
         const packagedSource = execFileSync('python3', ['-c', [
           'import zipfile, sys',
           'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'
@@ -2672,11 +2687,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 339);
-      assert.strictEqual(updateManifest.versionName, '3.4.5');
-      assert.ok(updateManifest.apkUrl.includes('/v3.4.5/'));
+      assert.strictEqual(updateManifest.versionCode, 340);
+      assert.strictEqual(updateManifest.versionName, '3.4.6');
+      assert.ok(updateManifest.apkUrl.includes('/v3.4.6/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.4.5 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.4.6 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2694,8 +2709,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=339'), 'versionCode=339 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.4.5"'), 'versionName=3.4.5 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=340'), 'versionCode=340 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.4.6"'), 'versionName=3.4.6 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

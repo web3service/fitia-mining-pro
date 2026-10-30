@@ -76,8 +76,9 @@ function segmentStart(id) {
     await center.refresh({ quiet: true }); wheel.enter();
 
     await test('Hub, logo local, quatre mises et onze probabilités accessibles', async () => {
-      assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 3);
+      assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 4);
       assert.ok(window.document.querySelector('.hub-card-wheel img[src="assets/lucky-wheel.svg"]'));
+      assert.ok(window.document.querySelector('.hub-card-dice img[src="assets/dice.svg"]'));
       assert.strictEqual(window.document.querySelectorAll('[data-wheel-stake]').length, 4);
       assert.strictEqual(center.state.coins, 1250); assert.strictEqual(wheel.started(), true);
       wheel.openInfo(); assert.strictEqual(window.document.querySelectorAll('#wheel-probability-list .wheel-probability-row').length, 11);
@@ -135,13 +136,13 @@ function segmentStart(id) {
 
     await test('Retrait : pending silencieux, paid pendant la fermeture puis une seule notification', async () => {
       const id = crypto.randomUUID();
-      await service.withdraw(await signed('withdraw', { actionId: id, coins: 100 }));
+      await service.withdraw(await signed('withdraw', { actionId: id, coins: 1000 }));
       await center.refresh({ quiet: true }); assert.strictEqual(notifications.length, 0);
       center.setAccount(null); wheel.setAccount(null);
       await service.completeWithdrawal({ id, txHash: `0x${'bb'.repeat(32)}` });
       center.setAccount(wallet.address); wheel.setAccount(wallet.address); await center.refresh({ quiet: true });
       assert.strictEqual(notifications.length, 1); assert.strictEqual(notifications[0][1], 'FARM withdrawal paid');
-      assert.ok(notifications[0][2].startsWith('1 FTA'));
+      assert.ok(notifications[0][2].startsWith('10 FTA'));
       await center.refresh({ quiet: true }); assert.strictEqual(notifications.length, 1);
     });
 

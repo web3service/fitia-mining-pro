@@ -1083,6 +1083,7 @@ class Application {
     this.storeCenter = new FitiaStoreCenter(this);
     this.farmCenter = new FitiaFarmCenter(this);
     this.luckyWheel = new FitiaLuckyWheel(this, this.farmCenter);
+    this.fitaDice = new FitiaDice(this, this.farmCenter);
 
     this.chatInitialized = false;
     this.chatHistory = [];
@@ -1160,6 +1161,7 @@ class Application {
     this.storeCenter.init();
     this.farmCenter.init();
     this.luckyWheel.init();
+    this.fitaDice.init();
     this.setupLifecycleListeners();
 
     // Masquer les bannières de téléchargement APK lorsqu'on est déjà dans l'APK Android installé
@@ -1882,6 +1884,7 @@ class Application {
     this.storeCenter?.setAccount(null);
     this.farmCenter?.setAccount(null);
     this.luckyWheel?.setAccount(null);
+    this.fitaDice?.setAccount(null);
     this.closeRevealModal();
     this.stopMiningCounter();
     this.announcementCenter.stop();
@@ -2163,6 +2166,7 @@ class Application {
     this.storeCenter.setAccount(this.user);
     this.farmCenter.setAccount(this.user);
     this.luckyWheel.setAccount(this.user);
+    this.fitaDice.setAccount(this.user);
     this.farmCenter.startSession();
     this.installActivityTracking();
     this.lastUserActivityAt = Date.now();
@@ -4324,6 +4328,7 @@ class Application {
     this.storeCenter?.setAccount(null);
     this.farmCenter?.setAccount(null);
     this.luckyWheel?.setAccount(null);
+    this.fitaDice?.setAccount(null);
     this.plugTransactionInProgress = false;
     document.getElementById('plug-machine-id').value = '';
     document.getElementById('plug-battery-type').value = '';
@@ -4457,6 +4462,7 @@ class Application {
   nav(viewId, btnEl) {
     this.farmCenter?.exit();
     this.luckyWheel?.exit();
+    this.fitaDice?.exit();
     document.querySelectorAll('.view').forEach((el) => {
       el.classList.remove('active');
       el.style.display = 'none';
@@ -4467,7 +4473,7 @@ class Application {
       activeView.style.display = 'block';
     }
     document.querySelectorAll('.nav-item').forEach((el) => el.classList.remove('active'));
-    const navView = ['farm', 'swap', 'wheel'].includes(viewId) ? 'hub' : viewId;
+    const navView = ['farm', 'swap', 'wheel', 'dice'].includes(viewId) ? 'hub' : viewId;
     const activeNav = btnEl || document.querySelector(`.nav-item[data-nav="${navView}"]`);
     if (activeNav) activeNav.classList.add('active');
     if (viewId === 'dashboard') {
@@ -4483,6 +4489,7 @@ class Application {
     }
     if (viewId === 'farm') this.farmCenter.enter();
     if (viewId === 'wheel') this.luckyWheel.enter();
+    if (viewId === 'dice') this.fitaDice.enter();
   }
 
   setLoader(show) {
