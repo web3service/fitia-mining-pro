@@ -76,7 +76,7 @@ function segmentStart(id) {
     await center.refresh({ quiet: true }); wheel.enter();
 
     await test('Hub, logo local, quatre mises et onze probabilités accessibles', async () => {
-      assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 4);
+      assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 7);
       assert.ok(window.document.querySelector('.hub-card-wheel img[src="assets/lucky-wheel.svg"]'));
       assert.ok(window.document.querySelector('.hub-card-dice img[src="assets/dice.svg"]'));
       assert.strictEqual(window.document.querySelectorAll('[data-wheel-stake]').length, 4);

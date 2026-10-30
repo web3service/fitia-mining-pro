@@ -229,7 +229,7 @@
         if (!options.quiet) this.setStatus('Synchronizing your farm…', 'working');
         try {
           const data = await this.request('state'); if (session !== this.session) return;
-          this.applyView(data); this.setStatus('Live · server synchronized', 'online');
+          this.applyView(data); this.setStatus('', 'online');
         } catch (error) { this.setStatus('Offline · retry shortly', 'offline'); throw error; }
       })();
       try { return await this.refreshPromise; } finally { this.refreshPromise = null; }
@@ -274,6 +274,10 @@
       byId('farm-deposit-pending').classList.toggle('hidden', !this.pendingDeposit);
       this.renderAnimals(); this.renderCrops(); this.renderInventory(); this.renderWithdrawals(); this.tick();
       this.app.luckyWheel?.render();
+      this.app.fitaDice?.render();
+      this.app.fitaMines?.render();
+      this.app.fitaCrash?.render();
+      this.app.fitaCoinFlip?.render();
     }
     renderAnimals() {
       const list = document.getElementById('farm-animal-list'); if (!list) return; list.textContent = '';
@@ -468,7 +472,7 @@
           const data = await this.request('deposit', pending); this.assertSession(session);
           if (data.pending) { this.setStatus('FTA deposit awaiting confirmations', 'working'); this.schedulePendingRetry(); return; }
           if (this.pendingDeposit?.txHash === pending.txHash) { this.pendingDeposit = null; this.savePendingDeposit(); }
-          this.applyView(data); this.setStatus('Live · server synchronized', 'online'); this.app.showToast('FTA confirmed. Your coins have been credited.');
+          this.applyView(data); this.setStatus('', 'online'); this.app.showToast('FTA confirmed. Your coins have been credited.');
         } catch (error) {
           if (['FARM_PAYMENT_FAILED', 'FARM_PAYMENT_MISMATCH', 'FARM_TX_USED'].includes(error.code)) {
             if (this.pendingDeposit?.txHash === pending.txHash) { this.pendingDeposit = null; this.savePendingDeposit(); this.render(); }

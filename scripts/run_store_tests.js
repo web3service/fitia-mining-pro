@@ -358,8 +358,9 @@ async function createHarness(token = 'USDT', options = {}) {
     const h = await createHarness();
     try {
       const published = Catalog.validateManifest(JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8')));
-      const publishedProduct = published.products.find((item) => item.image);
-      assert.ok(publishedProduct, 'Le catalogue contient le produit avec photo publié depuis l’admin');
+      const publishedImageProduct = published.products.find((item) => item.image);
+      assert.ok(publishedImageProduct, 'Le catalogue contient le produit avec photo publié depuis l’admin');
+      const publishedProduct = { ...publishedImageProduct, active: true };
       assert.ok(fs.statSync(path.join(ROOT, publishedProduct.image)).size > 1000, 'La photo WebP publiée est bien embarquable dans l’APK');
       h.center.manifest = { version: 1, enabled: true, products: [publishedProduct] };
       h.center.renderProducts();

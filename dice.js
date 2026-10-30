@@ -138,7 +138,7 @@
       byId('dice-payout-value').textContent = `${formatCoins(payout)} coins`;
       byId('dice-net-value').textContent = `+${formatCoins(payout - stake)} coins`;
       const button = byId('dice-roll-button');
-      let label = this.operation ? (this.waiting ? 'SERVER ROLL…' : 'ROLLING…') : this.pending ? 'RESUME ROLL' : `ROLL · ${formatCoins(stake)} COINS`;
+      let label = this.operation ? 'ROLLING…' : this.pending ? 'RESUME ROLL' : `ROLL · ${formatCoins(stake)} COINS`;
       button.querySelector('span').textContent = label;
       button.disabled = this.operation || !unlocked || (!this.pending && Number(state?.coins || 0) < stake);
       this.renderResult(); this.renderHistory();

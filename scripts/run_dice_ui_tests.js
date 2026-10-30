@@ -87,7 +87,7 @@ async function callAction(type, params = {}) { return service.action(await signe
     await center.refresh({ quiet: true }); dice.enter();
 
     await test('Hub, logo local, cotes accessibles et scène 3D active', async () => {
-      assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 4);
+      assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 7);
       assert.ok(window.document.querySelector('.hub-card-dice img[src="assets/dice.svg"]'));
       assert.strictEqual(window.document.querySelectorAll('[data-dice-stake]').length, 4);
       assert.strictEqual(window.document.querySelectorAll('[data-dice-target]').length, 5);

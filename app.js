@@ -1084,6 +1084,9 @@ class Application {
     this.farmCenter = new FitiaFarmCenter(this);
     this.luckyWheel = new FitiaLuckyWheel(this, this.farmCenter);
     this.fitaDice = new FitiaDice(this, this.farmCenter);
+    this.fitaMines = new FitiaMines(this, this.farmCenter);
+    this.fitaCrash = new FitiaCrash(this, this.farmCenter);
+    this.fitaCoinFlip = new FitiaCoinFlip(this, this.farmCenter);
 
     this.chatInitialized = false;
     this.chatHistory = [];
@@ -1162,6 +1165,9 @@ class Application {
     this.farmCenter.init();
     this.luckyWheel.init();
     this.fitaDice.init();
+    this.fitaMines.init();
+    this.fitaCrash.init();
+    this.fitaCoinFlip.init();
     this.setupLifecycleListeners();
 
     // Masquer les bannières de téléchargement APK lorsqu'on est déjà dans l'APK Android installé
@@ -1885,6 +1891,9 @@ class Application {
     this.farmCenter?.setAccount(null);
     this.luckyWheel?.setAccount(null);
     this.fitaDice?.setAccount(null);
+    this.fitaMines?.setAccount(null);
+    this.fitaCrash?.setAccount(null);
+    this.fitaCoinFlip?.setAccount(null);
     this.closeRevealModal();
     this.stopMiningCounter();
     this.announcementCenter.stop();
@@ -2167,6 +2176,9 @@ class Application {
     this.farmCenter.setAccount(this.user);
     this.luckyWheel.setAccount(this.user);
     this.fitaDice.setAccount(this.user);
+    this.fitaMines.setAccount(this.user);
+    this.fitaCrash.setAccount(this.user);
+    this.fitaCoinFlip.setAccount(this.user);
     this.farmCenter.startSession();
     this.installActivityTracking();
     this.lastUserActivityAt = Date.now();
@@ -4329,6 +4341,9 @@ class Application {
     this.farmCenter?.setAccount(null);
     this.luckyWheel?.setAccount(null);
     this.fitaDice?.setAccount(null);
+    this.fitaMines?.setAccount(null);
+    this.fitaCrash?.setAccount(null);
+    this.fitaCoinFlip?.setAccount(null);
     this.plugTransactionInProgress = false;
     document.getElementById('plug-machine-id').value = '';
     document.getElementById('plug-battery-type').value = '';
@@ -4463,6 +4478,9 @@ class Application {
     this.farmCenter?.exit();
     this.luckyWheel?.exit();
     this.fitaDice?.exit();
+    this.fitaMines?.exit();
+    this.fitaCrash?.exit();
+    this.fitaCoinFlip?.exit();
     document.querySelectorAll('.view').forEach((el) => {
       el.classList.remove('active');
       el.style.display = 'none';
@@ -4473,7 +4491,7 @@ class Application {
       activeView.style.display = 'block';
     }
     document.querySelectorAll('.nav-item').forEach((el) => el.classList.remove('active'));
-    const navView = ['farm', 'swap', 'wheel', 'dice'].includes(viewId) ? 'hub' : viewId;
+    const navView = ['farm', 'swap', 'wheel', 'dice', 'mines', 'crash', 'coin-flip'].includes(viewId) ? 'hub' : viewId;
     const activeNav = btnEl || document.querySelector(`.nav-item[data-nav="${navView}"]`);
     if (activeNav) activeNav.classList.add('active');
     if (viewId === 'dashboard') {
@@ -4490,6 +4508,9 @@ class Application {
     if (viewId === 'farm') this.farmCenter.enter();
     if (viewId === 'wheel') this.luckyWheel.enter();
     if (viewId === 'dice') this.fitaDice.enter();
+    if (viewId === 'mines') this.fitaMines.enter();
+    if (viewId === 'crash') this.fitaCrash.enter();
+    if (viewId === 'coin-flip') this.fitaCoinFlip.enter();
   }
 
   setLoader(show) {
