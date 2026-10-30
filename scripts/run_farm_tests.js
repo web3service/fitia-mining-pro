@@ -3,10 +3,12 @@
 const assert = require('assert');
 const crypto = require('crypto');
 const http = require('http');
+const fs = require('fs');
 const ethers = require('../vendor/ethers.umd.min.js');
 const Config = require('../farm-config');
 const Protocol = require('../farm-protocol');
 const WheelConfig = require('../wheel-config');
+const DiceConfig = require('../dice-config');
 const { createFarmHandler } = require('../api/farm');
 const { createAdminHandler } = require('../api/admin');
 const {
@@ -38,6 +40,9 @@ async function callAction(type, params = {}, signer = wallet) {
 }
 async function wheelAction(id, params, signer = wallet) {
   return service.action(await signed('action', signer, { actionId: id, type: 'wheel_spin', params }));
+}
+async function diceAction(id, params, signer = wallet, targetService = service) {
+  return targetService.action(await signed('action', signer, { actionId: id, type: 'dice_roll', params }));
 }
 function segmentStart(id) {
   let cursor = 0;
@@ -138,6 +143,24 @@ async function expectCode(promise, code) {
     assert.strictEqual(WheelConfig.rewardFor('fta_big', 100).coins, 200);
   });
 
+  await test('Lucky Wheel payant : avantage trésorerie après coins, FTA, feed, produits et bonus récursifs', async () => {
+    const feedUnitValue = Config.FEED_PACK_PRICE / Config.FEED_PACK_QUANTITY;
+    const bonusChance = WheelConfig.probability(WheelConfig.segmentById('extra_spin'));
+    const immediateValue = (stake) => WheelConfig.SEGMENTS.reduce((total, segment) => {
+      const reward = WheelConfig.rewardFor(segment, stake);
+      const productValue = reward.product ? Config.PRODUCTS[reward.product].price * reward.quantity : 0;
+      return total + WheelConfig.probability(segment) * (reward.coins + reward.feed * feedUnitValue + productValue);
+    }, 0);
+    // Un bonus peut attribuer un autre bonus : cette borne récursive inclut toute
+    // la chaîne. Les tours gratuits et la production FARM restent hors du paid EV.
+    const bonusValue = immediateValue(WheelConfig.BONUS_BASE_COINS) / (1 - bonusChance);
+    WheelConfig.STAKES.forEach((stake) => {
+      const expectedValue = immediateValue(stake) + bonusChance * bonusValue;
+      assert.ok(expectedValue < stake, `${stake}: EV ${expectedValue}`);
+      assert.ok(expectedValue / stake <= 0.95 + 1e-12, `${stake}: RTP ${expectedValue / stake}`);
+    });
+  });
+
   await test('Lucky Wheel : tour gratuit serveur, historique et rejeu sans nouveau débit ni tirage', async () => {
     const id = actionId();
     const body = await signed('action', wallet, { actionId: id, type: 'wheel_spin', params: { mode: 'free' } });
@@ -190,18 +213,85 @@ async function expectCode(promise, code) {
     await expectCode(wheelAction(actionId(), { mode: 'bonus' }), 'WHEEL_BONUS_EMPTY');
   });
 
-  await test('Retrait FTA : débit atomique, demande persistante et rejet des montants invalides', async () => {
-    const before = (await service.view(buyer)).state.coins;
+  await test('FITA Dice : rendement théorique ≤ 95 % pour chaque mise et chaque cible', async () => {
+    assert.deepStrictEqual(DiceConfig.STAKES, [50, 100, 200, 500]);
+    assert.deepStrictEqual(DiceConfig.TARGETS, [2, 3, 4, 5, 6]);
+    DiceConfig.STAKES.forEach((stake) => DiceConfig.TARGETS.forEach((target) => {
+      const payout = DiceConfig.payoutFor(stake, target);
+      assert.ok(Number.isSafeInteger(payout) && payout > stake);
+      assert.ok(DiceConfig.expectedReturnRatio(stake, target) <= 0.95);
+      for (let roll = 1; roll <= 6; roll += 1) {
+        const reward = DiceConfig.rewardFor(stake, target, roll);
+        assert.strictEqual(reward.won, roll < target);
+        assert.strictEqual(reward.coins, reward.won ? payout : 0);
+      }
+    }));
+    assert.strictEqual(DiceConfig.payoutFor(50, 2), 285);
+    assert.strictEqual(DiceConfig.payoutFor(50, 6), 57);
+    assert.throws(() => DiceConfig.payoutFor(55, 4));
+    assert.throws(() => DiceConfig.selectRoll(6));
+  });
+
+  await test('FITA Dice : tirage serveur, gain exact, historique et rejeu sans nouveau débit', async () => {
+    const before = (await service.view(buyer)).state;
     const id = actionId();
-    const result = await service.withdraw(await signed('withdraw', wallet, { actionId: id, coins: 100 }));
-    assert.strictEqual(result.state.coins, before - 100);
+    const body = await signed('action', wallet, { actionId: id, type: 'dice_roll', params: { stake: '100', target: '4', roll: '6', coins: '99999999' } });
+    randomValues.push(1);
+    const result = await service.action(body);
+    assert.strictEqual(result.roll.id, id); assert.strictEqual(result.roll.roll, 2);
+    assert.strictEqual(result.roll.won, true); assert.strictEqual(result.roll.coins, 190);
+    assert.strictEqual(result.state.coins, before.coins + 90);
+    assert.strictEqual(result.state.dice.totalRolls, before.dice.totalRolls + 1);
+    assert.strictEqual(result.state.dice.recentRolls[0].id, id);
+    const replay = await service.action(body);
+    assert.strictEqual(replay.state.coins, result.state.coins);
+    assert.strictEqual(replay.state.dice.totalRolls, result.state.dice.totalRolls);
+    assert.strictEqual(replay.roll.id, id); assert.strictEqual(randomValues.length, 0);
+
+    randomValues.push(1);
+    const loss = await diceAction(actionId(), { stake: 50, target: 2 });
+    assert.strictEqual(loss.roll.roll, 2); assert.strictEqual(loss.roll.won, false); assert.strictEqual(loss.roll.coins, 0);
+    assert.strictEqual(loss.state.coins, result.state.coins - 50);
+    const unchanged = loss.state.coins;
+    await expectCode(diceAction(actionId(), { stake: 55, target: 4 }), 'DICE_STAKE');
+    await expectCode(diceAction(actionId(), { stake: 50, target: 1 }), 'DICE_TARGET');
+    assert.strictEqual((await service.view(buyer)).state.coins, unchanged);
+  });
+
+  await test('FITA Dice : réponse perdue après commit, récupération du même résultat sans double mutation', async () => {
+    const before = (await service.view(buyer)).state;
+    const lostRepository = {
+      get: (...args) => repository.get(...args), listWithdrawals: (...args) => repository.listWithdrawals(...args),
+      isActionProcessed: (...args) => repository.isActionProcessed(...args),
+      async apply(...args) { await repository.apply(...args); throw new FarmError(500, 'Réponse perdue après commit.', 'FARM_NETWORK'); }
+    };
+    const recoveryService = createFarmService({ repository: lostRepository, now: () => new Date(nowMs), randomInt: () => randomValues.length ? randomValues.shift() : 0, paymentVerifier: async () => verification });
+    const id = actionId(); randomValues.push(3);
+    const recovered = await diceAction(id, { stake: 50, target: 6 }, wallet, recoveryService);
+    assert.strictEqual(recovered.roll.id, id); assert.strictEqual(recovered.roll.roll, 4);
+    assert.strictEqual(recovered.state.coins, before.coins - 50 + recovered.roll.coins);
+    const replay = await diceAction(id, { stake: 50, target: 6 });
+    assert.strictEqual(replay.state.coins, recovered.state.coins);
+    assert.strictEqual(replay.state.dice.totalRolls, recovered.state.dice.totalRolls);
+    assert.strictEqual(replay.roll.roll, 4); assert.strictEqual(randomValues.length, 0);
+  });
+
+  await test('Retrait FTA : minimum 10 FTA, débit atomique, demande persistante et montants invalides', async () => {
+    assert.strictEqual(Config.MIN_WITHDRAW_COINS, 1000);
+    assert.strictEqual(Config.MAX_WITHDRAW_COINS, 10000);
+    const before = (await service.view(buyer)).state.coins;
+    await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 100 })), 'FARM_AMOUNT');
+    await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 900 })), 'FARM_AMOUNT');
+    const id = actionId();
+    const result = await service.withdraw(await signed('withdraw', wallet, { actionId: id, coins: 1000 }));
+    assert.strictEqual(result.state.coins, before - 1000);
     assert.strictEqual(result.withdrawals[0].id, id);
     assert.strictEqual(result.withdrawals[0].status, 'pending');
-    assert.strictEqual(result.withdrawals[0].ftaUnits, '100000000');
-    const repeated = await service.withdraw(await signed('withdraw', wallet, { actionId: id, coins: 100 }));
-    assert.strictEqual(repeated.state.coins, before - 100);
+    assert.strictEqual(result.withdrawals[0].ftaUnits, '1000000000');
+    const repeated = await service.withdraw(await signed('withdraw', wallet, { actionId: id, coins: 1000 }));
+    assert.strictEqual(repeated.state.coins, before - 1000);
     await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 99 })), 'FARM_AMOUNT');
-    await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 100 })), 'FARM_WITHDRAWAL_PENDING');
+    await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 1100 })), 'FARM_WITHDRAWAL_PENDING');
   });
 
   await test('Clôture du retrait : preuve exacte treasury → wallet puis statut paid', async () => {
@@ -215,7 +305,7 @@ async function expectCode(promise, code) {
     assert.strictEqual(paid.withdrawal.payoutTxHash, txHash);
     const repeated = await service.completeWithdrawal({ id: withdrawal.id, txHash });
     assert.strictEqual(repeated.withdrawal.status, 'paid');
-    await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 100 })), 'FARM_WITHDRAWAL_COOLDOWN');
+    await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 1000 })), 'FARM_WITHDRAWAL_COOLDOWN');
   });
 
   await test('Une transaction de dépôt ne peut pas être réutilisée par un autre wallet', async () => {
@@ -267,7 +357,8 @@ async function expectCode(promise, code) {
 
   await test('API admin FARM : session obligatoire, CSRF, attente puis clôture du retrait', async () => {
     nowMs += Config.WITHDRAWAL_COOLDOWN_MS;
-    const created = await service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 100 }));
+    await deposit('10');
+    const created = await service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 1000 }));
     const withdrawal = created.withdrawals[0];
     const oldPassword = process.env.FITIA_ADMIN_PASSWORD; const oldToken = process.env.FITIA_GITHUB_TOKEN;
     process.env.FITIA_ADMIN_PASSWORD = 'farm-admin-test-password'; process.env.FITIA_GITHUB_TOKEN = 'test-only-token';
@@ -303,6 +394,16 @@ async function expectCode(promise, code) {
   await test('Révision concurrente : une ancienne version ne peut pas écraser le compte', async () => {
     const record = await repository.get(buyer);
     await expectCode(repository.apply(buyer, 0, record.state, actionId(), 'buy_land'), 'FARM_REVISION');
+  });
+
+  await test('Migration Supabase : Dice atomique, minimum SQL de 1 000 coins et privilèges serveur', async () => {
+    const migration = fs.readFileSync(`${__dirname}/../supabase/migrations/20261029000400_add_dice_and_withdrawal_minimum.sql`, 'utf8');
+    assert.ok(migration.includes("'wheel_spin', 'dice_roll'"));
+    assert.ok(migration.includes('{dice,recentRolls,0,id}'));
+    assert.ok(migration.includes('p_coins < 1000'));
+    assert.ok(migration.includes('p_coins % 100 <> 0'));
+    assert.ok(migration.includes('to service_role'));
+    assert.ok(migration.includes('from public, anon, authenticated'));
   });
 
   await test('Client Supabase : apikey secret et appels RPC atomiques sans JWT legacy', async () => {

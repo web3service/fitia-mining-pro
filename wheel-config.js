@@ -7,14 +7,14 @@
 
   const STAKES = Object.freeze([50, 100, 200, 500]);
   const SEGMENTS = [
-    { id: 'coins_half', kind: 'coins', label: '½×', weight: 25, numerator: 1, denominator: 2, color: '#6d4bc3' },
+    { id: 'coins_half', kind: 'coins', label: '½×', weight: 32, numerator: 1, denominator: 2, color: '#6d4bc3' },
     { id: 'feed', kind: 'feed', label: 'FEED', weight: 15, color: '#c87532' },
     { id: 'coins_triple', kind: 'coins', label: '3×', weight: 15, numerator: 3, denominator: 1, color: '#c99a2e' },
     { id: 'wheat', kind: 'product', label: 'WHEAT', weight: 10, color: '#4f8b57' },
     { id: 'eggs', kind: 'product', label: 'EGGS', weight: 5, color: '#a65b7d' },
     { id: 'carrot', kind: 'product', label: 'CARROT', weight: 10, color: '#bd6138' },
-    { id: 'wool', kind: 'product', label: 'WOOL', weight: 5, color: '#5876ad' },
-    { id: 'milk', kind: 'product', label: 'MILK', weight: 5, color: '#3e8992' },
+    { id: 'wool', kind: 'product', label: 'WOOL', weight: 2, color: '#5876ad' },
+    { id: 'milk', kind: 'product', label: 'MILK', weight: 1, color: '#3e8992' },
     { id: 'extra_spin', kind: 'extra_spin', label: '+1 SPIN', weight: 5, color: '#8749ad' },
     { id: 'fta_small', kind: 'fta', label: 'FTA', weight: 3, coinsAtBase: 50, color: '#b78b23' },
     { id: 'fta_big', kind: 'fta', label: 'FTA MAX', weight: 2, coinsAtBase: 200, color: '#e0b83e' }

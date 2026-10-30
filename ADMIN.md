@@ -88,7 +88,7 @@ Les routes d’administration associées sont `/api/admin/store-products` et `/a
 
 ## FITIA FARM
 
-La section **Retraits FITIA FARM** affiche les demandes de conversion des coins en FTA. Le taux public est de **1 FTA = 100 coins**. Les retraits utilisent des multiples de 100 coins, avec une demande par 24 heures et au maximum une demande en attente par wallet. Aucune conversion en euros ou dollars n’est proposée.
+La section **Retraits FITIA FARM** affiche les demandes de conversion des coins en FTA. Le taux public est de **1 FTA = 100 coins**. Chaque demande porte sur **1 000 à 10 000 coins (10 à 100 FTA)**, par multiples de 100 coins, avec une demande par 24 heures et au maximum une demande en attente par wallet. Aucune conversion en euros ou dollars n’est proposée.
 
 Pour clôturer une demande :
 

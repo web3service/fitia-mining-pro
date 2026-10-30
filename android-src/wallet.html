@@ -720,11 +720,14 @@
       <button type="button" class="hub-card hub-card-farm" onclick="App.nav('farm')">
         <span class="hub-card-icon" aria-hidden="true"><img class="hub-farm-logo" src="assets/farm/barn.svg" width="40" height="40" alt="" draggable="false"></span><strong>FARM</strong><span class="hub-chevron">›</span>
       </button>
+      <button type="button" class="hub-card hub-card-swap" onclick="App.nav('swap')">
+        <span class="hub-card-icon hub-swap-icons" aria-hidden="true"><img src="assets/usdt.svg" width="26" height="26" alt="" draggable="false"><img src="assets/fta.png" width="26" height="26" alt="" draggable="false"></span><strong>Swap</strong><span class="hub-chevron">›</span>
+      </button>
       <button type="button" class="hub-card hub-card-wheel" onclick="App.nav('wheel')">
         <span class="hub-card-icon" aria-hidden="true"><img class="hub-wheel-logo" src="assets/lucky-wheel.svg" width="44" height="44" alt="" draggable="false"></span><strong>Lucky Wheel</strong><span class="hub-chevron">›</span>
       </button>
-      <button type="button" class="hub-card hub-card-swap" onclick="App.nav('swap')">
-        <span class="hub-card-icon hub-swap-icons" aria-hidden="true"><img src="assets/usdt.svg" width="26" height="26" alt="" draggable="false"><img src="assets/fta.png" width="26" height="26" alt="" draggable="false"></span><strong>Swap</strong><span class="hub-chevron">›</span>
+      <button type="button" class="hub-card hub-card-dice" onclick="App.nav('dice')">
+        <span class="hub-card-icon" aria-hidden="true"><img class="hub-dice-logo" src="assets/dice.svg" width="48" height="48" alt="" draggable="false"></span><strong>FITA Dice 3D</strong><span class="hub-chevron">›</span>
       </button>
     </div>
   </div>
@@ -779,6 +782,64 @@
       <div id="wheel-history-list" class="wheel-history-list"></div>
     </section>
   </div>
+
+  <!-- ═══ FITA DICE 3D — TIRAGE ET COMPTE FARM SERVEUR ═══ -->
+  <div id="view-dice" class="view dice-view">
+    <div class="dice-header">
+      <button type="button" class="dice-back-button" onclick="App.nav('hub')" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+      <div><span>FITIA GAMES</span><h2>FITA Dice 3D</h2></div>
+      <button id="dice-open-info" type="button" class="dice-info-button" aria-label="View dice probabilities">ODDS</button>
+    </div>
+    <section class="dice-hero">
+      <img src="assets/dice.svg" width="66" height="66" alt="" draggable="false">
+      <div><span>COIN BALANCE</span><strong id="dice-coin-balance">0</strong></div>
+      <div class="dice-hero-stat"><span>ROLLS</span><strong id="dice-total-rolls">0</strong></div>
+    </section>
+    <section id="dice-locked" class="dice-locked hidden">
+      <strong>FARM activation required</strong>
+      <button id="dice-open-farm" type="button" class="farm-small-button">OPEN FARM</button>
+    </section>
+    <div id="dice-game" class="dice-game">
+      <section class="dice-stage" aria-label="FITA Dice 3D game">
+        <div class="dice-stage-glow" aria-hidden="true"></div>
+        <div id="dice-3d-container" class="dice-3d-container" role="img" aria-label="Animated server-drawn six-sided dice">
+          <img src="assets/dice.svg" width="150" height="150" alt="" draggable="false">
+        </div>
+        <div id="dice-celebration" class="dice-celebration" aria-hidden="true"></div>
+        <div class="dice-stage-badge" aria-hidden="true"><i></i> SERVER DRAW</div>
+      </section>
+      <section id="dice-result" class="dice-result hidden" aria-live="polite">
+        <span>LAST RESULT</span><strong id="dice-result-title"></strong><small id="dice-result-detail"></small>
+      </section>
+      <div class="dice-control-heading"><span>ROLL UNDER</span><b>1–6 · FAIR DRAW</b></div>
+      <div class="dice-targets" role="group" aria-label="Winning target">
+        <button type="button" data-dice-target="2" aria-label="Win on roll 1. Chance 16.67 percent" aria-pressed="false"><strong>&lt;2</strong><span>16.67%</span></button>
+        <button type="button" data-dice-target="3" aria-label="Win on rolls 1 to 2. Chance 33.33 percent" aria-pressed="false"><strong>&lt;3</strong><span>33.33%</span></button>
+        <button type="button" data-dice-target="4" class="active" aria-label="Win on rolls 1 to 3. Chance 50 percent" aria-pressed="true"><strong>&lt;4</strong><span>50%</span></button>
+        <button type="button" data-dice-target="5" aria-label="Win on rolls 1 to 4. Chance 66.67 percent" aria-pressed="false"><strong>&lt;5</strong><span>66.67%</span></button>
+        <button type="button" data-dice-target="6" aria-label="Win on rolls 1 to 5. Chance 83.33 percent" aria-pressed="false"><strong>&lt;6</strong><span>83.33%</span></button>
+      </div>
+      <section class="dice-quote" aria-label="Potential payout" aria-live="polite" aria-atomic="true">
+        <div><span>WIN CHANCE</span><strong id="dice-chance-value">50%</strong></div>
+        <div><span>GROSS PAYOUT</span><strong id="dice-payout-value">95 coins</strong></div>
+        <div><span>NET WIN</span><strong id="dice-net-value">+45 coins</strong></div>
+      </section>
+      <div class="dice-control-heading"><span>COIN STAKE</span><b>1 FTA = 100 COINS</b></div>
+      <div class="dice-stakes" role="group" aria-label="Coin stake">
+        <button type="button" data-dice-stake="50" class="active" aria-pressed="true">50</button>
+        <button type="button" data-dice-stake="100" aria-pressed="false">100</button>
+        <button type="button" data-dice-stake="200" aria-pressed="false">200</button>
+        <button type="button" data-dice-stake="500" aria-pressed="false">500</button>
+      </div>
+      <button id="dice-roll-button" type="button" class="dice-roll-button"><span>ROLL · 50 COINS</span><i aria-hidden="true"></i></button>
+      <p id="dice-status" class="dice-status hidden" role="alert"></p>
+    </div>
+    <section class="dice-history">
+      <div class="dice-section-heading"><h3>Roll history</h3><span>LIVE</span></div>
+      <p id="dice-history-empty" class="dice-history-empty">No rolls yet</p>
+      <div id="dice-history-list" class="dice-history-list"></div>
+    </section>
+  </div>
 </main>
 
 <!-- ═══ NAVIGATION BASSE — 5 ENTRÉES ═══ -->
@@ -803,6 +864,17 @@
     <div class="wheel-probability-header"><span>REWARD</span><span>VALUE</span><span>CHANCE</span></div>
     <div id="wheel-probability-list" class="wheel-probability-list"></div>
     <div class="wheel-rule-chips"><span>SERVER DRAW</span><span>ONE DEBIT / SPIN</span><span>FREE / 24H</span></div>
+  </div>
+</div>
+
+<!-- FITA Dice 3D : règles et probabilités -->
+<div id="modal-dice-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="dice-info-title">
+  <div class="modal-content dice-info-modal">
+    <div class="modal-header"><h3 id="dice-info-title">Rules & probabilities</h3><button id="dice-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="dice-probability-base"><span>STAKE BASE</span><strong id="dice-probability-base">50 coins</strong></div>
+    <div class="dice-probability-header"><span>WINNING ROLL</span><span>GROSS PAYOUT</span><span>CHANCE</span></div>
+    <div id="dice-probability-list" class="dice-probability-list"></div>
+    <div class="dice-rule-chips"><span>SERVER DRAW</span><span>RTP ≤ 95%</span><span>ONE DEBIT / ROLL</span></div>
   </div>
 </div>
 
@@ -1223,6 +1295,9 @@
   <script src="farm.js"></script>
   <script src="wheel-config.js"></script>
   <script src="wheel.js"></script>
+  <script src="dice-config.js"></script>
+  <script src="dice-3d.js"></script>
+  <script src="dice.js"></script>
   <script src="assistant.js"></script>
 <script src="app.js"></script>
 </body>

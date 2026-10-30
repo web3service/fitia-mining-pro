@@ -8,7 +8,7 @@
   'use strict';
   if (!ethers) throw new Error('ethers est requis pour FITIA FARM.');
   const ACTIONS = new Set(['state', 'deposit', 'action', 'withdraw']);
-  const ACTION_TYPES = new Set(['buy_land', 'buy_animal', 'buy_feed', 'plant', 'harvest', 'feed', 'collect', 'sell', 'wheel_spin']);
+  const ACTION_TYPES = new Set(['buy_land', 'buy_animal', 'buy_feed', 'plant', 'harvest', 'feed', 'collect', 'sell', 'wheel_spin', 'dice_roll']);
 
   class FarmProtocolError extends Error {
     constructor(message, code = 'FARM_INVALID') { super(message); this.code = code; }
