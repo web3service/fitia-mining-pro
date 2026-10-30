@@ -80,6 +80,9 @@ async function request(base, action, options = {}) {
   let githubPromotionManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'promotions.json'), 'utf8'));
   let githubPromotionRevision = 'sha-vercel-promotion-initial';
   let githubPromotionWrites = 0;
+  let githubGameManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'game-visibility.json'), 'utf8'));
+  let githubGameRevision = 'sha-vercel-games-initial';
+  let githubGameWrites = 0;
   let githubStoreManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8'));
   let githubStoreRevision = 'sha-vercel-store-initial';
   let githubStoreWrites = 0;
@@ -88,6 +91,7 @@ async function request(base, action, options = {}) {
     const target = String(url);
     if (!target.startsWith('https://api.github.com/')) return originalFetch(url, init);
     const isPromotion = target.includes('/contents/promotions.json');
+    const isGame = target.includes('/contents/game-visibility.json');
     const isStore = target.includes('/contents/store-products.json');
     assert.strictEqual(init.headers.Authorization, `Bearer ${TOKEN}`);
     const assetMatch = target.match(/\/contents\/(assets\/(?:announcements\/announcement|store\/product)-[a-f0-9]{24}\.(?:png|jpg|webp))/);
@@ -109,8 +113,8 @@ async function request(base, action, options = {}) {
     }
     if ((init.method || 'GET') === 'PUT') {
       const body = JSON.parse(init.body);
-      const expectedRevision = isStore ? githubStoreRevision : isPromotion ? githubPromotionRevision : githubRevision;
-      const expectedMessage = isStore ? 'Update FITIA STORE catalog' : isPromotion ? 'Update FITIA promotions' : 'Update FITIA announcements';
+      const expectedRevision = isStore ? githubStoreRevision : isGame ? githubGameRevision : isPromotion ? githubPromotionRevision : githubRevision;
+      const expectedMessage = isStore ? 'Update FITIA STORE catalog' : isGame ? 'Update FITIA game visibility' : isPromotion ? 'Update FITIA promotions' : 'Update FITIA announcements';
       assert.strictEqual(body.sha, expectedRevision);
       assert.strictEqual(body.branch, 'main');
       assert.strictEqual(body.message, expectedMessage);
@@ -121,6 +125,11 @@ async function request(base, action, options = {}) {
         githubStoreWrites += 1;
         githubStoreRevision = `sha-vercel-store-write-${githubStoreWrites}`;
         nextRevision = githubStoreRevision;
+      } else if (isGame) {
+        githubGameManifest = published;
+        githubGameWrites += 1;
+        githubGameRevision = `sha-vercel-games-write-${githubGameWrites}`;
+        nextRevision = githubGameRevision;
       } else if (isPromotion) {
         githubPromotionManifest = published;
         githubPromotionWrites += 1;
@@ -134,20 +143,20 @@ async function request(base, action, options = {}) {
       }
       return new Response(JSON.stringify({ content: { sha: nextRevision } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
-    const manifest = isStore ? githubStoreManifest : isPromotion ? githubPromotionManifest : githubManifest;
-    const revision = isStore ? githubStoreRevision : isPromotion ? githubPromotionRevision : githubRevision;
+    const manifest = isStore ? githubStoreManifest : isGame ? githubGameManifest : isPromotion ? githubPromotionManifest : githubManifest;
+    const revision = isStore ? githubStoreRevision : isGame ? githubGameRevision : isPromotion ? githubPromotionRevision : githubRevision;
     return new Response(JSON.stringify({
       sha: revision, encoding: 'base64', content: Buffer.from(JSON.stringify(manifest)).toString('base64')
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
 
   try {
-    await runTest('Vercel sert /admin et réécrit les dix routes API serverless', async () => {
+    await runTest('Vercel sert /admin et réécrit les onze routes API serverless', async () => {
       const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
       const rewrites = new Map(config.rewrites.map((item) => [item.source, item.destination]));
       assert.strictEqual(rewrites.get('/admin'), '/admin/index.html');
       assert.strictEqual(rewrites.get('/admin/'), '/admin/index.html');
-      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'store-products', 'store-assets', 'store-orders', 'farm-withdrawals']) {
+      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'game-visibility', 'store-products', 'store-assets', 'store-orders', 'farm-withdrawals']) {
         assert.strictEqual(rewrites.get(`/api/admin/${action}`), `/api/admin?action=${action}`);
       }
       const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
@@ -297,6 +306,36 @@ async function request(base, action, options = {}) {
       });
       assert.strictEqual(invalidVisibility.response.status, 400);
       assert.strictEqual(githubPromotionWrites, 1);
+    });
+
+    await runTest('La fonction serverless publie la visibilité des jeux avec CSRF, validation et secret côté serveur', async () => {
+      const loaded = await request(baseB, 'game-visibility', { cookie });
+      assert.strictEqual(loaded.response.status, 200, loaded.text);
+      assert.deepStrictEqual(loaded.data.manifest, { hiddenGames: [] });
+      assert.strictEqual(loaded.data.revision, 'sha-vercel-games-initial');
+      const next = { hiddenGames: ['crash', 'wheel'] };
+      const rejected = await request(baseB, 'game-visibility', {
+        method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
+      });
+      assert.strictEqual(rejected.response.status, 403);
+      const saved = await request(baseB, 'game-visibility', {
+        method: 'PUT', cookie, csrf, body: { manifest: next, revision: loaded.data.revision }
+      });
+      assert.strictEqual(saved.response.status, 200, saved.text);
+      assert.strictEqual(saved.data.revision, 'sha-vercel-games-write-1');
+      assert.deepStrictEqual(saved.data.manifest.hiddenGames, ['wheel', 'crash']);
+      assert.deepStrictEqual(githubGameManifest.hiddenGames, ['wheel', 'crash']);
+      assert.strictEqual(githubGameWrites, 1);
+      assert.ok(!saved.text.includes(TOKEN));
+
+      for (const hiddenGames of [['unknown'], ['wheel', 'wheel'], ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'wheel']]) {
+        const invalid = await request(baseB, 'game-visibility', {
+          method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames }, revision: saved.data.revision }
+        });
+        assert.strictEqual(invalid.response.status, 400);
+        assert.strictEqual(invalid.data.code, 'VALIDATION');
+      }
+      assert.strictEqual(githubGameWrites, 1);
     });
 
     await runTest('FITIA STORE publie catalogue et photos avec CSRF sans donnée client ni secret', async () => {

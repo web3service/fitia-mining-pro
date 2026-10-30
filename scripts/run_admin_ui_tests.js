@@ -18,6 +18,8 @@ const storeCatalogScript = fs.readFileSync(path.join(ROOT, 'store-catalog.js'), 
 const storeAdminScript = fs.readFileSync(path.join(ROOT, 'admin/store-admin.js'), 'utf8');
 const ordersAdminScript = fs.readFileSync(path.join(ROOT, 'admin/orders-admin.js'), 'utf8');
 const farmAdminScript = fs.readFileSync(path.join(ROOT, 'admin/farm-admin.js'), 'utf8');
+const gameVisibilityConfigScript = fs.readFileSync(path.join(ROOT, 'game-visibility-config.js'), 'utf8');
+const gamesAdminScript = fs.readFileSync(path.join(ROOT, 'admin/games-admin.js'), 'utf8');
 let manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
 let revision = 'revision-initiale';
 const initialAnnouncementCount = manifest.announcements.length;
@@ -29,6 +31,9 @@ const initialPromotionCount = promotionManifest.promotions.length;
 let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];
 let failPromotions = false;
+let gameManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'game-visibility.json'), 'utf8'));
+let gameRevision = 'revision-games-initiale';
+const gameWrites = [];
 let storeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8'));
 // Le scénario CRUD part d’un catalogue vide en mémoire et ne touche pas au catalogue éditorial réel.
 storeManifest = { ...storeManifest, enabled: false, products: [] };
@@ -85,6 +90,17 @@ window.fetch = async (url, options = {}) => {
     promotionWrites.push(body);
     return response({ manifest: promotionManifest, revision: promotionRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
+  if (url === '/api/admin/game-visibility' && (!options.method || options.method === 'GET')) {
+    return response({ manifest: gameManifest, revision: gameRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
+  }
+  if (url === '/api/admin/game-visibility' && options.method === 'PUT') {
+    const body = JSON.parse(options.body);
+    assert.strictEqual(body.revision, gameRevision);
+    gameManifest = body.manifest;
+    gameRevision = `revision-games-${gameWrites.length + 1}`;
+    gameWrites.push(body);
+    return response({ manifest: gameManifest, revision: gameRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
+  }
   if (url === '/api/admin/store-products' && (!options.method || options.method === 'GET')) {
     return response({ manifest: storeManifest, revision: storeRevision, mode: 'local', project: null, branch: null, serverTime: new Date().toISOString() });
   }
@@ -140,6 +156,8 @@ async function waitFor(condition, label) {
   assert.ok(adminCss.includes('.nav-short-label { display: inline; }'));
   window.eval(effectsScript);
   window.eval(storeCatalogScript);
+  window.eval(gameVisibilityConfigScript);
+  window.eval(gamesAdminScript);
   window.eval(storeAdminScript);
   window.eval(ordersAdminScript);
   window.eval(farmAdminScript);
@@ -315,6 +333,40 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin suppression décoration');
   assert.strictEqual(promotionManifest.promotions.length, initialPromotionCount);
 
+  window.document.querySelector('[data-section="games"]').click();
+  assert.strictEqual(window.document.getElementById('page-title').textContent, 'Visibilité des jeux');
+  assert.strictEqual(window.document.getElementById('section-games').classList.contains('hidden'), false);
+  assert.strictEqual(window.document.querySelectorAll('[data-game-visibility-toggle]').length, 5);
+  assert.strictEqual(window.document.querySelectorAll('#game-visibility-list .game-visibility-logo img').length, 5);
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '5 / 5 visibles');
+  let gameToggle = window.document.querySelector('[data-game-visibility-toggle="dice"]');
+  gameToggle.checked = false;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 1, 'masquage Dice');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin masquage Dice');
+  assert.deepStrictEqual(gameManifest.hiddenGames, ['dice']);
+  assert.ok(window.document.querySelector('[data-game-visibility="dice"]').classList.contains('is-hidden'));
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '4 / 5 visibles');
+  gameToggle = window.document.querySelector('[data-game-visibility-toggle="crash"]');
+  gameToggle.checked = false;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 2, 'masquage Crash indépendant');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin masquage Crash');
+  assert.deepStrictEqual(gameManifest.hiddenGames, ['dice', 'crash']);
+  gameToggle = window.document.querySelector('[data-game-visibility-toggle="dice"]');
+  gameToggle.checked = true;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 3, 'réaffichage Dice');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réaffichage Dice');
+  assert.deepStrictEqual(gameManifest.hiddenGames, ['crash']);
+  gameToggle = window.document.querySelector('[data-game-visibility-toggle="crash"]');
+  gameToggle.checked = true;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 4, 'réaffichage Crash');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réaffichage Crash');
+  assert.deepStrictEqual(gameManifest.hiddenGames, []);
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '5 / 5 visibles');
+
   window.document.querySelector('[data-section="store"]').click();
   assert.strictEqual(window.document.getElementById('page-title').textContent, 'FITIA STORE');
   window.document.querySelector('#section-store [data-new-store-product]').click();
@@ -421,7 +473,7 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('farm-stat-paid').textContent === '1', 'retrait payé affiché');
   assert.ok(window.document.querySelector('#farm-withdrawals-list .farm-withdrawal-card').textContent.includes('Payé · vérifié'));
   assert.ok(adminCss.includes('.farm-withdrawal-controls'));
-  console.log('  ✅ UI admin : annonces, décorations, STORE, commandes et retraits FARM — CRUD, suivi privé, mobile et blocage XSS validés');
+  console.log('  ✅ UI admin : annonces, décorations, visibilité des jeux, STORE, commandes et retraits FARM — CRUD, suivi privé, mobile et blocage XSS validés');
   window.close();
 })().catch((error) => {
   console.error(error);

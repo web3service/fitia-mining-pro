@@ -59,13 +59,15 @@ function clone(value) {
   const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'fitia-admin-tests-'));
   const dataFile = path.join(temporaryDirectory, 'announcements.json');
   const promotionsFile = path.join(temporaryDirectory, 'promotions.json');
+  const gameVisibilityFile = path.join(temporaryDirectory, 'game-visibility.json');
   const assetDirectory = path.join(temporaryDirectory, 'assets', 'announcements');
   const storeDataFile = path.join(temporaryDirectory, 'store-products.json');
   const storeAssetDirectory = path.join(temporaryDirectory, 'assets', 'store');
   fs.copyFileSync(path.join(ROOT, 'announcements.json'), dataFile);
   fs.copyFileSync(path.join(ROOT, 'promotions.json'), promotionsFile);
+  fs.copyFileSync(path.join(ROOT, 'game-visibility.json'), gameVisibilityFile);
   fs.copyFileSync(path.join(ROOT, 'store-products.json'), storeDataFile);
-  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, assetDirectory, storeDataFile, storeAssetDirectory });
+  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, gameVisibilityFile, assetDirectory, storeDataFile, storeAssetDirectory });
   const localPort = await listen(localServer);
   const localBase = `http://127.0.0.1:${localPort}`;
   let githubServer = null;
@@ -84,12 +86,24 @@ function clone(value) {
       assert.ok(page.text.includes('id="announcement-form"'));
       assert.ok(page.text.includes('id="promotion-form"'));
       assert.ok(page.text.includes('id="store-product-form"'));
+      assert.ok(page.text.includes('id="section-games"'));
       assert.ok(page.response.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
       assert.ok(page.response.headers.get('content-security-policy').includes("script-src 'self'"));
       assert.strictEqual(page.response.headers.get('x-frame-options'), 'DENY');
       const ordersScript = await request(localBase, '/admin/orders-admin.js');
       assert.strictEqual(ordersScript.response.status, 200);
       assert.ok(ordersScript.text.includes('FitiaOrdersAdmin'));
+      const gamesScript = await request(localBase, '/admin/games-admin.js');
+      assert.strictEqual(gamesScript.response.status, 200);
+      assert.ok(gamesScript.text.includes('FitiaGamesAdmin'));
+      const gameConfig = await request(localBase, '/game-visibility-config.js');
+      assert.strictEqual(gameConfig.response.status, 200);
+      assert.ok(gameConfig.text.includes('FitiaGameVisibilityConfig'));
+      for (const logo of ['lucky-wheel.svg', 'dice.svg', 'mines.svg', 'crash.svg', 'coin-flip.svg']) {
+        const result = await request(localBase, `/assets/${logo}`);
+        assert.strictEqual(result.response.status, 200, logo);
+        assert.ok(result.text.includes('<svg'), logo);
+      }
       for (const asset of ['/promotion-effects.js', '/promotion-effects.css']) {
         const result = await request(localBase, asset);
         assert.strictEqual(result.response.status, 200, asset);
@@ -101,7 +115,7 @@ function clone(value) {
         assert.ok(result.text.includes('<svg'), avatar);
         assert.ok(result.response.headers.get('content-type').includes('image/svg+xml'));
       }
-      for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/promotions.json', '/store-products.json', '/.git/HEAD']) {
+      for (const forbidden of ['/admin-server.js', '/app.js', '/announcements.json', '/promotions.json', '/game-visibility.json', '/store-products.json', '/.git/HEAD']) {
         const result = await request(localBase, forbidden);
         assert.strictEqual(result.response.status, 404, forbidden);
       }
@@ -120,6 +134,10 @@ function clone(value) {
       assert.strictEqual(promotions.response.status, 401);
       const updatePromotions = await request(localBase, '/api/admin/promotions', { method: 'PUT', body: {} });
       assert.strictEqual(updatePromotions.response.status, 401);
+      const games = await request(localBase, '/api/admin/game-visibility');
+      assert.strictEqual(games.response.status, 401);
+      const updateGames = await request(localBase, '/api/admin/game-visibility', { method: 'PUT', body: {} });
+      assert.strictEqual(updateGames.response.status, 401);
       const upload = await request(localBase, '/api/admin/announcement-assets', { method: 'POST', body: {} });
       assert.strictEqual(upload.response.status, 401);
       const orders = await request(localBase, '/api/admin/store-orders');
@@ -414,6 +432,41 @@ function clone(value) {
       });
       assert.strictEqual(stale.response.status, 409);
       assert.strictEqual(stale.data.code, 'CONFLICT');
+    });
+
+    await runTest('Visibilité des jeux : lecture, CSRF, validation stricte, ordre canonique et conflit de révision', async () => {
+      const loaded = await request(localBase, '/api/admin/game-visibility', { cookie });
+      assert.strictEqual(loaded.response.status, 200, loaded.text);
+      assert.deepStrictEqual(loaded.data.manifest, { hiddenGames: [] });
+      const initialRevision = loaded.data.revision;
+      const next = { hiddenGames: ['crash', 'wheel', 'dice'] };
+      const withoutCsrf = await request(localBase, '/api/admin/game-visibility', {
+        method: 'PUT', cookie, body: { manifest: next, revision: initialRevision }
+      });
+      assert.strictEqual(withoutCsrf.response.status, 403);
+      const saved = await request(localBase, '/api/admin/game-visibility', {
+        method: 'PUT', cookie, csrf, body: { manifest: next, revision: initialRevision }
+      });
+      assert.strictEqual(saved.response.status, 200, saved.text);
+      assert.deepStrictEqual(saved.data.manifest.hiddenGames, ['wheel', 'dice', 'crash']);
+      assert.deepStrictEqual(JSON.parse(fs.readFileSync(gameVisibilityFile, 'utf8')).hiddenGames, ['wheel', 'dice', 'crash']);
+
+      for (const hiddenGames of [['unknown'], ['wheel', 'wheel'], [1], ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'wheel'], 'wheel']) {
+        const invalid = await request(localBase, '/api/admin/game-visibility', {
+          method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames }, revision: saved.data.revision }
+        });
+        assert.strictEqual(invalid.response.status, 400, JSON.stringify(hiddenGames));
+        assert.strictEqual(invalid.data.code, 'VALIDATION');
+      }
+      const stale = await request(localBase, '/api/admin/game-visibility', {
+        method: 'PUT', cookie, csrf, body: { manifest: next, revision: initialRevision }
+      });
+      assert.strictEqual(stale.response.status, 409);
+      const restored = await request(localBase, '/api/admin/game-visibility', {
+        method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames: [] }, revision: saved.data.revision }
+      });
+      assert.strictEqual(restored.response.status, 200, restored.text);
+      assert.deepStrictEqual(restored.data.manifest.hiddenGames, []);
     });
 
     await runTest('FITIA STORE local : CRUD, image produit et confidentialité du fichier catalogue', async () => {
