@@ -1,6 +1,7 @@
 {
   "hiddenGames": [
     "dice",
-    "mines"
+    "mines",
+    "crash"
   ]
 }
