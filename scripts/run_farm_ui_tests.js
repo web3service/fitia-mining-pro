@@ -157,8 +157,8 @@ async function waitFor(condition, label) {
       assert.strictEqual(navItems.length, 5);
       assert.deepStrictEqual(navItems.map((item) => item.dataset.nav), ['dashboard', 'shop', 'store', 'my-rigs', 'hub']);
       assert.ok(document.getElementById('view-hub'));
-      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 4);
-      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Swap', 'Lucky Wheel', 'FITA Dice 3D']);
+      assert.strictEqual(document.querySelectorAll('#view-hub .hub-card').length, 7);
+      assert.deepStrictEqual(Array.from(document.querySelectorAll('#view-hub .hub-card strong')).map((item) => item.textContent), ['FARM', 'Swap', 'Lucky Wheel', 'FITA Dice 3D', 'FITA Mines 3D', 'FITA Crash', 'Coin Flip 3D']);
       assert.ok(document.querySelector('#view-hub .hub-card-wheel img[src="assets/lucky-wheel.svg"]'));
       assert.ok(document.querySelector('#view-hub .hub-card-dice img[src="assets/dice.svg"]'));
       assert.ok(document.querySelector('#view-hub .hub-card-farm img[src="assets/farm/barn.svg"]'));

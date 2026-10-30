@@ -302,7 +302,7 @@
       });
       const button = byId('wheel-spin-button');
       let label = this.mode === 'free' ? 'FREE SPIN' : this.mode === 'bonus' ? 'BONUS SPIN' : `SPIN · ${formatCoins(this.selectedStake)} COINS`;
-      if (this.operation) label = this.waiting ? 'SERVER DRAW…' : 'GOOD LUCK';
+      if (this.operation) label = this.waiting ? 'SPINNING…' : 'GOOD LUCK';
       else if (this.pending) label = 'RESUME SPIN';
       button.querySelector('span').textContent = label;
       let disabled = this.operation || !this.started();

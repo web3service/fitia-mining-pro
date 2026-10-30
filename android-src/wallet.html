@@ -363,7 +363,6 @@
 
     <section class="farm-scene-card">
       <div class="farm-scene-toolbar">
-        <span class="farm-live-label"><i id="farm-sync-dot" class="farm-sync-dot"></i><span id="farm-sync-status">Farm ready</span></span>
         <div class="farm-view-presets" aria-label="Camera views">
           <button type="button" onclick="App.farmCenter.focusCamera('overview')">Farm</button>
           <button type="button" onclick="App.farmCenter.focusCamera('crops')">Crops</button>
@@ -729,6 +728,15 @@
       <button type="button" class="hub-card hub-card-dice" onclick="App.nav('dice')">
         <span class="hub-card-icon" aria-hidden="true"><img class="hub-dice-logo" src="assets/dice.svg" width="48" height="48" alt="" draggable="false"></span><strong>FITA Dice 3D</strong><span class="hub-chevron">›</span>
       </button>
+      <button type="button" class="hub-card hub-card-mines" onclick="App.nav('mines')">
+        <span class="hub-card-icon" aria-hidden="true"><img src="assets/mines.svg" width="48" height="48" alt="" draggable="false"></span><strong>FITA Mines 3D</strong><span class="hub-chevron">›</span>
+      </button>
+      <button type="button" class="hub-card hub-card-crash" onclick="App.nav('crash')">
+        <span class="hub-card-icon" aria-hidden="true"><img src="assets/crash.svg" width="48" height="48" alt="" draggable="false"></span><strong>FITA Crash</strong><span class="hub-chevron">›</span>
+      </button>
+      <button type="button" class="hub-card hub-card-coin-flip" onclick="App.nav('coin-flip')">
+        <span class="hub-card-icon" aria-hidden="true"><img src="assets/coin-flip.svg" width="54" height="54" alt="" draggable="false"></span><strong>Coin Flip 3D</strong><span class="hub-chevron">›</span>
+      </button>
     </div>
   </div>
 
@@ -760,7 +768,7 @@
       <section class="wheel-stage" aria-label="Lucky Wheel game">
         <div class="wheel-ambient"></div>
         <div class="wheel-pointer" aria-hidden="true"><i></i></div>
-        <canvas id="lucky-wheel-canvas" width="360" height="360" role="img" aria-label="Server-drawn Lucky Wheel"></canvas>
+        <canvas id="lucky-wheel-canvas" width="360" height="360" role="img" aria-label="Animated Lucky Wheel"></canvas>
         <div id="wheel-celebration" class="wheel-celebration" aria-hidden="true"></div>
       </section>
       <section id="wheel-result" class="wheel-result hidden" aria-live="polite">
@@ -777,7 +785,7 @@
       <p id="wheel-status" class="wheel-status hidden" role="alert"></p>
     </div>
     <section class="wheel-history">
-      <div class="wheel-section-heading"><h3>Spin history</h3><span>LIVE</span></div>
+      <div class="wheel-section-heading"><h3>Spin history</h3><span>RECENT</span></div>
       <p id="wheel-history-empty" class="wheel-history-empty">No spins yet</p>
       <div id="wheel-history-list" class="wheel-history-list"></div>
     </section>
@@ -802,11 +810,10 @@
     <div id="dice-game" class="dice-game">
       <section class="dice-stage" aria-label="FITA Dice 3D game">
         <div class="dice-stage-glow" aria-hidden="true"></div>
-        <div id="dice-3d-container" class="dice-3d-container" role="img" aria-label="Animated server-drawn six-sided dice">
+        <div id="dice-3d-container" class="dice-3d-container" role="img" aria-label="Animated six-sided dice">
           <img src="assets/dice.svg" width="150" height="150" alt="" draggable="false">
         </div>
         <div id="dice-celebration" class="dice-celebration" aria-hidden="true"></div>
-        <div class="dice-stage-badge" aria-hidden="true"><i></i> SERVER DRAW</div>
       </section>
       <section id="dice-result" class="dice-result hidden" aria-live="polite">
         <span>LAST RESULT</span><strong id="dice-result-title"></strong><small id="dice-result-detail"></small>
@@ -835,10 +842,129 @@
       <p id="dice-status" class="dice-status hidden" role="alert"></p>
     </div>
     <section class="dice-history">
-      <div class="dice-section-heading"><h3>Roll history</h3><span>LIVE</span></div>
+      <div class="dice-section-heading"><h3>Roll history</h3><span>RECENT</span></div>
       <p id="dice-history-empty" class="dice-history-empty">No rolls yet</p>
       <div id="dice-history-list" class="dice-history-list"></div>
     </section>
+  </div>
+
+  <!-- ═══ FITA MINES 3D ═══ -->
+  <div id="view-mines" class="view arcade-view mines-view">
+    <div class="arcade-header">
+      <button type="button" class="arcade-back-button" onclick="App.nav('hub')" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+      <div><span>FITIA GAMES</span><h2>FITA Mines 3D</h2></div>
+      <button id="mines-open-info" type="button" class="arcade-info-button" aria-label="View Mines probabilities">ODDS</button>
+    </div>
+    <section class="arcade-hero">
+      <img src="assets/mines.svg" width="66" height="66" alt="" draggable="false">
+      <div><span>COIN BALANCE</span><strong id="mines-coin-balance">0</strong></div>
+      <div class="arcade-hero-stat"><span>ROUNDS</span><strong id="mines-total-rounds">0</strong></div>
+    </section>
+    <section id="mines-locked" class="arcade-locked hidden"><strong>FARM activation required</strong><button id="mines-open-farm" type="button" class="farm-small-button">OPEN FARM</button></section>
+    <div id="mines-game" class="arcade-game">
+      <section class="arcade-stage mines-stage" aria-label="FITA Mines 3D game">
+        <div id="mines-3d-container" class="arcade-3d-container" role="img" aria-label="Animated three-dimensional Mines board"><img src="assets/mines.svg" width="140" height="140" alt="" draggable="false"></div>
+      </section>
+      <div id="mines-grid" class="mines-grid" role="group" aria-label="Mines tiles">
+        <button type="button" data-mines-index="0" aria-label="Tile 1" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="1" aria-label="Tile 2" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="2" aria-label="Tile 3" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="3" aria-label="Tile 4" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="4" aria-label="Tile 5" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="5" aria-label="Tile 6" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="6" aria-label="Tile 7" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="7" aria-label="Tile 8" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="8" aria-label="Tile 9" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="9" aria-label="Tile 10" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="10" aria-label="Tile 11" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="11" aria-label="Tile 12" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="12" aria-label="Tile 13" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="13" aria-label="Tile 14" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="14" aria-label="Tile 15" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="15" aria-label="Tile 16" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="16" aria-label="Tile 17" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="17" aria-label="Tile 18" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="18" aria-label="Tile 19" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="19" aria-label="Tile 20" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="20" aria-label="Tile 21" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="21" aria-label="Tile 22" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="22" aria-label="Tile 23" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="23" aria-label="Tile 24" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+        <button type="button" data-mines-index="24" aria-label="Tile 25" aria-pressed="false"><img class="hidden" alt="" draggable="false"></button>
+      </div>
+      <section class="arcade-quote" aria-label="Current Mines payout" aria-live="polite" aria-atomic="true">
+        <div><span>SAFE TILES</span><strong id="mines-safe-count">0</strong></div>
+        <div><span>CASHOUT</span><strong id="mines-current-payout">0 coins</strong></div>
+        <div><span>NEXT SAFE</span><strong id="mines-next-chance">88%</strong></div>
+      </section>
+      <div class="arcade-control-heading"><span>MINES</span><b>25 TILES</b></div>
+      <div class="arcade-choices mines-counts" role="group" aria-label="Mine count">
+        <button type="button" data-mines-count="1" aria-pressed="false">1</button><button type="button" data-mines-count="3" class="active" aria-pressed="true">3</button><button type="button" data-mines-count="5" aria-pressed="false">5</button><button type="button" data-mines-count="10" aria-pressed="false">10</button>
+      </div>
+      <div class="arcade-control-heading"><span>COIN STAKE</span><b>1 FTA = 100 COINS</b></div>
+      <div class="arcade-stakes" role="group" aria-label="Coin stake">
+        <button type="button" data-mines-stake="50" class="active" aria-pressed="true">50</button><button type="button" data-mines-stake="100" aria-pressed="false">100</button><button type="button" data-mines-stake="200" aria-pressed="false">200</button><button type="button" data-mines-stake="500" aria-pressed="false">500</button>
+      </div>
+      <button id="mines-start-button" type="button" class="arcade-action-button"><span>START · 50 COINS</span><i aria-hidden="true"></i></button>
+      <button id="mines-cashout-button" type="button" class="arcade-action-button cashout hidden"><span>CASH OUT · 0 COINS</span><i aria-hidden="true"></i></button>
+      <button id="mines-resume-button" type="button" class="arcade-action-button hidden">RESUME ROUND</button>
+      <p id="mines-status" class="arcade-status hidden" role="alert"></p>
+    </div>
+    <section id="mines-result" class="arcade-result hidden" aria-live="polite"><span>LAST RESULT</span><strong id="mines-result-title"></strong><small id="mines-result-detail"></small></section>
+    <section class="arcade-history"><div class="arcade-section-heading"><h3>Mines history</h3><span>RECENT</span></div><p id="mines-history-empty" class="arcade-history-empty">No rounds yet</p><div id="mines-history-list" class="arcade-history-list"></div></section>
+  </div>
+
+  <!-- ═══ FITA CRASH ═══ -->
+  <div id="view-crash" class="view arcade-view crash-view">
+    <div class="arcade-header">
+      <button type="button" class="arcade-back-button" onclick="App.nav('hub')" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+      <div><span>FITIA GAMES</span><h2>FITA Crash</h2></div>
+      <button id="crash-open-info" type="button" class="arcade-info-button" aria-label="View Crash probabilities">ODDS</button>
+    </div>
+    <section class="arcade-hero">
+      <img src="assets/crash.svg" width="66" height="66" alt="" draggable="false"><div><span>COIN BALANCE</span><strong id="crash-coin-balance">0</strong></div><div class="arcade-hero-stat"><span>FLIGHTS</span><strong id="crash-total-rounds">0</strong></div>
+    </section>
+    <section id="crash-locked" class="arcade-locked hidden"><strong>FARM activation required</strong><button id="crash-open-farm" type="button" class="farm-small-button">OPEN FARM</button></section>
+    <div id="crash-game" class="arcade-game">
+      <section class="arcade-stage crash-stage" aria-label="FITA Crash game">
+        <div id="crash-3d-container" class="arcade-3d-container" role="img" aria-label="Animated rocket and crash trajectory"><img src="assets/crash.svg" width="145" height="145" alt="" draggable="false"></div>
+        <strong id="crash-multiplier" class="crash-multiplier" aria-hidden="true">1.00×</strong>
+      </section>
+      <section id="crash-result" class="arcade-result hidden" aria-live="polite"><span>LAST RESULT</span><strong id="crash-result-title"></strong><small id="crash-result-detail"></small></section>
+      <div class="arcade-control-heading"><span>AUTO CASHOUT</span><b>1.50× – 10.00×</b></div>
+      <div class="arcade-choices crash-targets" role="group" aria-label="Auto cashout target">
+        <button type="button" data-crash-target="150" aria-pressed="false">1.50×</button><button type="button" data-crash-target="200" class="active" aria-pressed="true">2.00×</button><button type="button" data-crash-target="300" aria-pressed="false">3.00×</button><button type="button" data-crash-target="500" aria-pressed="false">5.00×</button><button type="button" data-crash-target="1000" aria-pressed="false">10.00×</button>
+      </div>
+      <section class="arcade-quote" aria-label="Potential Crash payout" aria-live="polite" aria-atomic="true"><div><span>WIN CHANCE</span><strong id="crash-chance-value">47.5%</strong></div><div><span>GROSS PAYOUT</span><strong id="crash-payout-value">100 coins</strong></div><div><span>NET WIN</span><strong id="crash-net-value">+50 coins</strong></div></section>
+      <div class="arcade-control-heading"><span>COIN STAKE</span><b>1 FTA = 100 COINS</b></div>
+      <div class="arcade-stakes" role="group" aria-label="Coin stake"><button type="button" data-crash-stake="50" class="active" aria-pressed="true">50</button><button type="button" data-crash-stake="100" aria-pressed="false">100</button><button type="button" data-crash-stake="200" aria-pressed="false">200</button><button type="button" data-crash-stake="500" aria-pressed="false">500</button></div>
+      <button id="crash-play-button" type="button" class="arcade-action-button"><span>LAUNCH · 50 COINS</span><i aria-hidden="true"></i></button><p id="crash-status" class="arcade-status hidden" role="alert"></p>
+    </div>
+    <section class="arcade-history"><div class="arcade-section-heading"><h3>Flight history</h3><span>RECENT</span></div><p id="crash-history-empty" class="arcade-history-empty">No flights yet</p><div id="crash-history-list" class="arcade-history-list"></div></section>
+  </div>
+
+  <!-- ═══ COIN FLIP 3D ═══ -->
+  <div id="view-coin-flip" class="view arcade-view coin-flip-view">
+    <div class="arcade-header">
+      <button type="button" class="arcade-back-button" onclick="App.nav('hub')" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+      <div><span>FITIA GAMES</span><h2>Coin Flip 3D</h2></div>
+      <button id="coin-flip-open-info" type="button" class="arcade-info-button" aria-label="View Coin Flip probabilities">ODDS</button>
+    </div>
+    <section class="arcade-hero">
+      <img src="assets/coin-flip.svg" width="66" height="66" alt="" draggable="false"><div><span>COIN BALANCE</span><strong id="flip-coin-balance">0</strong></div><div class="arcade-hero-stat"><span>FLIPS</span><strong id="flip-total-rounds">0</strong></div>
+    </section>
+    <section id="flip-locked" class="arcade-locked hidden"><strong>FARM activation required</strong><button id="coin-flip-open-farm" type="button" class="farm-small-button">OPEN FARM</button></section>
+    <div id="flip-game" class="arcade-game">
+      <section class="arcade-stage coin-flip-stage" aria-label="Coin Flip 3D game"><div id="coin-flip-3d-container" class="arcade-3d-container" role="img" aria-label="Animated three-dimensional coin"><img src="assets/coin-flip.svg" width="150" height="150" alt="" draggable="false"></div></section>
+      <section id="flip-result" class="arcade-result hidden" aria-live="polite"><span>LAST RESULT</span><strong id="flip-result-title"></strong><small id="flip-result-detail"></small></section>
+      <div class="arcade-control-heading"><span>YOUR SIDE</span><b>1.90× PAYOUT</b></div>
+      <div class="arcade-choices flip-choices" role="group" aria-label="Coin side"><button type="button" data-flip-choice="heads" class="active" aria-pressed="true"><strong>H</strong><span>HEADS</span></button><button type="button" data-flip-choice="tails" aria-pressed="false"><strong>T</strong><span>TAILS</span></button></div>
+      <section class="arcade-quote" aria-label="Potential Coin Flip payout" aria-live="polite" aria-atomic="true"><div><span>WIN CHANCE</span><strong id="flip-chance-value">50%</strong></div><div><span>GROSS PAYOUT</span><strong id="flip-payout-value">95 coins</strong></div><div><span>NET WIN</span><strong id="flip-net-value">+45 coins</strong></div></section>
+      <div class="arcade-control-heading"><span>COIN STAKE</span><b>1 FTA = 100 COINS</b></div>
+      <div class="arcade-stakes" role="group" aria-label="Coin stake"><button type="button" data-flip-stake="50" class="active" aria-pressed="true">50</button><button type="button" data-flip-stake="100" aria-pressed="false">100</button><button type="button" data-flip-stake="200" aria-pressed="false">200</button><button type="button" data-flip-stake="500" aria-pressed="false">500</button></div>
+      <button id="flip-play-button" type="button" class="arcade-action-button"><span>FLIP · 50 COINS</span><i aria-hidden="true"></i></button><p id="coin-flip-status" class="arcade-status hidden" role="alert"></p>
+    </div>
+    <section class="arcade-history"><div class="arcade-section-heading"><h3>Flip history</h3><span>RECENT</span></div><p id="flip-history-empty" class="arcade-history-empty">No flips yet</p><div id="flip-history-list" class="arcade-history-list"></div></section>
   </div>
 </main>
 
@@ -863,7 +989,7 @@
     <div class="wheel-probability-base"><span>REWARD BASE</span><strong id="wheel-probability-base">50 coins</strong></div>
     <div class="wheel-probability-header"><span>REWARD</span><span>VALUE</span><span>CHANCE</span></div>
     <div id="wheel-probability-list" class="wheel-probability-list"></div>
-    <div class="wheel-rule-chips"><span>SERVER DRAW</span><span>ONE DEBIT / SPIN</span><span>FREE / 24H</span></div>
+    <div class="wheel-rule-chips"><span>FREE / 24H</span></div>
   </div>
 </div>
 
@@ -874,7 +1000,40 @@
     <div class="dice-probability-base"><span>STAKE BASE</span><strong id="dice-probability-base">50 coins</strong></div>
     <div class="dice-probability-header"><span>WINNING ROLL</span><span>GROSS PAYOUT</span><span>CHANCE</span></div>
     <div id="dice-probability-list" class="dice-probability-list"></div>
-    <div class="dice-rule-chips"><span>SERVER DRAW</span><span>RTP ≤ 95%</span><span>ONE DEBIT / ROLL</span></div>
+    <div class="dice-rule-chips"><span>RTP ≤ 95%</span></div>
+  </div>
+</div>
+
+<!-- FITA Mines 3D : règles et probabilités -->
+<div id="modal-mines-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="mines-info-title">
+  <div class="modal-content arcade-info-modal">
+    <div class="modal-header"><h3 id="mines-info-title">Rules & probabilities</h3><button id="mines-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="arcade-probability-base"><span>STAKE BASE</span><strong id="mines-probability-base">50 coins</strong></div>
+    <div class="arcade-probability-header"><span>MINES</span><span>1 SAFE PAYOUT</span><span>FIRST SAFE</span></div>
+    <div id="mines-probability-list" class="arcade-probability-list"></div>
+    <div class="arcade-rule-chips"><span>RTP ≤ 95%</span><span>25 TILES</span><span>MAX 1,000,000 COINS</span></div>
+  </div>
+</div>
+
+<!-- FITA Crash : règles et probabilités -->
+<div id="modal-crash-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="crash-info-title">
+  <div class="modal-content arcade-info-modal">
+    <div class="modal-header"><h3 id="crash-info-title">Rules & probabilities</h3><button id="crash-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="arcade-probability-base"><span>STAKE BASE</span><strong id="crash-probability-base">50 coins</strong></div>
+    <div class="arcade-probability-header"><span>AUTO CASHOUT</span><span>GROSS PAYOUT</span><span>CHANCE</span></div>
+    <div id="crash-probability-list" class="arcade-probability-list"></div>
+    <div class="arcade-rule-chips"><span>RTP ≤ 95%</span><span>AUTO CASHOUT</span></div>
+  </div>
+</div>
+
+<!-- Coin Flip 3D : règles et probabilités -->
+<div id="modal-coin-flip-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="flip-info-title">
+  <div class="modal-content arcade-info-modal">
+    <div class="modal-header"><h3 id="flip-info-title">Rules & probabilities</h3><button id="coin-flip-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="arcade-probability-base"><span>STAKE BASE</span><strong id="flip-probability-base">50 coins</strong></div>
+    <div class="arcade-probability-header"><span>SIDE</span><span>GROSS PAYOUT</span><span>CHANCE</span></div>
+    <div id="flip-probability-list" class="arcade-probability-list"></div>
+    <div class="arcade-rule-chips"><span>RTP 95%</span><span>1.90× PAYOUT</span></div>
   </div>
 </div>
 
@@ -1298,6 +1457,9 @@
   <script src="dice-config.js"></script>
   <script src="dice-3d.js"></script>
   <script src="dice.js"></script>
+  <script src="arcade-config.js"></script>
+  <script src="arcade-3d.js"></script>
+  <script src="arcade.js"></script>
   <script src="assistant.js"></script>
 <script src="app.js"></script>
 </body>

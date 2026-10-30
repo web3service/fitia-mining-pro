@@ -3045,3 +3045,141 @@ main::-webkit-scrollbar { display: none; }
   .wheel-ambient,.wheel-spin-button i,.wheel-celebration i,.dice-stage-glow,.dice-roll-button i,.dice-celebration i { animation: none; }
   .wheel-result,.dice-result { animation: none; }
 }
+
+/* FITIA ARCADE — Mines 3D, Crash et Coin Flip 3D. */
+.hub-card-mines { --hub-accent: #63d9bd; background: radial-gradient(circle at 90% 0,rgba(70,208,174,.16),transparent 44%),linear-gradient(145deg,#192d35,#121a29); }
+.hub-card-crash { --hub-accent: #f18b75; background: radial-gradient(circle at 90% 0,rgba(239,115,101,.16),transparent 44%),linear-gradient(145deg,#302331,#151a29); }
+.hub-card-mines .hub-card-icon,.hub-card-crash .hub-card-icon { width: 52px; height: 52px; }
+.hub-card-mines .hub-card-icon img,.hub-card-crash .hub-card-icon img { width: 50px; height: 50px; filter: drop-shadow(0 5px 7px rgba(0,0,0,.3)); }
+.hub-card-coin-flip { --hub-accent: #e5b84d; grid-column: 1 / -1; min-height: 98px; align-items: center; flex-direction: row; gap: 13px; overflow: hidden; background: radial-gradient(circle at 84% 5%,rgba(240,185,11,.2),transparent 43%),linear-gradient(145deg,#2c2639,#141b2b); }
+.hub-card-coin-flip::after { position: absolute; right: 50px; bottom: -58px; width: 130px; height: 130px; border: 1px solid rgba(240,185,11,.13); border-radius: 50%; content: ''; }
+.hub-card-coin-flip .hub-card-icon { width: 62px; height: 62px; flex: 0 0 62px; }
+.hub-card-coin-flip .hub-card-icon img { width: 60px; height: 60px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.32)); }
+.hub-card-coin-flip strong { position: relative; z-index: 1; margin: 0; font-size: .9rem; }
+.hub-card-coin-flip .hub-chevron { top: 50%; right: 18px; transform: translateY(-50%); }
+.arcade-view { --arcade-accent: #b18ae5; --arcade-accent-rgb: 177,138,229; padding: 2px 0 25px; }
+.mines-view { --arcade-accent: #72dfc2; --arcade-accent-rgb: 114,223,194; }
+.crash-view { --arcade-accent: #f39a84; --arcade-accent-rgb: 243,154,132; }
+.coin-flip-view { --arcade-accent: #e9bd50; --arcade-accent-rgb: 233,189,80; }
+.arcade-header { display: grid; max-width: 520px; align-items: center; grid-template-columns: 38px minmax(0,1fr) auto; gap: 11px; margin: 0 auto 10px; }
+.arcade-header > div span { color: var(--arcade-accent); font-size: .52rem; font-weight: 800; letter-spacing: .19em; }
+.arcade-header h2 { margin: 2px 0 0; color: #f6f1ff; font-size: 1.35rem; letter-spacing: .025em; }
+.arcade-back-button,.arcade-info-button { display: grid; min-width: 38px; height: 38px; place-items: center; border: 1px solid rgba(var(--arcade-accent-rgb),.24); border-radius: 12px; background: rgba(var(--arcade-accent-rgb),.07); color: var(--arcade-accent); cursor: pointer; }
+.arcade-back-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.arcade-info-button { padding: 0 10px; font-size: .5rem; font-weight: 900; letter-spacing: .08em; }
+.arcade-hero { display: flex; max-width: 520px; min-height: 84px; align-items: center; gap: 12px; margin: 0 auto 10px; padding: 10px 15px; border: 1px solid rgba(var(--arcade-accent-rgb),.23); border-radius: 20px; background: radial-gradient(circle at 10% 0,rgba(var(--arcade-accent-rgb),.16),transparent 42%),linear-gradient(145deg,#25243f,#141c2d); box-shadow: 0 12px 30px rgba(0,0,0,.18); }
+.arcade-hero > img { width: 65px; height: 65px; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(0,0,0,.28)); }
+.arcade-hero > div { display: flex; flex-direction: column; }
+.arcade-hero span { color: #aaa4ba; font-size: .51rem; font-weight: 800; letter-spacing: .12em; }
+.arcade-hero strong { margin-top: 2px; color: #fff1b7; font-size: 1.35rem; }
+.arcade-hero .arcade-hero-stat { min-width: 56px; margin-left: auto; padding-left: 15px; border-left: 1px solid rgba(255,255,255,.09); }
+.arcade-hero .arcade-hero-stat strong { color: var(--arcade-accent); }
+.arcade-locked { display: flex; max-width: 520px; align-items: center; justify-content: space-between; gap: 10px; margin: 0 auto 10px; padding: 12px 14px; border: 1px solid rgba(var(--arcade-accent-rgb),.25); border-radius: 15px; background: #252239; }
+.arcade-locked strong { color: #e1d2ed; font-size: .65rem; }
+.arcade-game,.arcade-history,.arcade-result { max-width: 520px; margin-inline: auto; }
+.arcade-game.locked { opacity: .62; }
+.arcade-stage { position: relative; height: 250px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(var(--arcade-accent-rgb),.22); border-radius: 24px; background: radial-gradient(ellipse at 50% 70%,rgba(var(--arcade-accent-rgb),.18),transparent 55%),linear-gradient(155deg,#1b2238,#111726 72%); box-shadow: 0 16px 34px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.035); isolation: isolate; }
+.arcade-stage::before { position: absolute; z-index: -1; inset: 0; opacity: .2; background-image: linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px); background-size: 34px 34px; content: ''; mask-image: linear-gradient(to bottom,black,transparent 78%); }
+.arcade-3d-container { position: absolute; inset: 0; }
+.arcade-3d-container canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+.arcade-3d-fallback { display: grid; place-items: center; }
+.arcade-3d-fallback img { filter: drop-shadow(0 16px 16px rgba(0,0,0,.35)); }
+.mines-stage { height: 228px; }
+.mines-grid { display: grid; max-width: 342px; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 7px; margin: 0 auto 11px; }
+.mines-grid button { position: relative; display: grid; min-width: 0; aspect-ratio: 1; place-items: center; border: 1px solid rgba(159,135,201,.23); border-radius: 12px; background: linear-gradient(145deg,#343453,#1c2137); box-shadow: 0 4px 0 #0e1322,0 7px 13px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.07); cursor: pointer; transition: transform .16s,border-color .2s,background .2s; }
+.mines-grid button::after { position: absolute; inset: 5px; border: 1px solid rgba(255,255,255,.035); border-radius: 8px; content: ''; }
+.mines-grid button img { position: relative; z-index: 1; width: 72%; height: 72%; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(0,0,0,.35)); animation: minesSymbolIn .3s ease-out; }
+.mines-grid button.safe { border-color: rgba(94,227,190,.55); background: linear-gradient(145deg,#21534f,#173133); box-shadow: 0 4px 0 #0b2425,0 0 17px rgba(66,211,173,.12); }
+.mines-grid button.mine { border-color: rgba(232,102,113,.45); background: linear-gradient(145deg,#4b293b,#261c2c); box-shadow: 0 4px 0 #1b101b; }
+.mines-grid button.hit { animation: minesHit .45s ease-out; }
+.mines-grid button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #0e1322; }
+.mines-grid button:disabled { cursor: default; }
+.mines-grid button:not(.safe):not(.mine):disabled { opacity: .72; }
+.arcade-quote { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 9px; padding: 10px 5px; border: 1px solid rgba(255,255,255,.07); border-radius: 14px; background: rgba(255,255,255,.025); }
+.arcade-quote > div { display: flex; min-width: 0; align-items: center; flex-direction: column; padding-inline: 4px; text-align: center; }
+.arcade-quote > div + div { border-left: 1px solid rgba(255,255,255,.07); }
+.arcade-quote span { color: #a79dad; font-size: .47rem; font-weight: 800; letter-spacing: .05em; white-space: nowrap; }
+.arcade-quote strong { margin-top: 4px; color: #e6ddee; font-family: 'JetBrains Mono',monospace; font-size: .65rem; white-space: nowrap; }
+.arcade-quote > div:last-child strong { color: var(--arcade-accent); }
+.arcade-control-heading { display: flex; align-items: center; justify-content: space-between; margin: 11px 2px 7px; }
+.arcade-control-heading span { color: #c3b9ce; font-size: .53rem; font-weight: 800; letter-spacing: .11em; }
+.arcade-control-heading b { color: #9e94a8; font-size: .5rem; font-weight: 700; }
+.arcade-choices,.arcade-stakes { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }
+.crash-targets { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 5px; }
+.arcade-choices button,.arcade-stakes button { min-width: 0; min-height: 40px; padding: 0 4px; border: 1px solid rgba(255,255,255,.1); border-radius: 11px; background: #1a1e30; color: #aaa2b8; font-family: 'JetBrains Mono',monospace; font-size: .65rem; font-weight: 750; cursor: pointer; transition: border-color .18s,background .18s,transform .18s; }
+.arcade-choices button.active,.arcade-stakes button.active { border-color: var(--arcade-accent); background: rgba(var(--arcade-accent-rgb),.15); color: #f1e8f7; box-shadow: inset 0 0 0 1px rgba(255,255,255,.035); }
+.arcade-choices button:active:not(:disabled),.arcade-stakes button:active:not(:disabled) { transform: scale(.96); }
+.arcade-choices button:disabled,.arcade-stakes button:disabled { cursor: default; opacity: .52; }
+.flip-choices { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.flip-choices button { display: flex; min-height: 61px; align-items: center; justify-content: center; gap: 10px; }
+.flip-choices button strong { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(233,189,80,.32); border-radius: 50%; background: rgba(233,189,80,.08); color: #f3cf72; font-size: .85rem; }
+.flip-choices button span { font-size: .57rem; letter-spacing: .08em; }
+.arcade-action-button { position: relative; display: grid; width: 100%; min-height: 52px; place-items: center; overflow: hidden; margin-top: 10px; border: 1px solid rgba(var(--arcade-accent-rgb),.75); border-radius: 15px; background: linear-gradient(135deg,rgba(var(--arcade-accent-rgb),.95),rgba(var(--arcade-accent-rgb),.62) 58%,#d5a83d 160%); color: #171827; box-shadow: 0 8px 22px rgba(var(--arcade-accent-rgb),.18),inset 0 1px rgba(255,255,255,.42); font-size: .7rem; font-weight: 900; letter-spacing: .055em; cursor: pointer; }
+.arcade-action-button.cashout { --arcade-accent: #77e2bd; --arcade-accent-rgb: 119,226,189; }
+.arcade-action-button span { position: relative; z-index: 2; }
+.arcade-action-button i { position: absolute; top: -50%; left: -30%; width: 25%; height: 200%; transform: rotate(20deg); background: linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent); animation: arcadeButtonShine 3.4s ease-in-out infinite; }
+.arcade-action-button:active:not(:disabled) { transform: translateY(1px); }
+.arcade-action-button:disabled { border-color: rgba(255,255,255,.1); background: #2b2938; color: #77717f; box-shadow: none; cursor: default; }
+.arcade-action-button:disabled i { display: none; }
+.arcade-status { margin: 9px 0 0; padding: 10px 12px; border: 1px solid rgba(239,107,107,.22); border-radius: 12px; background: rgba(122,48,66,.12); color: #f0b4b4; font-size: .58rem; line-height: 1.5; }
+.arcade-result { display: flex; min-height: 64px; align-items: center; flex-direction: column; justify-content: center; margin-bottom: 12px; padding: 9px 12px; border: 1px solid rgba(var(--arcade-accent-rgb),.28); border-radius: 15px; background: rgba(var(--arcade-accent-rgb),.08); animation: arcadeResultIn .3s ease-out; text-align: center; }
+.arcade-result.lost { border-color: rgba(151,157,180,.14); background: rgba(255,255,255,.025); }
+.arcade-result > span { color: #a99cb5; font-size: .43rem; font-weight: 800; letter-spacing: .14em; }
+.arcade-result strong { margin-top: 3px; color: var(--arcade-accent); font-size: .82rem; }
+.arcade-result.lost strong { color: #c3bdc9; }
+.arcade-result small { margin-top: 3px; color: #a79cae; font-size: .51rem; line-height: 1.4; }
+.crash-multiplier { position: absolute; top: 15px; left: 16px; padding: 7px 11px; border: 1px solid rgba(243,154,132,.2); border-radius: 12px; background: rgba(12,17,30,.55); color: #ffe1a0; font-family: 'JetBrains Mono',monospace; font-size: 1.35rem; letter-spacing: -.05em; text-shadow: 0 0 18px rgba(243,154,132,.35); backdrop-filter: blur(8px); }
+.coin-flip-stage { height: 258px; }
+.arcade-history { margin-top: 18px; }
+.arcade-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.arcade-section-heading h3 { margin: 0; color: #e9e1ef; font-size: .78rem; }
+.arcade-section-heading span { color: #8b758e; font-size: .43rem; font-weight: 800; letter-spacing: .12em; }
+.arcade-history-empty { margin: 0; padding: 18px; border: 1px dashed rgba(255,255,255,.09); border-radius: 13px; color: #6f6879; font-size: .6rem; text-align: center; }
+.arcade-history-list { display: grid; gap: 7px; }
+.arcade-history-row { display: grid; min-width: 0; align-items: center; grid-template-columns: 48px minmax(0,1fr) auto; gap: 10px; padding: 9px 10px; border: 1px solid rgba(255,255,255,.07); border-radius: 13px; background: linear-gradient(135deg,#1d1e30,#171a28); }
+.arcade-history-mark { display: grid; width: 45px; min-height: 36px; place-items: center; padding: 3px; border: 1px solid rgba(var(--arcade-accent-rgb),.2); border-radius: 10px; background: rgba(var(--arcade-accent-rgb),.08); color: var(--arcade-accent); font-family: 'JetBrains Mono',monospace; font-size: .62rem; font-weight: 850; }
+.arcade-history-row.lost .arcade-history-mark { border-color: rgba(255,255,255,.08); background: rgba(255,255,255,.035); color: #9b95a5; }
+.arcade-history-row > div { display: flex; min-width: 0; flex-direction: column; }
+.arcade-history-row strong { overflow: hidden; color: #e8e0eb; font-size: .64rem; text-overflow: ellipsis; white-space: nowrap; }
+.arcade-history-row small { margin-top: 3px; color: #777080; font-size: .49rem; }
+.arcade-history-stake { color: #958b9d; font-family: 'JetBrains Mono',monospace; font-size: .5rem; }
+.arcade-info-modal { width: min(100%,480px); max-height: 91dvh; overflow-y: auto; border-top-color: rgba(170,131,255,.32); background: linear-gradient(155deg,#242138,#141925); }
+.arcade-info-modal .modal-header h3 { color: #eee2ff; }
+.arcade-info-modal .modal-close svg { width: 17px; height: 17px; fill: none; stroke: #c8bdcf; stroke-width: 2; stroke-linecap: round; }
+.arcade-probability-base { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 11px 13px; border: 1px solid rgba(240,185,11,.13); border-radius: 12px; background: rgba(240,185,11,.055); }
+.arcade-probability-base span { color: #95899f; font-size: .5rem; font-weight: 800; letter-spacing: .1em; }
+.arcade-probability-base strong { color: #f2d786; font-size: .67rem; }
+.arcade-probability-header,.arcade-probability-row { display: grid; grid-template-columns: minmax(82px,1fr) minmax(90px,1.25fr) 65px; gap: 8px; }
+.arcade-probability-header { padding: 0 7px 7px; color: #756d80; font-size: .43rem; font-weight: 800; }
+.arcade-probability-header span:last-child { text-align: right; }
+.arcade-probability-list { display: grid; gap: 5px; }
+.arcade-probability-row { min-height: 38px; align-items: center; padding: 7px; border-radius: 9px; background: rgba(255,255,255,.035); color: #c5bacb; font-size: .57rem; }
+.arcade-probability-row strong { color: #dfd2eb; font-size: .54rem; }
+.arcade-probability-row b { color: #e6c972; font-family: 'JetBrains Mono',monospace; font-size: .54rem; text-align: right; }
+.arcade-rule-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 14px; }
+.arcade-rule-chips span { padding: 5px 8px; border: 1px solid rgba(255,255,255,.08); border-radius: 999px; color: #8d8497; font-size: .44rem; font-weight: 800; }
+.arcade-back-button:focus-visible,.arcade-info-button:focus-visible,.arcade-choices button:focus-visible,.arcade-stakes button:focus-visible,.arcade-action-button:focus-visible,.mines-grid button:focus-visible { outline: 2px solid var(--arcade-accent); outline-offset: 2px; }
+@keyframes arcadeButtonShine { 0%,55% { left: -30%; } 85%,100% { left: 120%; } }
+@keyframes arcadeResultIn { from { opacity: 0; transform: translateY(7px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes minesSymbolIn { from { opacity: 0; transform: scale(.35) rotate(-20deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes minesHit { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 55% { transform: translateX(4px); } 80% { transform: translateX(-2px); } }
+@media (min-width:650px) { .mines-stage { height: 260px; } .coin-flip-stage { height: 292px; } .crash-stage { height: 285px; } }
+@media (max-width:350px) {
+  .arcade-header h2 { font-size: 1.12rem; }
+  .arcade-hero { padding-inline: 11px; }
+  .arcade-hero > img { width: 56px; height: 56px; }
+  .arcade-hero strong { font-size: 1.12rem; }
+  .mines-stage { height: 198px; }
+  .mines-grid { gap: 6px; }
+  .mines-grid button { border-radius: 10px; }
+  .arcade-quote span { font-size: .41rem; letter-spacing: .02em; }
+  .arcade-quote strong { font-size: .57rem; }
+  .arcade-control-heading b { font-size: .43rem; }
+  .crash-targets { gap: 4px; }
+  .crash-targets button { font-size: .55rem; }
+  .arcade-history-row { grid-template-columns: 43px minmax(0,1fr) auto; gap: 7px; padding-inline: 7px; }
+  .arcade-probability-header,.arcade-probability-row { grid-template-columns: minmax(70px,1fr) minmax(82px,1.2fr) 58px; gap: 5px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .arcade-action-button i,.mines-grid button img,.mines-grid button.hit,.arcade-result { animation: none; }
+}

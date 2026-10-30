@@ -6,6 +6,8 @@ const Config = require('./farm-config');
 const Protocol = require('./farm-protocol');
 const WheelConfig = require('./wheel-config');
 const DiceConfig = require('./dice-config');
+const ArcadeConfig = require('./arcade-config');
+const ArcadeState = require('./arcade-state');
 
 const DEFAULT_RPCS = [
   'https://polygon-bor-rpc.publicnode.com',
@@ -36,6 +38,7 @@ function defaultState(wallet, now = Date.now()) {
     inventory: Object.fromEntries(PRODUCT_KEYS.map((key) => [key, 0])),
     wheel: { version: WheelConfig.VERSION, lastFreeAt: 0, bonusSpins: 0, totalSpins: 0, totalStaked: 0, totalWonCoins: 0, recentSpins: [] },
     dice: { version: DiceConfig.VERSION, totalRolls: 0, totalStaked: 0, totalWonCoins: 0, recentRolls: [] },
+    ...ArcadeState.defaultArcadeState(),
     createdAt: now, updatedAt: now
   };
 }
@@ -98,6 +101,8 @@ function normalizeState(raw, wallet) {
   PRODUCT_KEYS.forEach((key) => { base.inventory[key] = safeInteger(raw.inventory?.[key], 0, 1000000); });
   base.wheel = normalizeWheel(raw.wheel);
   base.dice = normalizeDice(raw.dice);
+  const arcade = ArcadeState.normalizeArcadeState(raw);
+  base.mines = arcade.mines; base.crash = arcade.crash; base.coinFlip = arcade.coinFlip;
   if (Array.isArray(raw.animals)) {
     base.animals = raw.animals.slice(0, Config.MAX_ANIMALS).map((animal) => {
       if (!animal || !Config.ANIMALS[animal.species]) return null;
@@ -277,26 +282,37 @@ function createFarmService(options = {}) {
       return buyer;
     } catch (_) { throw new FarmError(401, 'Signature du wallet invalide.', 'FARM_AUTH'); }
   }
-  async function view(wallet, spinId = null, rollId = null) {
+  async function view(wallet, spinId = null, rollId = null, ids = {}) {
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
     const withdrawals = await repository.listWithdrawals(wallet);
-    const result = { state, revision: record?.revision || 0, withdrawals };
+    const publicState = clone(state);
+    // Les positions d'une manche active ne quittent jamais le stockage serveur.
+    if (publicState.mines.active) delete publicState.mines.active.minePositions;
+    const result = { state: publicState, revision: record?.revision || 0, withdrawals };
     if (spinId) result.spin = state.wheel.recentSpins.find((spin) => spin.id === spinId) || null;
     if (rollId) result.roll = state.dice.recentRolls.find((roll) => roll.id === rollId) || null;
+    if (ids.minesActionId) result.minesAction = ArcadeState.findMinesAction(state, ids.minesActionId);
+    if (ids.crashId) result.crashResult = state.crash.recentRounds.find((round) => round.id === ids.crashId) || null;
+    if (ids.flipId) result.flip = state.coinFlip.recentFlips.find((flip) => flip.id === ids.flipId) || null;
     return result;
   }
   async function getState(body) { return view(authenticate('state', body)); }
   async function applyIdempotent(wallet, actionId, actionType, state, expectedRevision, extra = {}) {
     const spinId = actionType === 'wheel_spin' ? actionId : null;
     const rollId = actionType === 'dice_roll' ? actionId : null;
+    const ids = {
+      minesActionId: ['mines_start', 'mines_reveal', 'mines_cashout'].includes(actionType) ? actionId : null,
+      crashId: actionType === 'crash_play' ? actionId : null,
+      flipId: actionType === 'coin_flip' ? actionId : null
+    };
     try {
       await repository.apply(wallet, expectedRevision, state, actionId, actionType, extra);
     } catch (error) {
-      if (await repository.isActionProcessed(actionId, wallet)) return view(wallet, spinId, rollId);
+      if (await repository.isActionProcessed(actionId, wallet)) return view(wallet, spinId, rollId, ids);
       throw error;
     }
-    return view(wallet, spinId, rollId);
+    return view(wallet, spinId, rollId, ids);
   }
   async function deposit(body) {
     const wallet = authenticate('deposit', body);
@@ -389,9 +405,119 @@ function createFarmService(options = {}) {
     state.updatedAt = timestamp;
     return state;
   }
+  function updateArcadeStats(game, stake, coins) {
+    game.totalRounds += 1; game.totalStaked += stake; game.totalWonCoins += coins;
+    if (!Number.isSafeInteger(game.totalRounds) || !Number.isSafeInteger(game.totalStaked) || !Number.isSafeInteger(game.totalWonCoins)) {
+      throw new FarmError(409, 'Limite de statistiques atteinte.', 'FARM_LIMIT');
+    }
+  }
+  function startMines(state, params, actionId, timestamp) {
+    requireStarted(state);
+    if (state.mines.active) throw new FarmError(409, 'Une manche de Mines est déjà active.', 'MINES_ROUND_ACTIVE');
+    const stake = ArcadeConfig.normalizeStake(params.stake); const mineCount = ArcadeConfig.normalizeMineCount(params.mineCount);
+    if (!stake) throw new FarmError(400, 'Mise Mines invalide.', 'MINES_STAKE');
+    if (!mineCount) throw new FarmError(400, 'Nombre de mines invalide.', 'MINES_COUNT');
+    if (state.coins < stake) throw new FarmError(409, 'Coins insuffisants pour cette mise.', 'FARM_INSUFFICIENT_COINS');
+    const deck = Array.from({ length: ArcadeConfig.MINES_TILES }, (_, index) => index);
+    const minePositions = [];
+    for (let index = 0; index < mineCount; index += 1) {
+      const selected = index + randomInt(ArcadeConfig.MINES_TILES - index);
+      [deck[index], deck[selected]] = [deck[selected], deck[index]]; minePositions.push(deck[index]);
+    }
+    minePositions.sort((a, b) => a - b);
+    state.coins -= stake;
+    state.mines.active = {
+      id: actionId, stake, mineCount, minePositions, revealed: [], status: 'active', hitMine: null,
+      coins: 0, payout: 0, startedAt: new Date(timestamp).toISOString(), completedAt: null, lastAction: null
+    };
+    updateArcadeStats(state.mines, stake, 0);
+    state.updatedAt = timestamp;
+    return state;
+  }
+  function revealMines(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const round = state.mines.active;
+    if (!round || String(params.roundId || '').toLowerCase() !== round.id) throw new FarmError(409, 'La manche de Mines est introuvable.', 'MINES_ROUND');
+    const index = ArcadeConfig.normalizeTileIndex(params.index);
+    if (index === null) throw new FarmError(400, 'Case Mines invalide.', 'MINES_TILE');
+    if (round.revealed.includes(index)) throw new FarmError(409, 'Cette case est déjà révélée.', 'MINES_TILE_REVEALED');
+    const safe = !round.minePositions.includes(index);
+    if (safe) { round.revealed.push(index); round.revealed.sort((a, b) => a - b); }
+    const payout = ArcadeConfig.minesPayout(round.stake, round.mineCount, round.revealed.length);
+    const createdAt = new Date(timestamp).toISOString();
+    round.lastAction = {
+      id: actionId, type: 'mines_reveal', roundId: round.id, index, safe,
+      status: safe ? 'active' : 'lost', coins: 0, payout, createdAt
+    };
+    round.payout = payout;
+    if (!safe) {
+      const finished = { ...round, status: 'lost', hitMine: index, coins: 0, payout: 0, completedAt: createdAt };
+      state.mines.recentRounds.unshift(finished);
+      state.mines.recentRounds = state.mines.recentRounds.slice(0, ArcadeConfig.HISTORY_LIMIT);
+      state.mines.active = null;
+    }
+    state.updatedAt = timestamp;
+    return state;
+  }
+  function cashoutMines(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const round = state.mines.active;
+    if (!round || String(params.roundId || '').toLowerCase() !== round.id) throw new FarmError(409, 'La manche de Mines est introuvable.', 'MINES_ROUND');
+    if (!round.revealed.length) throw new FarmError(409, 'Révélez une case sûre avant d’encaisser.', 'MINES_CASHOUT');
+    const payout = ArcadeConfig.minesPayout(round.stake, round.mineCount, round.revealed.length);
+    if (state.coins + payout > Config.MAX_COINS) throw new FarmError(409, 'Limite de coins atteinte.', 'FARM_LIMIT');
+    state.coins += payout;
+    const createdAt = new Date(timestamp).toISOString();
+    round.lastAction = { id: actionId, type: 'mines_cashout', roundId: round.id, index: null, safe: true, status: 'cashed', coins: payout, payout, createdAt };
+    const finished = { ...round, status: 'cashed', hitMine: null, coins: payout, payout, completedAt: createdAt };
+    state.mines.recentRounds.unshift(finished);
+    state.mines.recentRounds = state.mines.recentRounds.slice(0, ArcadeConfig.HISTORY_LIMIT);
+    state.mines.active = null;
+    state.mines.totalWonCoins += payout;
+    if (!Number.isSafeInteger(state.mines.totalWonCoins)) throw new FarmError(409, 'Limite de statistiques atteinte.', 'FARM_LIMIT');
+    state.updatedAt = timestamp;
+    return state;
+  }
+  function playCrash(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const stake = ArcadeConfig.normalizeStake(params.stake); const targetBps = ArcadeConfig.normalizeCrashTarget(params.targetBps);
+    if (!stake) throw new FarmError(400, 'Mise Crash invalide.', 'CRASH_STAKE');
+    if (!targetBps) throw new FarmError(400, 'Cible Crash invalide.', 'CRASH_TARGET');
+    if (state.coins < stake) throw new FarmError(409, 'Coins insuffisants pour cette mise.', 'FARM_INSUFFICIENT_COINS');
+    state.coins -= stake;
+    const crashBps = ArcadeConfig.selectCrashPoint(randomInt(ArcadeConfig.CRASH_RANDOM_RANGE));
+    const result = ArcadeConfig.crashReward(stake, targetBps, crashBps);
+    if (state.coins + result.coins > Config.MAX_COINS) throw new FarmError(409, 'Limite de coins atteinte.', 'FARM_LIMIT');
+    state.coins += result.coins; updateArcadeStats(state.crash, stake, result.coins);
+    state.crash.recentRounds.unshift({ id: actionId, stake, targetBps, crashBps, won: result.won, coins: result.coins, payout: result.payout, createdAt: new Date(timestamp).toISOString() });
+    state.crash.recentRounds = state.crash.recentRounds.slice(0, ArcadeConfig.HISTORY_LIMIT);
+    state.updatedAt = timestamp;
+    return state;
+  }
+  function playCoinFlip(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const stake = ArcadeConfig.normalizeStake(params.stake); const choice = ArcadeConfig.normalizeFlipChoice(params.choice);
+    if (!stake) throw new FarmError(400, 'Mise Coin Flip invalide.', 'FLIP_STAKE');
+    if (!choice) throw new FarmError(400, 'Côté de pièce invalide.', 'FLIP_CHOICE');
+    if (state.coins < stake) throw new FarmError(409, 'Coins insuffisants pour cette mise.', 'FARM_INSUFFICIENT_COINS');
+    state.coins -= stake;
+    const resultSide = ArcadeConfig.selectFlipSide(randomInt(ArcadeConfig.FLIP_SIDES.length));
+    const result = ArcadeConfig.flipReward(stake, choice, resultSide);
+    if (state.coins + result.coins > Config.MAX_COINS) throw new FarmError(409, 'Limite de coins atteinte.', 'FARM_LIMIT');
+    state.coins += result.coins; updateArcadeStats(state.coinFlip, stake, result.coins);
+    state.coinFlip.recentFlips.unshift({ id: actionId, stake, choice, result: resultSide, won: result.won, coins: result.coins, payout: result.payout, createdAt: new Date(timestamp).toISOString() });
+    state.coinFlip.recentFlips = state.coinFlip.recentFlips.slice(0, ArcadeConfig.HISTORY_LIMIT);
+    state.updatedAt = timestamp;
+    return state;
+  }
   function transition(state, type, params, actionId, timestamp) {
     if (type === 'wheel_spin') return spinWheel(state, params, actionId, timestamp);
     if (type === 'dice_roll') return rollDice(state, params, actionId, timestamp);
+    if (type === 'mines_start') return startMines(state, params, actionId, timestamp);
+    if (type === 'mines_reveal') return revealMines(state, params, actionId, timestamp);
+    if (type === 'mines_cashout') return cashoutMines(state, params, actionId, timestamp);
+    if (type === 'crash_play') return playCrash(state, params, actionId, timestamp);
+    if (type === 'coin_flip') return playCoinFlip(state, params, actionId, timestamp);
     const deduct = (amount) => {
       if (state.coins < amount) throw new FarmError(409, 'Coins insuffisants.', 'FARM_INSUFFICIENT_COINS');
       state.coins -= amount;
@@ -459,7 +585,11 @@ function createFarmService(options = {}) {
     const actionId = Protocol.requireUuid(body.actionId);
     const type = Protocol.requireType(body.type);
     if (await repository.isActionProcessed(actionId, wallet)) {
-      return view(wallet, type === 'wheel_spin' ? actionId : null, type === 'dice_roll' ? actionId : null);
+      return view(wallet, type === 'wheel_spin' ? actionId : null, type === 'dice_roll' ? actionId : null, {
+        minesActionId: ['mines_start', 'mines_reveal', 'mines_cashout'].includes(type) ? actionId : null,
+        crashId: type === 'crash_play' ? actionId : null,
+        flipId: type === 'coin_flip' ? actionId : null
+      });
     }
     const params = Protocol.normalizeParams(body.params);
     const record = await repository.get(wallet);
