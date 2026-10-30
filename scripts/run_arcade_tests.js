@@ -164,7 +164,7 @@ function recoveryService() {
   });
 
   await test('Migration Supabase : cinq actions Arcade atomiques et privilèges service-role', async () => {
-    const migration = fs.readFileSync(`${__dirname}/../supabase/migrations/20261030023000_add_arcade_games.sql`, 'utf8');
+    const migration = fs.readFileSync(`${__dirname}/../supabase/migrations/20261030021521_add_arcade_games.sql`, 'utf8');
     for (const type of ['mines_start', 'mines_reveal', 'mines_cashout', 'crash_play', 'coin_flip']) assert.ok(migration.includes(`'${type}'`));
     assert.ok(migration.includes('{mines,active,id}')); assert.ok(migration.includes('{crash,recentRounds,0,id}')); assert.ok(migration.includes('{coinFlip,recentFlips,0,id}'));
     assert.ok(migration.includes('p_coins < 1000')); assert.ok(migration.includes('to service_role')); assert.ok(migration.includes('from public, anon, authenticated'));
