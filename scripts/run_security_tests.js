@@ -787,7 +787,7 @@ function httpRequest(port, method, reqPath) {
       await new Promise((r) => setTimeout(r, 200));
       assert.strictEqual(App.setPinStage, 'confirm');
       for (const ch of '739184') await App.onSetPinDigit(ch);
-      await new Promise((r) => setTimeout(r, 180));
+      await withDeadline(App.sessionBootstrapPromise, 2500, 'La synchronisation Polygon après création du wallet');
 
       assert.ok(ethersLib.isAddress(App.user), 'Adresse utilisateur active');
       assert.strictEqual(App.pendingWalletSecret, null, 'Secret temporaire effacé de la RAM');
