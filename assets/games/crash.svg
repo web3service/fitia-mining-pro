@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-labelledby="title">
+  <title id="title">FITIA Crash : avion en vol</title>
+  <defs>
+    <radialGradient id="sky" cx=".35" cy=".25" r=".8"><stop stop-color="#4c2a43"/><stop offset=".58" stop-color="#211d32"/><stop offset="1" stop-color="#131a2c"/></radialGradient>
+    <linearGradient id="rim" x1="24" y1="24" x2="166" y2="171" gradientUnits="userSpaceOnUse"><stop stop-color="#ffb0bf"/><stop offset=".45" stop-color="#ee4d76"/><stop offset="1" stop-color="#673b71"/></linearGradient>
+    <linearGradient id="body" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#ffffff"/><stop offset=".55" stop-color="#e5edf5"/><stop offset="1" stop-color="#99a9ba"/></linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffb1bc"/><stop offset=".5" stop-color="#f34c70"/><stop offset="1" stop-color="#a92248"/></linearGradient>
+    <linearGradient id="trail" x1="24" y1="155" x2="148" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#f04b75" stop-opacity=".05"/><stop offset=".6" stop-color="#f75f80"/><stop offset="1" stop-color="#ffc4c6"/></linearGradient>
+    <filter id="plane-shadow" x="-30%" y="-60%" width="160%" height="220%"><feDropShadow dx="0" dy="7" stdDeviation="5" flood-color="#080b16" flood-opacity=".5"/></filter>
+  </defs>
+  <circle cx="96" cy="96" r="88" fill="url(#sky)" stroke="url(#rim)" stroke-width="3"/>
+  <circle cx="96" cy="96" r="79" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="1"/>
+  <path d="M25 147c34-2 46-23 64-45 14-17 28-30 55-43" fill="none" stroke="url(#trail)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M28 152c30-2 46-18 62-37" fill="none" stroke="#f56b8f" stroke-opacity=".26" stroke-width="12" stroke-linecap="round"/>
+  <g transform="translate(13 43) rotate(-23 90 45) scale(.9)" filter="url(#plane-shadow)">
+    <path d="M41 39 20 14 12 13 19 45Z" fill="url(#coral)" stroke="#ff9caf" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="m37 43-27-8-5 3 22 12Z" fill="#c83259" stroke="#f47790" stroke-width="1"/>
+    <path d="M22 39c13-7 33-9 53-9h55c15 0 27 2 36 8 5 3 8 7 6 10-3 5-14 8-30 9l-92 2c-17 0-29-3-34-8-4-4-2-8 6-12Z" fill="url(#body)" stroke="#718196" stroke-width="1.5"/>
+    <path d="M17 49c16 4 33 4 53 4l82-2c9 0 15-2 19-4-3 6-13 9-29 10l-92 2c-16 0-28-3-33-8Z" fill="#bb274e"/>
+    <path d="M20 44c20-4 40-5 65-5h66" fill="none" stroke="#e54063" stroke-width="1.7"/>
+    <path d="M144 32c9 1 16 4 21 8h-11l-8-3Z" fill="#33475b" stroke="#f5f7fa" stroke-width=".8"/>
+    <g fill="#384e63"><circle cx="49" cy="38" r="2.3"/><circle cx="59" cy="37.6" r="2.3"/><circle cx="69" cy="37.3" r="2.3"/><circle cx="79" cy="37.2" r="2.3"/><circle cx="89" cy="37.2" r="2.3"/><circle cx="99" cy="37.2" r="2.3"/><circle cx="109" cy="37.2" r="2.3"/><circle cx="119" cy="37.2" r="2.3"/><circle cx="129" cy="37.4" r="2.3"/></g>
+    <path d="m73 51 25-3 24 27-8 2-35-15-17-3Z" fill="#dce5ef" stroke="#8797a8" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="m109 62 13 13-8 2-11-5Z" fill="url(#coral)"/>
+    <path d="M81 57c2-1 9-1 12 1l2 5c-1 3-4 4-9 4s-9-2-9-5c0-2 1-4 4-5Z" fill="#8796a7" stroke="#64758a" stroke-width="1"/>
+    <ellipse cx="83" cy="62" rx="3.2" ry="4" fill="#3c5063"/>
+  </g>
+  <g fill="#ffc5cf"><circle cx="42" cy="47" r="2"/><circle cx="147" cy="135" r="2"/><path d="m147 31 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></g>
+</svg>

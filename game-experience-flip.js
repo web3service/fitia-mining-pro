@@ -1,0 +1,136 @@
+'use strict';
+
+// Production presentation bound to the existing authoritative game controller.
+window.setupGameFlip = function setupGameFlip(app) {
+  const game = app.fitaCoinFlip;
+  const config = window.FitiaArcadeConfig;
+  const view = document.getElementById('view-coin-flip');
+  const id = (name) => document.getElementById(name);
+  const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+  const label = (side) => side === 'heads' ? 'Heads' : 'Tails';
+  view.innerHTML = `
+    <div class="cf-page">
+      <div class="cf-header"><button type="button" class="cf-back" onclick="App.nav('hub')" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7M8 12h11"/></svg></button><img class="cf-logo" src="assets/games/coin-flip.svg" alt=""><div class="cf-title"><span>FITIA GAMES</span><h2>FITIA <em>Coin Flip</em></h2></div><div class="cf-balance"><small>COIN BALANCE</small><strong><i>●</i> <span id="flip-coin-balance">0</span></strong></div></div>
+      <section id="flip-locked" class="arcade-locked hidden"><strong>FARM activation required</strong><button id="coin-flip-open-farm" type="button" class="farm-small-button">OPEN FARM</button></section>
+      <div id="flip-game" class="cf-layout">
+        <section class="cf-board" aria-label="Coin flip">
+          <div class="cf-section-head"><div><span class="cf-overline">THE FLIP</span><h3>One choice, two outcomes</h3></div><div class="cf-head-actions"><button type="button" id="flip-settings-link" class="cf-settings-link">Settings ↓</button><button id="coin-flip-open-info" class="cf-info" type="button" aria-label="Rules and probabilities">?</button></div></div>
+          <div class="cf-stage" id="cf-stage" data-state="idle">
+            <div class="cf-stage-top"><span><i></i> <b id="cf-stage-status">READY TO FLIP</b></span><span>ONE COIN · TWO SIDES</span></div>
+            <div class="cf-stage-center"><div class="cf-coin-space" id="cf-coin-accessible" role="img" aria-label="Coin"><div id="cf-render" class="cf-render" aria-hidden="true"></div><div class="cf-coin-tilt"><div class="cf-coin" id="cf-coin" data-side="heads">${Array.from({length:9},(_,i)=>`<span class="cf-edge" style="--z:${i-4}px"></span>`).join('')}<img class="cf-coin-face cf-coin-front" src="assets/games/coin-heads.svg" alt="" draggable="false"><img class="cf-coin-face cf-coin-back" src="assets/games/coin-tails.svg" alt="" draggable="false"></div></div></div><span class="cf-stage-label" id="cf-stage-label">Ready to flip</span></div>
+            <div class="cf-choice-heading"><div><span>YOUR CHOICE</span><strong>Choose a side</strong></div><span>50% CHANCE</span></div>
+            <div class="cf-choices" role="group" aria-label="Choose heads or tails"><button type="button" data-flip-choice="heads" aria-pressed="false"><img src="assets/games/coin-heads.svg" alt=""><span><strong>HEADS</strong><small>50% chance</small></span><i aria-hidden="true">✓</i></button><button type="button" data-flip-choice="tails" aria-pressed="false"><img src="assets/games/coin-tails.svg" alt=""><span><strong>TAILS</strong><small>50% chance</small></span><i aria-hidden="true">✓</i></button></div>
+          </div>
+          <section id="flip-result" class="cf-result hidden" aria-live="polite"><div><span>ROUND RESULT</span><strong id="flip-result-title"></strong><small id="flip-result-detail"></small></div><div class="cf-result-net"><span>NET RESULT</span><strong id="cf-result-net"></strong></div></section>
+        </section>
+        <section class="cf-summary" aria-label="Flip summary" aria-live="polite"><div><span>CHANCE</span><strong id="flip-chance-value">50%</strong></div><div><span>GROSS MULTIPLIER</span><strong id="cf-multiplier">1,90×</strong></div><div><span>IF YOU WIN · GROSS</span><strong id="flip-payout-value">95 coins</strong></div></section>
+        <div class="cf-action"><button type="button" id="flip-play-button" class="cf-play"><span>FLIP · 50 COINS</span></button><p id="coin-flip-status" class="cf-status hidden" role="alert"></p><div class="cf-recent" aria-label="Recent results"><span>RECENT ROUNDS</span><div id="cf-recent-list"><small>No flips yet</small></div></div></div>
+        <aside id="cf-settings" class="cf-settings"><div class="cf-section-head"><div><span class="cf-overline">GAME SETTINGS</span><h3>Settings</h3></div><span class="cf-tag">COINS</span></div>
+          <div class="cf-settings-choice"><span>SELECTED SIDE</span><strong id="cf-selected">HEADS</strong></div>
+          <div class="cf-control-head"><span>STAKE</span><small>FARM coins</small></div><div class="cf-stakes" role="group" aria-label="Stake amount">${config.STAKES.map((n) => `<button type="button" data-flip-stake="${n}" aria-pressed="false">${n}</button>`).join('')}</div>
+          <div class="cf-payout"><span>IF THE FLIP WINS</span><strong id="cf-gross">95 coins</strong><small>Gross, stake included</small><div><span>Net if you win</span><b id="flip-net-value">+45 coins</b></div></div>
+          <button type="button" id="flip-board-link" class="cf-board-link">Back to flip ↑</button><div class="cf-rounds"><span>TOTAL FLIPS</span><strong id="flip-total-rounds">0</strong></div>
+        </aside>
+      </div>
+      <section class="cf-history"><div class="cf-section-head"><div><span class="cf-overline">YOUR ACTIVITY</span><h3>Recent flips</h3></div><span class="cf-tag">RECENT</span></div><p id="flip-history-empty" class="cf-history-empty">No flips yet.</p><div id="flip-history-list" class="cf-history-list"></div></section>
+
+    </div>`;
+  const style = document.createElement('style');
+  style.textContent = `
+  .cf-page{max-width:860px;margin:0 auto;padding:4px 2px 28px;color:#f6f7fb;font-family:Inter,system-ui,sans-serif}
+  .cf-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}.cf-back{display:grid;place-items:center;flex:none;width:40px;height:40px;border:1px solid #303b4e;border-radius:12px;background:#192334;color:#cbd9e7;cursor:pointer}.cf-back svg{width:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.cf-logo{width:46px;height:46px;flex:none}.cf-title{min-width:0}.cf-title>span,.cf-overline{color:#aaa2a0;font-size:9px;font-weight:800;letter-spacing:.13em}.cf-title i{display:inline-block;width:3px;height:3px;margin:0 4px 2px;border-radius:50%;background:#efc273}.cf-title h2{margin:3px 0 0;font-size:25px;line-height:1;letter-spacing:-.05em}.cf-title em{color:#d8cbc0;font-style:normal;font-weight:500}.cf-balance{margin-left:auto;padding:8px 11px;border:1px solid #303c4d;border-radius:12px;background:#182434;text-align:right;white-space:nowrap}.cf-balance small{display:block;color:#8fa3b5;font-size:8px;font-weight:800;letter-spacing:.1em}.cf-balance strong{display:block;margin-top:4px;font-size:14px;font-variant-numeric:tabular-nums}.cf-balance i{color:#f1c865;font-size:10px;font-style:normal}
+  .cf-intro{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 14px}.cf-intro p{margin:0;color:#a8aab8;font-size:12px}.cf-intro strong{color:#f1e8df;font-weight:600}.cf-intro>span{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid #665945;border-radius:20px;color:#ebd5a8;font-size:9px;font-weight:700;white-space:nowrap}.cf-intro i,.cf-stage-top i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#edc77b}
+  .cf-layout.locked{opacity:.62}
+  .cf-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;grid-template-areas:'board settings' 'summary settings' 'action settings';gap:12px;align-items:start}.cf-board{grid-area:board;min-width:0;padding:14px;border:1px solid #534b4a;border-radius:18px;background:linear-gradient(150deg,#292b36,#191f2e);box-shadow:0 16px 36px #0003}.cf-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.cf-section-head h3{margin:4px 0 0;font-size:15px;letter-spacing:-.02em}.cf-head-actions{display:flex;align-items:center;gap:7px}.cf-settings-link,.cf-board-link{border:1px solid #73634e;border-radius:9px;background:#403a34;color:#f6dfb6;font-size:10px;font-weight:700;cursor:pointer}.cf-settings-link{min-height:32px;padding:0 9px}.cf-board-link{width:100%;min-height:34px;margin-bottom:12px}.cf-info{width:32px;height:32px;border:1px solid #73634e;border-radius:10px;background:#403a34;color:#f8dfae;font-size:14px;font-weight:800;cursor:pointer}
+  .cf-stage{position:relative;overflow:hidden;margin-top:12px;padding:14px;border:1px solid #5e5447;border-radius:13px;background:radial-gradient(ellipse at 50% 6%,#514638 0%,#292a32 45%,#161e2c 100%);transition:border-color .2s ease}.cf-stage[data-state="won"]{border-color:#5fa98d}.cf-stage[data-state="lost"]{border-color:#ad7580}.cf-stage-top{display:flex;justify-content:space-between;gap:8px;color:#b4aeb0;font-size:8px;font-weight:800;letter-spacing:.1em}.cf-stage-top span:first-child{color:#f0d5a2}.cf-stage-top i{width:5px;height:5px;box-shadow:0 0 8px #f2c46b;margin-right:4px}.cf-stage[data-state="won"] .cf-stage-top span:first-child,.cf-stage[data-state="won"] .cf-stage-label{color:#aaf2d6}.cf-stage[data-state="lost"] .cf-stage-top span:first-child,.cf-stage[data-state="lost"] .cf-stage-label{color:#ffc0ca}
+  .cf-stage-center{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:220px;gap:15px}.cf-stage-center::before{content:'';position:absolute;z-index:-1;left:50%;top:46%;width:205px;height:142px;transform:translate(-50%,-50%);border:1px solid #efc68123;border-radius:50%;box-shadow:0 0 0 17px #f6ce8a09,0 0 0 36px #f6ce8a06;background:radial-gradient(ellipse,#f4c97923,transparent 70%);pointer-events:none}.cf-coin-space{position:relative;display:grid;place-items:center;width:155px;height:155px;perspective:650px;filter:drop-shadow(0 14px 12px #080b15aa)}.cf-render{position:absolute;inset:0;display:none;pointer-events:none}.cf-render canvas{display:block;width:100%;height:100%}.cf-coin-space.webgl-ready .cf-render{display:block}.cf-coin-space.webgl-ready .cf-coin-tilt{display:none}.cf-coin-tilt{width:126px;height:126px;transform-style:preserve-3d;transform:rotateX(12deg) rotateY(-18deg)}.cf-coin{position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateY(var(--coin-rotation,0deg))}.cf-edge,.cf-coin-face{position:absolute;inset:0;width:100%;height:100%;border-radius:50%}.cf-edge{background:#9a6428;border:2px solid #dfad59;transform:translateZ(var(--z));box-shadow:inset 0 0 12px #6a411c}.cf-coin-face{display:block;backface-visibility:hidden}.cf-coin-front{transform:translateZ(5px)}.cf-coin-back{transform:rotateY(180deg) translateZ(5px)}.cf-stage.rolling .cf-coin{animation:cf-spin .55s linear infinite}.cf-stage.settling .cf-coin{animation:cf-settle .85s cubic-bezier(.13,.66,.18,1) forwards}@keyframes cf-spin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}@keyframes cf-settle{from{transform:rotateY(360deg)}to{transform:rotateY(calc(1080deg + var(--coin-rotation,0deg)))}}.cf-stage-label{padding:5px 10px;border:1px solid #edcf9b2a;border-radius:20px;background:#11192577;color:#d4c8b9;font-size:11px;font-weight:600;text-align:center}
+  .cf-choice-heading{display:flex;justify-content:space-between;align-items:end;gap:8px;padding-top:12px;border-top:1px solid #ffffff1c}.cf-choice-heading div span{display:block;color:#aca9aa;font-size:8px;font-weight:800;letter-spacing:.08em}.cf-choice-heading strong{display:block;margin-top:5px;color:#f4e9d6;font-size:12px}.cf-choice-heading>span{color:#efd19c;font-size:9px;font-weight:800;white-space:nowrap}.cf-choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}.cf-choices button{display:flex;align-items:center;gap:9px;min-width:0;padding:8px;border:1px solid #55535b;border-radius:10px;background:#292e3b;color:#d8d8df;text-align:left;cursor:pointer}.cf-choices img{width:35px;height:35px;flex:none}.cf-choices strong,.cf-choices small{display:block}.cf-choices strong{font-size:11px;letter-spacing:.06em}.cf-choices small{margin-top:4px;color:#a7a7b4;font-size:9px}.cf-choices i{display:none;margin-left:auto;color:#fbe1a6;font-size:11px;font-style:normal}.cf-choices button.active{border-color:#e7bf75;background:#4a4036;color:#fff1d5;box-shadow:inset 0 0 0 1px #e4bb6c30}.cf-choices button.active i{display:block}.cf-choices button:disabled,.cf-stakes button:disabled{opacity:.65;cursor:not-allowed}
+  .cf-summary{grid-area:summary;display:grid;grid-template-columns:repeat(3,1fr);padding:12px 4px;border:1px solid #394259;border-radius:14px;background:#1b2738}.cf-summary>div{min-width:0;padding:0 10px}.cf-summary>div+div{border-left:1px solid #394259}.cf-summary span{display:block;color:#9aaac0;font-size:8px;font-weight:800;letter-spacing:.06em}.cf-summary strong{display:block;margin-top:7px;color:#f3f3ff;font:700 13px 'JetBrains Mono',monospace}.cf-action{grid-area:action}.cf-play{width:100%;min-height:48px;border:0;border-radius:11px;background:linear-gradient(110deg,#dca544,#f8d386);color:#30210a;font-size:12px;font-weight:900;letter-spacing:.05em;cursor:pointer;box-shadow:0 6px 20px #cc953733}.cf-play:disabled{opacity:.55;cursor:not-allowed}.cf-play:not(:disabled):hover{filter:brightness(1.08);transform:translateY(-1px)}.cf-status{margin:8px 0;color:#ffb9ba;font-size:11px}.cf-recent{display:flex;align-items:center;gap:10px;margin-top:11px;min-height:29px}.cf-recent>span{color:#98a2b9;font-size:8px;font-weight:800;letter-spacing:.08em;white-space:nowrap}.cf-recent>div{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.cf-recent small{color:#8b99af;font-size:9px}.cf-recent-chip{display:grid;place-items:center;width:28px;height:28px;border:1px solid #3a8171;border-radius:8px;background:#21483f;color:#a6f5d4;font-size:10px;font-weight:800}.cf-recent-chip.lost{border-color:#8e6272;background:#443340;color:#ffc0ce}
+  .cf-settings{grid-area:settings;min-width:0;padding:15px;border:1px solid #454354;border-radius:18px;background:#1d2636}.cf-tag{padding:5px 7px;border:1px solid #665b4c;border-radius:6px;color:#e9d1a5;background:#3b3936;font-size:8px;font-weight:800;letter-spacing:.08em}.cf-settings-choice{margin-top:18px;padding:12px;border:1px solid #514c48;border-radius:10px;background:#2b303c}.cf-settings-choice span,.cf-settings-choice strong,.cf-settings-choice small{display:block}.cf-settings-choice span{color:#b6aaa1;font-size:9px;font-weight:800;letter-spacing:.07em}.cf-settings-choice strong{margin-top:7px;color:#f4ddaf;font-size:14px}.cf-settings-choice small{margin-top:5px;color:#9da6b3;font-size:9px;line-height:1.4}.cf-control-head{display:flex;justify-content:space-between;align-items:center;gap:5px;margin:19px 0 9px}.cf-control-head span{color:#c7cede;font-size:9px;font-weight:800;letter-spacing:.06em}.cf-control-head small{color:#8e9db2;font-size:9px}.cf-stakes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.cf-stakes button{min-height:42px;border:1px solid #445168;border-radius:9px;background:#253247;color:#bac4d4;font-size:11px;font-weight:800;cursor:pointer}.cf-stakes button.active{border-color:#e8c37f;background:#514638;color:#fff0d0;box-shadow:inset 0 0 0 1px #e5bd7a33}.cf-payout{margin-top:18px;padding:13px;border:1px solid #776442;border-radius:11px;background:linear-gradient(145deg,#484033,#333441)}.cf-payout>span{display:block;color:#dfcba9;font-size:9px;font-weight:800;letter-spacing:.06em}.cf-payout>strong{display:block;margin-top:7px;color:#fff0cd;font-size:16px}.cf-payout>small{display:block;margin-top:3px;color:#c8baaa;font-size:9px}.cf-payout>div{display:flex;justify-content:space-between;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #ffffff1a;color:#c0b9ae;font-size:10px}.cf-payout b{color:#a4efd4}.cf-hint{margin:12px 0;color:#9ba7b6;font-size:10px;line-height:1.55}.cf-rounds{display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid #374354;color:#95a9b8;font-size:9px;font-weight:800;letter-spacing:.08em}.cf-rounds strong{color:#e3edf2;font-size:11px}
+  .cf-result{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;padding:12px;border:1px solid #446a60;border-radius:11px;background:#203c3c}.cf-result.lost{border-color:#845465;background:#402d3a}.cf-result span,.cf-result strong,.cf-result small{display:block}.cf-result span{color:#9dc9bc;font-size:8px;font-weight:800;letter-spacing:.08em}.cf-result strong{margin-top:5px;color:#ccfbea;font-size:13px}.cf-result.lost strong{color:#ffc1ce}.cf-result.lost span{color:#e0b1bc}.cf-result small{margin-top:5px;color:#bcc8d4;font-size:10px;line-height:1.4}.cf-result-net{text-align:right;flex:none;padding-left:12px;border-left:1px solid #ffffff20}.cf-result-net strong{white-space:nowrap;font-size:14px}
+  .cf-history{margin-top:16px;padding:15px;border:1px solid #454354;border-radius:16px;background:#1b2637}.cf-history-empty{margin:12px 0 0;padding:17px;border:1px dashed #45536a;border-radius:10px;color:#94a7b7;font-size:11px;text-align:center}.cf-history-list{display:grid;gap:7px;margin-top:12px}.cf-history-row{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #3a485e;border-radius:10px;background:#232f41}.cf-history-face{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:9px;background:#285044;color:#a5f3d2;font-size:13px;font-weight:900}.cf-history-row.lost .cf-history-face{background:#493540;color:#ffb5c3}.cf-history-copy{min-width:0;flex:1}.cf-history-copy strong,.cf-history-copy small{display:block}.cf-history-copy strong{font-size:11px;color:#edf0fb}.cf-history-copy small{margin-top:4px;color:#97a7ba;font-size:9px}.cf-history-net{font:700 11px 'JetBrains Mono',monospace;color:#a5f3d2;white-space:nowrap}.cf-history-row.lost .cf-history-net{color:#ffb5c3}.cf-disclaimer{margin:13px 0 0;color:#879aac;font-size:10px;line-height:1.5;text-align:center}.cf-page button:focus-visible{outline:2px solid #ffe1a5;outline-offset:2px}
+  @media(max-width:620px){.cf-page{padding:0 0 24px}.cf-header{gap:7px}.cf-logo{width:38px;height:38px}.cf-title>span{font-size:8px}.cf-title h2{font-size:20px}.cf-balance{padding:7px 8px}.cf-intro p{font-size:11px}.cf-layout{grid-template-columns:1fr;grid-template-areas:'board' 'summary' 'action' 'settings';gap:9px}.cf-board{padding:11px;border-radius:15px}.cf-stage{padding:11px;margin-top:10px}.cf-stage-center{min-height:175px;gap:10px}.cf-coin-space{width:135px;height:135px}.cf-coin-tilt{width:103px;height:103px}.cf-summary{padding:10px 3px}.cf-summary>div{padding:0 7px}.cf-summary span{font-size:7px}.cf-summary strong{font-size:11px}.cf-settings{padding:13px}.cf-control-head{margin-top:15px}}
+  @media(max-width:350px){.cf-title h2{font-size:18px}.cf-choices button{gap:6px;padding:7px}.cf-choices img{width:30px;height:30px}.cf-choices small{font-size:8px}}
+  @media(prefers-reduced-motion:reduce){.cf-stage,.cf-play{transition:none}.cf-stage.rolling .cf-coin,.cf-stage.settling .cf-coin{animation:none}}
+  `;
+  document.head.appendChild(style);
+
+  let timer = null, finishAnimation = null, active = false;
+  const orient = (side) => { id('cf-coin').dataset.side = side; id('cf-coin').style.setProperty('--coin-rotation', side === 'heads' ? '0deg' : '180deg'); };
+  const stop = () => { if (timer !== null) clearTimeout(timer); timer = null; id('cf-stage').classList.remove('rolling', 'settling'); const done = finishAnimation; finishAnimation = null; if (done) done(); };
+  let realistic = null, attempted3D = false;
+  game.scene = {
+    setActive(value) {
+      active = Boolean(value);
+      if (active && !attempted3D) {
+        attempted3D = true;
+        realistic = window.createGameRealisticCoin?.(id('cf-render')) || null;
+        if (realistic) id('cf-coin-accessible').classList.add('webgl-ready');
+      }
+      if (realistic?.available) realistic.setActive(active);
+      if (!active) stop();
+    },
+    resize() { if (realistic?.available) realistic.resize(); },
+    reset() { stop(); orient('heads'); if (realistic?.available) realistic.reset(); },
+    cancelAnimation() { if (realistic?.available) realistic.cancelAnimation(); stop(); },
+    startWaiting() { id('cf-stage').classList.add('rolling'); if (realistic?.available) realistic.startWaiting(); },
+    animateResult(side) {
+      orient(side); id('cf-stage').classList.remove('rolling'); id('cf-stage').classList.add('settling');
+      if (realistic?.available) return realistic.animateResult(side).finally(stop);
+      return new Promise((resolve) => { finishAnimation = resolve; const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches; timer = setTimeout(stop, !active || reduced ? 0 : 850); });
+    }
+  };
+  const modal = id('modal-coin-flip-info');
+  id('flip-info-title').textContent = 'Rules and probabilities'; id('coin-flip-close-info').setAttribute('aria-label', 'Close');
+  modal.querySelector('.arcade-probability-base span').textContent = 'STAKE';
+  ['SELECTED SIDE', 'GROSS IF YOU WIN', 'CHANCE'].forEach((text, i) => { modal.querySelectorAll('.arcade-probability-header span')[i].textContent = text; });
+  modal.querySelector('.arcade-rule-chips').innerHTML = '<span>RTP 95%</span><span>1.90× GROSS</span><span>SERVER DRAW</span>';
+  game.renderProbabilities = function() {
+    const list = id('flip-probability-list'); list.textContent = '';
+    for (const side of config.FLIP_SIDES) {
+      const row = document.createElement('div'); row.className = 'arcade-probability-row';
+      for (const [tag, text] of [['strong', label(side).toUpperCase()], ['span', `${fmt(config.flipPayout(this.selectedStake))} coins`], ['b', '50%']]) { const el = document.createElement(tag); el.textContent = text; row.appendChild(el); }
+      list.appendChild(row);
+    }
+    id('flip-probability-base').textContent = `${fmt(this.selectedStake)} coins`;
+  };
+  game.renderResult = function() {
+    const result = this.currentResult, card = id('flip-result'); card.classList.toggle('hidden', !result); if (!result) return;
+    card.classList.toggle('won', result.won); card.classList.toggle('lost', !result.won);
+    id('flip-result-title').textContent = `${label(result.result)} · ${result.won ? 'WON' : 'LOST'}`;
+    id('flip-result-detail').textContent = `Choice ${label(result.choice)} · Stake ${fmt(result.stake)} · Gross ${fmt(result.coins)} coins`;
+    const net = result.coins - result.stake; id('cf-result-net').textContent = `${net >= 0 ? '+' : ''}${fmt(net)} coins`;
+  };
+  game.renderHistory = function() {
+    const rounds = (this.flipState().recentFlips || []).filter((r) => !this.operation || r.id !== this.pending?.actionId);
+    const list = id('flip-history-list'), recent = id('cf-recent-list'); list.textContent = ''; recent.textContent = '';
+    id('flip-history-empty').classList.toggle('hidden', rounds.length > 0);
+    if (!rounds.length) { const el = document.createElement('small'); el.textContent = 'No flips yet'; recent.appendChild(el); }
+    for (const round of rounds.slice(0, 6)) { const chip = document.createElement('span'); chip.className = `cf-recent-chip ${round.won ? 'won' : 'lost'}`; chip.textContent = round.result === 'heads' ? 'H' : 'T'; const text = `${label(round.result)}, ${round.won ? 'win' : 'loss'}, choice ${label(round.choice)}`; chip.setAttribute('aria-label', text); chip.title = text; recent.appendChild(chip); }
+    for (const round of rounds.slice(0, 8)) {
+      const row = document.createElement('div'); row.className = `cf-history-row ${round.won ? 'won' : 'lost'}`;
+      const mark = document.createElement('span'); mark.className = 'cf-history-face'; mark.textContent = round.result === 'heads' ? 'H' : 'T';
+      const copy = document.createElement('div'); copy.className = 'cf-history-copy'; const title = document.createElement('strong'); title.textContent = `${label(round.result)} · ${round.won ? 'WON' : 'LOST'}`;
+      const meta = document.createElement('small'); meta.textContent = `Choice ${label(round.choice)} · Stake ${fmt(round.stake)} · Gross ${fmt(round.coins)}`; copy.append(title, meta);
+      const net = round.coins - round.stake; const amount = document.createElement('span'); amount.className = 'cf-history-net'; amount.textContent = `Net ${net >= 0 ? '+' : ''}${fmt(net)}`; row.append(mark, copy, amount); list.appendChild(row);
+    }
+  };
+  const originalRender = game.render.bind(game);
+  game.render = function() {
+    originalRender();
+    const stake = this.pending?.params.stake || this.selectedStake, choice = this.pending?.params.choice || this.selectedChoice, result = this.currentResult;
+    const payout = config.flipPayout(stake); id('flip-coin-balance').textContent = fmt(game.farm.state?.coins || 0); id('flip-total-rounds').textContent = fmt(this.flipState().totalRounds);
+    id('flip-chance-value').textContent = '50%'; id('flip-payout-value').textContent = `${fmt(payout)} coins`; id('cf-gross').textContent = `${fmt(payout)} coins`; id('flip-net-value').textContent = `+${fmt(payout-stake)} coins`; id('cf-multiplier').textContent = `${(payout/stake).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}×`; id('cf-selected').textContent = label(choice).toUpperCase();
+    id('cf-stage').dataset.state = this.operation ? 'rolling' : result ? (result.won ? 'won' : 'lost') : 'idle'; id('cf-stage-status').textContent = this.operation ? 'FLIPPING' : result ? (result.won ? 'WINNING FLIP' : 'LOSING FLIP') : 'READY TO FLIP';
+    id('cf-stage-label').textContent = this.operation ? 'Flipping…' : result ? `${label(result.result)} · ${result.won ? 'win' : 'loss'}` : 'Ready to flip';
+    id('cf-coin-accessible').setAttribute('aria-label', result && !this.operation ? `Coin: ${label(result.result)}` : 'Coin');
+    id('flip-play-button').querySelector('span').textContent = this.operation ? 'FLIPPING…' : this.pending ? 'RESUME FLIP' : `FLIP ${label(choice).toUpperCase()} · ${fmt(stake)} COINS`;
+  };
+  view.querySelectorAll('[data-flip-stake]').forEach((button) => button.addEventListener('click', () => game.setStake(Number(button.dataset.flipStake))));
+  view.querySelectorAll('[data-flip-choice]').forEach((button) => button.addEventListener('click', () => game.setChoice(button.dataset.flipChoice)));
+  id('flip-play-button').addEventListener('click', () => game.play()); id('coin-flip-open-info').addEventListener('click', () => game.openInfo());
+  id('coin-flip-open-farm').addEventListener('click', () => app.nav('farm'));
+  const scrollTo = (element) => element.scrollIntoView?.({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  id('flip-settings-link').addEventListener('click', () => scrollTo(id('cf-settings'))); id('flip-board-link').addEventListener('click', () => scrollTo(view.querySelector('.cf-board')));
+  game.render();
+};
