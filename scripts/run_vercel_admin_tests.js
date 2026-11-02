@@ -4,6 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const adminHandler = require('../api/admin');
+const RequestSecurity = require('../request-security');
 
 const ROOT = path.resolve(__dirname, '..');
 const PASSWORD = 'vercel-test-password-123';
@@ -186,6 +187,38 @@ async function request(base, action, options = {}) {
       assert.ok(!result.text.includes(TOKEN));
       process.env.FITIA_ADMIN_PASSWORD = PASSWORD;
       process.env.FITIA_GITHUB_TOKEN = TOKEN;
+    });
+
+    await runTest('La limitation suit le client Vercel, isole les autres clients et reste bornée en mémoire', async () => {
+      const blockedIp = '203.0.113.41';
+      for (let index = 0; index < 5; index += 1) {
+        const wrong = await request(baseA, 'login', {
+          method: 'POST', headers: { 'X-Vercel-Forwarded-For': `${blockedIp}, 10.0.0.1` }, body: { password: `wrong-${index}` }
+        });
+        assert.strictEqual(wrong.response.status, 401, wrong.text);
+      }
+      const limited = await request(baseA, 'login', {
+        method: 'POST', headers: { 'X-Vercel-Forwarded-For': blockedIp }, body: { password: PASSWORD }
+      });
+      assert.strictEqual(limited.response.status, 429);
+      const otherClient = await request(baseA, 'login', {
+        method: 'POST', headers: { 'X-Vercel-Forwarded-For': '203.0.113.42' }, body: { password: PASSWORD }
+      });
+      assert.strictEqual(otherClient.response.status, 200, otherClient.text);
+
+      const direct = { headers: { 'x-forwarded-for': '198.51.100.90' }, socket: { remoteAddress: '127.0.0.1' } };
+      assert.strictEqual(RequestSecurity.getClientKey(direct, false), '127.0.0.1');
+      assert.strictEqual(RequestSecurity.getClientKey(direct, true), '198.51.100.90');
+      const records = new Map();
+      const now = Date.now();
+      for (let index = 0; index < RequestSecurity.MAX_LOGIN_TRACKERS + 25; index += 1) {
+        RequestSecurity.recordLoginFailure(records, `client-${index}`, now, 900000);
+      }
+      assert.strictEqual(records.size, RequestSecurity.MAX_LOGIN_TRACKERS);
+      assert.ok(RequestSecurity.getLoginFailure(records, `client-${RequestSecurity.MAX_LOGIN_TRACKERS + 24}`, now));
+      records.set('expired', { count: 1, resetAt: now - 1 });
+      assert.strictEqual(RequestSecurity.getLoginFailure(records, 'expired', now), null);
+      assert.ok(!records.has('expired'));
     });
 
     await runTest('La session signée et le cookie Secure fonctionnent entre deux instances', async () => {

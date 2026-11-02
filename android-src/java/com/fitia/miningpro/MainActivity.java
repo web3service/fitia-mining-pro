@@ -443,6 +443,14 @@ public class MainActivity extends Activity {
         }
     }
 
+    private String toHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            hex.append(String.format(Locale.US, "%02x", value & 0xff));
+        }
+        return hex.toString();
+    }
+
     private String sha256File(File file) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
@@ -452,11 +460,69 @@ public class MainActivity extends Activity {
                 digest.update(buffer, 0, read);
             }
         }
-        StringBuilder hex = new StringBuilder(64);
-        for (byte value : digest.digest()) {
-            hex.append(String.format(Locale.US, "%02x", value & 0xff));
+        return toHex(digest.digest());
+    }
+
+    private android.content.pm.Signature[] getUpdateSigningCertificates(android.content.pm.PackageInfo info) {
+        android.content.pm.Signature[] signatures = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && info.signingInfo != null) {
+            signatures = info.signingInfo.getApkContentsSigners();
         }
-        return hex.toString();
+        // Android 9/10 peut ne pas remplir signingInfo pour un APK externe.
+        if ((signatures == null || signatures.length == 0) && info.signatures != null) {
+            signatures = info.signatures;
+        }
+        return signatures == null ? new android.content.pm.Signature[0] : signatures;
+    }
+
+    private String[] getSigningCertificateHashes(android.content.pm.PackageInfo info) throws Exception {
+        android.content.pm.Signature[] signatures = getUpdateSigningCertificates(info);
+        String[] hashes = new String[signatures.length];
+        for (int index = 0; index < signatures.length; index += 1) {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(signatures[index].toByteArray());
+            hashes[index] = toHex(digest);
+        }
+        return hashes;
+    }
+
+    private boolean hasSameSigningCertificates(android.content.pm.PackageInfo candidate, android.content.pm.PackageInfo installed) throws Exception {
+        String[] candidateHashes = getSigningCertificateHashes(candidate);
+        String[] installedHashes = getSigningCertificateHashes(installed);
+        if (candidateHashes.length == 0 || candidateHashes.length != installedHashes.length) return false;
+        boolean[] matched = new boolean[installedHashes.length];
+        for (String candidateHash : candidateHashes) {
+            int found = -1;
+            for (int index = 0; index < installedHashes.length; index += 1) {
+                if (!matched[index] && candidateHash.equals(installedHashes[index])) {
+                    found = index;
+                    break;
+                }
+            }
+            if (found < 0) return false;
+            matched[found] = true;
+        }
+        return true;
+    }
+
+    private long getPackageVersionCode(android.content.pm.PackageInfo info) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? info.getLongVersionCode() : info.versionCode;
+    }
+
+    private boolean verifyDownloadedUpdate(File apk) {
+        try {
+            int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                ? android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES | android.content.pm.PackageManager.GET_SIGNATURES
+                : android.content.pm.PackageManager.GET_SIGNATURES;
+            android.content.pm.PackageInfo candidate = getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+            android.content.pm.PackageInfo installed = getPackageManager().getPackageInfo(getPackageName(), flags);
+            if (candidate == null || !getPackageName().equals(candidate.packageName)) return false;
+            long candidateVersion = getPackageVersionCode(candidate);
+            long installedVersion = getPackageVersionCode(installed);
+            if (installedVersion <= 0 || candidateVersion <= installedVersion) return false;
+            return hasSameSigningCertificates(candidate, installed);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void showUpdateToast(final String message) {
@@ -476,6 +542,12 @@ public class MainActivity extends Activity {
             if (!apk.isFile() || expectedSha256.length() != 64
                 || !expectedSha256.equalsIgnoreCase(sha256File(apk))) {
                 showUpdateToast("Le fichier de mise à jour est absent ou invalide.");
+                return;
+            }
+            if (!verifyDownloadedUpdate(apk)) {
+                apk.delete();
+                prefs.edit().remove("update_sha256").apply();
+                showUpdateToast("The update package, version or signing certificate is invalid.");
                 return;
             }
         } catch (Exception e) {
@@ -584,6 +656,9 @@ public class MainActivity extends Activity {
                     }
                     if (!normalizedHash.equals(hex.toString())) {
                         throw new IOException("Empreinte SHA-256 différente");
+                    }
+                    if (!verifyDownloadedUpdate(partial)) {
+                        throw new IOException("Package, version ou certificat de mise à jour invalide");
                     }
                     if (apk.exists() && !apk.delete()) throw new IOException("Remplacement impossible");
                     if (!partial.renameTo(apk)) throw new IOException("Enregistrement impossible");

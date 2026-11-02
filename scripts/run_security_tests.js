@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.5.6 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.5.7 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -495,7 +495,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.5.6\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.5.7\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -1211,9 +1211,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 356,
-        versionName: '3.5.6',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.5.6/FITIA-PRO-Miner.apk',
+        versionCode: 357,
+        versionName: '3.5.7',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.5.7/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1256,7 +1256,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 356;
+        nativeState.appVersionCode = 357;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2649,6 +2649,18 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(postRes.statusCode, 405);
     });
 
+    await runTest('APP-UPDATE-SIGNATURE', 'Le package, la version et le certificat stable sont vérifiés avant toute installation', async () => {
+      const source = fs.readFileSync(path.join(ROOT, 'android-src', 'java', 'com', 'fitia', 'miningpro', 'MainActivity.java'), 'utf8');
+      for (const required of [
+        'getPackageArchiveInfo(', 'GET_SIGNING_CERTIFICATES', 'GET_SIGNATURES',
+        'getApkContentsSigners()', 'info.signatures != null', 'verifyDownloadedUpdate(', 'hasSameSigningCertificates(',
+        'candidateVersion <= installedVersion', 'getPackageName().equals(candidate.packageName)'
+      ]) assert.ok(source.includes(required), `Contrôle Android absent : ${required}`);
+      assert.ok(source.includes('if (!verifyDownloadedUpdate(partial))'), 'Le fichier téléchargé est vérifié avant remplacement');
+      assert.ok(source.includes('if (!verifyDownloadedUpdate(apk))'), 'Le fichier est revérifié avant l’ouverture de l’installeur');
+      assert.ok(source.includes('apk.delete();'), 'Un package non conforme est supprimé');
+    });
+
     // ─── SUITE 6 : Audit Binaire de l'APK Android Compilé ───────────────
     await runTest('APK-BINARY', 'Vérification binaire AndroidManifest, networkSecurityConfig, debuggable=false & Signatures v2+v3', async () => {
       const apkPath = path.join(ROOT, 'FITIA-PRO-Miner.apk');
@@ -2731,11 +2743,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 356);
-      assert.strictEqual(updateManifest.versionName, '3.5.6');
-      assert.ok(updateManifest.apkUrl.includes('/v3.5.6/'));
+      assert.strictEqual(updateManifest.versionCode, 357);
+      assert.strictEqual(updateManifest.versionName, '3.5.7');
+      assert.ok(updateManifest.apkUrl.includes('/v3.5.7/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.5.6 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.5.7 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2753,8 +2765,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=356'), 'versionCode=356 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.5.6"'), 'versionName=3.5.6 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=357'), 'versionCode=357 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.5.7"'), 'versionName=3.5.7 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

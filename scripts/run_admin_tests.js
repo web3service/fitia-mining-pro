@@ -567,10 +567,14 @@ function clone(value) {
       const session = await request(localBase, '/api/admin/session', { cookie });
       assert.strictEqual(session.response.status, 401);
       for (let index = 0; index < 5; index += 1) {
-        const wrong = await request(localBase, '/api/admin/login', { method: 'POST', body: { password: `wrong-${index}` } });
+        const wrong = await request(localBase, '/api/admin/login', {
+          method: 'POST', headers: { 'X-Forwarded-For': `198.51.100.${index + 1}` }, body: { password: `wrong-${index}` }
+        });
         assert.strictEqual(wrong.response.status, 401);
       }
-      const limited = await request(localBase, '/api/admin/login', { method: 'POST', body: { password: PASSWORD } });
+      const limited = await request(localBase, '/api/admin/login', {
+        method: 'POST', headers: { 'X-Forwarded-For': '198.51.100.250' }, body: { password: PASSWORD }
+      });
       assert.strictEqual(limited.response.status, 429);
       assert.ok(limited.response.headers.get('retry-after'));
     });
