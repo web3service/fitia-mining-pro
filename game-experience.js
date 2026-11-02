@@ -16,6 +16,7 @@
       ['Lucky Wheel', window.setupGameWheel],
       ['Dice', window.setupGameDice],
       ['Mines', window.setupGameMines],
+      ['Crash', window.setupGameCrash],
       ['Coin Flip', window.setupGameFlip]
     ];
     for (const [name, setup] of enhancements) {

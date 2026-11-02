@@ -131,7 +131,7 @@ window.setupGameFarm = function setupGameFarm(app) {
     .pf-back svg,.pf-tool-button svg,.pf-page .farm-camera-controls svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
     .pf-logo{width:44px;height:44px;flex:none;object-fit:cover;border:1px solid #d5bb6a;border-radius:12px;box-shadow:0 5px 15px #0004}
     .pf-title{min-width:0;flex:1}.pf-title>span,.pf-section-title>div>span,.pf-page .farm-section-heading>div>span{color:#a8be9e;font-size:9px;font-weight:800;letter-spacing:.12em}
-    .pf-title h2{margin:2px 0 0;font-size:23px;line-height:1.1;letter-spacing:-.04em;white-space:nowrap}.pf-title em{color:#a7d383;font-style:normal}
+    .pf-title h2{margin:2px 0 0;font-size:23px;line-height:1.1;letter-spacing:-.04em;white-space:nowrap}.pf-title em{margin-left:3px;color:#a7d383;font-style:normal}
     .pf-balance{flex:none;padding:7px 10px;border:1px solid #52645c;border-radius:11px;background:#24382e;text-align:right}.pf-balance small,.pf-balance strong{display:block}.pf-balance small{color:#a7bea1;font-size:8px;font-weight:800;letter-spacing:.08em}.pf-balance strong{margin-top:3px;color:#f3ce72;font-size:14px;white-space:nowrap}.pf-balance strong>i{display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;background:#f3ce72;box-shadow:0 0 8px #f3ce7255}
     .pf-wallet-bar{margin:13px 0 11px}.pf-wallet-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:8px}
     .pf-page .farm-primary-button,.pf-page .farm-secondary-button{display:inline-flex;min-width:0;min-height:42px;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border-radius:11px;font-size:10px;font-weight:850;letter-spacing:.02em;cursor:pointer}

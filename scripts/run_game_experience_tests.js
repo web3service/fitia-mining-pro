@@ -30,7 +30,7 @@ const scripts = [
   'vendor/ethers.umd.min.js', 'game-visibility-config.js', 'game-visibility.js',
   'farm-config.js', 'farm-protocol.js', 'farm.js', 'dice-config.js', 'dice.js',
   'arcade-config.js', 'arcade.js', 'game-experience-farm.js', 'game-experience-hub.js',
-  'game-experience-dice.js', 'game-experience-mines.js', 'game-experience-flip.js'
+  'game-experience-dice.js', 'game-experience-mines.js', 'game-experience-crash.js', 'game-experience-flip.js'
 ];
 for (const file of scripts) window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
 
@@ -45,6 +45,7 @@ const app = {
 const center = new window.FitiaFarmCenter(app); app.farmCenter = center;
 const dice = new window.FitiaDice(app, center); app.fitaDice = dice;
 const mines = new window.FitiaMines(app, center); app.fitaMines = mines;
+const crash = new window.FitiaCrash(app, center); app.fitaCrash = crash;
 const flip = new window.FitiaCoinFlip(app, center); app.fitaCoinFlip = flip;
 const visibility = new window.FitiaGameVisibilityCenter(app); app.gameVisibility = visibility;
 let dropType = null;
@@ -76,7 +77,7 @@ async function callAction(type, params = {}) {
 }
 function setAccounts(account) {
   app.user = account; app.signer = account ? wallet : null;
-  center.setAccount(account); dice.setAccount(account); mines.setAccount(account); flip.setAccount(account);
+  center.setAccount(account); dice.setAccount(account); mines.setAccount(account); crash.setAccount(account); flip.setAccount(account);
 }
 
 (async () => {
@@ -86,8 +87,8 @@ function setAccounts(account) {
     await service.deposit(await signed('deposit', { actionId: crypto.randomUUID(), txHash: `0x${'ae'.repeat(32)}`, amountUnits: ethers.parseUnits('20', 8).toString() }));
     await callAction('buy_land');
     await callAction('buy_animal', { species: 'chicken' });
-    visibility.init(); center.init(); dice.init(); mines.init(); flip.init();
-    window.setupGameFarm(app); window.setupGameHub(); window.setupGameDice(app); window.setupGameMines(app); window.setupGameFlip(app);
+    visibility.init(); center.init(); dice.init(); mines.init(); crash.init(); flip.init();
+    window.setupGameFarm(app); window.setupGameHub(); window.setupGameDice(app); window.setupGameMines(app); window.setupGameCrash(app); window.setupGameFlip(app);
     visibility.apply(); setAccounts(wallet.address.toLowerCase());
     await center.refresh({ quiet: true });
 
@@ -138,7 +139,7 @@ function setAccounts(account) {
     });
 
     await test('Aucun contenu de démonstration ni asset distant dans les écrans adaptés', async () => {
-      for (const id of ['view-dice', 'view-mines', 'view-coin-flip']) {
+      for (const id of ['view-dice', 'view-mines', 'view-crash', 'view-coin-flip']) {
         const text = window.document.getElementById(id).textContent;
         assert.ok(!/DÉMO|FICTIF|Simulation|10 000|Réinitialise|hors inventaire/i.test(text), id);
       }
@@ -186,6 +187,69 @@ function setAccounts(account) {
       assert.ok(window.document.querySelector('[data-mines-index="3"] img[src="assets/games/mines-gem.svg"]'));
     });
 
+    await test('Crash : avion détaillé, courbe animée et gain réel signé à la cible 2×', async () => {
+      crash.enter();
+      assert.ok(crash.scene.available);
+      assert.ok(window.document.querySelectorAll('#view-crash .flight-plane svg path').length >= 14);
+      assert.strictEqual(window.document.querySelectorAll('#view-crash .flight-plane svg circle').length, 9);
+      assert.strictEqual(window.document.querySelectorAll('#view-crash .impact-spark').length, 8);
+      window.document.querySelector('[data-crash-stake="100"]').click();
+      window.document.querySelector('[data-crash-target="200"]').click();
+      assert.strictEqual(crash.selectedStake, 100);
+      assert.strictEqual(crash.selectedTarget, 200);
+      assert.strictEqual(window.document.getElementById('crash-stage-payout-value').textContent, '200 coins');
+      const initialPath = window.document.querySelector('#view-crash .flight-chart-line').getAttribute('d');
+      const before = center.state.coins;
+      randomValues.push(525000);
+      await crash.play();
+      assert.strictEqual(crash.currentResult.won, true);
+      assert.strictEqual(crash.currentResult.crashBps, 200);
+      assert.strictEqual(crash.currentResult.coins, 200);
+      assert.strictEqual(center.state.coins, before + 100);
+      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, '2.00×');
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'won');
+      assert.notStrictEqual(window.document.querySelector('#view-crash .flight-chart-line').getAttribute('d'), initialPath);
+      assert.strictEqual(window.document.querySelectorAll('#crash-history-list .flight-history-row').length, 1);
+      assert.strictEqual(window.document.querySelector('#crash-recent-multipliers .crash-recent-chip').textContent, '2.00×');
+      assert.strictEqual(window.document.getElementById('crash-coin-balance').textContent, center.state.coins.toLocaleString('en-US'));
+      assert.ok(!Object.hasOwn(crash, 'request'));
+      assert.ok(!Object.hasOwn(crash, 'perform'));
+      crash.exit(); crash.enter();
+      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, '2.00×');
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'won');
+      assert.ok(window.document.getElementById('crash-3d-container').classList.contains('settled'));
+    });
+
+    await test('Crash : réponse perdue, reprise du vol signé et impact sans nouveau tirage', async () => {
+      window.document.querySelector('[data-crash-stake="50"]').click();
+      window.document.querySelector('[data-crash-target="300"]').click();
+      const before = center.state.coins;
+      randomValues.push(0);
+      dropType = 'crash_play';
+      await crash.play();
+      assert.ok(crash.pending);
+      assert.strictEqual(center.state.coins, before);
+      const actionId = crash.pending.actionId;
+      const serverState = (await service.view(wallet.address.toLowerCase())).state;
+      assert.strictEqual(serverState.coins, before - 50);
+      await crash.play();
+      assert.strictEqual(crash.currentResult.id, actionId);
+      assert.strictEqual(crash.currentResult.crashBps, 100);
+      assert.strictEqual(crash.currentResult.won, false);
+      assert.strictEqual(center.state.coins, before - 50);
+      assert.strictEqual(crash.pending, null);
+      assert.strictEqual(randomValues.length, 0);
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'lost');
+      assert.ok(window.document.getElementById('crash-3d-container').classList.contains('crashed'));
+      assert.strictEqual(window.document.querySelectorAll('#crash-history-list .flight-history-row').length, 2);
+      assert.strictEqual(window.document.querySelector('#crash-recent-multipliers .crash-recent-chip').textContent, '1.00×');
+      crash.exit(); crash.enter();
+      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, '1.00×');
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'lost');
+      assert.ok(window.document.getElementById('crash-3d-container').classList.contains('crashed'));
+      assert.ok(window.document.getElementById('crash-3d-container').classList.contains('settled'));
+    });
+
     await test('Coin Flip : réponse perdue puis reprise du même résultat sans nouveau tirage', async () => {
       flip.enter();
       window.document.querySelector('[data-flip-choice="heads"]').click();
@@ -212,7 +276,7 @@ function setAccounts(account) {
 
     await test('Verrouillage : les nouvelles scènes sont arrêtées et les sessions purgées', async () => {
       setAccounts(null);
-      for (const game of [dice, mines, flip]) {
+      for (const game of [dice, mines, crash, flip]) {
         assert.strictEqual(game.account, null);
         assert.strictEqual(game.pending, null);
         assert.strictEqual(game.operation, false);
@@ -220,7 +284,7 @@ function setAccounts(account) {
     });
   } finally {
     clearInterval(center.clockTimer); clearInterval(center.pollTimer); clearInterval(center.backgroundPollTimer); clearTimeout(center.retryTimer);
-    for (const game of [dice, mines, flip]) { game.exit(); game.scene?.cancelAnimation(); }
+    for (const game of [dice, mines, crash, flip]) { game.exit(); game.scene?.cancelAnimation(); }
     await new Promise((resolve) => server.close(resolve));
     window.close();
   }
