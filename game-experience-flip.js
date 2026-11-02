@@ -14,7 +14,7 @@ window.setupGameFlip = function setupGameFlip(app) {
       <section id="flip-locked" class="arcade-locked hidden"><strong>FARM activation required</strong><button id="coin-flip-open-farm" type="button" class="farm-small-button">OPEN FARM</button></section>
       <div id="flip-game" class="cf-layout">
         <section class="cf-board" aria-label="Coin flip">
-          <div class="cf-section-head"><div><span class="cf-overline">THE FLIP</span><h3>One choice, two outcomes</h3></div><div class="cf-head-actions"><button type="button" id="flip-settings-link" class="cf-settings-link">Settings ↓</button><button id="coin-flip-open-info" class="cf-info" type="button" aria-label="Rules and probabilities">?</button></div></div>
+          <div class="cf-section-head"><div><span class="cf-overline">THE FLIP</span><h3>One choice, two outcomes</h3></div><div class="cf-head-actions"><button type="button" id="flip-settings-link" class="cf-settings-link">Settings</button><button id="coin-flip-open-info" class="cf-info" type="button" aria-label="Rules and probabilities">?</button></div></div>
           <div class="cf-stage" id="cf-stage" data-state="idle">
             <div class="cf-stage-top"><span><i></i> <b id="cf-stage-status">READY TO FLIP</b></span><span>ONE COIN · TWO SIDES</span></div>
             <div class="cf-stage-center"><div class="cf-coin-space" id="cf-coin-accessible" role="img" aria-label="Coin"><div id="cf-render" class="cf-render" aria-hidden="true"></div><div class="cf-coin-tilt"><div class="cf-coin" id="cf-coin" data-side="heads">${Array.from({length:9},(_,i)=>`<span class="cf-edge" style="--z:${i-4}px"></span>`).join('')}<img class="cf-coin-face cf-coin-front" src="assets/games/coin-heads.svg" alt="" draggable="false"><img class="cf-coin-face cf-coin-back" src="assets/games/coin-tails.svg" alt="" draggable="false"></div></div></div><span class="cf-stage-label" id="cf-stage-label">Ready to flip</span></div>
@@ -29,7 +29,7 @@ window.setupGameFlip = function setupGameFlip(app) {
           <div class="cf-settings-choice"><span>SELECTED SIDE</span><strong id="cf-selected">HEADS</strong></div>
           <div class="cf-control-head"><span>STAKE</span><small>FARM coins</small></div><div class="cf-stakes" role="group" aria-label="Stake amount">${config.STAKES.map((n) => `<button type="button" data-flip-stake="${n}" aria-pressed="false">${n}</button>`).join('')}</div>
           <div class="cf-payout"><span>IF THE FLIP WINS</span><strong id="cf-gross">95 coins</strong><small>Gross, stake included</small><div><span>Net if you win</span><b id="flip-net-value">+45 coins</b></div></div>
-          <button type="button" id="flip-board-link" class="cf-board-link">Back to flip ↑</button><div class="cf-rounds"><span>TOTAL FLIPS</span><strong id="flip-total-rounds">0</strong></div>
+          <button type="button" id="flip-board-link" class="cf-board-link">Back to flip</button><div class="cf-rounds"><span>TOTAL FLIPS</span><strong id="flip-total-rounds">0</strong></div>
         </aside>
       </div>
       <section class="cf-history"><div class="cf-section-head"><div><span class="cf-overline">YOUR ACTIVITY</span><h3>Recent flips</h3></div><span class="cf-tag">RECENT</span></div><p id="flip-history-empty" class="cf-history-empty">No flips yet.</p><div id="flip-history-list" class="cf-history-list"></div></section>

@@ -11,6 +11,7 @@
     // controllers are therefore connected before the vault initialization waits.
     const pending = originalInit(...args);
     const enhancements = [
+      ['FARM', window.setupGameFarm],
       ['Hub', window.setupGameHub],
       ['Lucky Wheel', window.setupGameWheel],
       ['Dice', window.setupGameDice],
