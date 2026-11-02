@@ -31,7 +31,8 @@ const initialPromotionCount = promotionManifest.promotions.length;
 let promotionRevision = 'revision-promotion-initiale';
 const promotionWrites = [];
 let failPromotions = false;
-let gameManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'game-visibility.json'), 'utf8'));
+// Neutral fixture for independent toggle tests; the published manifest is audited separately.
+let gameManifest = { hiddenGames: [] };
 let gameRevision = 'revision-games-initiale';
 const gameWrites = [];
 let storeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-products.json'), 'utf8'));

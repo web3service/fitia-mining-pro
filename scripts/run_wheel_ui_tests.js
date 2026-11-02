@@ -23,7 +23,7 @@ window.HTMLCanvasElement.prototype.getContext = function () {
   const target = { canvas: this, createRadialGradient: () => gradient, createLinearGradient: () => gradient, measureText: (text) => ({ width: String(text).length * 8 }) };
   return new Proxy(target, { get: (object, property) => property in object ? object[property] : (() => {}), set: (object, property, value) => { object[property] = value; return true; } });
 };
-for (const file of ['vendor/ethers.umd.min.js', 'farm-config.js', 'farm-protocol.js', 'farm.js', 'wheel-config.js', 'wheel.js']) window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+for (const file of ['vendor/ethers.umd.min.js', 'farm-config.js', 'farm-protocol.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'game-experience-wheel.js']) window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
 
 const wallet = new ethers.Wallet(`0x${'66'.repeat(32)}`);
 const otherWallet = new ethers.Wallet(`0x${'77'.repeat(32)}`);
@@ -72,7 +72,7 @@ function segmentStart(id) {
     const amountUnits = ethers.parseUnits('20', 8).toString();
     await service.deposit(await signed('deposit', { actionId: crypto.randomUUID(), txHash: `0x${'aa'.repeat(32)}`, amountUnits }));
     await callAction('buy_land'); await callAction('buy_animal', { species: 'chicken' });
-    center.init(); wheel.init(); center.setAccount(wallet.address); wheel.setAccount(wallet.address);
+    center.init(); wheel.init(); window.setupGameWheel(app); center.setAccount(wallet.address); wheel.setAccount(wallet.address);
     await center.refresh({ quiet: true }); wheel.enter();
 
     await test('Hub, logo local, quatre mises et onze probabilités accessibles', async () => {

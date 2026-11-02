@@ -46,9 +46,10 @@ function visibleGameCards() {
 (async () => {
   console.log('\n🎛️  TESTS DE VISIBILITÉ DES JEUX\n' + '═'.repeat(68));
   try {
-    await test('Manifeste public : cinq jeux connus, tous visibles par défaut et ordre canonique', async () => {
+    await test('Manifeste public : cinq jeux connus, configuration publiée valide et ordre canonique', async () => {
       const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'game-visibility.json'), 'utf8'));
-      assert.deepStrictEqual(normalize(published), { hiddenGames: [] });
+      assert.deepStrictEqual(normalize(published), { hiddenGames: ['dice', 'mines', 'crash', 'coin-flip'] });
+      assert.deepStrictEqual(normalize({ hiddenGames: [] }), { hiddenGames: [] });
       assert.deepStrictEqual(gameIds, ['wheel', 'dice', 'mines', 'crash', 'coin-flip']);
       assert.deepStrictEqual(normalize({ hiddenGames: ['crash', 'wheel'] }), { hiddenGames: ['wheel', 'crash'] });
       for (const invalid of [null, [], {}, { hiddenGames: null }, { hiddenGames: ['unknown'] }, { hiddenGames: ['wheel', 'wheel'] }, { hiddenGames: [1] }, { hiddenGames: ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'wheel'] }]) {

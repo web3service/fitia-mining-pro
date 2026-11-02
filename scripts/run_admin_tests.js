@@ -437,7 +437,7 @@ function clone(value) {
     await runTest('Visibilité des jeux : lecture, CSRF, validation stricte, ordre canonique et conflit de révision', async () => {
       const loaded = await request(localBase, '/api/admin/game-visibility', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
-      assert.deepStrictEqual(loaded.data.manifest, { hiddenGames: [] });
+      assert.deepStrictEqual(loaded.data.manifest, { hiddenGames: ['dice', 'mines', 'crash', 'coin-flip'] });
       const initialRevision = loaded.data.revision;
       const next = { hiddenGames: ['crash', 'wheel', 'dice'] };
       const withoutCsrf = await request(localBase, '/api/admin/game-visibility', {
