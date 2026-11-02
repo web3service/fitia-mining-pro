@@ -43,11 +43,11 @@ const i18n = {
     hideWords: "Masquer",
     copyWords: "Copier les 12 mots",
     confirmSavedSeed: "J'ai noté et sauvegardé mes 12 mots dans un endroit sûr.",
-    continueBtn: "CONTINUER →",
+    continueBtn: "CONTINUER",
     verifySeedTitle: "Vérifiez votre sauvegarde",
     verifySeedDesc: "Sélectionnez les bons mots correspondant aux numéros demandés.",
     selectWordNum: "Sélectionnez le mot #",
-    validateAndSetPin: "VALIDER & CRÉER MON PIN →",
+    validateAndSetPin: "VALIDER & CRÉER MON PIN",
     quizWrong: "Les mots sélectionnés ne correspondent pas. Vérifiez vos 12 mots.",
     importTitle: "Importer un portefeuille",
     seedPhraseTab: "Phrase (12/24 mots)",
@@ -321,8 +321,8 @@ const i18n = {
     activityQuickswap: "Échange via QuickSwap V2",
     activityDepositToken: "Dépôt {token}",
     activityWithdrawToken: "Retrait {token}",
-    activityWalletToMining: "Portefeuille → Compte Minage",
-    activityMiningToWallet: "Compte Minage → Portefeuille",
+    activityWalletToMining: "Portefeuille vers Compte Minage",
+    activityMiningToWallet: "Compte Minage vers Portefeuille",
     activitySwapCore: "Échange via FITIA Core",
     activityReferralRecorded: "Parrainage enregistré",
     activityReferrer: "Parrain",
@@ -357,11 +357,11 @@ const i18n = {
     hideWords: "Hide",
     copyWords: "Copy 12 words",
     confirmSavedSeed: "I have written down and safely backed up my 12 words.",
-    continueBtn: "CONTINUE →",
+    continueBtn: "CONTINUE",
     verifySeedTitle: "Verify your backup",
     verifySeedDesc: "Select the matching words for the requested positions.",
     selectWordNum: "Select word #",
-    validateAndSetPin: "VERIFY & SET MY PIN →",
+    validateAndSetPin: "VERIFY & SET MY PIN",
     quizWrong: "Selected words do not match. Check your 12-word phrase.",
     importTitle: "Import a Wallet",
     seedPhraseTab: "Phrase (12/24 words)",
@@ -635,8 +635,8 @@ const i18n = {
     activityQuickswap: "Swap via QuickSwap V2",
     activityDepositToken: "Deposit {token}",
     activityWithdrawToken: "Withdraw {token}",
-    activityWalletToMining: "Wallet → Mining Account",
-    activityMiningToWallet: "Mining Account → Wallet",
+    activityWalletToMining: "Wallet to Mining Account",
+    activityMiningToWallet: "Mining Account to Wallet",
     activitySwapCore: "Swap via FITIA Core",
     activityReferralRecorded: "Referral recorded",
     activityReferrer: "Referrer",
@@ -2000,7 +2000,7 @@ class Application {
           return {
             ...result,
             type: 'swap',
-            title: 'Swap POL → USDT',
+            title: 'Swap POL to USDT',
             token: 'POL',
             amount: this.formatActivityAmount(txRequest.value || 0, 18),
             description: this.t('activityQuickswap')
@@ -2010,7 +2010,7 @@ class Application {
           return {
             ...result,
             type: 'swap',
-            title: 'Swap USDT → POL',
+            title: 'Swap USDT to POL',
             token: 'USDT',
             amount: this.formatActivityAmount(args[0], this.usdtDecimals),
             description: this.t('activityQuickswap')
@@ -2033,7 +2033,7 @@ class Application {
           const [type, titleKey, token, decimals, descriptionKey] = coreOperations[parsed.name];
           const title = titleKey
             ? this.activityText(titleKey, { token })
-            : `Swap ${parsed.name === 'swapUForF' ? 'USDT → FTA' : 'FTA → USDT'}`;
+            : `Swap ${parsed.name === 'swapUForF' ? 'USDT to FTA' : 'FTA to USDT'}`;
           return {
             ...result,
             type,
@@ -2822,7 +2822,7 @@ class Application {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  AUTO-DÉPÔT INTELLIGENT (PORTEFEUILLE POLYGON → COMPTE MINAGE CORE)
+  //  AUTO-DÉPÔT INTELLIGENT (PORTEFEUILLE POLYGON VERS COMPTE MINAGE CORE)
   // ═══════════════════════════════════════════════════════════════
   async ensureCoreBalance(tokenSymbol, requiredBN) {
     if (tokenSymbol === 'USDT') {
@@ -2879,7 +2879,7 @@ class Application {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  DÉPÔT & RETRAIT MANUELS (PORTEFEUILLE ↔ COMPTE MINAGE)
+  //  DÉPÔT & RETRAIT MANUELS (PORTEFEUILLE / COMPTE MINAGE)
   // ═══════════════════════════════════════════════════════════════
   onTransferTokenChange(token) {
     if (!['USDT', 'FTA'].includes(token)) return;
@@ -3692,7 +3692,7 @@ class Application {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  SWAP : USDT ↔ FTA (FITIA Core) + POL ↔ USDT (QuickSwap V2)
+  //  SWAP : USDT / FTA (FITIA Core) + POL / USDT (QuickSwap V2)
   // ═══════════════════════════════════════════════════════════════
   getSwapPair() {
     const pairs = {

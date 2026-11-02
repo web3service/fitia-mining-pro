@@ -29,8 +29,8 @@ window.HTMLCanvasElement.prototype.getContext = function () {
 const scripts = [
   'vendor/ethers.umd.min.js', 'game-visibility-config.js', 'game-visibility.js',
   'farm-config.js', 'farm-protocol.js', 'farm.js', 'dice-config.js', 'dice.js',
-  'arcade-config.js', 'arcade.js', 'game-experience-hub.js', 'game-experience-dice.js',
-  'game-experience-mines.js', 'game-experience-flip.js'
+  'arcade-config.js', 'arcade.js', 'game-experience-farm.js', 'game-experience-hub.js',
+  'game-experience-dice.js', 'game-experience-mines.js', 'game-experience-flip.js'
 ];
 for (const file of scripts) window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
 
@@ -87,7 +87,7 @@ function setAccounts(account) {
     await callAction('buy_land');
     await callAction('buy_animal', { species: 'chicken' });
     visibility.init(); center.init(); dice.init(); mines.init(); flip.init();
-    window.setupGameHub(); window.setupGameDice(app); window.setupGameMines(app); window.setupGameFlip(app);
+    window.setupGameFarm(app); window.setupGameHub(); window.setupGameDice(app); window.setupGameMines(app); window.setupGameFlip(app);
     visibility.apply(); setAccounts(wallet.address.toLowerCase());
     await center.refresh({ quiet: true });
 
@@ -111,6 +111,32 @@ function setAccounts(account) {
       assert.strictEqual(window.document.getElementById('game-hub-landing').hidden, false);
     });
 
+    await test('FARM : présentation adaptée, photos locales et économie réelle inchangée', async () => {
+      const farmView = window.document.getElementById('view-farm');
+      assert.ok(farmView.querySelector('.pf-page'));
+      assert.ok(farmView.querySelector('#farm-3d-container'));
+      assert.strictEqual(farmView.querySelectorAll('[data-farm-tab]').length, 4);
+      assert.strictEqual(farmView.querySelectorAll('.farm-quick-actions button').length, 5);
+      assert.strictEqual(farmView.querySelector('.pf-scene > img'), null, 'La scène 3D ne doit pas être remplacée par une image');
+      assert.ok(!/DÉMO|FICTIF|Simulation|10 000|Réinitialise/i.test(farmView.textContent));
+      assert.strictEqual(window.document.getElementById('farm-coin-balance').textContent, center.state.coins.toLocaleString('en-US'));
+      assert.ok(farmView.querySelector('#farm-animal-list img[src="assets/games/farm-chicken.jpg"]'));
+      for (const name of ['chicken', 'sheep', 'cow', 'wheat', 'carrot']) {
+        assert.ok(fs.statSync(path.join(ROOT, `assets/games/farm-${name}.jpg`)).size > 0, name);
+      }
+      assert.ok(!Object.hasOwn(center, 'request'));
+      assert.ok(!Object.hasOwn(center, 'perform'));
+      const beforeCoins = center.state.coins;
+      const beforeFeed = center.state.feed;
+      await center.perform('buy_feed');
+      assert.strictEqual(center.state.coins, beforeCoins - window.FitiaFarmConfig.FEED_PACK_PRICE);
+      assert.strictEqual(center.state.feed, beforeFeed + window.FitiaFarmConfig.FEED_PACK_QUANTITY);
+      const serverState = (await service.view(wallet.address.toLowerCase())).state;
+      assert.strictEqual(serverState.coins, center.state.coins);
+      assert.strictEqual(serverState.feed, center.state.feed);
+      assert.strictEqual(window.document.getElementById('farm-feed-count').textContent, String(center.state.feed));
+    });
+
     await test('Aucun contenu de démonstration ni asset distant dans les écrans adaptés', async () => {
       for (const id of ['view-dice', 'view-mines', 'view-coin-flip']) {
         const text = window.document.getElementById(id).textContent;
@@ -120,7 +146,8 @@ function setAccounts(account) {
         const source = fs.readFileSync(path.join(ROOT, file), 'utf8');
         assert.ok(!/fitia-mining-pro-test|com\.fitia\.miningpro\.test|preview-(?:demo|games|crash|farm)/i.test(source), file);
         for (const match of source.matchAll(/(?:src=\\?"|image\.src = ')([^'"$]+)/g)) {
-          if (match[1].startsWith('assets/')) assert.ok(fs.existsSync(path.join(ROOT, match[1])), `${file}: ${match[1]}`);
+          const isTemplate = source[match.index + match[0].length] === '$';
+          if (match[1].startsWith('assets/') && !isTemplate) assert.ok(fs.existsSync(path.join(ROOT, match[1])), `${file}: ${match[1]}`);
         }
       }
     });

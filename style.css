@@ -2416,6 +2416,7 @@ main::-webkit-scrollbar { display: none; }
 .activity-type-icon.type-purchase,
 .activity-type-icon.type-mining { color: var(--primary); background: rgba(240, 185, 11, 0.12); }
 .activity-type-icon.type-swap { color: #c084fc; background: rgba(168, 85, 247, 0.12); }
+.activity-type-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .activity-item-main { min-width: 0; }
 .activity-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
 .activity-item-title { min-width: 0; font-size: 0.76rem; line-height: 1.35; overflow-wrap: anywhere; }

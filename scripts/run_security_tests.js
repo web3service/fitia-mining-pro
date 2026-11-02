@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.5.3 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.5.4 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -495,7 +495,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.5.3\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.5.4\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -1211,9 +1211,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 353,
-        versionName: '3.5.3',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.5.3/FITIA-PRO-Miner.apk',
+        versionCode: 354,
+        versionName: '3.5.4',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.5.4/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1256,7 +1256,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 353;
+        nativeState.appVersionCode = 354;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -1982,6 +1982,35 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
+    await runTest('UI-GLYPHS', 'Libellés publics et contrôles sans flèches corrompues ni suffixes parasites', async () => {
+      const sourceFiles = [
+        'android-src/wallet.html', 'index.html',
+        ...fs.readdirSync(ROOT).filter((name) => name.endsWith('.js')),
+        ...fs.readdirSync(path.join(ROOT, 'admin')).filter((name) => /\.(?:js|html)$/.test(name)).map((name) => `admin/${name}`)
+      ];
+      const directionalGlyphs = /[\u2190-\u21FF\u27F0-\u27FF\u2900-\u297F\u2B05-\u2B07\u2B95\u27A4\u203A]/u;
+      for (const file of sourceFiles) {
+        const source = fs.readFileSync(path.join(ROOT, file), 'utf8');
+        assert.ok(!directionalGlyphs.test(source), `${file} ne doit contenir aucun glyphe directionnel susceptible d'être corrompu`);
+      }
+      const hub = fs.readFileSync(path.join(ROOT, 'game-experience-hub.js'), 'utf8');
+      const wheel = fs.readFileSync(path.join(ROOT, 'game-experience-wheel.js'), 'utf8');
+      assert.ok(hub.includes('<b>Explore games</b>'));
+      assert.ok(wheel.includes('id="wheel-settings-link" class="pw-settings-link">Settings</button>'));
+      assert.ok(wheel.includes('id="wheel-board-link" class="pw-board-link">Back to wheel</button>'));
+      for (const [file, cleanLabel] of [
+        ['game-experience-dice.js', 'Back to roll'], ['game-experience-flip.js', 'Back to flip'],
+        ['game-experience-mines.js', 'Back to board']
+      ]) {
+        const source = fs.readFileSync(path.join(ROOT, file), 'utf8');
+        assert.ok(source.includes(`>${cleanLabel}</button>`), `${file}: ${cleanLabel}`);
+      }
+      for (const id of ['btn-continue-verify', 'btn-verify-next', 'btn-import-continue']) {
+        const label = e2eWin.document.getElementById(id).textContent;
+        assert.ok(!/['’]n|ij|\\n/.test(label), `${id}: ${label}`);
+      }
+    });
+
     await runTest('BRANDING', 'Le vrai logo FTA est aussi la source des icônes de téléchargement et Android', async () => {
       const officialLogoSha256 = 'ecc7f5ff1020467b333de258cc46cb6aafcf99432edb40698b82dda8f0d37c9d';
       for (const relativePath of ['assets/fta.png', 'assets/icon-512.png']) {
@@ -2424,17 +2453,17 @@ function httpRequest(port, method, reqPath) {
         [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('plugInMachine', [0n, 1n]) }, 'mining', 'Machine connection'],
         [{ to: App.mine.target, data: App.mine.interface.encodeFunctionData('claimRewards') }, 'claim', 'Mining reward claim'],
         [{ to: App.core.target, data: App.core.interface.encodeFunctionData('setReferrer', [destination]) }, 'referral', 'Referral recorded'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapUForF', [1000000n, 1n, 9999999999n]) }, 'swap', 'Swap USDT → FTA'],
-        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapFForU', [100000000n, 1n, 9999999999n]) }, 'swap', 'Swap FTA → USDT'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapUForF', [1000000n, 1n, 9999999999n]) }, 'swap', 'Swap USDT to FTA'],
+        [{ to: App.core.target, data: App.core.interface.encodeFunctionData('swapFForU', [100000000n, 1n, 9999999999n]) }, 'swap', 'Swap FTA to USDT'],
         [{
           to: App.quickswapRouter.target,
           data: App.quickswapRouter.interface.encodeFunctionData('swapExactETHForTokens', [1n, ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'], destination, 9999999999n]),
           value: 1000000000000000000n
-        }, 'swap', 'Swap POL → USDT'],
+        }, 'swap', 'Swap POL to USDT'],
         [{
           to: App.quickswapRouter.target,
           data: App.quickswapRouter.interface.encodeFunctionData('swapExactTokensForETH', [1000000n, 1n, ['0xc2132D05D31c914a87C6611C10748AEb04B58e8F', '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'], destination, 9999999999n])
-        }, 'swap', 'Swap USDT → POL']
+        }, 'swap', 'Swap USDT to POL']
       ];
       cases.forEach(([request, expectedType, expectedTitle]) => {
         const metadata = App.describeActivityTransaction(request);
@@ -2637,10 +2666,10 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/game-visibility-config.js'), 'La configuration de visibilité des jeux est embarquée dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/game-visibility.js'), 'Le contrôleur de visibilité des jeux est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/game-visibility.json'), 'Le manifeste local de visibilité des jeux est embarqué dans l’APK');
-      for (const experienceFile of ['game-experience.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
+      for (const experienceFile of ['game-experience.js', 'game-experience-farm.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
         assert.ok(packagedFiles.includes(`assets/www/${experienceFile}`), `Le module de présentation ${experienceFile} est embarqué dans l’APK`);
       }
-      for (const gameAsset of ['hub-games.jpg', 'farm-hub.jpg', 'wheel.svg', 'dice.svg', 'mines.svg', 'mines-gem.svg', 'mines-bomb.svg', 'crash.svg', 'coin-flip.svg', 'coin-heads.svg', 'coin-tails.svg']) {
+      for (const gameAsset of ['hub-games.jpg', 'farm-hub.jpg', 'farm-chicken.jpg', 'farm-sheep.jpg', 'farm-cow.jpg', 'farm-wheat.jpg', 'farm-carrot.jpg', 'wheel.svg', 'dice.svg', 'mines.svg', 'mines-gem.svg', 'mines-bomb.svg', 'crash.svg', 'coin-flip.svg', 'coin-heads.svg', 'coin-tails.svg']) {
         assert.ok(packagedFiles.includes(`assets/www/assets/games/${gameAsset}`), `L’asset de jeu ${gameAsset} est embarqué dans l’APK`);
       }
       assert.ok(!packagedFiles.split('\n').some((file) => /preview|demo/i.test(file)), 'Aucun fichier de démonstration n’est embarqué dans l’APK');
@@ -2673,7 +2702,7 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
       assert.ok(!packagedFiles.includes('assets/www/store-order-service.js'), 'Le service privé de chiffrement serveur n’est pas embarqué dans l’APK');
       assert.ok(!packagedFiles.includes('assets/www/farm-service.js'), 'Le registre privé FARM n’est pas embarqué dans l’APK');
-      for (const sourceFile of ['app.js', 'wallet.js', 'game-visibility-config.js', 'game-visibility.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js', 'arcade-config.js', 'arcade-3d.js', 'arcade.js', 'game-experience.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
+      for (const sourceFile of ['app.js', 'wallet.js', 'game-visibility-config.js', 'game-visibility.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js', 'arcade-config.js', 'arcade-3d.js', 'arcade.js', 'game-experience.js', 'game-experience-farm.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
         const packagedSource = execFileSync('python3', ['-c', [
           'import zipfile, sys',
           'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'
@@ -2702,11 +2731,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 353);
-      assert.strictEqual(updateManifest.versionName, '3.5.3');
-      assert.ok(updateManifest.apkUrl.includes('/v3.5.3/'));
+      assert.strictEqual(updateManifest.versionCode, 354);
+      assert.strictEqual(updateManifest.versionName, '3.5.4');
+      assert.ok(updateManifest.apkUrl.includes('/v3.5.4/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.5.3 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.5.4 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2724,8 +2753,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=353'), 'versionCode=353 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.5.3"'), 'versionName=3.5.3 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=354'), 'versionCode=354 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.5.4"'), 'versionName=3.5.4 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

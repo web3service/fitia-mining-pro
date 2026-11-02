@@ -15,7 +15,7 @@ const html = fs.readFileSync(path.join(ROOT, 'android-src/wallet.html'), 'utf8')
 const dom = new JSDOM(html, { url: 'https://app.fitia.pro/wallet.html', runScripts: 'outside-only', pretendToBeVisual: true });
 const { window } = dom;
 Object.defineProperty(window, 'crypto', { value: crypto.webcrypto, configurable: true });
-for (const file of ['vendor/ethers.umd.min.js', 'farm-config.js', 'farm-protocol.js', 'farm.js']) window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+for (const file of ['vendor/ethers.umd.min.js', 'farm-config.js', 'farm-protocol.js', 'farm.js', 'game-experience-farm.js']) window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
 const sceneCalls = { states: [], active: [], focus: [] };
 window.FitiaFarm3D = {
   create(container, options) {
@@ -55,6 +55,8 @@ window.fetch = (url, options) => {
   return global.fetch(`http://127.0.0.1:${server.address().port}/api/farm`, options);
 };
 const center = new window.FitiaFarmCenter(app);
+app.farmCenter = center;
+window.setupGameFarm(app);
 let passed = 0; let failed = 0;
 async function test(name, run) {
   try { await run(); passed += 1; console.log(`  ✅ ${name}`); }
@@ -166,13 +168,17 @@ async function waitFor(condition, label) {
       assert.strictEqual(document.querySelector('.farm-camera-hint'), null);
       assert.strictEqual(document.querySelector('.farm-hero p'), null);
       assert.strictEqual(document.querySelector('.farm-quick-actions small'), null);
-      assert.strictEqual(document.querySelector('.farm-stats-grid small'), null);
-      assert.ok(document.querySelector('.farm-quick-actions img[src="assets/farm/chicken.svg"]'));
+      assert.ok(document.querySelector('#view-farm .pf-page'));
+      assert.ok(document.querySelector('#view-farm #farm-3d-container'));
+      assert.strictEqual(document.querySelectorAll('#view-farm .pf-stats > div').length, 4);
+      assert.ok(document.querySelector('.farm-quick-actions img[src="assets/games/farm-chicken.jpg"]'));
       const emoji = /[\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u;
       assert.ok(!emoji.test(document.getElementById('view-farm').textContent));
       center.openBuyAnimal();
+      await new Promise((resolve) => setTimeout(resolve, 0));
       assert.strictEqual(document.querySelectorAll('#farm-dialog-content .farm-shop-icon').length, 3);
-      assert.ok(Array.from(document.querySelectorAll('#farm-dialog-content img')).every((image) => image.getAttribute('src').startsWith('assets/farm/')));
+      assert.ok(Array.from(document.querySelectorAll('#farm-dialog-content img')).every((image) => /^assets\/(farm|games)\//.test(image.getAttribute('src'))));
+      assert.ok(document.querySelector('#farm-dialog-content img[src="assets/games/farm-chicken.jpg"]'));
       assert.strictEqual(document.querySelector('#farm-dialog-content .farm-dialog-copy'), null);
       assert.strictEqual(document.querySelector('#farm-dialog-content .farm-dialog-hint'), null);
       assert.ok(document.getElementById('farm-dialog-subtitle').classList.contains('hidden'));

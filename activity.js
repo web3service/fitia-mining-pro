@@ -491,8 +491,13 @@
       }
 
       const icons = {
-        send: '↗', approval: '✓', deposit: '↓', withdraw: '↑', purchase: '🛒',
-        mining: '⚡', claim: '🎁', referral: '👥', swap: '⇄', other: '•'
+        approval: '✓', purchase: '🛒', mining: '⚡', claim: '🎁', referral: '👥', other: '•'
+      };
+      const vectorIcons = {
+        send: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>',
+        deposit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15m-6-6 6 6 6-6"/></svg>',
+        withdraw: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5m-6 6 6-6 6 6"/></svg>',
+        swap: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7-3 3 3 3M4 10h14m-1 7 3-3-3-3M20 14H6"/></svg>'
       };
       const statusLabels = {
         pending: this.t('activityStatusPending'),
@@ -501,7 +506,10 @@
       };
       entries.forEach((entry) => {
         const item = this.element('article', `activity-item status-${entry.status}`);
-        const symbol = this.element('div', `activity-type-icon type-${entry.type}`, icons[entry.type] || icons.other);
+        const symbol = this.element('div', `activity-type-icon type-${entry.type}`);
+        symbol.setAttribute('aria-hidden', 'true');
+        if (Object.hasOwn(vectorIcons, entry.type)) symbol.innerHTML = vectorIcons[entry.type];
+        else symbol.textContent = icons[entry.type] || icons.other;
         const main = this.element('div', 'activity-item-main');
         const titleRow = this.element('div', 'activity-title-row');
         titleRow.appendChild(this.element('strong', 'activity-item-title', entry.title));

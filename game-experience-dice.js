@@ -22,7 +22,7 @@ window.setupGameDice = function setupGameDice(app) {
       <section id="dice-locked" class="dice-locked hidden"><strong>FARM activation required</strong><button id="dice-open-farm" type="button" class="farm-small-button">OPEN FARM</button></section>
       <div id="dice-game" class="pd-layout">
         <section class="pd-board" aria-label="Dice board">
-          <div class="pd-section-head"><div><span class="pd-overline">THE ROLL</span><h3>One die, six outcomes</h3></div><div class="pd-head-actions"><button id="dice-settings-link" class="pd-settings-link" type="button">Settings ↓</button><button id="dice-open-info" class="pd-info" type="button" aria-label="Rules and probabilities">?</button></div></div>
+          <div class="pd-section-head"><div><span class="pd-overline">THE ROLL</span><h3>One die, six outcomes</h3></div><div class="pd-head-actions"><button id="dice-settings-link" class="pd-settings-link" type="button">Settings</button><button id="dice-open-info" class="pd-info" type="button" aria-label="Rules and probabilities">?</button></div></div>
           <div class="pd-stage" id="pd-stage">
             <div class="pd-stage-top"><span><i></i> <b id="pd-stage-status">READY TO PLAY</b></span><span id="pd-winning-faces">3 / 6 WINNING FACES</span></div>
             <div class="pd-stage-center"><div class="pd-die-visual" id="pd-die-visual" role="img" aria-label="Six-sided die"><div id="pd-render" class="pd-render" aria-hidden="true"></div><div class="pd-die-wrap" aria-hidden="true"><div class="pd-die-tilt"><div class="pd-die" id="pd-die" aria-label="Six-sided die">${face(1,'front')}${face(6,'back')}${face(2,'right')}${face(5,'left')}${face(3,'top')}${face(4,'bottom')}</div></div></div></div><span id="pd-stage-label" class="pd-stage-label">Ready to roll</span></div>
@@ -44,7 +44,7 @@ window.setupGameDice = function setupGameDice(app) {
           <div class="pd-stakes" role="group" aria-label="Stake amount">${config.STAKES.map((n) => `<button type="button" data-dice-stake="${n}" aria-pressed="false">${n}</button>`).join('')}</div>
           <div class="pd-payout"><span>IF THE ROLL WINS</span><strong id="pd-gross">95 coins</strong><small>Gross, stake included</small><div><span>Net if you win</span><b id="dice-net-value">+45 coins</b></div></div>
 
-          <button type="button" class="pd-board-link" id="dice-board-link">Back to roll ↑</button>
+          <button type="button" class="pd-board-link" id="dice-board-link">Back to roll</button>
           <div class="pd-rounds"><span>TOTAL ROLLS</span><strong id="dice-total-rolls">0</strong></div>
         </aside>
       </div>

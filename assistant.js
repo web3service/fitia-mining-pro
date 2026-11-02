@@ -103,8 +103,8 @@
         const machines = Array.isArray(app.userMachines) ? app.userMachines : [];
         const active = machines.filter((machine) => Number(machine.exp) > now).length;
         return this.copy(
-          `You own ${machines.length} machine${machines.length === 1 ? '' : 's'}; ${active} currently ${active === 1 ? 'is' : 'are'} within its connection period. Open Wallet → Machine & battery connection to select an available machine and a charged battery.`,
-          `Vous possédez ${machines.length} machine${machines.length > 1 ? 's' : ''} ; ${active} est ou sont actuellement dans sa période de connexion. Ouvrez Wallet → Connexion machine & batterie pour sélectionner une machine disponible et une batterie chargée.`
+          `You own ${machines.length} machine${machines.length === 1 ? '' : 's'}; ${active} currently ${active === 1 ? 'is' : 'are'} within its connection period. Open Wallet > Machine & battery connection to select an available machine and a charged battery.`,
+          `Vous possédez ${machines.length} machine${machines.length > 1 ? 's' : ''} ; ${active} est ou sont actuellement dans sa période de connexion. Ouvrez Wallet > Connexion machine & batterie pour sélectionner une machine disponible et une batterie chargée.`
         );
       });
 
@@ -130,8 +130,8 @@
       ));
 
       add('lost-recovery', 105, ['lost recovery phrase', 'lost my seed', 'lost private key', 'phrase perdue', 'perdu mes 12 mots', 'cle privee perdue'], () => this.copy(
-        'A recovery phrase or private key cannot be reconstructed by FITIA PRO or support. If the wallet still unlocks with your PIN, immediately back up the recovery phrase from Settings → Backup & Secret Keys and consider moving funds to a new securely backed-up wallet. Never share the backup.',
-        'Une phrase de récupération ou une clé privée ne peut être reconstruite ni par FITIA PRO ni par le support. Si le portefeuille s’ouvre encore avec votre PIN, sauvegardez immédiatement la phrase depuis Paramètres → Sauvegarde & Clés Secrètes et envisagez de transférer les fonds vers un nouveau portefeuille correctement sauvegardé. Ne partagez jamais cette sauvegarde.'
+        'A recovery phrase or private key cannot be reconstructed by FITIA PRO or support. If the wallet still unlocks with your PIN, immediately back up the recovery phrase from Settings > Backup & Secret Keys and consider moving funds to a new securely backed-up wallet. Never share the backup.',
+        'Une phrase de récupération ou une clé privée ne peut être reconstruite ni par FITIA PRO ni par le support. Si le portefeuille s’ouvre encore avec votre PIN, sauvegardez immédiatement la phrase depuis Paramètres > Sauvegarde & Clés Secrètes et envisagez de transférer les fonds vers un nouveau portefeuille correctement sauvegardé. Ne partagez jamais cette sauvegarde.'
       ));
 
       add('create-wallet', 100, ['create wallet', 'new wallet', 'creer un portefeuille', 'nouveau portefeuille'], () => this.copy(
@@ -153,8 +153,8 @@
         'start mining', 'how to mine', 'buy machine', 'connect machine', 'battery', 'mining machine',
         'commencer a miner', 'comment miner', 'acheter machine', 'connecter machine', 'batterie', 'machine de minage', 'machine'
       ], () => this.copy(
-        'To start mining:\n1. Receive USDT for the purchase and a little POL for gas.\n2. In Shop, buy a machine and a compatible battery. Required deposits are handled by the app.\n3. In Wallet → Machine & battery connection, select the machine and battery, then confirm.\n4. Follow your power and pending FTA on Home. Replace or reconnect power when the battery period ends.',
-        'Pour commencer à miner :\n1. Recevez des USDT pour l’achat et un peu de POL pour le gaz.\n2. Dans Boutique, achetez une machine et une batterie compatible. Les dépôts nécessaires sont gérés par l’application.\n3. Dans Wallet → Connexion machine & batterie, sélectionnez la machine et la batterie, puis confirmez.\n4. Suivez la puissance et le FTA en attente sur l’accueil. Reconnectez une source d’énergie à la fin de la période de batterie.'
+        'To start mining:\n1. Receive USDT for the purchase and a little POL for gas.\n2. In Shop, buy a machine and a compatible battery. Required deposits are handled by the app.\n3. In Wallet > Machine & battery connection, select the machine and battery, then confirm.\n4. Follow your power and pending FTA on Home. Replace or reconnect power when the battery period ends.',
+        'Pour commencer à miner :\n1. Recevez des USDT pour l’achat et un peu de POL pour le gaz.\n2. Dans Boutique, achetez une machine et une batterie compatible. Les dépôts nécessaires sont gérés par l’application.\n3. Dans Wallet > Connexion machine & batterie, sélectionnez la machine et la batterie, puis confirmez.\n4. Suivez la puissance et le FTA en attente sur l’accueil. Reconnectez une source d’énergie à la fin de la période de batterie.'
       ));
 
       add('gas', 100, ['gas', 'network fee', 'why pol', 'need pol', 'polygon fee', 'gaz', 'frais reseau', 'pourquoi pol'], () => this.copy(
@@ -163,28 +163,28 @@
       ));
 
       add('swap-fee', 100, ['swap fee', 'exchange fee', 'slippage', 'minimum received', 'frais swap', 'frais echange', 'minimum recu'], () => this.copy(
-        'FITIA Core USDT ↔ FTA swaps display a 4% swap fee and the estimated minimum received. POL ↔ USDT uses QuickSwap V2: the pool fee, price impact and minimum received are included in the quote. Slippage protects you from an unfavorable price change; request a fresh quote if the price moves too far or the quote expires.',
-        'Les swaps FITIA Core USDT ↔ FTA affichent des frais de 4 % et le minimum estimé. POL ↔ USDT utilise QuickSwap V2 : les frais du pool, l’impact du prix et le minimum reçu figurent dans le devis. Le slippage protège contre une variation défavorable ; demandez un nouveau devis si le prix change trop ou si le devis expire.'
+        'FITIA Core USDT / FTA swaps display a 4% swap fee and the estimated minimum received. POL / USDT uses QuickSwap V2: the pool fee, price impact and minimum received are included in the quote. Slippage protects you from an unfavorable price change; request a fresh quote if the price moves too far or the quote expires.',
+        'Les swaps FITIA Core USDT / FTA affichent des frais de 4 % et le minimum estimé. POL / USDT utilise QuickSwap V2 : les frais du pool, l’impact du prix et le minimum reçu figurent dans le devis. Le slippage protège contre une variation défavorable ; demandez un nouveau devis si le prix change trop ou si le devis expire.'
       ));
 
       add('swap', 70, ['swap', 'exchange', 'convert', 'echanger', 'echange', 'convertir'], () => this.copy(
-        'Open Swap, select the market and direction, then enter an amount. Review the rate, fees, price impact when applicable, minimum received and your POL gas reserve before confirming. USDT ↔ FTA uses FITIA Core; POL ↔ USDT uses QuickSwap V2. Wait for confirmation before submitting another transaction.',
-        'Ouvrez Swap, sélectionnez le marché et la direction, puis saisissez un montant. Vérifiez le taux, les frais, l’impact du prix le cas échéant, le minimum reçu et votre réserve de POL avant de confirmer. USDT ↔ FTA utilise FITIA Core ; POL ↔ USDT utilise QuickSwap V2. Attendez la confirmation avant une autre transaction.'
+        'Open Swap, select the market and direction, then enter an amount. Review the rate, fees, price impact when applicable, minimum received and your POL gas reserve before confirming. USDT / FTA uses FITIA Core; POL / USDT uses QuickSwap V2. Wait for confirmation before submitting another transaction.',
+        'Ouvrez Swap, sélectionnez le marché et la direction, puis saisissez un montant. Vérifiez le taux, les frais, l’impact du prix le cas échéant, le minimum reçu et votre réserve de POL avant de confirmer. USDT / FTA utilise FITIA Core ; POL / USDT utilise QuickSwap V2. Attendez la confirmation avant une autre transaction.'
       ));
 
       add('deposit-withdraw', 95, ['deposit and withdraw', 'deposit withdraw', 'deposer et retirer', 'depot et retrait'], () => this.copy(
-        'In Wallet → Mining Account, DEPOSIT moves assets from your Polygon wallet to the contract balance used by mining features; WITHDRAW moves available assets back to your wallet. Select the token and amount, keep POL for gas and wait for each transaction to confirm before starting another.',
-        'Dans Wallet → Compte Minage, DÉPOSER transfère les actifs du portefeuille Polygon vers le solde du contrat utilisé par le minage ; RETIRER transfère les actifs disponibles vers votre portefeuille. Sélectionnez le jeton et le montant, conservez du POL pour le gaz et attendez la confirmation de chaque transaction avant d’en commencer une autre.'
+        'In Wallet > Mining Account, DEPOSIT moves assets from your Polygon wallet to the contract balance used by mining features; WITHDRAW moves available assets back to your wallet. Select the token and amount, keep POL for gas and wait for each transaction to confirm before starting another.',
+        'Dans Wallet > Compte Minage, DÉPOSER transfère les actifs du portefeuille Polygon vers le solde du contrat utilisé par le minage ; RETIRER transfère les actifs disponibles vers votre portefeuille. Sélectionnez le jeton et le montant, conservez du POL pour le gaz et attendez la confirmation de chaque transaction avant d’en commencer une autre.'
       ));
 
       add('deposit', 80, ['deposit', 'add to mining account', 'deposer', 'depot', 'ajouter au compte minage'], () => this.copy(
-        'In Wallet → Mining Account, choose DEPOSIT to move USDT, FTA or POL from your Polygon wallet to the Mining Account used by the shop and FITIA Core swap. Check the token and amount, keep POL for gas, and wait for confirmation.',
-        'Dans Wallet → Compte Minage, choisissez DÉPOSER pour transférer USDT, FTA ou POL depuis votre portefeuille Polygon vers le Compte Minage utilisé par la boutique et le swap FITIA Core. Vérifiez le jeton et le montant, conservez du POL pour le gaz et attendez la confirmation.'
+        'In Wallet > Mining Account, choose DEPOSIT to move USDT, FTA or POL from your Polygon wallet to the Mining Account used by the shop and FITIA Core swap. Check the token and amount, keep POL for gas, and wait for confirmation.',
+        'Dans Wallet > Compte Minage, choisissez DÉPOSER pour transférer USDT, FTA ou POL depuis votre portefeuille Polygon vers le Compte Minage utilisé par la boutique et le swap FITIA Core. Vérifiez le jeton et le montant, conservez du POL pour le gaz et attendez la confirmation.'
       ));
 
       add('withdraw', 80, ['withdraw', 'withdraw to wallet', 'retirer', 'retrait', 'retirer vers portefeuille'], () => this.copy(
-        'In Wallet → Mining Account, choose WITHDRAW to move available USDT, FTA or POL back to your Polygon wallet. Mining rewards must first be claimed according to the contract flow. Keep POL for gas and wait for on-chain confirmation.',
-        'Dans Wallet → Compte Minage, choisissez RETIRER pour transférer les USDT, FTA ou POL disponibles vers votre portefeuille Polygon. Les récompenses de minage doivent d’abord être réclamées selon le fonctionnement du contrat. Conservez du POL pour le gaz et attendez la confirmation on-chain.'
+        'In Wallet > Mining Account, choose WITHDRAW to move available USDT, FTA or POL back to your Polygon wallet. Mining rewards must first be claimed according to the contract flow. Keep POL for gas and wait for on-chain confirmation.',
+        'Dans Wallet > Compte Minage, choisissez RETIRER pour transférer les USDT, FTA ou POL disponibles vers votre portefeuille Polygon. Les récompenses de minage doivent d’abord être réclamées selon le fonctionnement du contrat. Conservez du POL pour le gaz et attendez la confirmation on-chain.'
       ));
 
       add('receive', 85, ['receive', 'qr code', 'recevoir', 'recevoir des tokens'], (app) => this.copy(
@@ -198,13 +198,13 @@
       ));
 
       add('history', 90, ['history', 'transaction status', 'transaction pending', 'transaction failed', 'historique', 'transaction en attente', 'transaction echouee'], () => this.copy(
-        'Activity → History shows transactions initiated in FITIA PRO with Pending, Confirmed or Failed status. A pending transaction is waiting for Polygon confirmation; avoid sending it again immediately. Failed entries include a contract reason when available. The history is local to this wallet on this device, so older or external operations may not appear.',
-        'Activité → Historique affiche les transactions initiées dans FITIA PRO avec les statuts En attente, Confirmée ou Échouée. Une transaction en attente attend la confirmation Polygon ; évitez de la renvoyer immédiatement. Les échecs indiquent le motif du contrat lorsqu’il est disponible. L’historique est local à ce portefeuille sur cet appareil ; les opérations anciennes ou externes peuvent ne pas apparaître.'
+        'Activity, then History shows transactions initiated in FITIA PRO with Pending, Confirmed or Failed status. A pending transaction is waiting for Polygon confirmation; avoid sending it again immediately. Failed entries include a contract reason when available. The history is local to this wallet on this device, so older or external operations may not appear.',
+        'Activité, puis Historique affiche les transactions initiées dans FITIA PRO avec les statuts En attente, Confirmée ou Échouée. Une transaction en attente attend la confirmation Polygon ; évitez de la renvoyer immédiatement. Les échecs indiquent le motif du contrat lorsqu’il est disponible. L’historique est local à ce portefeuille sur cet appareil ; les opérations anciennes ou externes peuvent ne pas apparaître.'
       ));
 
       add('referral', 80, ['referral', 'referrer', 'invite', 'parrain', 'parrainage', 'inviter'], (app) => this.copy(
-        `Open Settings → Referral program to copy or share your referral link or backup code${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, view your linked referrer, or link a referrer using a FITIA code, numeric ID or Polygon address. A referral link or code never gives access to your funds.`,
-        `Ouvrez Paramètres → Programme de parrainage pour copier ou partager votre lien ou code de secours${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, voir votre parrain ou associer un parrain avec un code FITIA, un identifiant numérique ou une adresse Polygon. Un lien ou code de parrainage ne donne jamais accès à vos fonds.`
+        `Open Settings > Referral program to copy or share your referral link or backup code${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, view your linked referrer, or link a referrer using a FITIA code, numeric ID or Polygon address. A referral link or code never gives access to your funds.`,
+        `Ouvrez Paramètres > Programme de parrainage pour copier ou partager votre lien ou code de secours${app.getMyReferralCode?.() ? ` (${app.getMyReferralCode()})` : ''}, voir votre parrain ou associer un parrain avec un code FITIA, un identifiant numérique ou une adresse Polygon. Un lien ou code de parrainage ne donne jamais accès à vos fonds.`
       ));
 
       add('pin-security', 75, ['pin', 'biometric', 'auto lock', 'change pin', 'code pin', 'biometrie', 'verrouillage'], () => this.copy(
@@ -255,8 +255,8 @@
       ));
 
       add('fees', 55, ['fee', 'fees', 'cost', 'frais', 'cout'], () => this.copy(
-        'There are three different cost types: Polygon gas paid in POL, the 4% fee shown for FITIA Core USDT ↔ FTA swaps, and QuickSwap pool/price costs for POL ↔ USDT. Any applicable claim fee is shown by the contract data. Always review the confirmation details before signing.',
-        'Il existe trois types de coûts : le gaz Polygon payé en POL, les frais de 4 % affichés pour les swaps FITIA Core USDT ↔ FTA, et les coûts du pool/prix QuickSwap pour POL ↔ USDT. Les éventuels frais de réclamation proviennent des données du contrat. Vérifiez toujours les détails avant de signer.'
+        'There are three different cost types: Polygon gas paid in POL, the 4% fee shown for FITIA Core USDT / FTA swaps, and QuickSwap pool/price costs for POL / USDT. Any applicable claim fee is shown by the contract data. Always review the confirmation details before signing.',
+        'Il existe trois types de coûts : le gaz Polygon payé en POL, les frais de 4 % affichés pour les swaps FITIA Core USDT / FTA, et les coûts du pool/prix QuickSwap pour POL / USDT. Les éventuels frais de réclamation proviennent des données du contrat. Vérifiez toujours les détails avant de signer.'
       ));
 
       add('wallet', 50, ['wallet', 'portefeuille', 'non custodial wallet'], () => this.copy(
@@ -270,8 +270,8 @@
       ));
 
       add('troubleshooting', 35, ['error', 'not working', 'failed', 'problem', 'issue', 'erreur', 'echoue', 'probleme', 'bug'], () => this.copy(
-        'Tell me which feature you were using and the exact non-sensitive error message. First check your internet connection, POL gas balance, token balance and whether the same transaction is already pending. Do not repeatedly submit a transaction after an interrupted response; check Activity → History first.',
-        'Indiquez-moi la fonction utilisée et le message d’erreur exact sans information sensible. Vérifiez d’abord la connexion Internet, le solde de POL pour le gaz, le solde du jeton et l’absence d’une transaction déjà en attente. Ne renvoyez pas une transaction après une réponse interrompue sans vérifier Activité → Historique.'
+        'Tell me which feature you were using and the exact non-sensitive error message. First check your internet connection, POL gas balance, token balance and whether the same transaction is already pending. Do not repeatedly submit a transaction after an interrupted response; check Activity, then History first.',
+        'Indiquez-moi la fonction utilisée et le message d’erreur exact sans information sensible. Vérifiez d’abord la connexion Internet, le solde de POL pour le gaz, le solde du jeton et l’absence d’une transaction déjà en attente. Ne renvoyez pas une transaction après une réponse interrompue sans vérifier Activité, puis Historique.'
       ));
 
       add('fitia-info', 25, ['fitia pro', 'what is fitia', 'this app', 'quest ce que fitia', 'cette application'], () => this.copy(

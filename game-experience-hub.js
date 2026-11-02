@@ -40,7 +40,7 @@ window.setupGameHub = function setupGameHub() {
   serviceSection.querySelector('.hub-grid').appendChild(swap);
   const landing = document.createElement('div');
   landing.id = 'game-hub-landing';
-  landing.innerHTML = `<section class="ph-section ph-gateway" aria-labelledby="ph-gateway-title"><div class="ph-heading"><div><span>DISCOVER</span><h3 id="ph-gateway-title">FITIA universe</h3><p>Choose a category.</p></div></div><button id="ph-open-games" class="ph-gateway-card" type="button" aria-controls="game-hub-games" aria-expanded="false"><img src="assets/games/hub-games.jpg" alt="" draggable="false"><span class="ph-gateway-copy"><small>FITIA GAMES</small><strong>Games</strong><span>FARM and arcade games</span><b>Explore games <i aria-hidden="true">→</i></b></span></button></section>`;
+  landing.innerHTML = `<section class="ph-section ph-gateway" aria-labelledby="ph-gateway-title"><div class="ph-heading"><div><span>DISCOVER</span><h3 id="ph-gateway-title">FITIA universe</h3><p>Choose a category.</p></div></div><button id="ph-open-games" class="ph-gateway-card" type="button" aria-controls="game-hub-games" aria-expanded="false"><img src="assets/games/hub-games.jpg" alt="" draggable="false"><span class="ph-gateway-copy"><small>FITIA GAMES</small><strong>Games</strong><span>FARM and arcade games</span><b>Explore games</b></span></button></section>`;
   landing.appendChild(serviceSection);
   grid.replaceWith(landing, gamesSection);
   const open = landing.querySelector('#ph-open-games');
