@@ -24,7 +24,12 @@
     WALLET_SESSION_CHANGED: 'Wallet session changed.', MINES_STAKE: 'Invalid Mines stake.', MINES_COUNT: 'Invalid mine count.',
     MINES_ROUND_ACTIVE: 'Finish the active Mines round first.', MINES_ROUND: 'The Mines round is no longer active.',
     MINES_TILE: 'Invalid Mines tile.', MINES_TILE_REVEALED: 'This tile is already revealed.', MINES_CASHOUT: 'Reveal a safe tile before cashing out.',
-    CRASH_STAKE: 'Invalid Crash stake.', CRASH_TARGET: 'Invalid auto cashout target.', FLIP_STAKE: 'Invalid Coin Flip stake.', FLIP_CHOICE: 'Choose heads or tails.'
+    CRASH_STAKE: 'Invalid Crash stake.', CRASH_TARGET: 'Invalid auto cashout target.', CRASH_SLOT: 'Invalid bet panel.',
+    CRASH_ROUND_ACTIVE: 'Finish the current flight first.', CRASH_ROUND: 'The flight is no longer active.',
+    CRASH_BETTING_CLOSED: 'Betting is closed for this flight.', CRASH_BET_ACTIVE: 'This bet is already placed.',
+    CRASH_NOT_FLYING: 'Wait for takeoff.', CRASH_CASHOUT_EARLY: 'Cashout is available above 1.00×.',
+    CRASH_CLIENT_SEED: 'The flight could not be prepared.', CRASH_RANDOM: 'The flight could not be prepared.',
+    FLIP_STAKE: 'Invalid Coin Flip stake.', FLIP_CHOICE: 'Choose heads or tails.'
   };
 
   class ArcadeBase {
@@ -282,85 +287,330 @@
   }
 
   class FitiaCrash extends ArcadeBase {
-    constructor(app, farm) { super(app, farm, 'crash'); this.selectedTarget = 200; }
-    setAccount(account) { super.setAccount(account); this.scene?.reset?.(); }
+    constructor(app, farm) {
+      super(app, farm, 'crash');
+      this.selectedTarget = 200;
+      this.betSettings = [
+        { stake: 50, targetBps: 200, autoCashout: false, autoBet: false },
+        { stake: 50, targetBps: 300, autoCashout: false, autoBet: false }
+      ];
+      this.secondBetEnabled = false; this.syncTimer = null; this.syncing = false;
+      this.autoTimer = null; this.autoScheduledFor = null; this.lastCashout = null;
+    }
+    settings(slot = 1) { return this.betSettings[slot - 1]; }
+    setAccount(account) {
+      clearTimeout(this.syncTimer); clearTimeout(this.autoTimer); this.syncTimer = null; this.autoTimer = null;
+      this.syncing = false; this.autoScheduledFor = null; this.lastCashout = null;
+      super.setAccount(account); this.scene?.reset?.();
+    }
     init() {
       this.initBase();
-      document.querySelectorAll('[data-crash-stake]').forEach((button) => button.addEventListener('click', () => this.setStake(Number(button.dataset.crashStake))));
-      document.querySelectorAll('[data-crash-target]').forEach((button) => button.addEventListener('click', () => this.setTarget(Number(button.dataset.crashTarget))));
-      document.getElementById('crash-play-button')?.addEventListener('click', () => this.play()); this.render();
+      document.querySelectorAll('[data-crash-stake]').forEach((button) => button.addEventListener('click', () => this.setStake(Number(button.dataset.crashSlot || 1), Number(button.dataset.crashStake))));
+      document.querySelectorAll('[data-crash-target]').forEach((button) => button.addEventListener('click', () => this.setTarget(Number(button.dataset.crashSlot || 1), Number(button.dataset.crashTarget))));
+      document.getElementById('crash-play-button')?.addEventListener('click', () => this.play(1)); this.render();
     }
+    enter() { super.enter(); this.scheduleSync(0); this.maybeScheduleAuto(); }
+    exit() {
+      clearTimeout(this.syncTimer); clearTimeout(this.autoTimer); this.syncTimer = null; this.autoTimer = null;
+      this.syncing = false; super.exit();
+    }
+    serverNow() { return this.farm.serverNow ? this.farm.serverNow() : Date.now(); }
+    crashState() { return this.farm.state?.crash || { totalRounds: 0, recentRounds: [], active: null }; }
+    activeRound() { return this.crashState().active || null; }
+    betFor(slot, round = this.activeRound()) { return round?.bets?.find((bet) => bet.slot === Number(slot)) || null; }
     validatePending(value) {
-      const pending = super.validatePending(value); if (!pending || pending.type !== 'crash_play') return null;
-      const stake = Config.normalizeStake(pending.params.stake); const targetBps = Config.normalizeCrashTarget(pending.params.targetBps);
-      return stake && targetBps ? { ...pending, params: { stake, targetBps } } : null;
+      const pending = super.validatePending(value); if (!pending) return null;
+      const { type, params } = pending;
+      if (type === 'crash_play') {
+        const stake = Config.normalizeStake(params.stake); const targetBps = Config.normalizeCrashTarget(params.targetBps);
+        return stake && targetBps ? { ...pending, params: { stake, targetBps } } : null;
+      }
+      if (!['crash_start', 'crash_bet', 'crash_cashout'].includes(type)) return null;
+      if (type !== 'crash_start' && !UUID_PATTERN.test(String(params.roundId || ''))) return null;
+      const slot = Config.normalizeAviatorSlot(params.slot); if (!slot) return null;
+      if (type === 'crash_cashout') return { ...pending, params: { roundId: String(params.roundId).toLowerCase(), slot } };
+      const stake = Config.normalizeAviatorStake(params.stake);
+      const autoTargetBps = params.autoTargetBps === null || params.autoTargetBps === undefined ? null : Config.normalizeAviatorTarget(params.autoTargetBps);
+      const clientSeed = String(params.clientSeed || '');
+      if (!stake || (params.autoTargetBps !== null && params.autoTargetBps !== undefined && !autoTargetBps) || !/^[A-Za-z0-9-]{8,64}$/.test(clientSeed)) return null;
+      const normalized = { slot, stake, autoTargetBps, clientSeed };
+      if (type === 'crash_bet') normalized.roundId = String(params.roundId).toLowerCase();
+      return { ...pending, params: normalized };
     }
-    restorePending(pending) { if (pending) { this.selectedStake = pending.params.stake; this.selectedTarget = pending.params.targetBps; } }
-    crashState() { return this.farm.state?.crash || { totalRounds: 0, recentRounds: [] }; }
-    setStake(stake) { if (this.operation || this.pending || !Config.STAKES.includes(stake)) return; this.selectedStake = stake; this.currentResult = null; this.scene?.reset?.(); this.render(); }
-    setTarget(target) { if (this.operation || this.pending || !Config.CRASH_TARGETS_BPS.includes(target)) return; this.selectedTarget = target; this.currentResult = null; this.scene?.reset?.(); this.render(); }
-    play() {
+    restorePending(pending) {
+      if (!pending) return;
+      if (pending.type === 'crash_play') { this.selectedStake = pending.params.stake; this.selectedTarget = pending.params.targetBps; return; }
+      const { slot, stake, autoTargetBps } = pending.params;
+      if (stake) {
+        const settings = this.settings(slot); settings.stake = stake; settings.autoCashout = autoTargetBps !== null && autoTargetBps !== undefined;
+        if (settings.autoCashout) settings.targetBps = autoTargetBps;
+        if (slot === 1) { this.selectedStake = stake; this.selectedTarget = settings.targetBps; }
+        if (slot === 2) this.secondBetEnabled = true;
+      }
+    }
+    setStake(slot, stake) {
+      if (stake === undefined) { stake = slot; slot = 1; }
+      slot = Number(slot); stake = Number(stake);
+      if (this.operation || this.pending || this.betFor(slot) || !Config.normalizeAviatorStake(stake)) return;
+      this.settings(slot).stake = stake;
+      if (slot === 1) this.selectedStake = stake;
+      this.render();
+    }
+    setTarget(slot, target) {
+      if (target === undefined) { target = slot; slot = 1; }
+      slot = Number(slot); target = Number(target);
+      if (this.operation || this.pending || this.betFor(slot) || !Config.normalizeAviatorTarget(target)) return;
+      this.settings(slot).targetBps = target;
+      if (slot === 1) this.selectedTarget = target;
+      this.render();
+    }
+    setAutoCashout(slot, enabled) {
+      if (this.operation || this.pending || this.betFor(slot)) return;
+      this.settings(slot).autoCashout = Boolean(enabled); this.render();
+    }
+    setAutoBet(slot, enabled) {
+      if (this.operation || this.pending) return;
+      this.settings(slot).autoBet = Boolean(enabled);
+      clearTimeout(this.autoTimer); this.autoTimer = null; this.autoScheduledFor = null;
+      this.render(); this.maybeScheduleAuto();
+    }
+    toggleSecondBet(enabled) {
+      if (this.operation || this.pending || this.betFor(2)) return;
+      this.secondBetEnabled = enabled === undefined ? !this.secondBetEnabled : Boolean(enabled);
+      this.render();
+    }
+    play(slot = 1) {
+      slot = Number(slot);
       if (this.pending) return this.resume();
-      if (this.operation || !this.account) return Promise.resolve();
+      if (this.operation || !this.account || !Config.normalizeAviatorSlot(slot)) return Promise.resolve();
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return Promise.resolve(); }
-      if (Number(this.farm.state.coins) < this.selectedStake) { this.showError({ code: 'FARM_INSUFFICIENT_COINS' }); return Promise.resolve(); }
-      return this.perform('crash_play', { stake: this.selectedStake, targetBps: this.selectedTarget });
+      const round = this.activeRound(); const bet = this.betFor(slot, round);
+      if (round?.status === 'flying') {
+        if (bet?.status === 'active') return this.perform('crash_cashout', { roundId: round.id, slot });
+        return Promise.resolve();
+      }
+      if (round && round.status !== 'betting') return Promise.resolve();
+      if (bet) return Promise.resolve();
+      if (slot === 2) this.secondBetEnabled = true;
+      const settings = this.settings(slot);
+      if (Number(this.farm.state.coins) < settings.stake) { this.showError({ code: 'FARM_INSUFFICIENT_COINS' }); return Promise.resolve(); }
+      const params = { slot, stake: settings.stake, autoTargetBps: settings.autoCashout ? settings.targetBps : null, clientSeed: uuid() };
+      if (round) params.roundId = round.id;
+      else { this.currentResult = null; this.autoScheduledFor = null; }
+      this.lastCashout = null;
+      return this.perform(round ? 'crash_bet' : 'crash_start', params);
     }
-    extractResult(data, pending) { return data.crashResult || this.crashState().recentRounds.find((round) => round.id === pending.actionId) || null; }
-    async animateResult(result) { await this.scene?.animateResult(result); }
+    resume() { if (this.pending && !this.operation) return this.perform(this.pending.type, this.pending.params); return Promise.resolve(); }
+    async perform(type, params) {
+      if (this.operation || !this.account) return;
+      clearTimeout(this.syncTimer); this.syncTimer = null;
+      const session = this.session;
+      this.pending = this.pending || { actionId: uuid(), type, params };
+      const pending = this.pending; this.savePending(); this.operation = true; this.waiting = true;
+      this.setStatus(''); this.render();
+      try {
+        const data = await this.farm.request('action', { actionId: pending.actionId, type: pending.type, params: pending.params });
+        if (session !== this.session) return;
+        this.farm.applyView(data);
+        const result = this.extractResult(data, pending);
+        this.handleAction(result, pending);
+        this.clearPending(); this.operation = false; this.waiting = false; this.render();
+        this.scheduleSync(120); this.maybeScheduleAuto();
+      } catch (error) {
+        if (session !== this.session) return;
+        this.operation = false; this.waiting = false;
+        if (!recoverable(error)) this.clearPending();
+        this.showError(error);
+        if (error?.code === 'FARM_REVISION') { try { await this.farm.refresh({ quiet: true }); } catch (_) { /* Resume remains available. */ } }
+        this.render(); this.scheduleSync(500);
+      }
+    }
+    extractResult(data, pending) {
+      if (data.crashAction) return data.crashAction;
+      if (data.crashResult) return data.crashResult;
+      if (pending.type === 'crash_play') return this.crashState().recentRounds.find((round) => round.id === pending.actionId) || null;
+      return null;
+    }
+    handleAction(result, pending) {
+      if (result && !result.roundId) { this.currentResult = result; this.lastCashout = null; return; }
+      if (result?.type === 'crash_start') { this.currentResult = null; this.lastCashout = null; this.autoScheduledFor = null; }
+      for (const event of result?.events || []) this.lastCashout = { ...event, roundId: result.roundId };
+      const roundId = result?.roundId || pending?.params?.roundId;
+      if (result?.crash || (!this.activeRound() && roundId)) {
+        const completed = this.crashState().recentRounds.find((round) => round.id === roundId);
+        if (completed) this.currentResult = completed;
+      }
+    }
+    scheduleSync(delay = 300) {
+      clearTimeout(this.syncTimer); this.syncTimer = null;
+      if (!this.active || !this.account || !this.activeRound()) return;
+      this.syncTimer = globalThis.setTimeout(() => this.sync(), Math.max(0, delay));
+    }
+    async sync() {
+      const round = this.activeRound();
+      if (this.syncing || this.operation || this.pending || !this.active || !this.account || !round) return;
+      const session = this.session; this.syncing = true;
+      try {
+        const data = await this.farm.request('action', { actionId: uuid(), type: 'crash_sync', params: { roundId: round.id } });
+        if (session !== this.session) return;
+        this.farm.applyView(data); this.handleAction(data.crashAction, { type: 'crash_sync', params: { roundId: round.id } });
+      } catch (error) {
+        if (error?.code === 'FARM_REVISION') this.farm.refresh({ quiet: true }).catch(() => {});
+      } finally {
+        if (session === this.session) { this.syncing = false; this.render(); this.scheduleSync(280); this.maybeScheduleAuto(); }
+      }
+    }
+    maybeScheduleAuto() {
+      if (!this.active || this.operation || this.pending || this.activeRound() || !this.currentResult || this.autoTimer) return;
+      const slots = this.betSettings.map((settings, index) => ({ settings, slot: index + 1 }))
+        .filter((entry) => entry.settings.autoBet && (entry.slot === 1 || this.secondBetEnabled));
+      if (!slots.length || this.autoScheduledFor === this.currentResult.id) return;
+      const roundId = this.currentResult.id; this.autoScheduledFor = roundId;
+      this.autoTimer = globalThis.setTimeout(async () => {
+        this.autoTimer = null;
+        if (!this.active || this.activeRound() || this.pending || this.operation || this.currentResult?.id !== roundId) return;
+        for (const entry of slots) {
+          if (!this.settings(entry.slot).autoBet) continue;
+          await this.play(entry.slot);
+          if (this.pending || !this.activeRound()) break;
+        }
+      }, 1300);
+    }
+    liveMultiplier(round = this.activeRound()) {
+      if (!round || round.status !== 'flying') return 100;
+      return Config.crashMultiplierAt(this.serverNow() - Date.parse(round.startsAt));
+    }
+    livePayout(slot, bps = this.liveMultiplier()) {
+      const bet = this.betFor(slot); if (!bet || bet.status !== 'active') return 0;
+      return Config.aviatorPayout(bet.stake, bps);
+    }
+    updateLive(bps = this.liveMultiplier()) {
+      const round = this.activeRound(); if (!round) return;
+      const multiplierLabel = document.getElementById('crash-multiplier');
+      if (multiplierLabel) multiplierLabel.textContent = multiplier(round.status === 'flying' ? bps : 100);
+      const caption = document.getElementById('crash-multiplier-caption');
+      if (caption && round.status === 'betting') caption.textContent = `NEXT FLIGHT · ${Math.max(0, Math.ceil((Date.parse(round.startsAt) - this.serverNow()) / 1000))}s`;
+      for (let slot = 1; slot <= 2; slot += 1) {
+        const bet = this.betFor(slot, round); const button = document.getElementById(`crash-bet-button-${slot}`);
+        if (!button || !bet || bet.status !== 'active' || round.status !== 'flying' || this.operation || this.pending) continue;
+        button.querySelector('span').textContent = `CASH OUT · ${formatCoins(Config.aviatorPayout(bet.stake, bps))} COINS`;
+        button.disabled = bps <= 100;
+      }
+      const potential = document.getElementById('crash-stage-payout-value');
+      if (potential) {
+        const total = (round.bets || []).filter((bet) => bet.status === 'active').reduce((sum, bet) => sum + Config.aviatorPayout(bet.stake, bps), 0);
+        potential.textContent = `${formatCoins(total)} coins`;
+      }
+    }
     render() {
-      const view = document.getElementById('view-crash'); if (!view) return;
-      const byId = (id) => document.getElementById(id); const state = this.farm.state;
-      const stake = this.pending?.params.stake || this.selectedStake; const target = this.pending?.params.targetBps || this.selectedTarget;
-      const unlocked = this.started() || Boolean(this.pending);
-      byId('crash-coin-balance').textContent = formatCoins(state?.coins || 0); byId('crash-total-rounds').textContent = formatCoins(this.crashState().totalRounds || 0);
+      const view = document.getElementById('view-crash'); const byId = (id) => document.getElementById(id);
+      if (!view || !byId('crash-bet-button-1')) return;
+      const state = this.farm.state; const round = this.activeRound();
+      if (!round && !this.currentResult && !this.pending && !this.operation) this.currentResult = this.crashState().recentRounds?.[0] || null;
+      const unlocked = this.started() || Boolean(round) || Boolean(this.pending);
+      byId('crash-coin-balance').textContent = formatCoins(state?.coins || 0);
+      byId('crash-total-rounds').textContent = formatCoins(this.crashState().totalRounds || 0);
       byId('crash-locked').classList.toggle('hidden', unlocked); byId('crash-game').classList.toggle('locked', !unlocked);
-      document.querySelectorAll('[data-crash-stake]').forEach((button) => { const active = Number(button.dataset.crashStake) === stake; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); button.disabled = this.operation || Boolean(this.pending); });
-      document.querySelectorAll('[data-crash-target]').forEach((button) => { const active = Number(button.dataset.crashTarget) === target; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); button.disabled = this.operation || Boolean(this.pending); });
-      const payout = Config.crashPayout(stake, target); const chance = Config.crashWinningOutcomes(target) / Config.CRASH_RANDOM_RANGE;
-      byId('crash-chance-value').textContent = percent(chance); byId('crash-payout-value').textContent = `${formatCoins(payout)} coins`; byId('crash-net-value').textContent = `+${formatCoins(payout - stake)} coins`;
-      byId('crash-stage-target-value').textContent = multiplier(target); byId('crash-stage-payout-value').textContent = `${formatCoins(payout)} coins`;
-      const stageState = this.currentResult ? (this.currentResult.won ? 'won' : 'lost') : this.operation ? (this.waiting ? 'preparing' : 'flying') : 'ready';
+      const stageState = round?.status || (this.currentResult ? this.currentResult.version === 2 ? 'crashed' : this.currentResult.won ? 'won' : 'lost' : this.operation ? 'preparing' : 'ready');
       byId('crash-stage').dataset.state = stageState;
-      const captions = { ready: 'READY FOR LAUNCH', preparing: 'LAUNCHING', flying: 'IN FLIGHT', won: 'AUTO CASHED OUT', lost: 'CRASHED' };
-      byId('crash-multiplier-caption').textContent = captions[stageState];
-      const button = byId('crash-play-button');
-      button.querySelector('span').textContent = this.operation ? this.waiting ? 'LAUNCHING…' : 'IN FLIGHT' : this.pending ? 'RESUME FLIGHT' : `LAUNCH · ${formatCoins(stake)} COINS`;
-      button.disabled = this.operation || !unlocked || (!this.pending && Number(state?.coins || 0) < stake);
-      this.renderResult(); this.renderHistory(); if (document.getElementById('modal-crash-info')?.classList.contains('active')) this.renderProbabilities();
+      const captions = { ready: 'PLACE YOUR BETS', preparing: 'PREPARING FLIGHT', betting: 'NEXT FLIGHT', flying: 'IN FLIGHT', won: 'AUTO CASHED OUT', lost: 'FLEW AWAY', crashed: 'FLEW AWAY' };
+      byId('crash-multiplier-caption').textContent = captions[stageState] || 'IN FLIGHT';
+      byId('crash-stage-target-value').textContent = round ? `${round.bets.length} ${round.bets.length === 1 ? 'BET' : 'BETS'}` : this.secondBetEnabled ? '2 BET PANELS' : '1 BET PANEL';
+      byId('crash-stage-payout-value').textContent = `${formatCoins(round?.coins || 0)} coins`;
+      byId('crash-add-bet').classList.toggle('hidden', this.secondBetEnabled || Boolean(this.betFor(2, round)));
+      byId('crash-remove-bet').classList.toggle('hidden', !this.secondBetEnabled || Boolean(this.betFor(2, round)));
+      for (let slot = 1; slot <= 2; slot += 1) {
+        const settings = this.settings(slot); const bet = this.betFor(slot, round); const panel = byId(`crash-bet-panel-${slot}`);
+        panel.classList.toggle('hidden', slot === 2 && !this.secondBetEnabled && !bet);
+        panel.classList.toggle('cashed', bet?.status === 'cashed');
+        const lockedBet = Boolean(bet) || this.operation || Boolean(this.pending);
+        const displayedStake = bet?.stake ?? settings.stake;
+        const displayedAutoCashout = bet ? bet.autoTargetBps !== null && bet.autoTargetBps !== undefined : settings.autoCashout;
+        const displayedTargetBps = displayedAutoCashout && bet ? bet.autoTargetBps : settings.targetBps;
+        byId(`crash-auto-bet-${slot}`).checked = settings.autoBet;
+        byId(`crash-auto-cashout-${slot}`).checked = displayedAutoCashout;
+        byId(`crash-auto-bet-${slot}`).disabled = this.operation || Boolean(this.pending);
+        byId(`crash-auto-cashout-${slot}`).disabled = lockedBet;
+        const targetInput = byId(`crash-target-input-${slot}`); targetInput.disabled = lockedBet || !displayedAutoCashout;
+        if (document.activeElement !== targetInput) targetInput.value = (displayedTargetBps / 100).toFixed(2);
+        const stakeInput = byId(`crash-stake-input-${slot}`); stakeInput.disabled = lockedBet;
+        if (document.activeElement !== stakeInput) stakeInput.value = String(displayedStake);
+        document.querySelectorAll(`[data-crash-stake][data-crash-slot="${slot}"]`).forEach((button) => {
+          const selected = Number(button.dataset.crashStake) === displayedStake;
+          button.classList.toggle('active', selected); button.setAttribute('aria-pressed', String(selected)); button.disabled = lockedBet;
+        });
+        const status = bet ? bet.status === 'active' ? round.status === 'betting' ? 'BET PLACED' : 'IN FLIGHT' : bet.status === 'cashed' ? `CASHED ${multiplier(bet.cashoutBps)}` : 'LOST' : settings.autoBet ? 'AUTO BET ON' : 'READY';
+        byId(`crash-bet-state-${slot}`).textContent = status;
+        const button = byId(`crash-bet-button-${slot}`); button.dataset.state = bet?.status || (round ? round.status : 'ready');
+        button.classList.toggle('cashout', Boolean(round?.status === 'flying' && bet?.status === 'active'));
+        let label = `BET · ${formatCoins(settings.stake)} COINS`; let disabled = !unlocked || Number(state?.coins || 0) < settings.stake;
+        if (this.pending) { label = 'RESUME ACTION'; disabled = this.operation; }
+        else if (this.operation) { label = 'SYNCHRONIZING…'; disabled = true; }
+        else if (round?.status === 'betting' && bet) { label = 'BET PLACED'; disabled = true; }
+        else if (round?.status === 'flying' && bet?.status === 'active') { label = `CASH OUT · ${formatCoins(this.livePayout(slot))} COINS`; disabled = this.liveMultiplier() <= 100; }
+        else if (bet?.status === 'cashed') { label = `CASHED OUT · ${multiplier(bet.cashoutBps)}`; disabled = true; }
+        else if (round?.status === 'flying') { label = 'WAIT FOR NEXT FLIGHT'; disabled = true; }
+        button.querySelector('span').textContent = label; button.disabled = disabled;
+      }
+      this.scene?.setRound?.(round, this.currentResult);
+      this.renderResult(); this.renderHistory(); this.updateLive();
+      if (document.getElementById('modal-crash-info')?.classList.contains('active')) this.renderProbabilities();
     }
     renderResult() {
-      const card = document.getElementById('crash-result'); card.classList.toggle('hidden', !this.currentResult); if (!this.currentResult) return;
-      const result = this.currentResult; card.classList.toggle('won', result.won); card.classList.toggle('lost', !result.won);
-      document.getElementById('crash-result-title').textContent = result.won ? `${multiplier(result.targetBps)} TARGET REACHED` : `CRASHED · ${multiplier(result.crashBps)}`;
-      const net = result.coins - result.stake;
-      document.getElementById('crash-result-detail').textContent = `Auto ${multiplier(result.targetBps)} · Stake ${formatCoins(result.stake)} · Net ${net >= 0 ? '+' : ''}${formatCoins(net)} coins`;
+      const card = document.getElementById('crash-result'); if (!card) return;
+      const round = this.activeRound();
+      if (round && this.lastCashout?.roundId === round.id && this.lastCashout.kind !== 'lost') {
+        const event = this.lastCashout; card.classList.remove('hidden', 'lost'); card.classList.add('won');
+        document.getElementById('crash-result-title').textContent = `${multiplier(event.cashoutBps)} ${event.kind === 'auto' ? 'AUTO ' : ''}CASHED OUT`;
+        document.getElementById('crash-result-detail').textContent = `Bet ${event.slot} · ${formatCoins(event.coins)} coins credited`;
+        return;
+      }
+      const result = this.currentResult; card.classList.toggle('hidden', !result || Boolean(round)); if (!result || round) return;
+      if (result.version === 2) {
+        const net = result.coins - result.stake; const won = net > 0;
+        card.classList.toggle('won', won); card.classList.toggle('lost', !won);
+        document.getElementById('crash-result-title').textContent = won ? `NET WIN · +${formatCoins(net)} COINS` : `FLEW AWAY · ${multiplier(result.crashBps)}`;
+        document.getElementById('crash-result-detail').textContent = `Crash ${multiplier(result.crashBps)} · Stake ${formatCoins(result.stake)} · Net ${net >= 0 ? '+' : ''}${formatCoins(net)} coins`;
+      } else {
+        card.classList.toggle('won', result.won); card.classList.toggle('lost', !result.won);
+        document.getElementById('crash-result-title').textContent = result.won ? `${multiplier(result.targetBps)} TARGET REACHED` : `FLEW AWAY · ${multiplier(result.crashBps)}`;
+        const net = result.coins - result.stake;
+        document.getElementById('crash-result-detail').textContent = `Legacy auto ${multiplier(result.targetBps)} · Net ${net >= 0 ? '+' : ''}${formatCoins(net)} coins`;
+      }
     }
     renderHistory() {
-      const list = document.getElementById('crash-history-list'); const rounds = this.crashState().recentRounds || []; list.textContent = '';
+      const list = document.getElementById('crash-history-list'); const recent = document.getElementById('crash-recent-multipliers');
+      if (!list || !recent) return;
+      const rounds = this.crashState().recentRounds || []; list.textContent = ''; recent.textContent = '';
       document.getElementById('crash-history-empty').classList.toggle('hidden', rounds.length > 0);
-      rounds.slice(0, 8).forEach((round) => {
-        const row = make('article', `arcade-history-row ${round.won ? 'won' : 'lost'}`);
-        const main = make('div'); main.append(make('strong', '', round.won ? `+${formatCoins(round.coins)} coins` : `−${formatCoins(round.stake)} coins`), make('small', '', `Auto ${multiplier(round.targetBps)} · Crash ${multiplier(round.crashBps)}`));
-        row.append(make('span', 'arcade-history-mark', multiplier(round.crashBps)), main, make('span', 'arcade-history-stake', `${round.stake}`)); list.appendChild(row);
-      });
-      const strip = document.getElementById('crash-history-strip'); const recent = document.getElementById('crash-recent-multipliers');
-      strip.classList.toggle('hidden', !rounds.length); recent.textContent = '';
-      rounds.slice(0, 8).forEach((round) => {
-        const level = round.crashBps >= 500 ? 'high' : round.crashBps >= 200 ? 'medium' : 'low';
-        const chip = make('span', `crash-recent-chip ${level}`, multiplier(round.crashBps));
-        chip.setAttribute('role', 'listitem'); chip.setAttribute('aria-label', `Crash ${multiplier(round.crashBps)}, auto cashout ${multiplier(round.targetBps)}`);
-        recent.appendChild(chip);
-      });
+      document.getElementById('flight-history-table').classList.toggle('hidden', rounds.length === 0);
+      document.getElementById('crash-history-strip').classList.toggle('hidden', rounds.length === 0);
+      for (const round of rounds.slice(0, 10)) {
+        const chip = make('span', `crash-recent-chip ${round.crashBps >= 1000 ? 'high' : round.crashBps >= 200 ? 'medium' : 'low'}`, multiplier(round.crashBps));
+        chip.setAttribute('role', 'listitem'); recent.appendChild(chip);
+      }
+      for (const round of rounds.slice(0, 10)) {
+        const net = round.coins - round.stake; const won = round.version === 2 ? net > 0 : round.won;
+        const row = make('tr', `flight-history-row ${won ? 'won' : 'lost'}`);
+        const flight = make('td'); const identity = make('div', 'flight-player-name');
+        const icon = make('span', 'flight-player-avatar', won ? '✓' : '×'); icon.setAttribute('aria-hidden', 'true');
+        const copy = make('div'); const title = make('strong', '', round.version === 2 ? `Flew away at ${multiplier(round.crashBps)}` : round.won ? `${multiplier(round.targetBps)} auto cashout` : `Crashed at ${multiplier(round.crashBps)}`);
+        const details = round.version === 2 ? round.bets.map((bet) => `Bet ${bet.slot}: ${bet.status === 'cashed' ? `${multiplier(bet.cashoutBps)} ${bet.cashoutKind}` : 'no cashout'}`).join(' · ') : `Target ${multiplier(round.targetBps)} · Gross ${formatCoins(round.coins)} coins`;
+        copy.append(title, make('small', '', details)); identity.append(icon, copy); flight.appendChild(identity);
+        const stake = make('td', '', `${formatCoins(round.stake)} coins`);
+        const outcome = make('td', `flight-player-result ${won ? 'won' : 'lost'}`, `${net >= 0 ? '+' : ''}${formatCoins(net)} coins`);
+        outcome.appendChild(make('small', '', round.version === 2 ? `${round.bets.length} ${round.bets.length === 1 ? 'bet' : 'bets'}` : 'Legacy round'));
+        row.append(flight, stake, outcome); list.appendChild(row);
+      }
     }
     renderProbabilities() {
       const list = document.getElementById('crash-probability-list'); if (!list) return; list.textContent = '';
       Config.CRASH_TARGETS_BPS.forEach((target) => {
         const row = make('div', 'arcade-probability-row');
-        row.append(make('strong', '', multiplier(target)), make('span', '', `${formatCoins(Config.crashPayout(this.selectedStake, target))} coins`), make('b', '', percent(Config.crashWinningOutcomes(target) / Config.CRASH_RANDOM_RANGE)));
+        row.append(make('strong', '', multiplier(target)), make('span', '', `${formatCoins(Config.aviatorPayout(this.settings(1).stake, target))} coins`), make('b', '', percent(Config.aviatorWinningOutcomes(target) / Config.CRASH_RANDOM_RANGE)));
         list.appendChild(row);
       });
-      document.getElementById('crash-probability-base').textContent = `${formatCoins(this.selectedStake)} coins`;
+      document.getElementById('crash-probability-base').textContent = `${formatCoins(this.settings(1).stake)} coins`;
     }
   }
 

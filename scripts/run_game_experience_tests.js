@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { JSDOM } = require(fs.existsSync('/tmp/test-deps/node_modules/jsdom') ? '/tmp/test-deps/node_modules/jsdom' : 'jsdom');
 const ethers = require('../vendor/ethers.umd.min.js');
 const Protocol = require('../farm-protocol');
+const Config = require('../arcade-config');
 const { MemoryFarmRepository, createFarmService } = require('../farm-service');
 const { createFarmHandler } = require('../api/farm');
 
@@ -37,7 +38,17 @@ for (const file of scripts) window.eval(fs.readFileSync(path.join(ROOT, file), '
 const wallet = new ethers.Wallet(`0x${'55'.repeat(32)}`);
 const repository = new MemoryFarmRepository();
 const randomValues = [];
-const service = createFarmService({ repository, randomInt: () => randomValues.length ? randomValues.shift() : 0, paymentVerifier: async () => ({ confirmed: true }) });
+let nowMs = Date.now(); let crashPredicate = () => true;
+function seedFor(roundId, clientSeed) {
+  for (let nonce = 0; nonce < 100000; nonce += 1) {
+    const seed = crypto.createHash('sha256').update(`experience-ui:${nonce}`).digest('hex');
+    const digest = crypto.createHmac('sha256', Buffer.from(seed, 'hex')).update(`${clientSeed}:${roundId}`).digest();
+    const randomValue = Math.floor(digest.readUInt32BE(0) * Config.CRASH_RANDOM_RANGE / 0x100000000);
+    if (crashPredicate(Config.selectCrashPoint(randomValue))) return Buffer.from(seed, 'hex');
+  }
+  throw new Error('No experience test seed found.');
+}
+const service = createFarmService({ repository, now: () => new Date(nowMs), randomBytes: (size, context) => seedFor(context.actionId, context.clientSeed), randomInt: () => randomValues.length ? randomValues.shift() : 0, paymentVerifier: async () => ({ confirmed: true }) });
 const server = http.createServer(createFarmHandler({ farmService: service }));
 const app = {
   user: wallet.address, signer: wallet, nav() {}, showToast() {}, activity: { notify() {} }
@@ -67,6 +78,10 @@ async function test(name, run) {
   try { await run(); passed += 1; console.log(`  ✅ ${name}`); }
   catch (error) { failed += 1; console.error(`  ❌ ${name}\n     ↳ ${error.stack || error}`); }
 }
+async function waitFor(condition, label) {
+  for (let index = 0; index < 200; index += 1) { if (condition()) return; await new Promise((resolve) => setTimeout(resolve, 10)); }
+  throw new Error(`Délai dépassé : ${label}`);
+}
 async function signed(action, params = {}) {
   const body = { action, buyer: wallet.address, timestamp: Date.now(), ...params };
   body.signature = await wallet.signMessage(Protocol.message(action, body));
@@ -89,6 +104,7 @@ function setAccounts(account) {
     await callAction('buy_animal', { species: 'chicken' });
     visibility.init(); center.init(); dice.init(); mines.init(); crash.init(); flip.init();
     window.setupGameFarm(app); window.setupGameHub(); window.setupGameDice(app); window.setupGameMines(app); window.setupGameCrash(app); window.setupGameFlip(app);
+    crash.scheduleSync = () => {};
     visibility.apply(); setAccounts(wallet.address.toLowerCase());
     await center.refresh({ quiet: true });
 
@@ -187,66 +203,69 @@ function setAccounts(account) {
       assert.ok(window.document.querySelector('[data-mines-index="3"] img[src="assets/games/mines-gem.svg"]'));
     });
 
-    await test('Crash : avion détaillé, courbe animée et gain réel signé à la cible 2×', async () => {
+    await test('Aviator : avion détaillé, deux mises et cashouts réels signés', async () => {
       crash.enter();
       assert.ok(crash.scene.available);
       assert.ok(window.document.querySelectorAll('#view-crash .flight-plane svg path').length >= 14);
       assert.strictEqual(window.document.querySelectorAll('#view-crash .flight-plane svg circle').length, 9);
       assert.strictEqual(window.document.querySelectorAll('#view-crash .impact-spark').length, 8);
-      window.document.querySelector('[data-crash-stake="100"]').click();
-      window.document.querySelector('[data-crash-target="200"]').click();
-      assert.strictEqual(crash.selectedStake, 100);
-      assert.strictEqual(crash.selectedTarget, 200);
-      assert.strictEqual(window.document.getElementById('crash-stage-payout-value').textContent, '200 coins');
+      window.document.querySelector('[data-crash-slot="1"][data-crash-stake="100"]').click();
+      window.document.getElementById('crash-add-bet').click();
+      window.document.querySelector('[data-crash-slot="2"][data-crash-stake="50"]').click();
+      window.document.getElementById('crash-target-input-2').value = '1.50';
+      window.document.getElementById('crash-target-input-2').dispatchEvent(new window.Event('change'));
+      window.document.getElementById('crash-auto-cashout-2').click();
+      assert.strictEqual(crash.settings(1).stake, 100); assert.strictEqual(crash.settings(2).targetBps, 150);
       const initialPath = window.document.querySelector('#view-crash .flight-chart-line').getAttribute('d');
-      const before = center.state.coins;
-      randomValues.push(525000);
-      await crash.play();
-      assert.strictEqual(crash.currentResult.won, true);
-      assert.strictEqual(crash.currentResult.crashBps, 200);
-      assert.strictEqual(crash.currentResult.coins, 200);
-      assert.strictEqual(center.state.coins, before + 100);
-      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, '2.00×');
-      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'won');
-      assert.notStrictEqual(window.document.querySelector('#view-crash .flight-chart-line').getAttribute('d'), initialPath);
+      const before = center.state.coins; crashPredicate = (point) => point >= 500;
+      await crash.play(1); await crash.play(2);
+      assert.strictEqual(crash.activeRound().bets.length, 2); assert.strictEqual(crash.activeRound().crashBps, undefined);
+      const roundId = crash.activeRound().id;
+      const startsMs = Date.parse((await repository.get(wallet.address.toLowerCase())).state.crash.active.startsAt);
+      nowMs = startsMs; await crash.sync();
+      nowMs = startsMs + Config.crashTimeForMultiplier(200); await crash.play(1);
+      assert.strictEqual(crash.activeRound().bets[0].coins, 200); assert.strictEqual(crash.activeRound().bets[1].coins, 75);
+      assert.strictEqual(center.state.coins, before + 125);
+      assert.ok(Number.parseFloat(window.document.getElementById('crash-multiplier').textContent) >= 2);
+      assert.strictEqual(window.document.getElementById('crash-result-title').textContent, '2.00× CASHED OUT');
+      await waitFor(() => window.document.querySelector('#view-crash .flight-chart-line').getAttribute('d') !== initialPath, 'courbe Aviator animée');
+      assert.ok(!Object.hasOwn(crash, 'request')); assert.ok(!Object.hasOwn(crash, 'perform'));
+      crash.exit(); crash.enter(); assert.strictEqual(crash.activeRound().id, roundId);
+      nowMs = Date.parse((await repository.get(wallet.address.toLowerCase())).state.crash.active.crashAt) + 1;
+      await crash.sync();
+      assert.strictEqual(crash.currentResult.id, roundId); assert.strictEqual(crash.currentResult.version, 2);
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'crashed');
+      assert.ok(window.document.getElementById('crash-3d-container').classList.contains('crashed'));
       assert.strictEqual(window.document.querySelectorAll('#crash-history-list .flight-history-row').length, 1);
-      assert.strictEqual(window.document.querySelector('#crash-recent-multipliers .crash-recent-chip').textContent, '2.00×');
       assert.strictEqual(window.document.getElementById('crash-coin-balance').textContent, center.state.coins.toLocaleString('en-US'));
-      assert.ok(!Object.hasOwn(crash, 'request'));
-      assert.ok(!Object.hasOwn(crash, 'perform'));
+      const finalMultiplier = window.document.getElementById('crash-multiplier').textContent;
       crash.exit(); crash.enter();
-      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, '2.00×');
-      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'won');
+      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, finalMultiplier);
       assert.ok(window.document.getElementById('crash-3d-container').classList.contains('settled'));
     });
 
-    await test('Crash : réponse perdue, reprise du vol signé et impact sans nouveau tirage', async () => {
-      window.document.querySelector('[data-crash-stake="50"]').click();
-      window.document.querySelector('[data-crash-target="300"]').click();
-      const before = center.state.coins;
-      randomValues.push(0);
-      dropType = 'crash_play';
-      await crash.play();
-      assert.ok(crash.pending);
-      assert.strictEqual(center.state.coins, before);
+    await test('Aviator : réponse perdue et cashout trop tardif, reprise du même vol perdu', async () => {
+      window.document.getElementById('crash-remove-bet').click();
+      window.document.querySelector('[data-crash-slot="1"][data-crash-stake="50"]').click();
+      const before = center.state.coins; crashPredicate = (point) => point === 150; dropType = 'crash_start';
+      await crash.play(1); assert.ok(crash.pending); assert.strictEqual(center.state.coins, before);
       const actionId = crash.pending.actionId;
-      const serverState = (await service.view(wallet.address.toLowerCase())).state;
-      assert.strictEqual(serverState.coins, before - 50);
-      await crash.play();
-      assert.strictEqual(crash.currentResult.id, actionId);
-      assert.strictEqual(crash.currentResult.crashBps, 100);
-      assert.strictEqual(crash.currentResult.won, false);
-      assert.strictEqual(center.state.coins, before - 50);
+      assert.strictEqual((await service.view(wallet.address.toLowerCase())).state.coins, before - 50);
+      await crash.play(1); assert.strictEqual(crash.activeRound().id, actionId); assert.strictEqual(crash.pending, null);
+      const stored = await repository.get(wallet.address.toLowerCase()); const startsMs = Date.parse(stored.state.crash.active.startsAt);
+      nowMs = startsMs; await crash.sync();
+      nowMs = Date.parse(stored.state.crash.active.crashAt); dropType = 'crash_cashout'; await crash.play(1);
+      assert.ok(crash.pending); assert.strictEqual(center.state.coins, before - 50);
+      await crash.play(1);
+      assert.strictEqual(crash.currentResult.id, actionId); assert.strictEqual(crash.currentResult.crashBps, 150);
+      assert.strictEqual(crash.currentResult.bets[0].status, 'lost'); assert.strictEqual(center.state.coins, before - 50);
       assert.strictEqual(crash.pending, null);
-      assert.strictEqual(randomValues.length, 0);
-      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'lost');
+      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'crashed');
       assert.ok(window.document.getElementById('crash-3d-container').classList.contains('crashed'));
       assert.strictEqual(window.document.querySelectorAll('#crash-history-list .flight-history-row').length, 2);
-      assert.strictEqual(window.document.querySelector('#crash-recent-multipliers .crash-recent-chip').textContent, '1.00×');
+      assert.strictEqual(window.document.querySelector('#crash-recent-multipliers .crash-recent-chip').textContent, '1.50×');
       crash.exit(); crash.enter();
-      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, '1.00×');
-      assert.strictEqual(window.document.getElementById('crash-stage').dataset.state, 'lost');
-      assert.ok(window.document.getElementById('crash-3d-container').classList.contains('crashed'));
+      assert.strictEqual(window.document.getElementById('crash-multiplier').textContent, '1.50×');
       assert.ok(window.document.getElementById('crash-3d-container').classList.contains('settled'));
     });
 
