@@ -125,6 +125,9 @@ Les tables privées et leurs transactions atomiques sont définies dans `supabas
 | `FITIA_ADMIN_GITHUB_REPO` | Nom du dépôt | `fitia-mining-pro` |
 | `FITIA_ADMIN_GITHUB_BRANCH` | Branche publiée | `main` |
 | `FITIA_ADMIN_PORT` | Port HTTP du panneau | `8090` |
+| `FITIA_ADMIN_TRUST_PROXY` | `1` uniquement derrière un reverse proxy qui réécrit les en-têtes d’adresse client | désactivé |
+
+N’activez `FITIA_ADMIN_TRUST_PROXY` que si le proxy est indispensable et supprime tout en-tête `X-Forwarded-For` fourni directement par le client. Sans cette option, le serveur local utilise exclusivement l’adresse de la connexion TCP. Sur Vercel, les en-têtes de la plateforme sont utilisés automatiquement et la table de limitation est bornée à 2 048 clients par instance.
 
 ## Déploiement Vercel
 

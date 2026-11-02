@@ -13,6 +13,7 @@ const {
 const { validateManifest: validateStoreCatalog } = require('./store-catalog');
 const { getDefaultOrderService } = require('./store-order-service');
 const { getDefaultFarmService } = require('./farm-service');
+const { getClientKey, getLoginFailure, recordLoginFailure } = require('./request-security');
 const GameVisibility = require('./game-visibility-config');
 
 const ROOT = __dirname;
@@ -305,6 +306,7 @@ function createAdminServer(options = {}) {
     throw new Error('FITIA_ADMIN_PASSWORD doit contenir entre 12 et 256 caractères.');
   }
   const githubToken = options.githubToken ?? process.env.FITIA_GITHUB_TOKEN ?? '';
+  const trustProxy = options.trustProxy === true || process.env.FITIA_ADMIN_TRUST_PROXY === '1';
   const localMode = options.localMode ?? (process.env.FITIA_ADMIN_LOCAL_MODE === '1' || !githubToken);
   if (!localMode && !githubToken) throw new Error('FITIA_GITHUB_TOKEN est requis hors mode local.');
 
@@ -560,19 +562,17 @@ function createAdminServer(options = {}) {
   async function handleApi(req, res, pathname) {
     pathname = pathname.replace(/^\/api\/admin\//, '/api/');
     if (pathname === '/api/login' && req.method === 'POST') {
-      const ip = req.socket.remoteAddress || 'unknown';
+      const ip = getClientKey(req, trustProxy);
       const now = Date.now();
-      const record = loginFailures.get(ip);
-      if (record && record.resetAt > now && record.count >= MAX_LOGIN_FAILURES) {
+      const record = getLoginFailure(loginFailures, ip, now);
+      if (record && record.count >= MAX_LOGIN_FAILURES) {
         sendJson(res, 429, { error: 'Trop de tentatives. Réessayez plus tard.', code: 'RATE_LIMIT' }, { 'Retry-After': String(Math.ceil((record.resetAt - now) / 1000)) });
         return;
       }
       const body = await readJson(req);
       const validPassword = safeEqual(sha256(String(body.password || '')), sha256(password));
       if (!validPassword) {
-        const next = record && record.resetAt > now ? record : { count: 0, resetAt: now + LOGIN_WINDOW_MS };
-        next.count += 1;
-        loginFailures.set(ip, next);
+        recordLoginFailure(loginFailures, ip, now, LOGIN_WINDOW_MS);
         sendJson(res, 401, { error: 'Mot de passe incorrect.', code: 'LOGIN' });
         return;
       }

@@ -7,6 +7,7 @@ const {
 const { validateManifest: validateStoreCatalog } = require('../store-catalog');
 const { getDefaultOrderService } = require('../store-order-service');
 const { getDefaultFarmService } = require('../farm-service');
+const { getClientKey, getLoginFailure, recordLoginFailure } = require('../request-security');
 const GameVisibility = require('../game-visibility-config');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
@@ -439,18 +440,16 @@ function createAdminHandler(options = {}) {
     const action = req.query?.action || url.searchParams.get('action') || url.pathname.split('/').pop();
 
     if (action === 'login' && req.method === 'POST') {
-      const ip = req.socket.remoteAddress || 'vercel';
+      const ip = getClientKey(req, true);
       const now = Date.now();
-      const record = loginFailures.get(ip);
-      if (record && record.resetAt > now && record.count >= MAX_LOGIN_FAILURES) {
+      const record = getLoginFailure(loginFailures, ip, now);
+      if (record && record.count >= MAX_LOGIN_FAILURES) {
         sendJson(res, 429, { error: 'Trop de tentatives. Réessayez plus tard.', code: 'RATE_LIMIT' }, { 'Retry-After': String(Math.ceil((record.resetAt - now) / 1000)) });
         return;
       }
       const body = await readJson(req);
       if (!safeEqual(sha256(String(body.password || '')), sha256(config.password))) {
-        const next = record && record.resetAt > now ? record : { count: 0, resetAt: now + LOGIN_WINDOW_MS };
-        next.count += 1;
-        loginFailures.set(ip, next);
+        recordLoginFailure(loginFailures, ip, now, LOGIN_WINDOW_MS);
         sendJson(res, 401, { error: 'Mot de passe incorrect.', code: 'LOGIN' });
         return;
       }

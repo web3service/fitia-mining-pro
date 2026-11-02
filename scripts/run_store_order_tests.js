@@ -146,6 +146,38 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     assert.strictEqual(adminOrders[0].status, 'paid');
   });
 
+  await runTest('Deux transitions admin concurrentes : une seule écriture acceptée, aucun écrasement obsolète', async () => {
+    const originalGetById = repository.getById.bind(repository);
+    let arrived = 0;
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    repository.getById = async (id) => {
+      const order = await originalGetById(id);
+      if (id === requestId && order.status === 'paid' && arrived < 2) {
+        arrived += 1;
+        if (arrived === 2) release();
+        await gate;
+      }
+      return order;
+    };
+    try {
+      const results = await Promise.allSettled([
+        service.updateAdminOrder({ orderId: requestId, status: 'preparing', carrier: 'DHL', trackingNumber: 'RACE-A' }),
+        service.updateAdminOrder({ orderId: requestId, status: 'preparing', carrier: 'UPS', trackingNumber: 'RACE-B' })
+      ]);
+      const rejected = results.filter((result) => result.status === 'rejected');
+      assert.strictEqual(rejected.length, 1, 'Une transition partie d’une révision obsolète doit être refusée');
+      assert.strictEqual(rejected[0].reason.code, 'ORDER_CONFLICT');
+      assert.strictEqual(results.filter((result) => result.status === 'fulfilled').length, 1);
+    } finally {
+      release();
+      repository.getById = originalGetById;
+    }
+    const stored = await repository.getById(requestId);
+    assert.strictEqual(stored.status, 'preparing');
+    assert.ok(stored.updatedAt > created.updatedAt);
+  });
+
   await runTest('Suivi privé : préparation, expédition, livraison et aucune régression', async () => {
     let updated = await service.updateAdminOrder({ orderId: requestId, status: 'preparing', carrier: '', trackingNumber: '' });
     assert.strictEqual(updated.status, 'preparing');
@@ -170,6 +202,72 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     await expectCode(service.attachPayment(await signed('attach', { orderId: secondId, txHash: TX_HASH })), 'ORDER_TX_USED');
     assert.strictEqual((await repository.getById(secondId)).status, 'awaiting_payment');
     assert.strictEqual((await service.listAdminOrders()).length, 1);
+  });
+
+  await runTest('Deux paiements rattachés en course : une seule transaction peut engager la commande', async () => {
+    const racingOrderId = crypto.randomUUID();
+    await service.createOrder(await signed('create', { ...createFields, requestId: racingOrderId }, otherWallet));
+    const originalGetById = repository.getById.bind(repository);
+    let arrived = 0;
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    repository.getById = async (id) => {
+      const order = await originalGetById(id);
+      if (id === racingOrderId && order.status === 'awaiting_payment' && arrived < 2) {
+        arrived += 1;
+        if (arrived === 2) release();
+        await gate;
+      }
+      return order;
+    };
+    const firstTx = `0x${'cd'.repeat(32)}`;
+    const secondTx = `0x${'ef'.repeat(32)}`;
+    try {
+      const results = await Promise.allSettled([
+        service.attachPayment(await signed('attach', { orderId: racingOrderId, txHash: firstTx }, otherWallet)),
+        service.attachPayment(await signed('attach', { orderId: racingOrderId, txHash: secondTx }, otherWallet))
+      ]);
+      const rejected = results.filter((result) => result.status === 'rejected');
+      assert.strictEqual(rejected.length, 1);
+      assert.strictEqual(rejected[0].reason.code, 'ORDER_CONFLICT');
+    } finally {
+      release();
+      repository.getById = originalGetById;
+    }
+    const stored = await repository.getById(racingOrderId);
+    assert.strictEqual(stored.status, 'paid');
+    assert.ok([firstTx, secondTx].includes(stored.txHash));
+  });
+
+  await runTest('Deux reprises simultanées de la même transaction restent idempotentes', async () => {
+    const duplicateOrderId = crypto.randomUUID();
+    await service.createOrder(await signed('create', { ...createFields, requestId: duplicateOrderId }, otherWallet));
+    const originalGetById = repository.getById.bind(repository);
+    let arrived = 0;
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    repository.getById = async (id) => {
+      const order = await originalGetById(id);
+      if (id === duplicateOrderId && order.status === 'awaiting_payment' && arrived < 2) {
+        arrived += 1;
+        if (arrived === 2) release();
+        await gate;
+      }
+      return order;
+    };
+    const txHash = `0x${'ba'.repeat(32)}`;
+    try {
+      const results = await Promise.all([
+        service.attachPayment(await signed('attach', { orderId: duplicateOrderId, txHash }, otherWallet)),
+        service.attachPayment(await signed('attach', { orderId: duplicateOrderId, txHash }, otherWallet))
+      ]);
+      assert.strictEqual(results.length, 2);
+      assert.ok(results.every((order) => order.id === duplicateOrderId && order.status === 'paid' && order.txHash === txHash));
+    } finally {
+      release();
+      repository.getById = originalGetById;
+    }
+    assert.strictEqual((await repository.getById(duplicateOrderId)).txHash, txHash);
   });
 
   await runTest('Le reçu on-chain exige client, vendeur, contrat, montant exact et trois confirmations', async () => {
@@ -276,6 +374,14 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
       assert.strictEqual(calls[0].init.headers.apikey, 'sb_secret_test-only-not-a-real-key');
       assert.strictEqual(calls[0].init.headers.Authorization, undefined);
       assert.ok(calls[0].url.includes('/rest/v1/store_orders'));
+      await expectCode(repository.update(
+        '7f05f9de-90d0-4e3f-bf4e-c46f52a1c7b0',
+        { status: 'preparing', updatedAt: '2026-10-28T12:00:01.000Z' },
+        { status: 'paid', updatedAt: '2026-10-28T12:00:00.000Z' }
+      ), 'ORDER_CONFLICT');
+      assert.strictEqual(calls[1].init.method, 'PATCH');
+      assert.ok(calls[1].url.includes('status=eq.paid'));
+      assert.ok(calls[1].url.includes('updated_at=eq.2026-10-28T12%3A00%3A00.000Z'));
     } finally { global.fetch = originalFetch; }
   });
 

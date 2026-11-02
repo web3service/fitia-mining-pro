@@ -107,10 +107,15 @@ class MemoryOrderRepository {
     this.orders.set(order.id, clone(order));
     return clone(order);
   }
-  async update(id, patch) {
+  async update(id, patch, expected = {}) {
     const current = assertOrder(this.orders.get(id));
+    if ((expected.status !== undefined && current.status !== expected.status)
+      || (expected.updatedAt !== undefined && current.updatedAt !== expected.updatedAt)) {
+      throw new StoreOrderError(409, 'La commande a changé. Rechargez avant de réessayer.', 'ORDER_CONFLICT');
+    }
     if (patch.txHash) {
-      const used = await this.getByTxHash(patch.txHash);
+      // Aucun await entre ce contrôle et l’écriture : la transition mémoire est atomique.
+      const used = Array.from(this.orders.values()).find((item) => item.txHash === patch.txHash);
       if (used && used.id !== id) throw new StoreOrderError(409, 'Cette transaction est déjà utilisée.', 'ORDER_TX_USED');
     }
     const next = { ...current, ...clone(patch) };
@@ -182,9 +187,17 @@ class SupabaseOrderRepository {
     const rows = await this.request('POST', '', toRow(order));
     return fromRow(rows[0]);
   }
-  async update(id, patch) {
-    const rows = await this.request('PATCH', `?id=eq.${encodeURIComponent(id)}`, patchRow(patch));
-    if (!rows[0]) throw new StoreOrderError(404, 'Commande introuvable.', 'ORDER_NOT_FOUND');
+  async update(id, patch, expected = {}) {
+    const filters = [`id=eq.${encodeURIComponent(id)}`];
+    if (expected.status !== undefined) filters.push(`status=eq.${encodeURIComponent(expected.status)}`);
+    if (expected.updatedAt !== undefined) filters.push(`updated_at=eq.${encodeURIComponent(expected.updatedAt)}`);
+    const rows = await this.request('PATCH', `?${filters.join('&')}`, patchRow(patch));
+    if (!rows[0]) {
+      if (expected.status !== undefined || expected.updatedAt !== undefined) {
+        throw new StoreOrderError(409, 'La commande a changé. Rechargez avant de réessayer.', 'ORDER_CONFLICT');
+      }
+      throw new StoreOrderError(404, 'Commande introuvable.', 'ORDER_NOT_FOUND');
+    }
     return fromRow(rows[0]);
   }
   async listForBuyer(buyerAddress) {
@@ -422,7 +435,18 @@ function createOrderService(options = {}) {
     const patch = verification.confirmed
       ? { txHash, status: 'paid', paidAt: order.paidAt || timestamp, updatedAt: timestamp }
       : { txHash, status: 'payment_pending', updatedAt: timestamp };
-    return customerOrder(await repository.update(orderId, patch));
+    try {
+      return customerOrder(await repository.update(orderId, patch, { status: order.status, updatedAt: order.updatedAt }));
+    } catch (error) {
+      if (error instanceof StoreOrderError && error.code === 'ORDER_CONFLICT') {
+        const current = await repository.getById(orderId);
+        if (current && current.buyerAddress === buyer && current.txHash === txHash
+          && (current.status === 'payment_pending' || VISIBLE_STATUSES.includes(current.status))) {
+          return customerOrder(current);
+        }
+      }
+      throw error;
+    }
   }
 
   async function refreshPayment(order) {
@@ -430,7 +454,9 @@ function createOrderService(options = {}) {
     const verification = await paymentVerifier(order, order.txHash);
     if (!verification.confirmed) return order;
     const timestamp = now().toISOString();
-    return repository.update(order.id, { status: 'paid', paidAt: order.paidAt || timestamp, updatedAt: timestamp });
+    return repository.update(order.id,
+      { status: 'paid', paidAt: order.paidAt || timestamp, updatedAt: timestamp },
+      { status: order.status, updatedAt: order.updatedAt });
   }
 
   async function listCustomerOrders(body) {
@@ -472,12 +498,14 @@ function createOrderService(options = {}) {
     privateData.delivery = Protocol.normalizeDelivery(privateData.delivery);
     privateData.carrier = Protocol.cleanPrivate(body.carrier, 80);
     privateData.trackingNumber = Protocol.cleanPrivate(body.trackingNumber, 120);
+    const previousUpdate = Date.parse(order.updatedAt);
+    const updatedAt = new Date(Math.max(now().getTime(), Number.isFinite(previousUpdate) ? previousUpdate + 1 : 0)).toISOString();
     const patch = {
       status: nextStatus,
       privateCiphertext: encrypt(order.id, privateData),
-      updatedAt: now().toISOString()
+      updatedAt
     };
-    return adminOrder(await repository.update(order.id, patch));
+    return adminOrder(await repository.update(order.id, patch, { status: order.status, updatedAt: order.updatedAt }));
   }
 
   return Object.freeze({
