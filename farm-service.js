@@ -265,11 +265,31 @@ async function verifyFtaTransfer(expectation, txHash, options = {}) {
   throw new FarmError(503, 'La vérification Polygon est indisponible.', 'FARM_RPC_UNAVAILABLE');
 }
 
+function aviatorRandomValue(serverSeed, clientSeed, roundId) {
+  const digest = crypto.createHmac('sha256', Buffer.from(serverSeed, 'hex')).update(`${clientSeed}:${roundId}`).digest();
+  return Math.floor(digest.readUInt32BE(0) * ArcadeConfig.CRASH_RANDOM_RANGE / 0x100000000);
+}
+function publicAviatorRound(round) {
+  if (!round) return null;
+  return {
+    version: 2, id: round.id, status: round.status, stake: round.stake, coins: round.coins,
+    bets: round.bets.map((bet) => ({
+      slot: bet.slot, actionId: bet.actionId, stake: bet.stake, autoTargetBps: bet.autoTargetBps,
+      status: bet.status, cashoutBps: bet.cashoutBps, cashoutKind: bet.cashoutKind, coins: bet.coins,
+      placedAt: bet.placedAt, settledAt: bet.settledAt, settlementActionId: bet.settlementActionId
+    })),
+    clientSeed: round.clientSeed, seedHash: round.seedHash, createdAt: round.createdAt, startsAt: round.startsAt,
+    completedAt: null, lastAction: round.lastAction ? clone(round.lastAction) : null
+  };
+}
+const AVIATOR_ACTIONS = new Set(['crash_start', 'crash_bet', 'crash_cashout', 'crash_sync']);
+
 function createFarmService(options = {}) {
   if (!options.repository) throw new Error('Un stockage FARM est requis.');
   const repository = options.repository;
   const now = options.now || (() => new Date());
   const randomInt = options.randomInt || ((maximum) => crypto.randomInt(maximum));
+  const randomBytes = options.randomBytes || ((size) => crypto.randomBytes(size));
   const verifier = options.paymentVerifier || ((expectation, hash) => verifyFtaTransfer(expectation, hash, options.rpc));
 
   function authenticate(action, body) {
@@ -287,23 +307,37 @@ function createFarmService(options = {}) {
     const state = normalizeState(record?.state, wallet);
     const withdrawals = await repository.listWithdrawals(wallet);
     const publicState = clone(state);
-    // Les positions d'une manche active ne quittent jamais le stockage serveur.
+    // Les positions Mines et le point de crash actif ne quittent jamais le stockage serveur.
     if (publicState.mines.active) delete publicState.mines.active.minePositions;
-    const result = { state: publicState, revision: record?.revision || 0, withdrawals };
+    if (publicState.crash.active) publicState.crash.active = publicAviatorRound(state.crash.active);
+    const result = { state: publicState, revision: record?.revision || 0, withdrawals, serverTime: now().getTime() };
     if (spinId) result.spin = state.wheel.recentSpins.find((spin) => spin.id === spinId) || null;
     if (rollId) result.roll = state.dice.recentRolls.find((roll) => roll.id === rollId) || null;
     if (ids.minesActionId) result.minesAction = ArcadeState.findMinesAction(state, ids.minesActionId);
     if (ids.crashId) result.crashResult = state.crash.recentRounds.find((round) => round.id === ids.crashId) || null;
+    if (ids.crashActionId) result.crashAction = ArcadeState.findCrashAction(state, ids.crashActionId);
     if (ids.flipId) result.flip = state.coinFlip.recentFlips.find((flip) => flip.id === ids.flipId) || null;
     return result;
   }
-  async function getState(body) { return view(authenticate('state', body)); }
+  async function getState(body) {
+    const wallet = authenticate('state', body);
+    const record = await repository.get(wallet);
+    const state = normalizeState(record?.state, wallet);
+    if (state.crash.active) {
+      const actionId = crypto.randomUUID(); const timestamp = now().getTime();
+      if (advanceAviator(state, actionId, 'crash_sync', timestamp).changed) {
+        return applyIdempotent(wallet, actionId, 'crash_sync', state, record?.revision || 0);
+      }
+    }
+    return view(wallet);
+  }
   async function applyIdempotent(wallet, actionId, actionType, state, expectedRevision, extra = {}) {
     const spinId = actionType === 'wheel_spin' ? actionId : null;
     const rollId = actionType === 'dice_roll' ? actionId : null;
     const ids = {
       minesActionId: ['mines_start', 'mines_reveal', 'mines_cashout'].includes(actionType) ? actionId : null,
       crashId: actionType === 'crash_play' ? actionId : null,
+      crashActionId: AVIATOR_ACTIONS.has(actionType) ? actionId : null,
       flipId: actionType === 'coin_flip' ? actionId : null
     };
     try {
@@ -478,8 +512,145 @@ function createFarmService(options = {}) {
     state.updatedAt = timestamp;
     return state;
   }
+  function normalizeAviatorBetParams(params, actionId) {
+    const slot = ArcadeConfig.normalizeAviatorSlot(params.slot);
+    const stake = ArcadeConfig.normalizeAviatorStake(params.stake);
+    const autoTargetBps = params.autoTargetBps === null || params.autoTargetBps === undefined ? null : ArcadeConfig.normalizeAviatorTarget(params.autoTargetBps);
+    const clientSeed = params.clientSeed === undefined ? actionId : String(params.clientSeed || '');
+    if (!slot) throw new FarmError(400, 'Emplacement de mise Aviator invalide.', 'CRASH_SLOT');
+    if (!stake) throw new FarmError(400, 'Mise Aviator invalide.', 'CRASH_STAKE');
+    if (params.autoTargetBps !== null && params.autoTargetBps !== undefined && !autoTargetBps) throw new FarmError(400, 'Auto cashout Aviator invalide.', 'CRASH_TARGET');
+    if (!/^[A-Za-z0-9-]{8,64}$/.test(clientSeed)) throw new FarmError(400, 'Graine client Aviator invalide.', 'CRASH_CLIENT_SEED');
+    return { slot, stake, autoTargetBps, clientSeed };
+  }
+  function incrementCrashStat(game, key, amount) {
+    game[key] += amount;
+    if (!Number.isSafeInteger(game[key]) || game[key] < 0) throw new FarmError(409, 'Limite de statistiques atteinte.', 'FARM_LIMIT');
+  }
+  function setAviatorAction(round, actionId, type, timestamp, events, crashed = false) {
+    round.lastAction = { id: actionId, type, roundId: round.id, events, crash: crashed, createdAt: new Date(timestamp).toISOString() };
+  }
+  function cashoutAviatorBet(state, round, bet, cashoutBps, kind, actionId, timestamp, events) {
+    if (bet.status !== 'active') return;
+    const coins = ArcadeConfig.aviatorPayout(bet.stake, cashoutBps);
+    if (state.coins + coins > Config.MAX_COINS) throw new FarmError(409, 'Limite de coins atteinte.', 'FARM_LIMIT');
+    state.coins += coins;
+    bet.status = 'cashed'; bet.cashoutBps = cashoutBps; bet.cashoutKind = kind; bet.coins = coins;
+    bet.settledAt = new Date(timestamp).toISOString(); bet.settlementActionId = actionId;
+    round.coins += coins; incrementCrashStat(state.crash, 'totalWonCoins', coins);
+    events.push({ slot: bet.slot, kind, cashoutBps, coins });
+  }
+  function finishAviatorCrash(state, round, actionId, timestamp, events) {
+    for (const bet of round.bets) {
+      if (bet.status !== 'active') continue;
+      bet.status = 'lost'; bet.cashoutBps = null; bet.cashoutKind = null; bet.coins = 0;
+      bet.settledAt = round.crashAt; bet.settlementActionId = actionId;
+      events.push({ slot: bet.slot, kind: 'lost', cashoutBps: null, coins: 0 });
+    }
+    round.status = 'crashed'; round.completedAt = round.crashAt;
+    state.crash.active = null;
+    state.crash.recentRounds.unshift(round);
+    state.crash.recentRounds = state.crash.recentRounds.slice(0, ArcadeConfig.HISTORY_LIMIT);
+    incrementCrashStat(state.crash, 'totalRounds', 1);
+  }
+  function advanceAviator(state, actionId, type, timestamp) {
+    const round = state.crash.active;
+    if (!round) return { round: null, events: [], changed: false, crashed: false };
+    const events = []; let changed = false;
+    const startsMs = Date.parse(round.startsAt); const crashMs = Date.parse(round.crashAt);
+    if (round.status === 'betting' && timestamp >= startsMs) { round.status = 'flying'; changed = true; }
+    if (timestamp >= startsMs) {
+      const automatic = round.bets.filter((bet) => bet.status === 'active' && bet.autoTargetBps && bet.autoTargetBps <= round.crashBps)
+        .map((bet) => ({ bet, at: startsMs + ArcadeConfig.crashTimeForMultiplier(bet.autoTargetBps) }))
+        .filter((entry) => entry.at <= timestamp).sort((a, b) => a.at - b.at || a.bet.slot - b.bet.slot);
+      for (const entry of automatic) {
+        cashoutAviatorBet(state, round, entry.bet, entry.bet.autoTargetBps, 'auto', actionId, entry.at, events);
+        changed = true;
+      }
+    }
+    let crashed = false;
+    if (timestamp >= crashMs) {
+      finishAviatorCrash(state, round, actionId, crashMs, events);
+      crashed = true; changed = true;
+    }
+    if (changed) { setAviatorAction(round, actionId, type, timestamp, events, crashed); state.updatedAt = timestamp; }
+    return { round, events, changed, crashed };
+  }
+  function startAviator(state, params, actionId, timestamp) {
+    requireStarted(state);
+    if (state.crash.active) {
+      const previous = advanceAviator(state, actionId, 'crash_sync', timestamp);
+      if (!previous.crashed) throw new FarmError(409, 'Un vol Aviator est déjà actif.', 'CRASH_ROUND_ACTIVE');
+    }
+    const betParams = normalizeAviatorBetParams(params, actionId);
+    if (state.coins < betParams.stake) throw new FarmError(409, 'Coins insuffisants pour cette mise.', 'FARM_INSUFFICIENT_COINS');
+    const serverSeed = Buffer.from(randomBytes(32, { actionId, clientSeed: betParams.clientSeed })).toString('hex');
+    if (!/^[0-9a-f]{64}$/.test(serverSeed)) throw new FarmError(500, 'Le tirage Aviator est indisponible.', 'CRASH_RANDOM');
+    const seedHash = crypto.createHash('sha256').update(serverSeed).digest('hex');
+    const randomValue = aviatorRandomValue(serverSeed, betParams.clientSeed, actionId);
+    const crashBps = ArcadeConfig.selectCrashPoint(randomValue);
+    const startsMs = timestamp + ArcadeConfig.CRASH_AVIATOR_BETTING_MS;
+    const crashMs = startsMs + ArcadeConfig.crashTimeForMultiplier(crashBps);
+    const createdAt = new Date(timestamp).toISOString(); const startsAt = new Date(startsMs).toISOString(); const crashAt = new Date(crashMs).toISOString();
+    const bet = {
+      slot: betParams.slot, actionId, stake: betParams.stake, autoTargetBps: betParams.autoTargetBps,
+      status: 'active', cashoutBps: null, cashoutKind: null, coins: 0, placedAt: createdAt, settledAt: null, settlementActionId: null
+    };
+    const round = {
+      version: 2, id: actionId, status: 'betting', bets: [bet], stake: bet.stake, coins: 0,
+      crashBps, randomValue, seedHash, serverSeed, clientSeed: betParams.clientSeed,
+      createdAt, startsAt, crashAt, completedAt: null, lastAction: null
+    };
+    setAviatorAction(round, actionId, 'crash_start', timestamp, []);
+    state.coins -= bet.stake; state.crash.active = round;
+    incrementCrashStat(state.crash, 'totalStaked', bet.stake); state.updatedAt = timestamp;
+    return true;
+  }
+  function joinAviator(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const round = state.crash.active;
+    if (!round || String(params.roundId || '').toLowerCase() !== round.id) throw new FarmError(409, 'Le vol Aviator est introuvable.', 'CRASH_ROUND');
+    if (round.status !== 'betting' || timestamp >= Date.parse(round.startsAt)) throw new FarmError(409, 'Les mises de ce vol sont closes.', 'CRASH_BETTING_CLOSED');
+    const betParams = normalizeAviatorBetParams(params, actionId);
+    if (round.bets.some((bet) => bet.slot === betParams.slot) || round.bets.length >= ArcadeConfig.CRASH_AVIATOR_MAX_BETS) throw new FarmError(409, 'Cette mise est déjà placée.', 'CRASH_BET_ACTIVE');
+    if (state.coins < betParams.stake) throw new FarmError(409, 'Coins insuffisants pour cette mise.', 'FARM_INSUFFICIENT_COINS');
+    const placedAt = new Date(timestamp).toISOString();
+    const bet = {
+      slot: betParams.slot, actionId, stake: betParams.stake, autoTargetBps: betParams.autoTargetBps,
+      status: 'active', cashoutBps: null, cashoutKind: null, coins: 0, placedAt, settledAt: null, settlementActionId: null
+    };
+    round.bets.push(bet); round.bets.sort((a, b) => a.slot - b.slot); round.stake += bet.stake;
+    setAviatorAction(round, actionId, 'crash_bet', timestamp, []);
+    state.coins -= bet.stake; incrementCrashStat(state.crash, 'totalStaked', bet.stake); state.updatedAt = timestamp;
+    return true;
+  }
+  function cashoutAviator(state, params, actionId, timestamp) {
+    requireStarted(state);
+    const round = state.crash.active;
+    if (!round || String(params.roundId || '').toLowerCase() !== round.id) return false;
+    const slot = ArcadeConfig.normalizeAviatorSlot(params.slot);
+    if (!slot) throw new FarmError(400, 'Emplacement de mise Aviator invalide.', 'CRASH_SLOT');
+    const advanced = advanceAviator(state, actionId, 'crash_cashout', timestamp);
+    if (advanced.crashed) return true;
+    const bet = round.bets.find((item) => item.slot === slot);
+    if (!bet || bet.status !== 'active') return advanced.changed;
+    if (round.status !== 'flying' || timestamp < Date.parse(round.startsAt)) throw new FarmError(409, 'Le vol n’a pas encore décollé.', 'CRASH_NOT_FLYING');
+    const cashoutBps = ArcadeConfig.crashMultiplierAt(timestamp - Date.parse(round.startsAt));
+    if (cashoutBps <= 100) throw new FarmError(409, 'Le multiplicateur doit dépasser 1,00×.', 'CRASH_CASHOUT_EARLY');
+    const events = advanced.events.slice();
+    cashoutAviatorBet(state, round, bet, cashoutBps, 'manual', actionId, timestamp, events);
+    setAviatorAction(round, actionId, 'crash_cashout', timestamp, events, false);
+    state.updatedAt = timestamp;
+    return true;
+  }
+  function syncAviator(state, params, actionId, timestamp) {
+    const round = state.crash.active;
+    if (!round || String(params.roundId || '').toLowerCase() !== round.id) return false;
+    return advanceAviator(state, actionId, 'crash_sync', timestamp).changed;
+  }
   function playCrash(state, params, actionId, timestamp) {
     requireStarted(state);
+    if (state.crash.active) throw new FarmError(409, 'Terminez le vol Aviator actif.', 'CRASH_ROUND_ACTIVE');
     const stake = ArcadeConfig.normalizeStake(params.stake); const targetBps = ArcadeConfig.normalizeCrashTarget(params.targetBps);
     if (!stake) throw new FarmError(400, 'Mise Crash invalide.', 'CRASH_STAKE');
     if (!targetBps) throw new FarmError(400, 'Cible Crash invalide.', 'CRASH_TARGET');
@@ -588,13 +759,25 @@ function createFarmService(options = {}) {
       return view(wallet, type === 'wheel_spin' ? actionId : null, type === 'dice_roll' ? actionId : null, {
         minesActionId: ['mines_start', 'mines_reveal', 'mines_cashout'].includes(type) ? actionId : null,
         crashId: type === 'crash_play' ? actionId : null,
+        crashActionId: AVIATOR_ACTIONS.has(type) ? actionId : null,
         flipId: type === 'coin_flip' ? actionId : null
       });
     }
     const params = Protocol.normalizeParams(body.params);
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
-    transition(state, type, params, actionId, now().getTime());
+    const timestamp = now().getTime();
+    if (!AVIATOR_ACTIONS.has(type) && state.crash.active) advanceAviator(state, actionId, 'crash_sync', timestamp);
+    if (AVIATOR_ACTIONS.has(type)) {
+      let changed = false;
+      if (type === 'crash_start') changed = startAviator(state, params, actionId, timestamp);
+      else if (type === 'crash_bet') changed = joinAviator(state, params, actionId, timestamp);
+      else if (type === 'crash_cashout') changed = cashoutAviator(state, params, actionId, timestamp);
+      else changed = syncAviator(state, params, actionId, timestamp);
+      if (!changed) return view(wallet);
+      return applyIdempotent(wallet, actionId, type, state, record?.revision || 0);
+    }
+    transition(state, type, params, actionId, timestamp);
     return applyIdempotent(wallet, actionId, type, state, record?.revision || 0);
   }
   async function withdraw(body) {

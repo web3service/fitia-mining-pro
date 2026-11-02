@@ -95,6 +95,7 @@
       this.scene = null; this.active = false; this.initialized = false; this.operation = false;
       this.refreshPromise = null; this.pendingCheck = null; this.pendingDeposit = null;
       this.pollTimer = null; this.clockTimer = null; this.retryTimer = null; this.backgroundPollTimer = null; this.session = 0; this.tab = 'overview';
+      this.serverOffset = 0;
       this.withdrawalStatuses = {};
     }
     init() {
@@ -141,7 +142,7 @@
       this.session += 1; this.account = account && ethers.isAddress(account) ? account.toLowerCase() : null;
       this.loadWithdrawalStatuses();
       this.state = null; this.revision = 0; this.withdrawals = []; this.pendingDeposit = null;
-      this.refreshPromise = null; this.pendingCheck = null; this.operation = false;
+      this.refreshPromise = null; this.pendingCheck = null; this.operation = false; this.serverOffset = 0;
       clearTimeout(this.retryTimer); this.retryTimer = null;
       if (!this.account) this.setActive(false);
       else this.loadPendingDeposit();
@@ -219,6 +220,7 @@
       const revision = Number(data.revision || 0);
       if (revision < this.revision) return;
       this.revision = revision; this.state = data.state; this.withdrawals = Array.isArray(data.withdrawals) ? data.withdrawals : [];
+      if (Number.isSafeInteger(data.serverTime) && Math.abs(data.serverTime - Date.now()) < 8640000000000000) this.serverOffset = data.serverTime - Date.now();
       this.synchronizeWithdrawals(this.withdrawals);
       this.scene?.setState(this.state); this.render();
     }
@@ -252,6 +254,7 @@
       this.focusCamera(tab);
     }
     started() { return Boolean(this.state?.land?.owned && this.state?.animals?.length); }
+    serverNow() { return Date.now() + Number(this.serverOffset || 0); }
     render() {
       const state = this.state || emptyState(this.account || '');
       const byId = (id) => document.getElementById(id);

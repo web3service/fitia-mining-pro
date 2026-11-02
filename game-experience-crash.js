@@ -1,117 +1,81 @@
 'use strict';
 
-// Local, lightweight Crash presentation. It only renders outcomes supplied by
-// the authoritative FitiaCrash controller; it never creates a game result.
-window.createGameCrashPresentation = function createGameCrashPresentation(container) {
-  if (!container) return { available: false, setActive() {}, resize() {}, reset() {}, startWaiting() {}, showResult() {}, animateResult() { return Promise.resolve(); }, cancelAnimation() {}, dispose() {} };
+// Local presentation only. The authoritative controller supplies timestamps,
+// bets and settled outcomes; this renderer never knows the active crash point.
+window.createGameCrashPresentation = function createGameCrashPresentation(container, options = {}) {
+  const empty = { available: false, setActive() {}, resize() {}, reset() {}, setRound() {}, startWaiting() {}, showResult() {}, animateResult() { return Promise.resolve(); }, cancelAnimation() {}, dispose() {} };
+  if (!container) return empty;
+  const Config = window.FitiaArcadeConfig;
   const stage = container.closest('.flight-stage');
   const plane = container.querySelector('.flight-plane');
   const line = container.querySelector('.flight-chart-line');
   const impact = container.querySelector('.flight-impact');
-  const multiplier = stage?.querySelector('#crash-multiplier');
-  const reducedMotion = () => Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
-  let active = false;
-  let waiting = false;
-  let frame = 0;
-  let animation = null;
-  let resolveAnimation = null;
-
+  const multiplierLabel = stage?.querySelector('#crash-multiplier');
+  const clock = options.clock || (() => Date.now());
+  const onTick = options.onTick || (() => {});
+  let active = false; let frame = 0; let round = null; let result = null; let resultKey = null;
   const paint = (travel, bps) => {
     const progress = Math.max(0, Math.min(1, Number(travel) || 0));
-    const x = 12 + 68 * progress;
-    const y = 22 + 53 * progress;
-    plane.style.left = `${x}%`;
-    plane.style.bottom = `${y}%`;
-    impact.style.left = `${x}%`;
-    impact.style.bottom = `${y}%`;
+    const x = 12 + 68 * progress; const y = 22 + 53 * progress;
+    plane.style.left = `${x}%`; plane.style.bottom = `${y}%`;
+    impact.style.left = `${x}%`; impact.style.bottom = `${y}%`;
     line.setAttribute('d', `M0 235 Q ${x * 5} 235 ${x * 10} ${235 - (y - 22) * 2.8}`);
-    if (multiplier) multiplier.textContent = `${(Math.max(100, bps) / 100).toFixed(2)}×`;
+    if (multiplierLabel) multiplierLabel.textContent = `${(Math.max(100, bps) / 100).toFixed(2)}×`;
   };
-  const cancelAnimation = () => {
-    waiting = false;
-    container.classList.remove('waiting');
-    if (frame) cancelAnimationFrame(frame);
-    frame = 0;
-    animation = null;
-    const resolve = resolveAnimation;
-    resolveAnimation = null;
-    if (resolve) resolve();
-  };
+  const progressFor = (bps) => Math.max(0, Math.min(0.96, Math.log(Math.max(100, bps) / 100) / Math.log(100)));
+  const stop = () => { if (frame) cancelAnimationFrame(frame); frame = 0; };
   const reset = () => {
-    cancelAnimation();
-    container.classList.remove('crashed', 'won', 'settled');
-    paint(0, 100);
+    stop(); round = null; result = null; resultKey = null;
+    container.classList.remove('waiting', 'crashed', 'won', 'settled'); paint(0, 100);
   };
-  const finish = () => {
-    if (!animation) return;
-    paint(animation.travel, animation.endBps);
-    const resolve = resolveAnimation;
-    animation = null;
-    resolveAnimation = null;
-    frame = 0;
-    if (resolve) resolve();
+  const showResult = (value, settled = true) => {
+    if (!value) { reset(); return; }
+    const wasFlying = Boolean(round); stop(); round = null; result = value;
+    const key = `${value.id || 'result'}:${value.crashBps || 100}`;
+    if (key === resultKey) { if (settled) container.classList.add('settled'); return; }
+    resultKey = key;
+    const legacyWin = value.version !== 2 && value.won;
+    container.classList.remove('waiting', 'crashed', 'won', 'settled');
+    container.classList.toggle('won', Boolean(legacyWin));
+    container.classList.toggle('crashed', !legacyWin);
+    container.classList.toggle('settled', settled || !wasFlying);
+    const bps = Number(value.crashBps || value.targetBps || 100);
+    paint(progressFor(bps), bps);
   };
-  const tick = (time) => {
-    if (!active || !animation) return;
-    const progress = Math.min(1, (time - animation.startedAt) / animation.duration);
-    const eased = Math.pow(progress, 1.55);
-    const travel = eased * animation.endProgress;
-    const bps = 100 + (animation.endBps - 100) * eased;
-    animation.travel = travel;
-    paint(travel, bps);
-    if (!animation.won && progress >= 0.78) container.classList.add('crashed');
-    if (progress >= 1) { finish(); return; }
-    frame = requestAnimationFrame(tick);
-  };
-  const setActive = (value) => {
-    active = Boolean(value);
-    if (!active) cancelAnimation();
-  };
-  const outcomeFor = (result) => {
-    const won = Boolean(result?.won);
-    const targetBps = Number(result?.targetBps) || 200;
-    const crashBps = Number(result?.crashBps) || 100;
-    return {
-      won,
-      endBps: won ? targetBps : crashBps,
-      endProgress: won ? 1 : Math.max(0, Math.min(0.96, (crashBps - 100) / Math.max(1, targetBps - 100)))
-    };
-  };
-  const showResult = (result) => {
-    reset();
-    const { won, endBps, endProgress } = outcomeFor(result);
-    paint(endProgress, endBps);
-    container.classList.toggle('won', won);
-    container.classList.toggle('crashed', !won);
-    container.classList.add('settled');
-  };
-  const animateResult = (result) => {
-    reset();
-    const { won, endBps, endProgress } = outcomeFor(result);
-    container.classList.toggle('won', won);
-    if (!active || reducedMotion()) {
-      paint(endProgress, endBps);
-      container.classList.toggle('crashed', !won);
-      container.classList.add('settled');
-      return Promise.resolve();
+  const tick = () => {
+    if (!active || !round) { frame = 0; return; }
+    if (round.status === 'betting') {
+      container.classList.add('waiting'); paint(0, 100); onTick(100, 'betting');
+    } else {
+      container.classList.remove('waiting');
+      const elapsed = Math.max(0, clock() - Date.parse(round.startsAt));
+      const bps = Config.crashMultiplierAt(elapsed);
+      paint(progressFor(bps), bps); onTick(bps, 'flying');
     }
-    animation = { won, endBps, endProgress, travel: 0, startedAt: performance.now(), duration: 2450 };
     frame = requestAnimationFrame(tick);
-    return new Promise((resolve) => { resolveAnimation = resolve; });
   };
-
-  container.classList.remove('waiting', 'crashed', 'won', 'settled');
-  paint(0, 100);
+  const start = () => { if (active && round && !frame) frame = requestAnimationFrame(tick); };
+  const setRound = (value, completed = null) => {
+    if (value) {
+      const changed = round?.id !== value.id || result;
+      round = value; result = null; resultKey = null;
+      container.classList.remove('crashed', 'won', 'settled');
+      container.classList.toggle('waiting', value.status === 'betting');
+      if (changed) paint(0, 100);
+      start(); return;
+    }
+    if (completed) { showResult(completed, !round); return; }
+    reset();
+  };
   return {
     available: true,
-    setActive,
-    resize() {},
-    reset,
-    startWaiting() { reset(); waiting = !reducedMotion(); container.classList.toggle('waiting', waiting); },
+    setActive(value) { active = Boolean(value); if (active) start(); else stop(); },
+    resize() {}, reset, setRound,
+    startWaiting() { container.classList.add('waiting'); paint(0, 100); },
     showResult,
-    animateResult,
-    cancelAnimation,
-    dispose() { setActive(false); reset(); }
+    animateResult(value) { showResult(value, false); return Promise.resolve(); },
+    cancelAnimation() { stop(); },
+    dispose() { active = false; reset(); }
   };
 };
 
@@ -179,26 +143,25 @@ window.setupGameCrash = function setupGameCrash(app) {
           </div>
         </section>
         <section id="crash-result" class="flight-result hidden" aria-live="polite"><span>FLIGHT RESULT</span><strong id="crash-result-title"></strong><small id="crash-result-detail"></small></section>
-        <div class="flight-controls-heading"><div><span class="flight-section-label">PREPARE YOUR FLIGHT</span><h3>Place your bet</h3></div><span>1 BET · AUTO CASHOUT</span></div>
-        <div class="flight-bets">
-          <section class="flight-bet">
-            <div class="flight-bet-head"><div class="flight-bet-label"><span class="flight-bet-number">01</span><div><strong>YOUR BET</strong><small>FARM coins</small></div></div><span id="flight-bet-state">READY</span></div>
-            <span class="flight-field-label">STAKE AMOUNT</span>
-            <div class="flight-selected-value"><span>SELECTED STAKE</span><strong id="flight-stake-value">50 coins</strong></div>
-            <div class="flight-quick" role="group" aria-label="Stake amount">${[50,100,200,500].map((value) => `<button type="button" data-crash-stake="${value}" aria-pressed="false">${value}</button>`).join('')}</div>
-            <button id="crash-play-button" class="flight-action" type="button"><span>LAUNCH · 50 COINS</span></button>
-            <p id="crash-status" class="flight-status hidden" role="alert"></p>
-          </section>
-          <section class="flight-bet flight-target-bet">
-            <div class="flight-bet-head"><div class="flight-bet-label"><span class="flight-bet-number">02</span><div><strong>AUTO CASHOUT</strong><small>Signed target</small></div></div><span id="flight-target-value">2.00×</span></div>
-            <span class="flight-field-label">TARGET MULTIPLIER</span>
-            <div class="flight-quick flight-targets" role="group" aria-label="Automatic cashout target">${[150,200,300,500,1000].map((value) => `<button type="button" data-crash-target="${value}" aria-pressed="false">${(value / 100).toFixed(value === 150 ? 1 : 0)}×</button>`).join('')}</div>
-            <div class="flight-quote"><div><span>CHANCE</span><strong id="crash-chance-value">47.50%</strong></div><div><span>GROSS PAYOUT</span><strong id="crash-payout-value">100 coins</strong></div><div><span>NET IF YOU WIN</span><strong id="crash-net-value">+50 coins</strong></div></div>
-          </section>
+        <div class="flight-controls-heading"><div><span class="flight-section-label">AVIATOR CONTROLS</span><h3>Place your bets</h3></div><button id="crash-add-bet" class="flight-add-bet" type="button"><span aria-hidden="true">+</span> ADD BET</button></div>
+        <div class="flight-bets">${[1, 2].map((slot) => `
+          <section id="crash-bet-panel-${slot}" class="flight-bet ${slot === 2 ? 'hidden' : ''}" data-crash-panel="${slot}">
+            <div class="flight-bet-head"><div class="flight-bet-label"><span class="flight-bet-number">0${slot}</span><div><strong>BET ${slot}</strong><small>Independent cashout</small></div></div><span id="crash-bet-state-${slot}">READY</span></div>
+            <div class="flight-stake-row"><span class="flight-field-label">STAKE AMOUNT</span><div class="flight-stake-input"><input id="crash-stake-input-${slot}" type="number" min="50" max="500" step="1" value="50" inputmode="numeric" aria-label="Bet ${slot} stake"><span>COINS</span></div></div>
+            <div class="flight-quick" role="group" aria-label="Bet ${slot} stake">${[50,100,200,500].map((value) => `<button type="button" data-crash-slot="${slot}" data-crash-stake="${value}" aria-pressed="false">${value}</button>`).join('')}</div>
+            <div class="flight-auto-grid">
+              <label class="flight-check"><input id="crash-auto-bet-${slot}" type="checkbox"><span>AUTO BET</span></label>
+              <label class="flight-check"><input id="crash-auto-cashout-${slot}" type="checkbox"><span>AUTO CASHOUT</span></label>
+            </div>
+            <div class="flight-target-editor"><span class="flight-field-label">CASHOUT MULTIPLIER</span><div><input id="crash-target-input-${slot}" type="number" min="1.01" max="100" step="0.01" value="${slot === 1 ? '2.00' : '3.00'}" inputmode="decimal" aria-label="Bet ${slot} auto cashout multiplier"><b>×</b></div></div>
+            <button id="crash-bet-button-${slot}" class="flight-action" type="button"><span>BET · 50 COINS</span></button>
+            ${slot === 2 ? '<button id="crash-remove-bet" class="flight-remove-bet" type="button">REMOVE SECOND BET</button>' : ''}
+          </section>`).join('')}
         </div>
+        <p id="crash-status" class="flight-status hidden" role="alert"></p>
         <section class="flight-players flight-history-panel" aria-labelledby="flight-history-title">
           <div class="flight-players-header"><div><span class="flight-section-label">YOUR ACTIVITY</span><h3 id="flight-history-title">Recent flights</h3></div><span class="flight-sim-badge">REAL HISTORY</span></div>
-          <div class="flight-players-stats"><div><span>TOTAL FLIGHTS</span><strong id="crash-total-rounds">0</strong></div><div><span>YOUR STAKE</span><strong id="flight-history-stake">50 <small>coins</small></strong></div><div><span>AUTO TARGET</span><strong id="flight-history-target">2.00×</strong></div></div>
+          <div class="flight-players-stats"><div><span>TOTAL FLIGHTS</span><strong id="crash-total-rounds">0</strong></div><div><span>BET PANELS</span><strong>UP TO 2</strong></div><div><span>FAIRNESS</span><strong>SHA-256</strong></div></div>
           <p id="crash-history-empty" class="flight-history-empty">No flights yet.</p>
           <div id="flight-history-table" class="flight-table-wrap hidden"><table class="flight-table"><thead><tr><th>FLIGHT</th><th>STAKE</th><th>NET RESULT</th></tr></thead><tbody id="crash-history-list"></tbody></table></div>
         </section>
@@ -258,7 +221,12 @@ window.setupGameCrash = function setupGameCrash(app) {
     .flight-player-name { display:flex; align-items:center; gap:8px; min-width:150px; }.flight-player-avatar { display:grid; place-items:center; flex:none; width:30px; height:30px; border-radius:10px; background:#473044; color:#ffa5bd; }.flight-player-avatar svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }.flight-history-row.won .flight-player-avatar { background:#28463f; color:#8fe0bc; }.flight-player-name>div { min-width:0; }.flight-player-name strong,.flight-player-name small { display:block; }.flight-player-name strong { color:#edf1f8; font-size:11px; }.flight-player-name small { margin-top:3px; color:#8a99ae; font-size:9px; }.flight-player-result { color:#9daec4; font-size:10px; font-weight:700; white-space:nowrap; }.flight-player-result.won { color:#78dbab; }.flight-player-result.lost { color:#f28b9c; }.flight-player-result small { display:block; margin-top:3px; color:#96a8bb; font-size:9px; font-weight:500; }
     .flight-visual.settled.crashed .flight-plane,.flight-visual.settled.crashed .flight-flash,.flight-visual.settled.crashed .impact-halo,.flight-visual.settled.crashed .impact-ring,.flight-visual.settled.crashed .impact-core,.flight-visual.settled.crashed .impact-smoke,.flight-visual.settled.crashed .impact-spark,.flight-visual.settled.crashed .impact-debris { animation:none; }
     .flight-visual.settled.crashed .flight-plane { opacity:0; }.flight-visual.settled.crashed .impact-halo { opacity:.35; transform:scale(1.1); }.flight-visual.settled.crashed .impact-ring { opacity:.55; transform:scale(1.4); }.flight-visual.settled.crashed .impact-smoke { opacity:.25; transform:translate(-8px,-20px) scale(1.2); }
-    .preview-flight button:focus-visible { outline:2px solid #f889a3; outline-offset:2px; }
+    .flight-add-bet { min-height:36px; padding:0 12px; border:1px solid #486474; border-radius:9px; background:#243543; color:#b9d9e8; font-size:10px; font-weight:800; cursor:pointer; }.flight-add-bet span { margin-right:4px; color:#8fe0bc; font-size:16px; vertical-align:-1px; }
+    .flight-stake-row { display:flex; align-items:end; justify-content:space-between; gap:10px; }.flight-stake-row>.flight-field-label { margin-bottom:12px; }.flight-stake-input { display:flex; align-items:center; width:155px; min-height:42px; padding:0 10px; border:1px solid #3b465a; border-radius:10px; background:#111927; }.flight-stake-input input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:#f4f7fc; font:700 15px 'JetBrains Mono',monospace; text-align:right; }.flight-stake-input span { margin-left:6px; color:#8492a8; font-size:8px; font-weight:800; }.flight-stake-input input:disabled,.flight-target-editor input:disabled { opacity:.65; }
+    .flight-auto-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:2px 0 12px; }.flight-check { display:flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:7px; border:1px solid #354052; border-radius:9px; background:#182130; color:#a7b5c8; font-size:9px; font-weight:800; cursor:pointer; }.flight-check input { width:16px; height:16px; margin:0; accent-color:#20b66c; cursor:pointer; }.flight-check:has(input:checked) { border-color:#2d7458; background:#1d342e; color:#a8e7cb; }.flight-check:has(input:disabled) { cursor:default; opacity:.68; }
+    .flight-target-editor { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:13px; }.flight-target-editor>.flight-field-label { margin:0; }.flight-target-editor>div { display:flex; align-items:center; width:112px; min-height:39px; padding:0 10px; border:1px solid #3b465a; border-radius:9px; background:#111927; }.flight-target-editor input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:#f4f7fc; font:700 13px 'JetBrains Mono',monospace; text-align:right; }.flight-target-editor b { margin-left:4px; color:#f3a5b8; font:700 13px 'JetBrains Mono',monospace; }
+    .flight-action.cashout { background:linear-gradient(100deg,#d86b24,#f49a36); box-shadow:0 4px 18px #ef852c33; color:#fff; }.flight-action[data-state="cashed"] { background:#294b40; color:#a8e7cb; }.flight-bet.cashed { border-color:#396b59; }.flight-remove-bet { display:block; margin:10px auto 0; border:0; background:transparent; color:#8998ac; font-size:9px; font-weight:700; cursor:pointer; }.flight-remove-bet:hover { color:#ffc0cc; }
+    .preview-flight button:focus-visible,.preview-flight input:focus-visible { outline:2px solid #f889a3; outline-offset:2px; }
     @media(max-width:620px) { .preview-flight { padding:0 0 24px; }.flight-header { gap:7px; }.flight-brand-mark { width:38px; height:38px; }.flight-title h2 { font-size:20px; }.flight-eyebrow { font-size:8px; }.flight-balance { padding:7px 8px; }.flight-arena { padding:8px; border-radius:15px; }.flight-stage { height:245px; }.flight-plane { width:100px; height:54px; }.flight-stage-label { font-size:7px; }.flight-center strong { font-size:50px; }.flight-arena-top { gap:7px; }.flight-arena-top>.flight-section-label { font-size:8px; }.flight-bets { grid-template-columns:1fr; gap:9px; }.flight-bet { padding:13px; }.flight-controls-heading { margin-top:18px; }.flight-quick button { min-height:40px; }.flight-quote { margin-top:12px; }.flight-players { padding:13px; }.flight-table { min-width:0; table-layout:fixed; }.flight-table th:first-child { width:52%; }.flight-table th:nth-child(2) { width:20%; }.flight-table th:last-child { width:28%; }.flight-player-name { min-width:0; gap:6px; }.flight-player-avatar { width:26px; height:26px; }.flight-player-name strong { font-size:10px; line-height:1.3; }.flight-player-name small { font-size:8px; line-height:1.35; overflow-wrap:anywhere; }.flight-table td:nth-child(2) { font-size:9px; white-space:nowrap; }.flight-player-result { font-size:9px; white-space:normal; }.flight-player-result small { font-size:8px; }.flight-history-panel .flight-table-wrap { overflow-x:hidden; } }
     @media(max-width:350px) { .flight-title h2 { font-size:18px; }.flight-balance>span { font-size:7px; }.flight-balance strong { font-size:12px; }.flight-stage { height:225px; }.flight-center strong { font-size:44px; }.flight-stage-footer { right:10px; left:10px; font-size:7px; }.flight-controls-heading>span { font-size:8px; }.flight-quote strong { font-size:11px; }.flight-players-stats strong { font-size:12px; } }
     @media(prefers-reduced-motion:reduce) { .flight-sun,.flight-visual.waiting .flight-plane,.flight-visual.crashed .flight-plane,.flight-visual.crashed .flight-flash,.flight-visual.crashed .impact-halo,.flight-visual.crashed .impact-ring,.flight-visual.crashed .impact-core,.flight-visual.crashed .impact-smoke,.flight-visual.crashed .impact-spark,.flight-visual.crashed .impact-debris { animation:none; }.flight-stage { transition:none; }.flight-visual.crashed .flight-plane { opacity:.15; }.flight-visual.crashed .impact-halo { opacity:.65; }.flight-visual.crashed .impact-ring { opacity:.75; transform:scale(1.5); } }
@@ -266,77 +234,47 @@ window.setupGameCrash = function setupGameCrash(app) {
   document.head.appendChild(style);
 
   game.createScene = function createPresentationScene() {
-    const scene = window.createGameCrashPresentation(byId('crash-3d-container'));
-    if (game.currentResult && !game.operation) scene.showResult(game.currentResult);
+    const scene = window.createGameCrashPresentation(byId('crash-3d-container'), {
+      clock: () => game.serverNow(), onTick: (bps) => game.updateLive(bps)
+    });
+    scene.setRound(game.activeRound(), game.currentResult);
     return scene;
   };
   const originalEnter = game.enter.bind(game);
   game.enter = function enterPresentation() {
     originalEnter();
-    if (this.currentResult && !this.operation) this.scene?.showResult?.(this.currentResult);
-  };
-  game.renderHistory = function renderPresentationHistory() {
-    const rounds = (this.crashState().recentRounds || []).filter((round) => !this.operation || round.id !== this.pending?.actionId);
-    const list = byId('crash-history-list');
-    const recent = byId('crash-recent-multipliers');
-    list.textContent = '';
-    recent.textContent = '';
-    byId('crash-history-empty').classList.toggle('hidden', rounds.length > 0);
-    byId('flight-history-table').classList.toggle('hidden', rounds.length === 0);
-    byId('crash-history-strip').classList.toggle('hidden', rounds.length === 0);
-    for (const round of rounds.slice(0, 8)) {
-      const chip = document.createElement('span');
-      const level = round.crashBps < 200 ? 'low' : round.crashBps < 1000 ? 'medium' : 'high';
-      chip.className = `crash-recent-chip ${level}`;
-      chip.textContent = compact(round.crashBps);
-      chip.title = `${round.won ? 'Auto cashout' : 'Crash'} at ${compact(round.crashBps)}`;
-      recent.appendChild(chip);
-    }
-    for (const round of rounds.slice(0, 8)) {
-      const net = round.coins - round.stake;
-      const row = document.createElement('tr');
-      row.className = `flight-history-row ${round.won ? 'won' : 'lost'}`;
-      const flight = document.createElement('td');
-      const identity = document.createElement('div'); identity.className = 'flight-player-name';
-      const icon = document.createElement('span'); icon.className = 'flight-player-avatar'; icon.setAttribute('aria-hidden', 'true');
-      icon.innerHTML = round.won
-        ? '<svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>'
-        : '<svg viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></svg>';
-      const copy = document.createElement('div');
-      const title = document.createElement('strong'); title.textContent = round.won ? `${compact(round.targetBps)} auto cashout` : `Crashed at ${compact(round.crashBps)}`;
-      const meta = document.createElement('small'); meta.textContent = `Target ${compact(round.targetBps)} · Gross ${fmt(round.coins)} coins`;
-      copy.append(title, meta); identity.append(icon, copy); flight.appendChild(identity);
-      const stake = document.createElement('td'); stake.textContent = `${fmt(round.stake)} coins`;
-      const outcome = document.createElement('td'); outcome.className = `flight-player-result ${round.won ? 'won' : 'lost'}`;
-      outcome.textContent = `${net >= 0 ? '+' : ''}${fmt(net)} coins`;
-      const detail = document.createElement('small'); detail.textContent = round.won ? 'Cashed out' : 'Stake lost'; outcome.appendChild(detail);
-      row.append(flight, stake, outcome); list.appendChild(row);
-    }
+    this.scene?.setRound?.(this.activeRound(), this.currentResult);
   };
 
-  const originalRender = game.render.bind(game);
-  game.render = function renderPresentation() {
-    originalRender();
-    const stake = this.pending?.params.stake || this.selectedStake;
-    const target = this.pending?.params.targetBps || this.selectedTarget;
-    byId('crash-coin-balance').textContent = fmt(this.farm.state?.coins || 0);
-    byId('flight-stake-value').textContent = `${fmt(stake)} coins`;
-    byId('flight-target-value').textContent = compact(target);
-    byId('flight-history-stake').textContent = `${fmt(stake)} coins`;
-    byId('flight-history-target').textContent = compact(target);
-    byId('flight-bet-state').textContent = this.pending ? 'RESUME AVAILABLE' : this.operation ? 'IN FLIGHT' : 'READY';
-    byId('crash-play-button').dataset.state = this.pending ? 'pending' : this.operation ? 'flying' : 'ready';
-    const result = this.currentResult;
-    const accessible = this.operation ? 'Airplane in flight' : result ? `${result.won ? 'Auto cashout' : 'Crash'} at ${compact(result.crashBps)}` : 'Airplane ready for takeoff';
-    byId('crash-3d-container').setAttribute('aria-label', accessible);
-  };
-
-  view.querySelectorAll('[data-crash-stake]').forEach((button) => button.addEventListener('click', () => game.setStake(Number(button.dataset.crashStake))));
-  view.querySelectorAll('[data-crash-target]').forEach((button) => button.addEventListener('click', () => game.setTarget(Number(button.dataset.crashTarget))));
-  byId('crash-play-button').addEventListener('click', () => game.play());
+  view.querySelectorAll('[data-crash-stake]').forEach((button) => button.addEventListener('click', () => {
+    game.setStake(Number(button.dataset.crashSlot || 1), Number(button.dataset.crashStake));
+  }));
+  for (let slot = 1; slot <= 2; slot += 1) {
+    byId(`crash-bet-button-${slot}`).addEventListener('click', () => game.play(slot));
+    byId(`crash-auto-bet-${slot}`).addEventListener('change', (event) => game.setAutoBet(slot, event.currentTarget.checked));
+    byId(`crash-auto-cashout-${slot}`).addEventListener('change', (event) => game.setAutoCashout(slot, event.currentTarget.checked));
+    const stakeInput = byId(`crash-stake-input-${slot}`);
+    stakeInput.addEventListener('change', () => {
+      const value = Number(stakeInput.value);
+      if (!Number.isSafeInteger(value) || !window.FitiaArcadeConfig.normalizeAviatorStake(value)) game.showError({ code: 'CRASH_STAKE' });
+      else game.setStake(slot, value);
+      game.render();
+    });
+    stakeInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') stakeInput.blur(); });
+    const targetInput = byId(`crash-target-input-${slot}`);
+    targetInput.addEventListener('change', () => {
+      const value = Math.round(Number(targetInput.value) * 100);
+      if (!Number.isSafeInteger(value) || !window.FitiaArcadeConfig.normalizeAviatorTarget(value)) game.showError({ code: 'CRASH_TARGET' });
+      else game.setTarget(slot, value);
+      game.render();
+    });
+    targetInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') targetInput.blur(); });
+  }
+  byId('crash-add-bet').addEventListener('click', () => game.toggleSecondBet(true));
+  byId('crash-remove-bet').addEventListener('click', () => game.toggleSecondBet(false));
   byId('crash-open-info').addEventListener('click', () => game.openInfo());
   byId('crash-open-farm').addEventListener('click', () => app.nav('farm'));
-  byId('crash-info-title').textContent = 'Crash rules and probabilities';
+  byId('crash-info-title').textContent = 'Aviator rules and fairness';
   byId('crash-close-info').setAttribute('aria-label', 'Close');
   game.render();
 };

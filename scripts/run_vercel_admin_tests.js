@@ -311,7 +311,7 @@ async function request(base, action, options = {}) {
     await runTest('La fonction serverless publie la visibilité des jeux avec CSRF, validation et secret côté serveur', async () => {
       const loaded = await request(baseB, 'game-visibility', { cookie });
       assert.strictEqual(loaded.response.status, 200, loaded.text);
-      assert.deepStrictEqual(loaded.data.manifest, { hiddenGames: ['dice', 'mines', 'crash', 'coin-flip'] });
+      assert.deepStrictEqual(loaded.data.manifest, { hiddenGames: ['dice', 'mines', 'coin-flip'] });
       assert.strictEqual(loaded.data.revision, 'sha-vercel-games-initial');
       const next = { hiddenGames: ['crash', 'wheel'] };
       const rejected = await request(baseB, 'game-visibility', {

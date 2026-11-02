@@ -48,7 +48,7 @@ function visibleGameCards() {
   try {
     await test('Manifeste public : cinq jeux connus, configuration publiée valide et ordre canonique', async () => {
       const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'game-visibility.json'), 'utf8'));
-      assert.deepStrictEqual(normalize(published), { hiddenGames: ['dice', 'mines', 'crash', 'coin-flip'] });
+      assert.deepStrictEqual(normalize(published), { hiddenGames: ['dice', 'mines', 'coin-flip'] });
       assert.deepStrictEqual(normalize({ hiddenGames: [] }), { hiddenGames: [] });
       assert.deepStrictEqual(gameIds, ['wheel', 'dice', 'mines', 'crash', 'coin-flip']);
       assert.deepStrictEqual(normalize({ hiddenGames: ['crash', 'wheel'] }), { hiddenGames: ['wheel', 'crash'] });

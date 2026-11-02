@@ -18,6 +18,11 @@
   const CRASH_TARGETS_BPS = Object.freeze([150, 200, 300, 500, 1000]);
   const CRASH_RANDOM_RANGE = 1000000;
   const CRASH_MAX_BPS = 10000;
+  const CRASH_AVIATOR_BETTING_MS = 4500;
+  const CRASH_AVIATOR_GROWTH_MS = 12000;
+  const CRASH_AVIATOR_MIN_STAKE = 50;
+  const CRASH_AVIATOR_MAX_STAKE = 500;
+  const CRASH_AVIATOR_MAX_BETS = 2;
 
   const FLIP_SIDES = Object.freeze(['heads', 'tails']);
 
@@ -41,6 +46,18 @@
   function normalizeCrashTarget(value) {
     const target = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
     return Number.isSafeInteger(target) && CRASH_TARGETS_BPS.includes(target) ? target : null;
+  }
+  function normalizeAviatorStake(value) {
+    const stake = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
+    return Number.isSafeInteger(stake) && stake >= CRASH_AVIATOR_MIN_STAKE && stake <= CRASH_AVIATOR_MAX_STAKE ? stake : null;
+  }
+  function normalizeAviatorTarget(value) {
+    const target = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
+    return Number.isSafeInteger(target) && target > 100 && target <= CRASH_MAX_BPS ? target : null;
+  }
+  function normalizeAviatorSlot(value) {
+    const slot = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
+    return Number.isSafeInteger(slot) && slot >= 1 && slot <= CRASH_AVIATOR_MAX_BETS ? slot : null;
   }
   function normalizeFlipChoice(value) {
     const choice = String(value || '').toLowerCase();
@@ -116,6 +133,35 @@
     return crashWinningOutcomes(target) / CRASH_RANDOM_RANGE * crashPayout(stake, target) / stake;
   }
 
+  function crashMultiplierAt(elapsedValue) {
+    const elapsed = Number(elapsedValue);
+    if (!Number.isFinite(elapsed) || elapsed <= 0) return 100;
+    return Math.max(100, Math.min(CRASH_MAX_BPS, Math.floor(100 * Math.exp(elapsed / CRASH_AVIATOR_GROWTH_MS))));
+  }
+  function crashTimeForMultiplier(targetValue) {
+    const target = typeof targetValue === 'string' && /^\d+$/.test(targetValue) ? Number(targetValue) : targetValue;
+    if (!Number.isSafeInteger(target) || target < 100 || target > CRASH_MAX_BPS) throw new Error('Invalid Aviator multiplier.');
+    if (target === 100) return 0;
+    return Math.ceil(CRASH_AVIATOR_GROWTH_MS * Math.log(target / 100));
+  }
+  function aviatorPayout(stakeValue, cashoutValue) {
+    const stake = normalizeAviatorStake(stakeValue);
+    const cashoutBps = typeof cashoutValue === 'string' && /^\d+$/.test(cashoutValue) ? Number(cashoutValue) : cashoutValue;
+    if (!stake || !Number.isSafeInteger(cashoutBps) || cashoutBps < 100 || cashoutBps > CRASH_MAX_BPS) throw new Error('Invalid Aviator payout parameters.');
+    return Math.floor(stake * cashoutBps / 100);
+  }
+  function aviatorWinningOutcomes(targetValue) {
+    const target = normalizeAviatorTarget(targetValue);
+    if (!target) throw new Error('Invalid Aviator target.');
+    let low = 0; let high = CRASH_RANDOM_RANGE;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (selectCrashPoint(middle) >= target) high = middle;
+      else low = middle + 1;
+    }
+    return CRASH_RANDOM_RANGE - low;
+  }
+
   function selectFlipSide(randomValue) {
     if (!Number.isSafeInteger(randomValue) || randomValue < 0 || randomValue >= FLIP_SIDES.length) throw new Error('Invalid coin flip random value.');
     return FLIP_SIDES[randomValue];
@@ -141,9 +187,11 @@
     VERSION, STAKES, HISTORY_LIMIT, RETURN_BPS,
     MINES_COUNTS, MINES_TILES, MINES_MAX_PAYOUT,
     CRASH_TARGETS_BPS, CRASH_RANDOM_RANGE, CRASH_MAX_BPS, FLIP_SIDES,
-    normalizeStake, normalizeMineCount, normalizeTileIndex, normalizeSafeCount, normalizeCrashTarget, normalizeFlipChoice,
+    CRASH_AVIATOR_BETTING_MS, CRASH_AVIATOR_GROWTH_MS, CRASH_AVIATOR_MIN_STAKE, CRASH_AVIATOR_MAX_STAKE, CRASH_AVIATOR_MAX_BETS,
+    normalizeStake, normalizeMineCount, normalizeTileIndex, normalizeSafeCount, normalizeCrashTarget, normalizeAviatorStake, normalizeAviatorTarget, normalizeAviatorSlot, normalizeFlipChoice,
     minesPayout, minesSurvivalRatio, minesExpectedReturnRatio, minesNextChance,
     selectCrashPoint, crashWinningOutcomes, crashPayout, crashReward, crashExpectedReturnRatio,
+    crashMultiplierAt, crashTimeForMultiplier, aviatorPayout, aviatorWinningOutcomes,
     selectFlipSide, flipPayout, flipReward, flipExpectedReturnRatio
   });
 });
