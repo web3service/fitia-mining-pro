@@ -79,6 +79,8 @@
           <label for="account-signup-username" data-i18n="accountUsername">Username</label>
           <input id="account-signup-username" class="game-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" aria-describedby="account-signup-username-help" required>
           <p id="account-signup-username-help" class="account-form-help" data-i18n="accountUsernameHelp">3–24 characters: A–Z, numbers or underscores. Begin with a letter or number.</p>
+          <label for="account-signup-country" data-i18n="accountCountry">Country</label>
+          <select id="account-signup-country" class="game-input" autocomplete="country" required><option value="" data-i18n="accountChooseCountry">Choose your country</option></select>
           <label for="account-signup-email" data-i18n="accountEmail">Email address</label>
           <input id="account-signup-email" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
           <label for="account-signup-password" data-i18n="accountPassword">Password</label>
@@ -112,8 +114,15 @@
             <div class="account-profile-heading">
               <strong id="account-profile-name">—</strong>
               <span id="account-profile-email">—</span>
+              <span id="account-profile-country" class="hidden"></span>
             </div>
           </div>
+          <div class="account-photo-actions">
+            <button id="account-photo-choose" class="btn-secondary" type="button" data-i18n="accountPhotoChoose">Change photo</button>
+            <button id="account-photo-remove" class="btn-secondary hidden" type="button" data-i18n="accountPhotoRemove">Remove photo</button>
+            <input id="account-photo-input" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" tabindex="-1">
+          </div>
+          <p class="account-form-help" data-i18n="accountPhotoLocal">Your photo is stored only on this device.</p>
           <div id="account-profile-badges" class="account-profile-badges"></div>
           <p id="account-profile-message" class="account-message hidden" role="status" aria-live="polite"></p>
         </div>

@@ -6,6 +6,7 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
 
+  const COUNTRY_CODES = 'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'.split(' ');
   const DEFAULT_API_URL = 'https://fitia-mining-pro.vercel.app/api/account';
   const PASSWORD_FIELDS = [
     'account-login-password', 'account-signup-password', 'account-signup-confirm',
@@ -54,6 +55,8 @@
       this.profileInputKey = '';
       this.initialized = false;
       this.canRetry = false;
+      this.photoRequest = null;
+      this.photoRevision = 0;
     }
 
     t(key, fallback) {
@@ -81,6 +84,11 @@
       this.byId('account-password-form')?.addEventListener('submit', (event) => {
         event.preventDefault(); this.changePassword().catch(() => {});
       });
+      this.populateCountries();
+      this.byId('account-photo-choose')?.addEventListener('click', () => this.choosePhoto());
+      this.byId('account-photo-remove')?.addEventListener('click', () => this.removePhoto());
+      this.byId('account-photo-input')?.addEventListener('change', (event) => this.loadPhoto(event));
+      window.addEventListener('fitia-profile-photo', (event) => this.acceptNativePhoto(event.detail));
       this.byId('account-copy-wallet')?.addEventListener('click', () => this.copyWalletAddress().catch(() => {}));
       this.byId('account-show-login')?.addEventListener('click', () => this.setMode('login'));
       this.byId('account-show-signup')?.addEventListener('click', () => this.setMode('signup'));
@@ -94,7 +102,7 @@
         button.addEventListener('click', () => this.togglePassword(button.getAttribute('data-account-password-toggle')));
       });
       const inputs = {
-        global: ['account-login-email', 'account-login-password', 'account-signup-username', 'account-signup-email', 'account-signup-password', 'account-signup-confirm'],
+        global: ['account-login-email', 'account-login-password', 'account-signup-username', 'account-signup-country', 'account-signup-email', 'account-signup-password', 'account-signup-confirm'],
         username: ['account-username-input'],
         email: ['account-email-input', 'account-email-current-password'],
         password: ['account-password-current', 'account-password-new', 'account-password-confirm']
@@ -173,7 +181,7 @@
         element.classList.toggle('account-button-busy', busy && action === id);
         element.setAttribute('aria-busy', String(busy && action === id));
       });
-      document.querySelectorAll('#account-access-screen .account-form input').forEach((input) => { input.disabled = busy; });
+      document.querySelectorAll('#account-access-screen .account-form input, #account-access-screen .account-form select').forEach((input) => { input.disabled = busy; });
       this.render();
     }
 
@@ -440,14 +448,96 @@
       }
     }
 
+    countryFlag(code) { return String.fromCodePoint(...[...code].map((letter) => 127397 + letter.charCodeAt(0))); }
+
+    countryName(code) {
+      try { return new Intl.DisplayNames([(this.app.currentLang || this.app.language) === 'sg' ? 'en-SG' : (this.app.currentLang || this.app.language || 'en')], { type: 'region' }).of(code) || code; }
+      catch (_) { return code; }
+    }
+
+    populateCountries() {
+      const select = this.byId('account-signup-country');
+      if (!select) return;
+      const lang = this.app.currentLang || this.app.language || 'en';
+      if (select.dataset.countryLanguage === lang) return;
+      const selected = select.value;
+      while (select.options.length > 1) select.remove(1);
+      select.dataset.countryLanguage = lang;
+      const countries = COUNTRY_CODES.map((code) => ({ code, name: this.countryName(code) })).sort((a, b) => a.name.localeCompare(b.name));
+      countries.forEach(({ code, name }) => {
+        const option = document.createElement('option'); option.value = code;
+        option.textContent = `${this.countryFlag(code)} ${name}`; select.appendChild(option);
+      });
+      select.value = selected;
+    }
+
+    photoKey() { return `fitia_profile_photo_v1:${this.user?.userId || ''}`; }
+
+    choosePhoto() {
+      if (!this.isAuthenticated()) return;
+      const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      this.photoRequest = { id: requestId, userId: this.user.userId, accessToken: this.session.accessToken, revision: ++this.photoRevision };
+      if (window.FitiaNative && typeof window.FitiaNative.chooseProfilePhoto === 'function') {
+        window.FitiaNative.chooseProfilePhoto(requestId);
+      } else { this.byId('account-photo-input')?.click(); }
+    }
+
+    storePhoto(data, request) {
+      if (!this.isAuthenticated() || !request || this.user.userId !== request.userId || this.session.accessToken !== request.accessToken || this.photoRevision !== request.revision) return;
+      if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(data) || data.length > 200000) {
+        this.showMessage(this.t('accountPhotoError', 'Unable to use this photo. Choose a JPEG, PNG or WebP image.'), true, 'profile'); return;
+      }
+      try { localStorage.setItem(this.photoKey(), data); this.clearMessage('profile'); this.render(); }
+      catch (_) { this.showMessage(this.t('accountPhotoError', 'Unable to use this photo. Choose a JPEG, PNG or WebP image.'), true, 'profile'); }
+    }
+
+    acceptNativePhoto(result) {
+      const request = this.photoRequest;
+      if (!request || !result || result.id !== request.id) return;
+      this.photoRequest = null;
+      if (result.data) this.storePhoto(result.data, request);
+    }
+
+    async loadPhoto(event) {
+      const file = event.target.files?.[0]; const request = this.photoRequest;
+      event.target.value = ''; this.photoRequest = null;
+      if (!file) return;
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+        this.showMessage(this.t('accountPhotoError', 'Unable to use this photo. Choose a JPEG, PNG or WebP image under 10 MB.'), true, 'profile'); return;
+      }
+      const url = URL.createObjectURL(file);
+      try {
+        const image = new Image();
+        await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
+        const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
+        const size = Math.min(image.naturalWidth, image.naturalHeight);
+        if (!size) throw new Error('Invalid image');
+        canvas.getContext('2d').drawImage(image, (image.naturalWidth - size) / 2, (image.naturalHeight - size) / 2, size, size, 0, 0, 256, 256);
+        this.storePhoto(canvas.toDataURL('image/jpeg', .8), request);
+      } catch (_) { if (this.user?.userId === request?.userId && this.session?.accessToken === request?.accessToken) this.showMessage(this.t('accountPhotoError', 'Unable to use this photo.'), true, 'profile'); }
+      finally { URL.revokeObjectURL(url); }
+    }
+
+    removePhoto() {
+      if (!this.isAuthenticated()) return;
+      this.photoRevision += 1; this.photoRequest = null;
+      try { localStorage.removeItem(this.photoKey()); this.render(); }
+      catch (_) { this.showMessage(this.t('accountPhotoError', 'Unable to remove this photo.'), true, 'profile'); }
+    }
+
     async signUp() {
       if (this.busy) return;
       const username = this.byId('account-signup-username').value.trim();
+      const country = this.byId('account-signup-country').value;
       const email = this.byId('account-signup-email').value.trim();
       const password = this.byId('account-signup-password').value;
       const confirmation = this.byId('account-signup-confirm').value;
       if (!USERNAME_PATTERN.test(username)) {
         this.invalidField('account-signup-username', this.t('accountUsernameHelp', 'Choose a valid username.'));
+        return;
+      }
+      if (!COUNTRY_CODES.includes(country)) {
+        this.invalidField('account-signup-country', this.t('accountCountryRequired', 'Choose your country.'));
         return;
       }
       if (!validEmail(email)) {
@@ -468,7 +558,7 @@
       this.clearMessage();
       this.setBusy(true, 'account-signup-submit');
       try {
-        const result = await this.request('signup', { auth: false, body: { email, password, username } });
+        const result = await this.request('signup', { auth: false, body: { email, password, username, country } });
         if (result.pendingConfirmation) {
           this.user = null; this.session = null;
           this.mode = 'login';
@@ -670,6 +760,7 @@
     }
 
     render() {
+      this.populateCountries();
       const auth = this.byId('account-auth-panel');
       if (!auth) return;
       const connected = this.isAuthenticated();
@@ -709,7 +800,20 @@
 
       this.byId('account-profile-name').textContent = this.user.username;
       this.byId('account-profile-email').textContent = this.user.email;
-      this.byId('account-profile-avatar').textContent = String(this.user.username || 'F').charAt(0).toUpperCase();
+      const avatar = this.byId('account-profile-avatar');
+      avatar.textContent = String(this.user.username || 'F').charAt(0).toUpperCase();
+      let photo = null;
+      try { photo = localStorage.getItem(this.photoKey()); } catch (_) {}
+      if (photo && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(photo) && photo.length <= 200000) {
+        const image = document.createElement('img'); image.src = photo; image.alt = ''; avatar.textContent = ''; avatar.appendChild(image);
+      } else { photo = null; }
+      this.byId('account-photo-remove')?.classList.toggle('hidden', !photo);
+      const country = this.byId('account-profile-country');
+      if (country) {
+        const code = this.user.country;
+        country.textContent = COUNTRY_CODES.includes(code) ? `${this.countryFlag(code)} ${this.countryName(code)}` : '';
+        country.classList.toggle('hidden', !country.textContent);
+      }
       const profileInputKey = `${this.user.userId || this.user.id}:${this.user.username}`;
       if (this.profileInputKey !== profileInputKey) {
         this.profileInputKey = profileInputKey;

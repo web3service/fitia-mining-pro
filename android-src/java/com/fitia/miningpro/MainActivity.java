@@ -11,6 +11,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,6 +40,7 @@ import android.widget.Toast;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -52,6 +55,7 @@ import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import org.json.JSONObject;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -65,6 +69,9 @@ public class MainActivity extends Activity {
     private static final String KEYSTORE_ALIAS = "fitia_pro_hw_vault_v1";
     private static final String PREFS_NAME = "fitia_sec_prefs";
 
+    private static final int PROFILE_PHOTO_REQUEST = 1171;
+    private boolean profilePhotoPending = false;
+    private String profilePhotoRequestId = "";
     private WebView webView;
     private long lastBackPressMs = 0L;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -366,6 +373,74 @@ public class MainActivity extends Activity {
             return;
         }
         super.onBackPressed();
+    }
+
+    private void selectProfilePhoto(String requestId) {
+        if (profilePhotoPending) { deliverProfilePhoto(requestId, "error"); return; }
+        profilePhotoRequestId = requestId;
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("image/*");
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/jpeg", "image/png", "image/webp"});
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            profilePhotoPending = true;
+            startActivityForResult(intent, PROFILE_PHOTO_REQUEST);
+        } catch (Exception e) {
+            profilePhotoPending = false;
+            deliverProfilePhoto(requestId, "error");
+        }
+    }
+
+    private void deliverProfilePhoto(String requestId, String data) {
+        mainHandler.post(() -> {
+            if (webView != null) {
+                webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('fitia-profile-photo',{detail:"
+                    + "{id:" + JSONObject.quote(requestId) + ",data:" + JSONObject.quote(data) + "}}));", null);
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PROFILE_PHOTO_REQUEST || !profilePhotoPending) return;
+        profilePhotoPending = false;
+        final String requestId = profilePhotoRequestId;
+        Uri uri = data != null ? data.getData() : null;
+        if (resultCode != RESULT_OK || uri == null) { deliverProfilePhoto(requestId, ""); return; }
+        // Only content providers selected by the Android picker; never expose content access to the WebView.
+        if (!"content".equalsIgnoreCase(uri.getScheme())) { deliverProfilePhoto(requestId, "error"); return; }
+        new Thread(() -> {
+            try (InputStream input = getContentResolver().openInputStream(uri);
+                 ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
+                if (input == null) throw new IOException("No image");
+                byte[] buffer = new byte[8192]; int count; int total = 0;
+                while ((count = input.read(buffer)) != -1) {
+                    total += count;
+                    if (total > 10 * 1024 * 1024) throw new IOException("Image too large");
+                    bytes.write(buffer, 0, count);
+                }
+                byte[] raw = bytes.toByteArray();
+                BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(raw, 0, raw.length, bounds);
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || bounds.outWidth > 30000 || bounds.outHeight > 30000
+                        || !("image/jpeg".equals(bounds.outMimeType) || "image/png".equals(bounds.outMimeType) || "image/webp".equals(bounds.outMimeType))) throw new IOException("Invalid image");
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                while (Math.max(bounds.outWidth, bounds.outHeight) / options.inSampleSize > 1024) options.inSampleSize *= 2;
+                Bitmap original = BitmapFactory.decodeByteArray(raw, 0, raw.length, options);
+                if (original == null) throw new IOException("Invalid image");
+                int size = Math.min(original.getWidth(), original.getHeight());
+                Bitmap square = Bitmap.createBitmap(original, (original.getWidth() - size) / 2, (original.getHeight() - size) / 2, size, size);
+                Bitmap scaled = Bitmap.createScaledBitmap(square, 256, 256, true);
+                ByteArrayOutputStream jpeg = new ByteArrayOutputStream();
+                if (!scaled.compress(Bitmap.CompressFormat.JPEG, 80, jpeg)) throw new IOException("Image encoding failed");
+                deliverProfilePhoto(requestId, "data:image/jpeg;base64," + Base64.encodeToString(jpeg.toByteArray(), Base64.NO_WRAP));
+                if (scaled != square) scaled.recycle();
+                if (square != original) square.recycle();
+                original.recycle();
+            } catch (Exception | OutOfMemoryError e) { deliverProfilePhoto(requestId, "error"); }
+        }).start();
     }
 
     @Override
@@ -724,6 +799,12 @@ public class MainActivity extends Activity {
 
         FitiaBridge(Context ctx) {
             this.context = ctx;
+        }
+
+        @JavascriptInterface
+        public void chooseProfilePhoto(String requestId) {
+            if (requestId == null || !requestId.matches("[A-Za-z0-9-]{1,80}")) return;
+            mainHandler.post(() -> selectProfilePhoto(requestId));
         }
 
         @JavascriptInterface

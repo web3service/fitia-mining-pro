@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { ethers } = require('./vendor/ethers.umd.min.js');
 
+const COUNTRY_CODES = new Set('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'.split(' '));
 const PROFILE_SELECT = 'user_id,username,email,email_verified_at,wallet_address,wallet_verified_at,certified,certified_at,created_at,updated_at';
 const DEFAULT_POLYGON_RPCS = [
   'https://polygon-bor-rpc.publicnode.com',
@@ -68,6 +69,17 @@ function normalizeUsername(value) {
     throw new AccountError(400, 'Le nom d’utilisateur doit contenir 3 à 24 lettres, chiffres ou tirets bas.', 'ACCOUNT_USERNAME');
   }
   return username;
+}
+
+function normalizeCountry(value) {
+  if (value === undefined || value === null || value === '') return null; // anciens clients
+  const country = String(value).toUpperCase();
+  if (!COUNTRY_CODES.has(country)) throw new AccountError(400, 'Pays invalide.', 'ACCOUNT_COUNTRY');
+  return country;
+}
+
+function countryFromAuth(authUser) {
+  try { return normalizeCountry(authUser?.user_metadata?.country); } catch (_) { return null; }
 }
 
 function normalizeWallet(value) {
@@ -183,9 +195,9 @@ class SupabaseAuthClient {
     return data;
   }
 
-  async signUp(email, password, username) {
+  async signUp(email, password, username, country) {
     try {
-      return await this.request('signup', { method: 'POST', body: { email, password, data: { username } } });
+      return await this.request('signup', { method: 'POST', body: { email, password, data: { username, ...(country ? { country } : {}) } } });
     } catch (error) {
       if (error.code === 'ACCOUNT_UNAVAILABLE') throw error;
       if (error.supabaseStatus === 429) throw new AccountError(429, 'Trop de tentatives. Réessayez plus tard.', 'ACCOUNT_RATE_LIMIT');
@@ -580,7 +592,7 @@ class AccountService {
       await this.repository.updateAuthProfile(userId, email, verifiedAt);
       row = { ...row, email, email_verified_at: verifiedAt, updated_at: new Date(this.now()).toISOString() };
     }
-    return profileFromRow(row);
+    return { ...profileFromRow(row), country: countryFromAuth(authUser) };
   }
 
   sessionPayload(data, user) {
@@ -606,7 +618,8 @@ class AccountService {
     const email = normalizeEmail(params.email);
     const password = normalizePassword(params.password);
     const username = normalizeUsername(params.username);
-    const data = await this.auth.signUp(email, password, username);
+    const country = normalizeCountry(params.country);
+    const data = await this.auth.signUp(email, password, username, country);
     const authUser = data.user || data;
     if (!data.access_token) {
       // Supabase renvoie identities=[] lorsqu'une inscription est répétée pour
@@ -652,7 +665,7 @@ class AccountService {
     const username = normalizeUsername(params.username);
     if (username === current.username) return { user: current };
     const row = await this.repository.updateUsername(current.userId, username);
-    return { user: profileFromRow(row) };
+    return { user: { ...profileFromRow(row), country: current.country } };
   }
 
   async reauthenticate(user, currentPassword) {
@@ -736,7 +749,7 @@ class AccountService {
       throw new AccountError(403, 'La signature ne correspond pas à ce wallet.', 'ACCOUNT_SIGNATURE');
     }
     const row = await this.repository.linkWallet(id, user.userId, walletAddress);
-    return { user: profileFromRow(row) };
+    return { user: { ...profileFromRow(row), country: user.country } };
   }
 
   async listUsers(search = '') {

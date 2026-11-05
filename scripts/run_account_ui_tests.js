@@ -375,6 +375,40 @@ async function test(name, fn) {
     assert.ok(!doc.getElementById('account-auth-panel').classList.contains('hidden'));
   });
 
+  await test('Pays avec drapeau : sélection obligatoire et profil lisible', async ({ center, win, doc }) => {
+    const select = doc.getElementById('account-signup-country');
+    assert.ok(select.options.length > 240);
+    assert.ok([...select.options].find((option) => option.value === 'CI').textContent.includes('🇨🇮'));
+    center.session = null; center.user = null;
+    input(win, 'account-signup-username', 'Miner_One');
+    await center.signUp();
+    assert.strictEqual(doc.activeElement.id, 'account-signup-country');
+    center.session = { ...session };
+    center.user = { userId: 'account-1', username: 'Miner_One', email: 'miner@example.com', country: 'CI' };
+    center.render();
+    assert.ok(doc.getElementById('account-profile-country').textContent.includes('🇨🇮'));
+    center.app.language = 'fr'; center.render();
+    assert.ok(doc.querySelector('#account-signup-country option[value="FR"]').textContent.includes('France'));
+  });
+
+  await test('Photo locale isolée par compte, supprimable et protection des réponses tardives', async ({ center, win, doc }) => {
+    let requestId;
+    win.FitiaNative = { chooseProfilePhoto(id) { requestId = id; } };
+    center.choosePhoto();
+    win.dispatchEvent(new win.CustomEvent('fitia-profile-photo', { detail: { id: requestId, data: 'data:image/jpeg;base64,YWJj' } }));
+    assert.strictEqual(win.localStorage.getItem('fitia_profile_photo_v1:account-1'), 'data:image/jpeg;base64,YWJj');
+    assert.ok(doc.querySelector('#account-profile-avatar img'));
+    center.user = { ...center.user, userId: 'account-2' }; center.render();
+    assert.ok(!doc.querySelector('#account-profile-avatar img'));
+    center.choosePhoto(); const stale = requestId;
+    center.session = { ...session, accessToken: 'different-session' };
+    win.dispatchEvent(new win.CustomEvent('fitia-profile-photo', { detail: { id: stale, data: 'data:image/jpeg;base64,YWJj' } }));
+    assert.strictEqual(win.localStorage.getItem('fitia_profile_photo_v1:account-2'), null);
+    center.user = { ...center.user, userId: 'account-1' }; center.render(); center.removePhoto();
+    assert.strictEqual(win.localStorage.getItem('fitia_profile_photo_v1:account-1'), null);
+    assert.ok(!doc.querySelector('#account-profile-avatar img'));
+  });
+
   await test('Tous les nouveaux libellés du compte existent dans les cinq langues', async ({ doc }) => {
     const keys = new Set([...doc.querySelectorAll('#account-access-screen [data-i18n], #account-access-screen [data-i18n-aria-label], #account-access-screen [data-i18n-title]')]
       .flatMap((element) => ['data-i18n', 'data-i18n-aria-label', 'data-i18n-title'].map((name) => element.getAttribute(name)).filter(Boolean)));

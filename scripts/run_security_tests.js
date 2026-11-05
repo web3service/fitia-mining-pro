@@ -2916,11 +2916,13 @@ function httpRequest(port, method, reqPath) {
           return { ok: status < 400, status, json: async () => payload };
         };
         document.getElementById('account-signup-username').value = 'Mobile_Miner';
+        document.getElementById('account-signup-country').value = 'CI';
         document.getElementById('account-signup-email').value = 'mobile@example.com';
         document.getElementById('account-signup-password').value = 'A-correct-passphrase-2026';
         document.getElementById('account-signup-confirm').value = 'A-correct-passphrase-2026';
         await center.signUp();
         assert.strictEqual(center.user.username, 'Mobile_Miner');
+        assert.strictEqual(calls.find((call) => call.action === 'signup').body.country, 'CI');
         assert.strictEqual(document.getElementById('account-signup-password').value, '');
         assert.strictEqual(document.getElementById('account-signup-confirm').value, '');
         assert.ok(!document.getElementById('account-profile-panel').classList.contains('hidden'));
