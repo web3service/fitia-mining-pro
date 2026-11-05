@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://app.fitia.pro',
   'https://fitia-mining-pro.vercel.app'
 ]);
-const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link']);
+const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password']);
 
 function setHeaders(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -109,6 +109,21 @@ function createAccountHandler(options = {}) {
     return key;
   }
 
+  async function withAuthRateLimit(req, operation) {
+    const key = checkRateLimit(req);
+    try {
+      const result = await operation();
+      failures.delete(key);
+      return result;
+    } catch (error) {
+      if (error.code === 'ACCOUNT_LOGIN' || error.code === 'ACCOUNT_REAUTH') {
+        const record = RequestSecurity.recordLoginFailure(failures, key, Date.now(), AUTH_WINDOW_MS);
+        if (record.count >= MAX_AUTH_FAILURES) throw new AccountError(429, 'Trop de tentatives. Réessayez dans quelques minutes.', 'ACCOUNT_RATE_LIMIT');
+      }
+      throw error;
+    }
+  }
+
   return async function accountHandler(req, res) {
     setHeaders(req, res);
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
@@ -129,24 +144,22 @@ function createAccountHandler(options = {}) {
         return;
       }
       if (action === 'login') {
-        const key = checkRateLimit(req);
-        try {
-          const result = await account().signIn(body);
-          failures.delete(key);
-          send(res, 200, result);
-        } catch (error) {
-          if (error.status === 401) {
-            const record = RequestSecurity.recordLoginFailure(failures, key, Date.now(), AUTH_WINDOW_MS);
-            if (record.count >= MAX_AUTH_FAILURES) throw new AccountError(429, 'Trop de tentatives. Réessayez dans quelques minutes.', 'ACCOUNT_RATE_LIMIT');
-          }
-          throw error;
-        }
+        send(res, 200, await withAuthRateLimit(req, () => account().signIn(body)));
         return;
       }
       if (action === 'refresh') { send(res, 200, await account().refresh(body)); return; }
       if (action === 'logout') { send(res, 200, await account().logout(getAccessToken(req))); return; }
       if (action === 'challenge') { send(res, 201, await account().createLinkChallenge(getAccessToken(req), body)); return; }
       if (action === 'link') { send(res, 200, await account().linkWallet(getAccessToken(req), body)); return; }
+      if (action === 'profile') { send(res, 200, await account().updateProfile(getAccessToken(req), body)); return; }
+      if (action === 'email') {
+        send(res, 200, await withAuthRateLimit(req, () => account().changeEmail(getAccessToken(req), body)));
+        return;
+      }
+      if (action === 'password') {
+        send(res, 200, await withAuthRateLimit(req, () => account().changePassword(getAccessToken(req), body)));
+        return;
+      }
     } catch (error) {
       if (res.headersSent || res.writableEnded) return;
       if (error instanceof AccountError || (Number.isSafeInteger(error.status) && error.code)) {

@@ -53,6 +53,20 @@ class FakeAuth {
     this.refreshTokens.delete(refreshToken); return this.issue(user);
   }
   async logout(accessToken) { this.access.delete(accessToken); }
+  async updateEmail(userId, email) {
+    if ([...this.users.values()].some((user) => user.id !== userId && user.email === email)) throw new AccountError(400, 'Exists', 'ACCOUNT_EMAIL_UPDATE');
+    const user = this.users.get(userId);
+    if (!user) throw new AccountError(404, 'Missing', 'ACCOUNT_NOT_FOUND');
+    user.email = email;
+    user.emailConfirmedAt = new Date().toISOString();
+    return this.publicUser(user);
+  }
+  async updatePassword(userId, password) {
+    const user = this.users.get(userId);
+    if (!user) throw new AccountError(404, 'Missing', 'ACCOUNT_NOT_FOUND');
+    user.password = password;
+    return this.publicUser(user);
+  }
 }
 
 function createService(auth = new FakeAuth(), repository = new MemoryAccountRepository(), polygon) {
@@ -137,6 +151,39 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     assert.strictEqual((await service.session(refreshed.session.accessToken)).user.emailVerified, true);
     await service.logout(refreshed.session.accessToken);
     await rejects(service.session(refreshed.session.accessToken), 'ACCOUNT_AUTH');
+  });
+
+  await test('Profil, email et mot de passe avec réauthentification et badges préservés', async () => {
+    const { service, auth, repository } = createService();
+    const firstPassword = 'A-correct-passphrase-2026';
+    const secondPassword = 'B-new-passphrase-2027';
+    const signed = await service.signUp({ email: 'profile@example.com', password: firstPassword, username: 'Profile_User' });
+    const other = await service.signUp({ email: 'other@example.com', password: firstPassword, username: 'Other_User' });
+    const token = signed.session.accessToken;
+    await rejects(service.updateProfile(token, { username: 'Other_User' }), 'ACCOUNT_CONFLICT');
+    await rejects(service.updateProfile(token, { username: 'x' }), 'ACCOUNT_USERNAME');
+    const renamed = await service.updateProfile(token, { username: 'Profile_Updated' });
+    assert.strictEqual(renamed.user.username, 'Profile_Updated');
+    assert.strictEqual(renamed.user.email, 'profile@example.com');
+    await rejects(service.changeEmail(token, { email: 'new@example.com', currentPassword: 'Wrong-passphrase-2026' }), 'ACCOUNT_REAUTH');
+    assert.strictEqual([...auth.users.values()].find((user) => user.id === signed.user.userId).email, 'profile@example.com');
+    await rejects(service.changeEmail(token, { email: 'other@example.com', currentPassword: firstPassword }), 'ACCOUNT_EMAIL_UPDATE');
+    const emailChanged = await service.changeEmail(token, { email: 'new@example.com', currentPassword: firstPassword });
+    assert.strictEqual(emailChanged.user.email, 'new@example.com');
+    assert.strictEqual(emailChanged.user.emailVerified, true);
+    assert.strictEqual(emailChanged.user.username, 'Profile_Updated');
+    assert.ok(emailChanged.session.accessToken && emailChanged.session.refreshToken);
+    await rejects(service.changePassword(token, { currentPassword: firstPassword, newPassword: 'weak' }), 'ACCOUNT_PASSWORD');
+    await rejects(service.changePassword(token, { currentPassword: 'Wrong-passphrase-2026', newPassword: secondPassword }), 'ACCOUNT_REAUTH');
+    const passwordChanged = await service.changePassword(token, { currentPassword: firstPassword, newPassword: secondPassword });
+    assert.ok(passwordChanged.session.accessToken);
+    await rejects(service.signIn({ email: 'new@example.com', password: firstPassword }), 'ACCOUNT_LOGIN');
+    assert.ok((await service.signIn({ email: 'new@example.com', password: secondPassword })).session.accessToken);
+    const storedProfiles = JSON.stringify([...repository.profiles.values()]);
+    assert.ok(!storedProfiles.includes(firstPassword) && !storedProfiles.includes(secondPassword));
+    assert.ok(!JSON.stringify(emailChanged).includes(firstPassword));
+    assert.ok(!JSON.stringify(passwordChanged).includes(firstPassword) && !JSON.stringify(passwordChanged).includes(secondPassword));
+    assert.strictEqual(other.user.walletVerified, false);
   });
 
   await test('Liaison wallet par signature exacte, à usage unique et sans transaction', async () => {
@@ -250,7 +297,7 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     assert.ok(!ignoreLines.includes('account.js'), 'Le motif global qui exclurait aussi api/account.js est interdit');
     const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
     const rewrites = new Map(config.rewrites.map((rule) => [rule.source, rule.destination]));
-    for (const action of ['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link']) {
+    for (const action of ['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password']) {
       assert.strictEqual(rewrites.get(`/api/account/${action}`), `/api/account?action=${action}`);
     }
   });
@@ -272,6 +319,18 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     assert.strictEqual(authCall.options.headers.apikey, 'service-secret');
     assert.strictEqual(authCall.options.headers.Authorization, undefined);
     assert.ok(authCall.options.body.includes('A-correct-passphrase-2026'));
+    const userId = require('crypto').randomUUID();
+    await auth.updateEmail(userId, 'updated@example.com');
+    const emailCall = calls[calls.length - 1];
+    assert.ok(emailCall.url.includes(`/auth/v1/admin/users/${userId}`));
+    assert.strictEqual(emailCall.options.method, 'PUT');
+    assert.strictEqual(emailCall.options.headers.Authorization, 'Bearer service-secret');
+    assert.deepStrictEqual(JSON.parse(emailCall.options.body), { email: 'updated@example.com', email_confirm: true });
+    await auth.updatePassword(userId, 'B-new-passphrase-2027');
+    const passwordCall = calls[calls.length - 1];
+    assert.strictEqual(passwordCall.options.headers.Authorization, 'Bearer service-secret');
+    assert.deepStrictEqual(JSON.parse(passwordCall.options.body), { password: 'B-new-passphrase-2027' });
+    assert.ok(!passwordCall.url.includes('B-new-passphrase-2027'));
     const repository = new SupabaseAccountRepository({ url: 'https://project.supabase.co', serviceRoleKey: 'service-secret', fetch: fetchMock });
     await repository.listProfiles('miner@example.com');
     const searchCall = calls[calls.length - 1];
@@ -305,8 +364,67 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
       response = await fetch(`${base}/api/account/session`, { headers: { Authorization: `Bearer ${payload.session.accessToken}` } });
       assert.strictEqual(response.status, 200);
       assert.strictEqual((await response.json()).user.username, 'Api_User');
-      response = await fetch(`${base}/api/account/challenge`, { method: 'GET', headers: { Authorization: `Bearer ${payload.session.accessToken}` } });
+      response = await fetch(`${base}/api/account/profile`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'No_Bearer' })
+      });
+      assert.strictEqual(response.status, 401);
+      response = await fetch(`${base}/api/account/profile`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${payload.session.accessToken}` },
+        body: JSON.stringify({ username: 'Api_Updated' })
+      });
+      assert.strictEqual(response.status, 200);
+      assert.strictEqual((await response.json()).user.username, 'Api_Updated');
+      response = await fetch(`${base}/api/account/email`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${payload.session.accessToken}` },
+        body: JSON.stringify({ email: 'api-new@example.com', currentPassword: 'Wrong-passphrase-2026' })
+      });
+      assert.strictEqual(response.status, 403);
+      const reauthError = await response.json();
+      assert.strictEqual(reauthError.code, 'ACCOUNT_REAUTH');
+      assert.ok(!JSON.stringify(reauthError).includes('Wrong-passphrase-2026'));
+      response = await fetch(`${base}/api/account/session`, { headers: { Authorization: `Bearer ${payload.session.accessToken}` } });
+      assert.strictEqual(response.status, 200, 'Une réauthentification erronée conserve la session');
+      response = await fetch(`${base}/api/account/email`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${payload.session.accessToken}` },
+        body: JSON.stringify({ email: 'api-new@example.com', currentPassword: 'A-correct-passphrase-2026' })
+      });
+      assert.strictEqual(response.status, 200);
+      const emailPayload = await response.json();
+      assert.strictEqual(emailPayload.user.email, 'api-new@example.com');
+      assert.ok(emailPayload.session.accessToken);
+      assert.ok(!JSON.stringify(emailPayload).includes('A-correct-passphrase-2026'));
+      response = await fetch(`${base}/api/account/password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${emailPayload.session.accessToken}` },
+        body: JSON.stringify({ currentPassword: 'A-correct-passphrase-2026', newPassword: 'B-new-passphrase-2027' })
+      });
+      assert.strictEqual(response.status, 200);
+      const passwordPayload = await response.json();
+      assert.ok(passwordPayload.session.accessToken);
+      assert.ok(!JSON.stringify(passwordPayload).includes('A-correct-passphrase-2026'));
+      assert.ok(!JSON.stringify(passwordPayload).includes('B-new-passphrase-2027'));
+      response = await fetch(`${base}/api/account/challenge`, { method: 'GET', headers: { Authorization: `Bearer ${passwordPayload.session.accessToken}` } });
       assert.strictEqual(response.status, 405);
+    } finally { await close(server); }
+  });
+
+  await test('API: limitation des échecs de réauthentification sans révocation de session', async () => {
+    const { service } = createService();
+    const signed = await service.signUp({ email: 'reauth@example.com', password: 'A-correct-passphrase-2026', username: 'Reauth_User' });
+    const server = http.createServer(createAccountHandler({ accountService: service, trustProxy: true }));
+    const base = await listen(server);
+    try {
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const response = await fetch(`${base}/api/account/password`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${signed.session.accessToken}`, 'X-Forwarded-For': '203.0.113.45' },
+          body: JSON.stringify({ currentPassword: 'Wrong-passphrase-2026', newPassword: 'B-new-passphrase-2027' })
+        });
+        assert.strictEqual(response.status, attempt === 5 ? 429 : 403);
+        const body = await response.json();
+        assert.ok(!JSON.stringify(body).includes('Wrong-passphrase-2026'));
+        assert.ok(!JSON.stringify(body).includes('B-new-passphrase-2027'));
+      }
+      const session = await fetch(`${base}/api/account/session`, { headers: { Authorization: `Bearer ${signed.session.accessToken}` } });
+      assert.strictEqual(session.status, 200);
     } finally { await close(server); }
   });
 

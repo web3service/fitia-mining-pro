@@ -69,6 +69,22 @@ const i18n = {
     accountNoLinkedWallet: "Aucun wallet lié à ce compte.",
     accountLinkWallet: "Vérifier ce wallet par signature",
     accountLogout: "Déconnecter le compte applicatif",
+    accountProfileSection: "Profil",
+    accountSecuritySection: "Sécurité",
+    accountWalletSection: "Wallet",
+    accountQuickActions: "Actions rapides",
+    accountSave: "Enregistrer",
+    accountNewEmail: "Nouvelle adresse email",
+    accountCurrentPassword: "Mot de passe actuel",
+    accountChangeEmail: "Modifier l’email",
+    accountNewPassword: "Nouveau mot de passe",
+    accountConfirmNewPassword: "Confirmer le nouveau mot de passe",
+    accountChangePassword: "Modifier le mot de passe",
+    accountPublicAddress: "Adresse publique Polygon",
+    accountCopyAddress: "Copier l’adresse",
+    accountProfileUpdated: "Nom d’utilisateur mis à jour.",
+    accountEmailUpdated: "Adresse email mise à jour.",
+    accountPasswordUpdated: "Mot de passe mis à jour.",
     back: "Retour",
     backupSeedTitle: "Phrase de récupération (12 mots)",
     backupSeedWarn: "Notez ces 12 mots dans l'ordre exact et gardez-les en lieu sûr. Ne les partagez jamais : quiconque possède ces mots contrôle vos fonds.",
@@ -417,6 +433,22 @@ const i18n = {
     accountNoLinkedWallet: "No wallet linked to this account.",
     accountLinkWallet: "Verify this wallet by signature",
     accountLogout: "Sign out of app account",
+    accountProfileSection: "Profile",
+    accountSecuritySection: "Security",
+    accountWalletSection: "Wallet",
+    accountQuickActions: "Quick actions",
+    accountSave: "Save",
+    accountNewEmail: "New email address",
+    accountCurrentPassword: "Current password",
+    accountChangeEmail: "Update email",
+    accountNewPassword: "New password",
+    accountConfirmNewPassword: "Confirm new password",
+    accountChangePassword: "Update password",
+    accountPublicAddress: "Public Polygon address",
+    accountCopyAddress: "Copy address",
+    accountProfileUpdated: "Username updated.",
+    accountEmailUpdated: "Email address updated.",
+    accountPasswordUpdated: "Password updated.",
     back: "Back",
     backupSeedTitle: "Recovery Phrase (12 words)",
     backupSeedWarn: "Write down these 12 words in exact order and keep them safe. Never share them: anyone with these words controls your funds.",
@@ -753,6 +785,22 @@ const i18n = {
     accountNoLinkedWallet: "Mit diesem Konto ist keine Wallet verknüpft.",
     accountLinkWallet: "Diese Wallet per Signatur verifizieren",
     accountLogout: "Vom App-Konto abmelden",
+    accountProfileSection: "Profil",
+    accountSecuritySection: "Sicherheit",
+    accountWalletSection: "Wallet",
+    accountQuickActions: "Schnellaktionen",
+    accountSave: "Speichern",
+    accountNewEmail: "Neue E-Mail-Adresse",
+    accountCurrentPassword: "Aktuelles Passwort",
+    accountChangeEmail: "E-Mail aktualisieren",
+    accountNewPassword: "Neues Passwort",
+    accountConfirmNewPassword: "Neues Passwort bestätigen",
+    accountChangePassword: "Passwort aktualisieren",
+    accountPublicAddress: "Öffentliche Polygon-Adresse",
+    accountCopyAddress: "Adresse kopieren",
+    accountProfileUpdated: "Benutzername aktualisiert.",
+    accountEmailUpdated: "E-Mail-Adresse aktualisiert.",
+    accountPasswordUpdated: "Passwort aktualisiert.",
     createNewWallet: "NEUE WALLET ERSTELLEN",
     importExistingWallet: "Bestehende Wallet importieren",
     unlockTitle: "FITIA PRO entsperren",
@@ -883,6 +931,22 @@ const i18n = {
     accountNoLinkedWallet: "此账户尚未关联钱包。",
     accountLinkWallet: "通过签名验证此钱包",
     accountLogout: "退出应用账户",
+    accountProfileSection: "个人资料",
+    accountSecuritySection: "安全",
+    accountWalletSection: "钱包",
+    accountQuickActions: "快捷操作",
+    accountSave: "保存",
+    accountNewEmail: "新电子邮件地址",
+    accountCurrentPassword: "当前密码",
+    accountChangeEmail: "更新电子邮件地址",
+    accountNewPassword: "新密码",
+    accountConfirmNewPassword: "确认新密码",
+    accountChangePassword: "更新密码",
+    accountPublicAddress: "Polygon 公开地址",
+    accountCopyAddress: "复制地址",
+    accountProfileUpdated: "用户名已更新。",
+    accountEmailUpdated: "电子邮件地址已更新。",
+    accountPasswordUpdated: "密码已更新。",
     createNewWallet: "创建新钱包",
     importExistingWallet: "导入已有钱包（12助记词 / 私钥）",
     unlockTitle: "解锁 FITIA PRO",
@@ -1013,6 +1077,22 @@ const i18n = {
     accountNoLinkedWallet: "No wallet linked to this account.",
     accountLinkWallet: "Verify this wallet by signature",
     accountLogout: "Sign out of app account",
+    accountProfileSection: "Profile",
+    accountSecuritySection: "Security",
+    accountWalletSection: "Wallet",
+    accountQuickActions: "Quick actions",
+    accountSave: "Save",
+    accountNewEmail: "New email address",
+    accountCurrentPassword: "Current password",
+    accountChangeEmail: "Update email",
+    accountNewPassword: "New password",
+    accountConfirmNewPassword: "Confirm new password",
+    accountChangePassword: "Update password",
+    accountPublicAddress: "Public Polygon address",
+    accountCopyAddress: "Copy address",
+    accountProfileUpdated: "Username updated.",
+    accountEmailUpdated: "Email address updated.",
+    accountPasswordUpdated: "Password updated.",
     createNewWallet: "CREATE NEW WALLET",
     importExistingWallet: "Import Existing Wallet",
     unlockTitle: "Unlock FITIA PRO",
@@ -1224,6 +1304,8 @@ class Application {
     this.backgroundedAt = 0;
     this.availableUpdate = null;
     this.updateCheckInFlight = false;
+    this.updateDownloadInProgress = false;
+    this.updateDownloadResetTimer = null;
     this.sessionGeneration = 0;
     this.sessionBootstrapPromise = null;
 
@@ -1476,21 +1558,94 @@ class Application {
     if (!update) return;
     this.availableUpdate = update;
     localStorage.removeItem('fitia_update_dismissed_code');
-    document.getElementById('update-required-message').textContent = this.t('updateRequiredMessage');
+    this.resetUpdateDownloadButton();
     document.getElementById('update-required-version').textContent = `V ${update.versionName}`;
     document.getElementById('modal-update').classList.add('active');
   }
 
-  startUpdateDownload() {
-    const update = this.availableUpdate;
-    if (!update) return;
-    const started = FitiaSecurity.Native.downloadAndInstallUpdate(update.apkUrl, update.sha256);
-    if (!started) {
+  resetUpdateDownloadButton() {
+    if (this.updateDownloadResetTimer) {
+      clearTimeout(this.updateDownloadResetTimer);
+      this.updateDownloadResetTimer = null;
+    }
+    this.updateDownloadInProgress = false;
+    const button = document.getElementById('update-install-button');
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove('is-downloading', 'is-indeterminate');
+    button.removeAttribute('role');
+    button.removeAttribute('aria-label');
+    button.removeAttribute('aria-valuemin');
+    button.removeAttribute('aria-valuemax');
+    button.removeAttribute('aria-valuenow');
+    button.removeAttribute('aria-valuetext');
+    document.getElementById('update-install-label')?.classList.remove('hidden');
+    document.getElementById('update-download-progress')?.classList.add('hidden');
+    document.getElementById('update-download-percent')?.classList.add('hidden');
+    const fill = document.getElementById('update-download-progress-fill');
+    if (fill) fill.style.width = '0%';
+  }
+
+  setUpdateDownloadProgress(progress) {
+    const button = document.getElementById('update-install-button');
+    if (!button) return;
+    const numericProgress = Number(progress);
+    const indeterminate = !Number.isFinite(numericProgress) || numericProgress < 0;
+    const percent = indeterminate ? 0 : Math.max(0, Math.min(100, Math.round(numericProgress)));
+    button.disabled = true;
+    button.classList.add('is-downloading');
+    button.classList.toggle('is-indeterminate', indeterminate);
+    button.setAttribute('role', 'progressbar');
+    button.setAttribute('aria-label', this.t('updateDownloading'));
+    button.setAttribute('aria-valuemin', '0');
+    button.setAttribute('aria-valuemax', '100');
+    if (indeterminate) button.removeAttribute('aria-valuenow');
+    else button.setAttribute('aria-valuenow', String(percent));
+    document.getElementById('update-install-label')?.classList.add('hidden');
+    document.getElementById('update-download-progress')?.classList.remove('hidden');
+    const percentLabel = document.getElementById('update-download-percent');
+    if (percentLabel) {
+      percentLabel.classList.remove('hidden');
+      percentLabel.textContent = indeterminate ? '…' : `${percent}%`;
+    }
+    const fill = document.getElementById('update-download-progress-fill');
+    if (fill) fill.style.width = indeterminate ? '' : `${percent}%`;
+  }
+
+  onUpdateDownloadProgress(progress, state = 'downloading') {
+    const button = document.getElementById('update-install-button');
+    if (state === 'error') {
+      if (!this.updateDownloadInProgress && !button?.classList.contains('is-downloading')) return;
+      this.resetUpdateDownloadButton();
       this.showToast(this.t('updateStartError'), true);
       return;
     }
+    if (!this.availableUpdate || !this.updateDownloadInProgress) return;
+    this.setUpdateDownloadProgress(progress);
+    if (state === 'ready') {
+      this.updateDownloadInProgress = false;
+      // Si l'utilisateur quitte l'installateur Android, le bouton redevient disponible.
+      this.updateDownloadResetTimer = setTimeout(() => {
+        this.updateDownloadResetTimer = null;
+        this.resetUpdateDownloadButton();
+      }, 1800);
+    }
+  }
+
+  startUpdateDownload() {
+    const update = this.availableUpdate;
+    const button = document.getElementById('update-install-button');
+    if (!update || this.updateDownloadInProgress || button?.disabled) return false;
+    this.updateDownloadInProgress = true;
+    this.setUpdateDownloadProgress(0);
+    const started = FitiaSecurity.Native.downloadAndInstallUpdate(update.apkUrl, update.sha256);
+    if (!started) {
+      this.resetUpdateDownloadButton();
+      this.showToast(this.t('updateStartError'), true);
+      return false;
+    }
     // La mise à jour reste obligatoire jusqu'à l'installation effective de la nouvelle version.
-    this.showToast(this.t('updateDownloading'));
+    return true;
   }
 
   setupLifecycleListeners() {

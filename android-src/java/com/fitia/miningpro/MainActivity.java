@@ -534,6 +534,25 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void notifyUpdateDownloadProgress(final int progress, final String state) {
+        final int boundedProgress = Math.max(-1, Math.min(100, progress));
+        final String safeState;
+        if ("verifying".equals(state) || "ready".equals(state) || "error".equals(state)) {
+            safeState = state;
+        } else {
+            safeState = "downloading";
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                String script = "(function(){if(window.App&&typeof window.App.onUpdateDownloadProgress==='function'){"
+                    + "window.App.onUpdateDownloadProgress(" + boundedProgress + ",'" + safeState + "');}})();";
+                webView.evaluateJavascript(script, null);
+            }
+        });
+    }
+
     private void installDownloadedUpdate() {
         File apk = UpdateProvider.getUpdateApkFile(this);
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -597,6 +616,7 @@ public class MainActivity extends Activity {
             if (apk.isFile() && normalizedHash.equalsIgnoreCase(sha256File(apk))) {
                 getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .edit().putString("update_sha256", normalizedHash).apply();
+                notifyUpdateDownloadProgress(100, "ready");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -614,7 +634,7 @@ public class MainActivity extends Activity {
             updateDownloadInProgress = true;
         }
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove("update_sha256").apply();
-        showUpdateToast("Téléchargement de la mise à jour…");
+        notifyUpdateDownloadProgress(0, "downloading");
 
         Thread downloadThread = new Thread(new Runnable() {
             @Override
@@ -632,11 +652,13 @@ public class MainActivity extends Activity {
                         throw new IOException("Téléchargement refusé");
                     }
                     long maxBytes = 200L * 1024L * 1024L;
-                    if (connection.getContentLengthLong() > maxBytes) {
+                    long contentLength = connection.getContentLengthLong();
+                    if (contentLength > maxBytes) {
                         throw new IOException("Fichier trop volumineux");
                     }
                     MessageDigest digest = MessageDigest.getInstance("SHA-256");
                     long total = 0L;
+                    int lastReportedProgress = -2;
                     try (
                         InputStream input = new BufferedInputStream(connection.getInputStream());
                         OutputStream output = new FileOutputStream(partial)
@@ -648,8 +670,16 @@ public class MainActivity extends Activity {
                             if (total > maxBytes) throw new IOException("Fichier trop volumineux");
                             digest.update(buffer, 0, read);
                             output.write(buffer, 0, read);
+                            int currentProgress = contentLength > 0
+                                ? (int) Math.min(99L, (total * 100L) / contentLength)
+                                : -1;
+                            if (currentProgress != lastReportedProgress) {
+                                notifyUpdateDownloadProgress(currentProgress, "downloading");
+                                lastReportedProgress = currentProgress;
+                            }
                         }
                     }
+                    notifyUpdateDownloadProgress(100, "verifying");
                     StringBuilder hex = new StringBuilder(64);
                     for (byte value : digest.digest()) {
                         hex.append(String.format(Locale.US, "%02x", value & 0xff));
@@ -664,10 +694,10 @@ public class MainActivity extends Activity {
                     if (!partial.renameTo(apk)) throw new IOException("Enregistrement impossible");
                     getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                         .edit().putString("update_sha256", normalizedHash).apply();
+                    notifyUpdateDownloadProgress(100, "ready");
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(MainActivity.this, "Mise à jour téléchargée. Ouverture de l’installation.", Toast.LENGTH_LONG).show();
                             installDownloadedUpdate();
                         }
                     });
@@ -675,7 +705,7 @@ public class MainActivity extends Activity {
                     if (partial.exists()) partial.delete();
                     if (apk.exists()) apk.delete();
                     getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove("update_sha256").apply();
-                    showUpdateToast("Échec du téléchargement ou de la vérification de la mise à jour.");
+                    notifyUpdateDownloadProgress(0, "error");
                 } finally {
                     if (connection != null) connection.disconnect();
                     synchronized (MainActivity.this) {

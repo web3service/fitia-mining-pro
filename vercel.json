@@ -87,6 +87,18 @@
     {
       "source": "/api/account/link",
       "destination": "/api/account?action=link"
+    },
+    {
+      "source": "/api/account/profile",
+      "destination": "/api/account?action=profile"
+    },
+    {
+      "source": "/api/account/email",
+      "destination": "/api/account?action=email"
+    },
+    {
+      "source": "/api/account/password",
+      "destination": "/api/account?action=password"
     }
   ],
   "headers": [
