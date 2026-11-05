@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.0 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.1 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -384,7 +384,15 @@ async function startMockPolygonRpc(ethersLib) {
   return { url: `http://127.0.0.1:${srv.address().port}`, close: () => new Promise((r) => srv.close(r)) };
 }
 
-async function bootAppEnvironment(mockRpcUrl) {
+async function bootAppEnvironment(mockRpcUrl, options = {}) {
+  const accountProfile = options.accountProfile || {
+    userId: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', username: 'Security_Test', email: 'security@example.com',
+    emailVerified: true, walletVerified: false, certified: false, walletAddress: null
+  };
+  const accountSession = options.accountSession || {
+    accessToken: `security-access-${'a'.repeat(40)}`, refreshToken: `security-refresh-${'b'.repeat(40)}`,
+    expiresAt: new Date(Date.now() + 3600000).toISOString()
+  };
   const html = fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'), 'utf8')
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
 
@@ -401,7 +409,20 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.Uint8Array = Uint8Array;
   win.ArrayBuffer = ArrayBuffer;
   win.fetch = async (url, opts) => {
-    if (String(url).includes('/announcements.json') || String(url).includes('/promotions.json') || String(url).includes('/game-visibility.json') || String(url).includes('store-products.json') || String(url).includes('/api/farm')) throw new Error('offline-sandbox');
+    const requestUrl = String(url);
+    const accountAction = requestUrl.includes('/api/account/session') ? 'session'
+      : requestUrl.includes('/api/account/refresh') ? 'refresh' : null;
+    if (accountAction) {
+      const reply = typeof options.accountReply === 'function'
+        ? await options.accountReply(accountAction, opts)
+        : options.accountReply;
+      const status = Number(reply?.status || 200);
+      const body = reply?.body || (accountAction === 'refresh'
+        ? { user: accountProfile, session: accountSession }
+        : { user: accountProfile });
+      return { ok: status >= 200 && status < 300, status, json: async () => body };
+    }
+    if (requestUrl.includes('/announcements.json') || requestUrl.includes('/promotions.json') || requestUrl.includes('/game-visibility.json') || requestUrl.includes('store-products.json') || requestUrl.includes('/api/farm')) throw new Error('offline-sandbox');
     // Bloque les appels prix externes (DexScreener/CoinGecko) en sandbox pour rapidité instantanée
     if (String(url).includes('dexscreener') || String(url).includes('coingecko')) {
       throw new Error('offline-sandbox');
@@ -471,8 +492,12 @@ async function bootAppEnvironment(mockRpcUrl) {
     };
   }
 
+  if (options.authenticate !== false) {
+    await win.FitiaSecurity.Vault.sealAccountSession(accountSession);
+  }
+
   win.eval(fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8'));
-  win.document.dispatchEvent(new win.Event('DOMContentLoaded'));
+  win.dispatchEvent(new win.Event('DOMContentLoaded'));
   await new Promise((r) => setTimeout(r, 80));
 
   return { dom, win };
@@ -496,7 +521,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.0\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.1\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -504,6 +529,144 @@ function httpRequest(port, method, reqPath) {
   try {
     const { dom, win } = await bootAppEnvironment(mockRpc.url);
     const { FitiaSecurity } = win;
+
+    const accessEnv = await bootAppEnvironment(mockRpc.url, { authenticate: false });
+    try {
+      await runTest('ACCOUNT-ACCESS', 'Sans session, le portail bloque onboarding, navigation et activation du wallet', async () => {
+        const accessWin = accessEnv.win;
+        const accessApp = accessWin.App;
+        const document = accessWin.document;
+        const gate = document.getElementById('account-access-screen');
+        assert.ok(!gate.classList.contains('hidden'), 'Le portail est visible sans session');
+        assert.ok(document.getElementById('auth-screen').classList.contains('hidden'), 'L’onboarding reste masqué');
+        assert.ok(document.getElementById('app-shell').classList.contains('hidden'), 'Les fonctions restent masquées');
+        assert.strictEqual(accessApp.hasRequiredAccountSession(), false);
+        const activeView = document.querySelector('.view.active')?.id;
+        accessApp.startCreateWallet();
+        accessApp.startImportWallet();
+        accessApp.showAuthStep('welcome');
+        accessApp.nav('store');
+        assert.strictEqual(accessApp.pendingWalletSecret, null, 'Aucun secret wallet n’est créé avant le compte');
+        assert.strictEqual(document.querySelector('.view.active')?.id, activeView, 'La navigation ne change pas sans compte');
+        assert.ok(document.getElementById('auth-screen').classList.contains('hidden'));
+        const secret = accessWin.FitiaSecurity.Vault.generateNewWallet();
+        await accessApp.activateUnlockedSession(secret);
+        assert.strictEqual(secret.privateKey, '', 'Le secret refusé est effacé');
+        assert.strictEqual(secret.mnemonic, '', 'La phrase refusée est effacée');
+        assert.strictEqual(accessApp.user, null);
+        assert.strictEqual(accessApp.signer, null);
+        assert.ok(!gate.classList.contains('hidden'));
+
+        const profile = {
+          userId: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', username: 'Access_Test', email: 'access@example.com',
+          emailVerified: true, walletVerified: false, certified: false, walletAddress: null
+        };
+        await accessApp.accountCenter.acceptSession({
+          user: profile,
+          session: {
+            accessToken: `access-${'e'.repeat(40)}`, refreshToken: `refresh-${'f'.repeat(40)}`,
+            expiresAt: new Date(Date.now() + 3600000).toISOString()
+          }
+        });
+        assert.strictEqual(accessApp.hasRequiredAccountSession(), true, 'Le profil userId réel est accepté');
+        assert.ok(gate.classList.contains('hidden'), 'Une connexion valide ouvre le parcours wallet');
+        assert.ok(!document.getElementById('auth-screen').classList.contains('hidden'));
+        const walletSecret = accessWin.FitiaSecurity.Vault.generateNewWallet();
+        await accessApp.activateUnlockedSession(walletSecret);
+        await withDeadline(accessApp.sessionBootstrapPromise, 2500, 'La session de test doit se synchroniser');
+        accessApp.openAccountAccess();
+        accessApp.openActivityFromAccount();
+        assert.ok(document.getElementById('modal-activity').classList.contains('active'), 'Les notifications restent accessibles depuis le profil');
+        accessApp.closeModals();
+        accessApp.openAccountAccess();
+        await accessApp.openSecurityFromAccount();
+        assert.ok(document.getElementById('modal-security').classList.contains('active'), 'Les paramètres restent accessibles depuis le profil');
+        accessApp.closeModals();
+        await accessApp.accountCenter.clearLocalSession();
+        assert.strictEqual(accessApp.user, null, 'La déconnexion purge l’adresse active');
+        assert.strictEqual(accessApp.signer, null, 'La déconnexion purge le signer');
+        assert.ok(!gate.classList.contains('hidden'), 'La déconnexion rouvre le portail bloquant');
+        assert.ok(document.getElementById('app-shell').classList.contains('hidden'));
+      });
+
+      await runTest('ACCOUNT-I18N', 'En-tête Mon compte, raccourcis du profil et traductions complètes', async () => {
+        const accessWin = accessEnv.win;
+        const accessApp = accessWin.App;
+        const document = accessWin.document;
+        const accountButton = document.getElementById('btn-account-app');
+        assert.ok(accountButton);
+        assert.strictEqual(document.getElementById('btn-activity'), null);
+        assert.strictEqual(document.getElementById('btn-settings-app'), null);
+        assert.strictEqual(document.getElementById('btn-lock-app'), null);
+        assert.ok(accountButton.querySelector('#activity-unread-badge'), 'Le badge non lu suit le bouton Mon compte');
+        for (const id of ['account-open-settings', 'account-open-activity', 'account-lock-wallet', 'account-logout']) {
+          assert.ok(document.getElementById(id), `Accès profil conservé : ${id}`);
+        }
+        const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+        const keys = [
+          'accountRequiredTitle', 'accountRequiredMessage', 'accountMyAccount', 'accountOpenSettings',
+          'accountOpenActivity', 'accountLockWallet', 'accountRetry', 'accountClose', 'accountLanguageLabel',
+          'accountCenterTitle', 'accountCenterSubtitle', 'accountSignIn', 'accountSignUp', 'accountEmail',
+          'accountPassword', 'accountUsername', 'accountConfirmPassword', 'accountCreate', 'accountSecurityNote',
+          'accountConfirmEmail', 'accountPasswordMismatch', 'accountServiceError', 'accountSignedIn', 'accountCreated',
+          'accountUnlockWallet', 'accountWalletLinked', 'accountEmailVerified', 'accountWalletVerified',
+          'accountAdminCertified', 'accountNoBadge', 'accountLinkedWallet', 'accountNoLinkedWallet',
+          'accountLinkWallet', 'accountLogout'
+        ];
+        for (const key of keys) {
+          assert.strictEqual((appSource.match(new RegExp(`\\b${key}:`, 'g')) || []).length, 5, `${key} doit être déclaré dans les cinq langues`);
+        }
+        const originalLang = accessApp.currentLang;
+        accessApp.setLanguage('en');
+        const englishValues = Object.fromEntries(keys.map((key) => [key, accessApp.t(key)]));
+        for (const lang of ['en', 'fr', 'de', 'zh', 'sg']) {
+          accessApp.setLanguage(lang);
+          for (const key of keys) {
+            assert.ok(accessApp.t(key) && accessApp.t(key) !== key, `${lang}.${key} absent`);
+            if (['fr', 'de', 'zh'].includes(lang)) assert.notStrictEqual(accessApp.t(key), englishValues[key], `${lang}.${key} utilise le fallback anglais`);
+          }
+          assert.strictEqual(accountButton.title, accessApp.t('accountMyAccount'));
+          assert.strictEqual(accountButton.getAttribute('aria-label'), accessApp.t('accountMyAccount'));
+          assert.strictEqual(document.getElementById('account-access-title').textContent, accessApp.t('accountMyAccount'));
+          assert.ok(document.getElementById('account-lang-btn-display').textContent.includes(lang.toUpperCase()));
+        }
+        accessApp.setLanguage(originalLang);
+      });
+    } finally {
+      accessEnv.dom.window.close();
+    }
+
+    const restoreEnv = await bootAppEnvironment(mockRpc.url);
+    try {
+      await runTest('ACCOUNT-RESTORE', 'Une session persistée valide est restaurée avant le PIN ou l’onboarding', async () => {
+        const restoredApp = restoreEnv.win.App;
+        assert.strictEqual(restoredApp.accountCenter.isAuthenticated(), true);
+        assert.strictEqual(restoredApp.accountCenter.user.userId, '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c');
+        assert.ok(restoreEnv.win.document.getElementById('account-access-screen').classList.contains('hidden'));
+        assert.ok(!restoreEnv.win.document.getElementById('auth-screen').classList.contains('hidden'));
+        assert.ok(restoreEnv.win.document.getElementById('app-shell').classList.contains('hidden'), 'Le PIN/onboarding reste obligatoire après le compte');
+      });
+    } finally {
+      restoreEnv.dom.window.close();
+    }
+
+    const invalidEnv = await bootAppEnvironment(mockRpc.url, {
+      accountReply: { status: 401, body: { error: 'Session expired', code: 'ACCOUNT_AUTH' } }
+    });
+    try {
+      await runTest('ACCOUNT-INVALID', 'Une session persistée rejetée est purgée et ne laisse aucun accès ouvert', async () => {
+        const invalidApp = invalidEnv.win.App;
+        const document = invalidEnv.win.document;
+        assert.strictEqual(invalidApp.accountCenter.isAuthenticated(), false);
+        assert.strictEqual(invalidApp.accountCenter.session, null);
+        assert.ok(!document.getElementById('account-access-screen').classList.contains('hidden'));
+        assert.ok(document.getElementById('auth-screen').classList.contains('hidden'));
+        assert.ok(document.getElementById('app-shell').classList.contains('hidden'));
+        assert.strictEqual(await invalidEnv.win.FitiaSecurity.Vault.readAccountSession(), null);
+      });
+    } finally {
+      invalidEnv.dom.window.close();
+    }
 
     // ─── SUITE 1 : Cryptographie & Triple Scellement ────────────────────
     await runTest('CRYPTO', 'Génération BIP-39 12 mots + dérivation secp256k1 déterministe', async () => {
@@ -803,11 +966,17 @@ function httpRequest(port, method, reqPath) {
       assert.ok(App.currentRealPower > 0, 'Puissance de minage V3.2 calculée depuis myInfo()');
 
       assert.strictEqual(e2eWin.document.getElementById('addr-display'), null, 'Adresse masquée dans l’en-tête');
-      const settingsButton = e2eWin.document.getElementById('btn-settings-app');
-      assert.ok(settingsButton, 'Bouton Paramètres présent dans l’en-tête');
-      assert.strictEqual(settingsButton.getAttribute('aria-label'), 'Ouvrir les paramètres');
+      const accountButton = e2eWin.document.getElementById('btn-account-app');
+      assert.ok(accountButton, 'Bouton Mon compte présent dans l’en-tête');
+      assert.strictEqual(accountButton.getAttribute('aria-label'), App.t('accountMyAccount'));
+      assert.strictEqual(e2eWin.document.getElementById('btn-settings-app'), null, 'Le raccourci Paramètres est retiré de l’en-tête');
+      assert.strictEqual(e2eWin.document.getElementById('btn-activity'), null, 'Le raccourci Notifications est retiré de l’en-tête');
+      assert.strictEqual(e2eWin.document.getElementById('btn-lock-app'), null, 'Le raccourci Verrouillage est retiré de l’en-tête');
       assert.strictEqual(e2eWin.document.getElementById('wallet-card-addr').textContent, App.shortAddr(App.user), 'Adresse conservée dans la carte Portefeuille');
-      await App.openSecurityModal();
+      App.openAccountAccess();
+      assert.ok(!e2eWin.document.getElementById('account-access-screen').classList.contains('hidden'), 'Mon compte est accessible depuis l’en-tête');
+      await App.openSecurityFromAccount();
+      assert.ok(e2eWin.document.getElementById('account-access-screen').classList.contains('hidden'), 'Les paramètres ferment le centre de compte');
       const settingsModal = e2eWin.document.getElementById('modal-security');
       assert.ok(settingsModal.classList.contains('active'), 'Le bouton ouvre les réglages et la sécurité');
       const hiddenSettingsSelectors = [
@@ -830,7 +999,8 @@ function httpRequest(port, method, reqPath) {
         'Aucun emoji dans la modale Paramètres'
       );
       assert.ok(!e2eWin.document.getElementById('select-autolock').classList.contains('hidden'), 'Le réglage de verrouillage automatique reste disponible');
-      assert.ok(!e2eWin.document.getElementById('btn-lock-app').classList.contains('hidden'), 'Le verrouillage de l’en-tête principal reste disponible');
+      assert.ok(e2eWin.document.getElementById('account-lock-wallet'), 'Le verrouillage reste disponible depuis Mon compte');
+      assert.ok(e2eWin.document.getElementById('account-open-activity'), 'Les notifications restent disponibles depuis Mon compte');
       App.closeModals();
     });
 
@@ -2635,7 +2805,7 @@ function httpRequest(port, method, reqPath) {
         await vault.clearAccountSession();
       });
 
-      await runTest('ACCOUNT-WALLET-UI', 'Inscription, liaison signée et déconnexion sans accès aux fonds', async () => {
+      await runTest('ACCOUNT-WALLET-UI', 'Inscription, liaison signée et déconnexion qui reverrouille le wallet', async () => {
         const accountWin = accountEnv.win;
         const accountApp = accountWin.App;
         const center = accountApp.accountCenter;
@@ -2690,8 +2860,12 @@ function httpRequest(port, method, reqPath) {
         assert.ok(document.getElementById('account-profile-badges').textContent.includes('Wallet verified'));
         await center.logout();
         assert.strictEqual(center.session, null);
-        assert.strictEqual(accountApp.user, wallet.address, 'La déconnexion email ne verrouille pas le wallet');
-        assert.strictEqual(accountApp.signer, wallet, 'Le compte email ne supprime jamais le signer wallet');
+        assert.strictEqual(accountApp.user, null, 'La déconnexion du compte purge l’adresse active');
+        assert.strictEqual(accountApp.signer, null, 'La déconnexion du compte purge le signer wallet');
+        assert.ok(!document.getElementById('account-access-screen').classList.contains('hidden'), 'Le portail de compte reverrouille l’accès');
+        assert.ok(document.getElementById('app-shell').classList.contains('hidden'), 'Les fonctions restent masquées après déconnexion');
+        accountApp.showAuthStep('welcome');
+        assert.ok(document.getElementById('auth-screen').classList.contains('hidden'), 'L’onboarding ne peut pas rouvrir sans compte');
         assert.strictEqual(await accountWin.FitiaSecurity.Vault.readAccountSession(), null);
       });
     } finally {
@@ -2833,11 +3007,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 360);
-      assert.strictEqual(updateManifest.versionName, '3.6.0');
-      assert.ok(updateManifest.apkUrl.includes('/v3.6.0/'));
+      assert.strictEqual(updateManifest.versionCode, 361);
+      assert.strictEqual(updateManifest.versionName, '3.6.1');
+      assert.ok(updateManifest.apkUrl.includes('/v3.6.1/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.0 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.1 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2855,8 +3029,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=360'), 'versionCode=360 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.0"'), 'versionName=3.6.0 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=361'), 'versionCode=361 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.1"'), 'versionName=3.6.1 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

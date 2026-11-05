@@ -660,6 +660,9 @@ header {
   transition: transform 0.15s, background 0.15s;
 }
 .settings-btn-header:active { transform: scale(0.94); background: rgba(240, 185, 11, 0.18); }
+.account-btn-header { position: relative; flex: 0 0 34px; color: var(--primary); border-color: rgba(240,185,11,0.28); background: rgba(240,185,11,0.08); }
+.account-btn-header:hover { color: var(--primary-hover); border-color: rgba(240,185,11,0.48); background: rgba(240,185,11,0.14); }
+.account-btn-header .activity-badge { pointer-events: none; }
 
 .status-dot {
   width: 8px;
@@ -1255,6 +1258,30 @@ main::-webkit-scrollbar { display: none; }
 .account-profile-wallet { margin: 13px 0; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.63rem; line-height: 1.55; overflow-wrap: anywhere; }
 .account-profile-actions { display: grid; gap: 9px; }
 .account-profile-actions .btn-primary, .account-profile-actions .btn-secondary { width: 100%; min-height: 48px; margin: 0; }
+.account-profile-utilities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.account-profile-utilities .btn-secondary { height: auto; padding: 11px 9px; font-size: 0.65rem; line-height: 1.4; white-space: normal; }
+.account-logout-button { color: #fca5a5; }
+.account-retry-button { width: 100%; min-height: 46px; margin-top: 10px; }
+
+/* Accès au compte : obligatoire au lancement, puis centre « Mon compte ». */
+.account-access-screen { position: fixed; inset: 0; z-index: 2100; overflow-y: auto; overscroll-behavior: contain; padding: max(18px, var(--safe-top)) 16px max(24px, var(--safe-bottom)); background: radial-gradient(circle at 50% 4%, rgba(240,185,11,0.1), transparent 32%), linear-gradient(155deg, var(--bg) 0%, var(--bg-deep) 100%); }
+.account-access-screen.hidden { display: none; }
+.account-access-container { width: min(100%, 440px); min-height: 100%; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
+.account-access-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.account-access-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.account-access-brand img { border-radius: 10px; box-shadow: 0 5px 18px rgba(0,0,0,0.28); }
+.account-access-brand strong { font-size: 0.88rem; letter-spacing: -0.01em; }
+.account-access-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.account-access-close { display: grid; width: 38px; height: 38px; padding: 0; place-items: center; border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; background: rgba(255,255,255,0.055); color: var(--text-muted); cursor: pointer; }
+.account-access-close.hidden { display: none; }
+.account-access-close:active { transform: scale(0.95); }
+.account-access-intro { display: grid; justify-items: center; margin: 30px 0 20px; text-align: center; }
+.account-access-intro.hidden { display: none; }
+.account-access-intro img { margin-bottom: 15px; border-radius: 19px; box-shadow: 0 14px 38px rgba(0,0,0,0.36); }
+.account-access-intro h1 { margin: 0 0 9px; font-size: clamp(1.35rem, 6vw, 1.75rem); line-height: 1.2; letter-spacing: -0.035em; }
+.account-access-intro p { max-width: 340px; margin: 0; color: var(--text-muted); font-size: 0.78rem; line-height: 1.6; }
+.account-access-screen:not(.account-required) .account-center-card { margin-top: 20px; }
+.account-access-screen .account-center-card { margin-right: 0; margin-left: 0; box-shadow: 0 20px 55px rgba(0,0,0,0.24); }
 
 /* Mise à jour obligatoire : fenêtre centrale, version réelle et police Inter locale */
 .modal.modal-centered { align-items: center; padding: 20px 18px; }
@@ -2702,7 +2729,10 @@ main::-webkit-scrollbar { display: none; }
   header { padding: 10px 10px; padding-top: max(10px, var(--safe-top)); }
   .brand-text { font-size: 0.82rem; }
   .header-right { gap: 4px; }
-  .activity-bell, .settings-btn-header { width: 32px; height: 32px; }
+  .account-btn-header { width: 32px; height: 32px; flex-basis: 32px; }
+  .account-access-screen { padding-right: 12px; padding-left: 12px; }
+  .account-access-brand strong { font-size: 0.8rem; }
+  .account-access-intro { margin-top: 24px; }
   .pin-key { height: 52px; font-size: 1.25rem; }
   .seed-grid { grid-template-columns: repeat(2, 1fr); }
   .plug-machine-card { padding: 14px; }
