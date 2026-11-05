@@ -243,6 +243,18 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     assert.ok(!/password|private_key|mnemonic|recovery_phrase|session_token|refresh_token/i.test(profileDefinition));
   });
 
+  await test('Packaging Vercel: API account incluse et seul le client racine exclu', async () => {
+    const root = path.join(__dirname, '..');
+    const ignoreLines = fs.readFileSync(path.join(root, '.vercelignore'), 'utf8').split(/\r?\n/).map((line) => line.trim());
+    assert.ok(ignoreLines.includes('/account.js'), 'Le client racine est exclu avec un chemin ancré');
+    assert.ok(!ignoreLines.includes('account.js'), 'Le motif global qui exclurait aussi api/account.js est interdit');
+    const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+    const rewrites = new Map(config.rewrites.map((rule) => [rule.source, rule.destination]));
+    for (const action of ['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link']) {
+      assert.strictEqual(rewrites.get(`/api/account/${action}`), `/api/account?action=${action}`);
+    }
+  });
+
   await test('Transport Supabase: secrets uniquement vers Auth et recherche PostgREST encodée', async () => {
     const calls = [];
     const fetchMock = async (url, options = {}) => {
