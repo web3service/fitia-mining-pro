@@ -125,7 +125,7 @@ npm run build:apk
 npm test
 ```
 
-La version Android 3.6.5 est en préparation ; le canal `update-current.json` reste en 3.6.4 jusqu’à la publication autorisée du nouvel APK.
+La version Android 3.6.5 est publiée avec sa signature officielle ; le canal `update-current.json` référence son APK et son SHA-256.
 
 Avant toute publication d’une mise à jour Android, incrémentez `versionCode` et `versionName` dans `android-src/AndroidManifest.xml` ainsi que la version dans `package.json`. Générez et publiez ensuite l’APK avec la signature officielle, puis actualisez le manifeste de diffusion avec son URL et son SHA-256 réels. Ne modifiez pas le canal public pour une version dont l’APK n’est pas encore disponible.
 
