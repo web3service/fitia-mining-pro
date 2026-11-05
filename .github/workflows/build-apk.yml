@@ -1,12 +1,6 @@
 name: Build signed Android APK
-# Temporary branch-only build trigger.
 
 on:
-  push:
-    branches:
-      - arena/705fd20d-fitia-mining-pro
-    paths:
-      - .github/workflows/build-apk.yml
   workflow_dispatch:
     inputs:
       commit_build:
@@ -115,14 +109,7 @@ jobs:
         env:
           FITIA_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
           FITIA_ANDROID_KEY_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
-        run: |
-          set -o pipefail
-          python3 scripts/build_apk.py 2>&1 | tee /tmp/fitia-build-output.log || {
-            grep -A 4 -B 1 "ERROR in" /tmp/fitia-build-output.log | head -n 18 | while IFS= read -r line; do
-              printf '::error::%s\n' "$line"
-            done
-            exit 1
-          }
+        run: python3 scripts/build_apk.py
 
       - name: Update the current release manifest
         shell: bash
@@ -154,7 +141,7 @@ jobs:
           retention-days: 30
 
   commit-build:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_build && github.ref != 'refs/heads/main' }}
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:

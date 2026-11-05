@@ -1,0 +1,46 @@
+name: Verify signed Android delivery
+on:
+  push:
+    branches: [arena/705fd20d-fitia-mining-pro]
+    paths: [.github/workflows/arena-delivery.yml]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42088232329
+          name: FITIA-PRO-Miner-APK
+          path: ${{ runner.temp }}/fitia-delivery
+      - name: Verify version, checksum and audited sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, zipfile
+          root = pathlib.Path.cwd()
+          artifact = pathlib.Path(os.environ['RUNNER_TEMP']) / 'fitia-delivery'
+          apk = artifact / 'FITIA-PRO-Miner.apk'
+          manifest = json.loads((artifact / 'update-current.json').read_text())
+          digest = hashlib.sha256(apk.read_bytes()).hexdigest()
+          assert json.loads((root / 'package.json').read_text())['version'] == '3.6.5'
+          assert manifest['versionName'] == '3.6.5' and manifest['versionCode'] == 365
+          assert manifest['sha256'] == digest
+          assert manifest['apkUrl'] == 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.6.5/FITIA-PRO-Miner.apk'
+          with zipfile.ZipFile(apk) as archive:
+              for source, bundled in [('app.js', 'app.js'), ('account.js', 'account.js'), ('style.css', 'style.css'), ('android-src/wallet.html', 'wallet.html')]:
+                  assert archive.read('assets/www/' + bundled) == (root / source).read_bytes(), source
+          print(f'::notice title=FITIA APK SHA-256::{digest}')
+          PY
+      - name: Upload only the signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FITIA-PRO-Miner-3.6.5
+          path: ${{ runner.temp }}/fitia-delivery/FITIA-PRO-Miner.apk
+          if-no-files-found: error
+          retention-days: 30
