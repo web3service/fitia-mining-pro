@@ -3411,3 +3411,10 @@ main::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion:reduce) {
   .crash-stage,.crash-view .crash-multiplier { animation: none; transition: none; }
 }
+
+/* Profile photo is local to this device and cropped without changing wallet data. */
+.account-profile-avatar { overflow: hidden; }
+.account-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.account-photo-actions button { min-height: 38px; padding: 8px 12px; font-size: .76rem; }
+#account-signup-country { color-scheme: dark; }

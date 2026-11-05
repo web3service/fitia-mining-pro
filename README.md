@@ -125,6 +125,12 @@ npm run build:apk
 npm test
 ```
 
-La version Android 3.6.4 est publiée avec sa signature officielle ; le canal `update-current.json` référence son APK et son SHA-256.
+La version Android 3.6.5 est publiée avec sa signature officielle ; le canal `update-current.json` référence son APK et son SHA-256.
 
 Avant toute publication d’une mise à jour Android, incrémentez `versionCode` et `versionName` dans `android-src/AndroidManifest.xml` ainsi que la version dans `package.json`. Générez et publiez ensuite l’APK avec la signature officielle, puis actualisez le manifeste de diffusion avec son URL et son SHA-256 réels. Ne modifiez pas le canal public pour une version dont l’APK n’est pas encore disponible.
+
+### Photo de profil et pays
+
+À l’inscription, le pays est choisi dans une liste de codes ISO avec drapeaux. Il est conservé dans les métadonnées Supabase Auth du compte et retrouvé après connexion ; les anciens comptes sans pays restent utilisables. Le pays est une donnée déclarative, pas une preuve d’identité. L’API de compte doit être déployée avant le nouveau client.
+
+La photo est facultative : le sélecteur Android ou le navigateur accepte JPEG, PNG et WebP jusqu’à 10 Mo, puis crée une miniature JPEG de 256 px. Elle reste dans le stockage local non chiffré de l’appareil, séparée par identifiant de compte ; elle n’est ni envoyée au serveur ni synchronisée sur d’autres appareils, et peut être supprimée depuis Mon compte. Effacer les données de l’application ou changer d’appareil la supprime. Elle ne touche ni aux clés ni au coffre wallet.

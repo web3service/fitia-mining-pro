@@ -31,10 +31,10 @@ class FakeAuth {
     this.access.set(accessToken, user.id); this.refreshTokens.set(refreshToken, user.id);
     return { access_token: accessToken, refresh_token: refreshToken, expires_in: 3600, user: this.publicUser(user) };
   }
-  publicUser(user) { return { id: user.id, email: user.email, email_confirmed_at: user.emailConfirmedAt, user_metadata: { username: user.username } }; }
-  async signUp(email, password, username) {
+  publicUser(user) { return { id: user.id, email: user.email, email_confirmed_at: user.emailConfirmedAt, user_metadata: { username: user.username, country: user.country } }; }
+  async signUp(email, password, username, country) {
     if ([...this.users.values()].some((user) => user.email === email)) throw new AccountError(400, 'Exists', 'ACCOUNT_SIGNUP');
-    const user = { id: require('crypto').randomUUID(), email, password, username, emailConfirmedAt: null };
+    const user = { id: require('crypto').randomUUID(), email, password, username, country, emailConfirmedAt: null };
     this.users.set(user.id, user); return this.issue(user);
   }
   async signIn(email, password) {
@@ -97,6 +97,22 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     assert.strictEqual(result.user.walletVerified, false);
     assert.strictEqual(result.user.certified, false);
     assert.ok(!JSON.stringify([...repository.profiles.values()]).includes('A-correct-passphrase-2026'));
+  });
+
+  await test('Pays valide conservé dans Auth, compatible anciens comptes et opérations profil', async () => {
+    const { service } = createService();
+    const params = { email: 'country@example.com', password: 'A-correct-passphrase-2026', username: 'Country_User' };
+    await rejects(service.signUp({ ...params, country: 'ZZ' }), 'ACCOUNT_COUNTRY');
+    const result = await service.signUp({ ...params, country: 'ci' });
+    assert.strictEqual(result.user.country, 'CI');
+    const token = result.session.accessToken;
+    assert.strictEqual((await service.session(token)).user.country, 'CI');
+    assert.strictEqual((await service.updateProfile(token, { username: 'New_Country_User' })).user.country, 'CI');
+    const login = await service.signIn({ email: params.email, password: params.password });
+    assert.strictEqual(login.user.country, 'CI');
+    assert.strictEqual((await service.refresh({ refreshToken: login.session.refreshToken })).user.country, 'CI');
+    const old = await service.signUp({ ...params, email: 'old@example.com', username: 'Old_User' });
+    assert.strictEqual(old.user.country, null);
   });
 
   await test('Confirmation email sans fuite ni altération d’un profil existant', async () => {
