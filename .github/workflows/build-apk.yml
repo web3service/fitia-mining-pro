@@ -1,12 +1,6 @@
 name: Build signed Android APK
 
 on:
-  # Temporary branch-only trigger for the user-approved signed test build.
-  push:
-    branches:
-      - arena/ae2c3d79-fitia-mining-pro
-    paths:
-      - .github/workflows/build-apk.yml
   workflow_dispatch:
     inputs:
       commit_build:
@@ -147,7 +141,7 @@ jobs:
           retention-days: 30
 
   commit-build:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_build && github.ref != 'refs/heads/main' }}
+    if: ${{ inputs.commit_build && github.ref != 'refs/heads/main' }}
     needs: build-apk
     runs-on: ubuntu-latest
     permissions:
