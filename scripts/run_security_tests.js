@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.1 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.2 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -521,7 +521,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.1\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.2\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -599,6 +599,11 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(document.getElementById('btn-settings-app'), null);
         assert.strictEqual(document.getElementById('btn-lock-app'), null);
         assert.ok(accountButton.querySelector('#activity-unread-badge'), 'Le badge non lu suit le bouton Mon compte');
+        for (const selector of ['.account-access-intro p', '.account-center-header p', '.account-security-note']) {
+          assert.strictEqual(document.querySelector(selector), null, `Texte explicatif secondaire masqué : ${selector}`);
+        }
+        assert.ok(document.getElementById('account-message'), 'Les erreurs de compte essentielles restent disponibles');
+        assert.ok(document.getElementById('account-confirmation'), 'La confirmation email indispensable reste disponible');
         for (const id of ['account-open-settings', 'account-open-activity', 'account-lock-wallet', 'account-logout']) {
           assert.ok(document.getElementById(id), `Accès profil conservé : ${id}`);
         }
@@ -1376,8 +1381,11 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
-    await runTest('APP-UPDATE', 'Mise à jour obligatoire, message générique, téléchargement natif et blocage de la fermeture', async () => {
+    await runTest('APP-UPDATE', 'Mise à jour obligatoire sans texte secondaire, progression réelle et blocage de la fermeture', async () => {
       const originalFetch = e2eWin.fetch;
+      const originalShowToast = App.showToast;
+      const toastMessages = [];
+      App.showToast = (message, isError = false) => { toastMessages.push({ message, isError }); };
       const nativeState = e2eWin.FitiaNative._state;
       const originalDownloads = nativeState.updateDownloads;
       const update = {
@@ -1398,7 +1406,9 @@ function httpRequest(port, method, reqPath) {
         const modal = e2eWin.document.getElementById('modal-update');
         assert.ok(modal.classList.contains('active'), 'Une version supérieure ouvre toujours la mise à jour, même si elle était précédemment ignorée');
         assert.strictEqual(e2eWin.document.getElementById('update-required-title').textContent, App.t('updateRequiredTitle'));
-        assert.strictEqual(e2eWin.document.getElementById('update-required-message').textContent, App.t('updateRequiredMessage'));
+        assert.strictEqual(e2eWin.document.getElementById('update-required-message'), null, 'Le message descriptif de mise à jour est masqué');
+        assert.strictEqual(modal.querySelector('.update-install-hint'), null, 'Le conseil secondaire d’installation est masqué');
+        assert.strictEqual(modal.getAttribute('aria-describedby'), null, 'Aucune description secondaire n’est associée à la modale');
         assert.ok(!modal.textContent.includes('Notes techniques') && !modal.textContent.includes('onerror'), 'Les notes du manifeste ne sont jamais affichées');
         assert.strictEqual(modal.querySelector('img'), null, 'Aucun contenu HTML issu du manifeste');
         assert.strictEqual(e2eWin.document.getElementById('update-required-version').textContent, 'V 9.8.7', 'La version réelle du manifeste est affichée');
@@ -1415,11 +1425,52 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(e2eWin.onAndroidBackPressed(), true, 'Le bouton Retour Android est consommé');
         assert.ok(modal.classList.contains('active'), 'Le bouton Retour Android ne ferme pas la mise à jour');
 
-        App.startUpdateDownload();
+        const installButton = e2eWin.document.getElementById('update-install-button');
+        const installLabel = e2eWin.document.getElementById('update-install-label');
+        const downloadProgress = e2eWin.document.getElementById('update-download-progress');
+        const downloadFill = e2eWin.document.getElementById('update-download-progress-fill');
+        const downloadPercent = e2eWin.document.getElementById('update-download-percent');
+        assert.strictEqual(installButton.disabled, false);
+        assert.strictEqual(App.startUpdateDownload(), true);
         assert.strictEqual(nativeState.updateDownloads.length, 1);
         assert.strictEqual(nativeState.updateDownloads[0].url, update.apkUrl);
         assert.strictEqual(nativeState.updateDownloads[0].expectedSha256, update.sha256);
+        assert.strictEqual(toastMessages.length, 0, 'Aucun petit message de téléchargement ne remplace la progression visuelle');
+        assert.strictEqual(installButton.disabled, true, 'Le bouton devient une barre non cliquable pendant le téléchargement');
+        assert.strictEqual(installButton.getAttribute('role'), 'progressbar');
+        assert.strictEqual(installButton.getAttribute('aria-valuenow'), '0');
+        assert.ok(installLabel.classList.contains('hidden'));
+        assert.ok(!downloadProgress.classList.contains('hidden'));
+        assert.ok(!downloadPercent.classList.contains('hidden'));
         assert.ok(modal.classList.contains('active'), 'La mise à jour reste bloquante pendant le téléchargement et jusqu’à l’installation');
+
+        App.onUpdateDownloadProgress(-1, 'downloading');
+        assert.ok(installButton.classList.contains('is-indeterminate'), 'Une taille inconnue affiche une progression indéterminée');
+        assert.strictEqual(downloadPercent.textContent, '…');
+        assert.strictEqual(installButton.getAttribute('aria-valuenow'), null);
+        App.onUpdateDownloadProgress(47.4, 'downloading');
+        assert.ok(!installButton.classList.contains('is-indeterminate'));
+        assert.strictEqual(downloadFill.style.width, '47%');
+        assert.strictEqual(downloadPercent.textContent, '47%');
+        assert.strictEqual(installButton.getAttribute('aria-valuenow'), '47');
+        assert.strictEqual(App.startUpdateDownload(), false, 'Un second clic ne duplique pas le téléchargement');
+        assert.strictEqual(nativeState.updateDownloads.length, 1);
+        App.onUpdateDownloadProgress(100, 'verifying');
+        assert.strictEqual(downloadPercent.textContent, '100%', 'La vérification suit un téléchargement complet');
+        App.onUpdateDownloadProgress(0, 'error');
+        assert.strictEqual(installButton.disabled, false, 'Une erreur permet de réessayer');
+        assert.strictEqual(installButton.getAttribute('role'), null);
+        assert.ok(!installLabel.classList.contains('hidden'));
+        assert.ok(downloadProgress.classList.contains('hidden'));
+        assert.deepStrictEqual(toastMessages.pop(), { message: App.t('updateStartError'), isError: true }, 'Seule l’erreur essentielle est annoncée');
+
+        assert.strictEqual(App.startUpdateDownload(), true);
+        assert.strictEqual(nativeState.updateDownloads.length, 2);
+        App.onUpdateDownloadProgress(100, 'ready');
+        assert.strictEqual(downloadPercent.textContent, '100%');
+        assert.strictEqual(installButton.disabled, true);
+        assert.strictEqual(App.updateDownloadInProgress, false);
+        assert.ok(App.updateDownloadResetTimer, 'Le bouton pourra rouvrir l’installateur si Android est quitté');
 
         assert.strictEqual(
           App.normalizeUpdateManifest({ ...update, apkUrl: 'https://example.com/FITIA-PRO-Miner.apk' }),
@@ -1435,9 +1486,11 @@ function httpRequest(port, method, reqPath) {
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
         e2eWin.fetch = originalFetch;
+        App.showToast = originalShowToast;
         nativeState.appVersionCode = 0;
         nativeState.updateDownloads = originalDownloads;
         e2eWin.localStorage.removeItem('fitia_update_dismissed_code');
+        App.resetUpdateDownloadButton();
         App.availableUpdate = null;
         App.updateCheckInFlight = false;
         e2eWin.document.getElementById('modal-update').classList.remove('active');
@@ -2922,6 +2975,14 @@ function httpRequest(port, method, reqPath) {
       assert.ok(source.includes('if (!verifyDownloadedUpdate(partial))'), 'Le fichier téléchargé est vérifié avant remplacement');
       assert.ok(source.includes('if (!verifyDownloadedUpdate(apk))'), 'Le fichier est revérifié avant l’ouverture de l’installeur');
       assert.ok(source.includes('apk.delete();'), 'Un package non conforme est supprimé');
+      for (const required of [
+        'notifyUpdateDownloadProgress(', 'connection.getContentLengthLong()',
+        '(total * 100L) / contentLength', 'window.App.onUpdateDownloadProgress(',
+        'notifyUpdateDownloadProgress(100, "verifying")', 'notifyUpdateDownloadProgress(100, "ready")',
+        'notifyUpdateDownloadProgress(0, "error")'
+      ]) assert.ok(source.includes(required), `Progression native absente : ${required}`);
+      assert.ok(!source.includes('showUpdateToast("Téléchargement de la mise à jour'), 'Le toast descriptif de début est supprimé');
+      assert.ok(!source.includes('Mise à jour téléchargée. Ouverture de l’installation.'), 'Le toast descriptif de fin est supprimé');
     });
 
     // ─── SUITE 6 : Audit Binaire de l'APK Android Compilé ───────────────
@@ -3007,11 +3068,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 361);
-      assert.strictEqual(updateManifest.versionName, '3.6.1');
-      assert.ok(updateManifest.apkUrl.includes('/v3.6.1/'));
+      assert.strictEqual(updateManifest.versionCode, 362);
+      assert.strictEqual(updateManifest.versionName, '3.6.2');
+      assert.ok(updateManifest.apkUrl.includes('/v3.6.2/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.1 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.2 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -3029,8 +3090,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=361'), 'versionCode=361 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.1"'), 'versionName=3.6.1 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=362'), 'versionCode=362 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.2"'), 'versionName=3.6.2 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

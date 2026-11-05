@@ -1224,6 +1224,8 @@ class Application {
     this.backgroundedAt = 0;
     this.availableUpdate = null;
     this.updateCheckInFlight = false;
+    this.updateDownloadInProgress = false;
+    this.updateDownloadResetTimer = null;
     this.sessionGeneration = 0;
     this.sessionBootstrapPromise = null;
 
@@ -1476,21 +1478,94 @@ class Application {
     if (!update) return;
     this.availableUpdate = update;
     localStorage.removeItem('fitia_update_dismissed_code');
-    document.getElementById('update-required-message').textContent = this.t('updateRequiredMessage');
+    this.resetUpdateDownloadButton();
     document.getElementById('update-required-version').textContent = `V ${update.versionName}`;
     document.getElementById('modal-update').classList.add('active');
   }
 
-  startUpdateDownload() {
-    const update = this.availableUpdate;
-    if (!update) return;
-    const started = FitiaSecurity.Native.downloadAndInstallUpdate(update.apkUrl, update.sha256);
-    if (!started) {
+  resetUpdateDownloadButton() {
+    if (this.updateDownloadResetTimer) {
+      clearTimeout(this.updateDownloadResetTimer);
+      this.updateDownloadResetTimer = null;
+    }
+    this.updateDownloadInProgress = false;
+    const button = document.getElementById('update-install-button');
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove('is-downloading', 'is-indeterminate');
+    button.removeAttribute('role');
+    button.removeAttribute('aria-label');
+    button.removeAttribute('aria-valuemin');
+    button.removeAttribute('aria-valuemax');
+    button.removeAttribute('aria-valuenow');
+    button.removeAttribute('aria-valuetext');
+    document.getElementById('update-install-label')?.classList.remove('hidden');
+    document.getElementById('update-download-progress')?.classList.add('hidden');
+    document.getElementById('update-download-percent')?.classList.add('hidden');
+    const fill = document.getElementById('update-download-progress-fill');
+    if (fill) fill.style.width = '0%';
+  }
+
+  setUpdateDownloadProgress(progress) {
+    const button = document.getElementById('update-install-button');
+    if (!button) return;
+    const numericProgress = Number(progress);
+    const indeterminate = !Number.isFinite(numericProgress) || numericProgress < 0;
+    const percent = indeterminate ? 0 : Math.max(0, Math.min(100, Math.round(numericProgress)));
+    button.disabled = true;
+    button.classList.add('is-downloading');
+    button.classList.toggle('is-indeterminate', indeterminate);
+    button.setAttribute('role', 'progressbar');
+    button.setAttribute('aria-label', this.t('updateDownloading'));
+    button.setAttribute('aria-valuemin', '0');
+    button.setAttribute('aria-valuemax', '100');
+    if (indeterminate) button.removeAttribute('aria-valuenow');
+    else button.setAttribute('aria-valuenow', String(percent));
+    document.getElementById('update-install-label')?.classList.add('hidden');
+    document.getElementById('update-download-progress')?.classList.remove('hidden');
+    const percentLabel = document.getElementById('update-download-percent');
+    if (percentLabel) {
+      percentLabel.classList.remove('hidden');
+      percentLabel.textContent = indeterminate ? '…' : `${percent}%`;
+    }
+    const fill = document.getElementById('update-download-progress-fill');
+    if (fill) fill.style.width = indeterminate ? '' : `${percent}%`;
+  }
+
+  onUpdateDownloadProgress(progress, state = 'downloading') {
+    const button = document.getElementById('update-install-button');
+    if (state === 'error') {
+      if (!this.updateDownloadInProgress && !button?.classList.contains('is-downloading')) return;
+      this.resetUpdateDownloadButton();
       this.showToast(this.t('updateStartError'), true);
       return;
     }
+    if (!this.availableUpdate || !this.updateDownloadInProgress) return;
+    this.setUpdateDownloadProgress(progress);
+    if (state === 'ready') {
+      this.updateDownloadInProgress = false;
+      // Si l'utilisateur quitte l'installateur Android, le bouton redevient disponible.
+      this.updateDownloadResetTimer = setTimeout(() => {
+        this.updateDownloadResetTimer = null;
+        this.resetUpdateDownloadButton();
+      }, 1800);
+    }
+  }
+
+  startUpdateDownload() {
+    const update = this.availableUpdate;
+    const button = document.getElementById('update-install-button');
+    if (!update || this.updateDownloadInProgress || button?.disabled) return false;
+    this.updateDownloadInProgress = true;
+    this.setUpdateDownloadProgress(0);
+    const started = FitiaSecurity.Native.downloadAndInstallUpdate(update.apkUrl, update.sha256);
+    if (!started) {
+      this.resetUpdateDownloadButton();
+      this.showToast(this.t('updateStartError'), true);
+      return false;
+    }
     // La mise à jour reste obligatoire jusqu'à l'installation effective de la nouvelle version.
-    this.showToast(this.t('updateDownloading'));
+    return true;
   }
 
   setupLifecycleListeners() {
