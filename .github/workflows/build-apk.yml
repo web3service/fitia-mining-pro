@@ -117,7 +117,7 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/build_apk.py 2>&1 | tee /tmp/fitia-build-output.log || {
-            tail -n 35 /tmp/fitia-build-output.log | while IFS= read -r line; do
+            grep -A 4 -B 1 "ERROR in" /tmp/fitia-build-output.log | head -n 18 | while IFS= read -r line; do
               printf '::error::%s\n' "$line"
             done
             exit 1
