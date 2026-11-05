@@ -91,7 +91,7 @@
 
   class FitiaFarmCenter {
     constructor(app) {
-      this.app = app; this.account = null; this.state = null; this.revision = 0; this.withdrawals = [];
+      this.app = app; this.account = null; this.state = null; this.revision = 0; this.withdrawals = []; this.aviator = null;
       this.scene = null; this.active = false; this.initialized = false; this.operation = false;
       this.refreshPromise = null; this.pendingCheck = null; this.pendingDeposit = null;
       this.pollTimer = null; this.clockTimer = null; this.retryTimer = null; this.backgroundPollTimer = null; this.session = 0; this.tab = 'overview';
@@ -141,7 +141,7 @@
     setAccount(account) {
       this.session += 1; this.account = account && ethers.isAddress(account) ? account.toLowerCase() : null;
       this.loadWithdrawalStatuses();
-      this.state = null; this.revision = 0; this.withdrawals = []; this.pendingDeposit = null;
+      this.state = null; this.revision = 0; this.withdrawals = []; this.aviator = null; this.pendingDeposit = null;
       this.refreshPromise = null; this.pendingCheck = null; this.operation = false; this.serverOffset = 0;
       clearTimeout(this.retryTimer); this.retryTimer = null;
       if (!this.account) this.setActive(false);
@@ -218,7 +218,8 @@
     applyView(data) {
       if (!data?.state || !Array.isArray(data.state.animals) || !Array.isArray(data.state.crops)) throw new Error('Invalid farm response.');
       const revision = Number(data.revision || 0);
-      if (revision < this.revision) return;
+      if (data.aviator && typeof data.aviator === 'object') this.aviator = data.aviator;
+      if (revision < this.revision) { this.app.fitaCrash?.render(); return; }
       this.revision = revision; this.state = data.state; this.withdrawals = Array.isArray(data.withdrawals) ? data.withdrawals : [];
       if (Number.isSafeInteger(data.serverTime) && Math.abs(data.serverTime - Date.now()) < 8640000000000000) this.serverOffset = data.serverTime - Date.now();
       this.synchronizeWithdrawals(this.withdrawals);
