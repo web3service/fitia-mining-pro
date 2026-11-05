@@ -55,6 +55,13 @@ function normalizePassword(value) {
   return value;
 }
 
+function normalizeCurrentPassword(value) {
+  if (typeof value !== 'string' || !value.length || value.length > 128 || /[\u0000-\u001f\u007f]/.test(value)) {
+    throw new AccountError(400, 'Saisissez votre mot de passe actuel.', 'ACCOUNT_REAUTH');
+  }
+  return value;
+}
+
 function normalizeUsername(value) {
   const username = String(value || '').trim();
   if (!/^[A-Za-z0-9][A-Za-z0-9_]{2,23}$/.test(username)) {
@@ -198,6 +205,34 @@ class SupabaseAuthClient {
     }
   }
 
+  async updateEmail(userId, email) {
+    try {
+      // La mise à jour administrateur confirme le nouvel email sans déclencher
+      // le parcours de confirmation par courrier.
+      return await this.request(`admin/users/${encodeURIComponent(userId)}`, {
+        method: 'PUT', accessToken: this.serviceRoleKey, body: { email, email_confirm: true }
+      });
+    } catch (error) {
+      if (error.code === 'ACCOUNT_UNAVAILABLE') throw error;
+      if (error.supabaseStatus === 429) throw new AccountError(429, 'Trop de tentatives. Réessayez plus tard.', 'ACCOUNT_RATE_LIMIT');
+      if (error.supabaseStatus >= 500) throw new AccountError(503, 'Modification email temporairement indisponible.', 'ACCOUNT_UNAVAILABLE');
+      throw new AccountError(400, 'Impossible de modifier cet email. Vérifiez la nouvelle adresse.', 'ACCOUNT_EMAIL_UPDATE');
+    }
+  }
+
+  async updatePassword(userId, password) {
+    try {
+      return await this.request(`admin/users/${encodeURIComponent(userId)}`, {
+        method: 'PUT', accessToken: this.serviceRoleKey, body: { password }
+      });
+    } catch (error) {
+      if (error.code === 'ACCOUNT_UNAVAILABLE') throw error;
+      if (error.supabaseStatus === 429) throw new AccountError(429, 'Trop de tentatives. Réessayez plus tard.', 'ACCOUNT_RATE_LIMIT');
+      if (error.supabaseStatus >= 500) throw new AccountError(503, 'Modification du mot de passe temporairement indisponible.', 'ACCOUNT_UNAVAILABLE');
+      throw new AccountError(400, 'Impossible de modifier le mot de passe avec ces informations.', 'ACCOUNT_PASSWORD_UPDATE');
+    }
+  }
+
   async refresh(refreshToken) {
     try {
       return await this.request('token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: refreshToken } });
@@ -283,6 +318,20 @@ class SupabaseAccountRepository {
     });
   }
 
+  async updateUsername(userId, username) {
+    try {
+      const rows = await this.request(`app_user_profiles?user_id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH', body: { username, updated_at: new Date().toISOString() }, prefer: 'return=representation'
+      });
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      if (!row) throw new AccountError(404, 'Compte introuvable.', 'ACCOUNT_NOT_FOUND');
+      return row;
+    } catch (error) {
+      if (error.supabaseStatus === 409) throw new AccountError(409, 'Ce nom d’utilisateur est déjà utilisé.', 'ACCOUNT_CONFLICT');
+      throw error;
+    }
+  }
+
   async createChallenge(challenge) {
     const rows = await this.request('app_wallet_link_challenges', {
       method: 'POST', body: challenge, prefer: 'return=representation'
@@ -365,6 +414,16 @@ class MemoryAccountRepository {
   async updateAuthProfile(userId, email, verifiedAt) {
     const row = this.profiles.get(userId);
     if (row) Object.assign(row, { email, email_verified_at: verifiedAt, updated_at: new Date().toISOString() });
+  }
+
+  async updateUsername(userId, username) {
+    const row = this.profiles.get(userId);
+    if (!row) throw new AccountError(404, 'Compte introuvable.', 'ACCOUNT_NOT_FOUND');
+    if ([...this.profiles.values()].some((profile) => profile.user_id !== userId && profile.username.toLowerCase() === username.toLowerCase())) {
+      throw new AccountError(409, 'Ce nom d’utilisateur est déjà utilisé.', 'ACCOUNT_CONFLICT');
+    }
+    Object.assign(row, { username, updated_at: new Date().toISOString() });
+    return clone(row);
   }
 
   async createChallenge(challenge) {
@@ -585,6 +644,49 @@ class AccountService {
   async session(accessToken) {
     const authUser = await this.auth.getUser(accessToken);
     return { user: await this.ensureProfile(authUser) };
+  }
+
+  async updateProfile(accessToken, params = {}) {
+    const authUser = await this.auth.getUser(accessToken);
+    const current = await this.ensureProfile(authUser);
+    const username = normalizeUsername(params.username);
+    if (username === current.username) return { user: current };
+    const row = await this.repository.updateUsername(current.userId, username);
+    return { user: profileFromRow(row) };
+  }
+
+  async reauthenticate(user, currentPassword) {
+    try {
+      return await this.auth.signIn(user.email, normalizeCurrentPassword(currentPassword));
+    } catch (error) {
+      if (error.code === 'ACCOUNT_LOGIN') {
+        throw new AccountError(403, 'Mot de passe actuel incorrect.', 'ACCOUNT_REAUTH');
+      }
+      throw error;
+    }
+  }
+
+  async changeEmail(accessToken, params = {}) {
+    const authUser = await this.auth.getUser(accessToken);
+    const current = await this.ensureProfile(authUser);
+    const email = normalizeEmail(params.email);
+    const currentPassword = normalizeCurrentPassword(params.currentPassword);
+    if (email === current.email) throw new AccountError(400, 'Saisissez une nouvelle adresse email.', 'ACCOUNT_EMAIL_SAME');
+    const freshSession = await this.reauthenticate(current, currentPassword);
+    const updatedAuthUser = await this.auth.updateEmail(current.userId, email);
+    const user = await this.ensureProfile(updatedAuthUser);
+    return this.sessionPayload(freshSession, user);
+  }
+
+  async changePassword(accessToken, params = {}) {
+    const authUser = await this.auth.getUser(accessToken);
+    const current = await this.ensureProfile(authUser);
+    const currentPassword = normalizeCurrentPassword(params.currentPassword);
+    const newPassword = normalizePassword(params.newPassword);
+    if (newPassword === currentPassword) throw new AccountError(400, 'Le nouveau mot de passe doit être différent.', 'ACCOUNT_PASSWORD_SAME');
+    const freshSession = await this.reauthenticate(current, currentPassword);
+    await this.auth.updatePassword(current.userId, newPassword);
+    return this.sessionPayload(freshSession, current);
   }
 
   async logout(accessToken) {

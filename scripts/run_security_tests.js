@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.2 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.3 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -521,7 +521,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.2\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.3\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -2879,14 +2879,24 @@ function httpRequest(port, method, reqPath) {
           const action = String(url).split('/').pop();
           const body = options.body ? JSON.parse(options.body) : null;
           calls.push({ action, body, headers: options.headers });
-          const payload = action === 'signup' ? { user, session }
-            : action === 'challenge' ? { challengeId, walletAddress: wallet.address, message, expiresAt: new Date(Date.now() + 600000).toISOString() }
-            : action === 'link' ? (() => {
-                assert.strictEqual(ethersLib.verifyMessage(body.message, body.signature).toLowerCase(), wallet.address.toLowerCase());
-                return { user: { ...user, walletVerified: true, walletAddress: wallet.address.toLowerCase() } };
-              })()
-            : action === 'logout' ? { signedOut: true } : { user };
-          return { ok: true, status: 200, json: async () => payload };
+          let status = 200;
+          let payload;
+          if (action === 'email' && body?.currentPassword === 'Wrong-passphrase-2026') {
+            status = 403;
+            payload = { error: 'Current password incorrect', code: 'ACCOUNT_REAUTH' };
+          } else {
+            payload = action === 'signup' ? { user, session }
+              : action === 'challenge' ? { challengeId, walletAddress: wallet.address, message, expiresAt: new Date(Date.now() + 600000).toISOString() }
+              : action === 'link' ? (() => {
+                  assert.strictEqual(ethersLib.verifyMessage(body.message, body.signature).toLowerCase(), wallet.address.toLowerCase());
+                  return { user: { ...user, walletVerified: true, walletAddress: wallet.address.toLowerCase() } };
+                })()
+              : action === 'profile' ? { user: { ...center.user, username: body.username } }
+              : action === 'email' ? { user: { ...center.user, email: body.email }, session }
+              : action === 'password' ? { user: center.user, session }
+              : action === 'logout' ? { signedOut: true } : { user };
+          }
+          return { ok: status < 400, status, json: async () => payload };
         };
         document.getElementById('account-signup-username').value = 'Mobile_Miner';
         document.getElementById('account-signup-email').value = 'mobile@example.com';
@@ -2911,6 +2921,61 @@ function httpRequest(port, method, reqPath) {
         assert.ok(!JSON.stringify(linkCall).includes('privateKey'));
         assert.ok(!JSON.stringify(linkCall).includes('A-correct-passphrase-2026'));
         assert.ok(document.getElementById('account-profile-badges').textContent.includes('Wallet verified'));
+        assert.strictEqual(document.getElementById('account-profile-wallet').textContent, wallet.address.toLowerCase());
+        assert.ok(!document.getElementById('account-copy-wallet').classList.contains('hidden'));
+
+        let authenticationNotifications = 0;
+        accountApp.onAccountAuthenticated = async () => { authenticationNotifications += 1; };
+        document.getElementById('account-username-input').value = 'Mobile_Updated';
+        await center.updateUsername();
+        assert.strictEqual(center.user.username, 'Mobile_Updated');
+        assert.strictEqual(document.getElementById('account-profile-name').textContent, 'Mobile_Updated');
+
+        const sessionBeforeReauth = center.session.accessToken;
+        document.getElementById('account-email-input').value = 'blocked@example.com';
+        document.getElementById('account-email-current-password').value = 'Wrong-passphrase-2026';
+        await center.changeEmail();
+        assert.strictEqual(center.user.email, 'mobile@example.com');
+        assert.strictEqual(center.session.accessToken, sessionBeforeReauth);
+        assert.strictEqual(document.getElementById('account-email-current-password').value, '');
+        assert.ok(!calls.some((call) => call.action === 'refresh'), 'Un mot de passe actuel erroné ne rafraîchit pas la session');
+
+        document.getElementById('account-email-input').value = 'mobile-new@example.com';
+        document.getElementById('account-email-current-password').value = 'A-correct-passphrase-2026';
+        await center.changeEmail();
+        assert.strictEqual(center.user.email, 'mobile-new@example.com');
+        assert.strictEqual(document.getElementById('account-profile-email').textContent, 'mobile-new@example.com');
+        assert.strictEqual(document.getElementById('account-email-current-password').value, '');
+
+        document.getElementById('account-password-current').value = 'A-correct-passphrase-2026';
+        document.getElementById('account-password-new').value = 'B-new-passphrase-2027';
+        document.getElementById('account-password-confirm').value = 'Mismatch-passphrase-2027';
+        await center.changePassword();
+        assert.ok(!calls.some((call) => call.action === 'password'), 'Une confirmation différente ne part pas au serveur');
+        assert.strictEqual(document.getElementById('account-password-current').value, '');
+        assert.strictEqual(document.getElementById('account-password-new').value, '');
+        assert.strictEqual(document.getElementById('account-password-confirm').value, '');
+
+        document.getElementById('account-password-current').value = 'A-correct-passphrase-2026';
+        document.getElementById('account-password-new').value = 'B-new-passphrase-2027';
+        document.getElementById('account-password-confirm').value = 'B-new-passphrase-2027';
+        await center.changePassword();
+        const passwordCall = calls.find((call) => call.action === 'password');
+        assert.deepStrictEqual(passwordCall.body, { currentPassword: 'A-correct-passphrase-2026', newPassword: 'B-new-passphrase-2027' });
+        assert.strictEqual(document.getElementById('account-password-current').value, '');
+        assert.strictEqual(document.getElementById('account-password-new').value, '');
+        assert.strictEqual(document.getElementById('account-password-confirm').value, '');
+        assert.strictEqual(authenticationNotifications, 0, 'Les modifications du compte ne relancent pas l’onboarding wallet');
+        assert.strictEqual(accountApp.user, wallet.address);
+        assert.strictEqual(accountApp.signer, wallet);
+        const updatedRawSession = accountWin.localStorage.getItem('fitia_account_session_v1');
+        assert.ok(updatedRawSession && !updatedRawSession.includes('A-correct-passphrase-2026'));
+        assert.ok(!updatedRawSession.includes('B-new-passphrase-2027'));
+
+        let copiedAddress = '';
+        accountWin.FitiaSecurity.Native.copyText = async (value) => { copiedAddress = value; return true; };
+        await center.copyWalletAddress();
+        assert.strictEqual(copiedAddress, wallet.address.toLowerCase());
         await center.logout();
         assert.strictEqual(center.session, null);
         assert.strictEqual(accountApp.user, null, 'La déconnexion du compte purge l’adresse active');
@@ -2920,6 +2985,23 @@ function httpRequest(port, method, reqPath) {
         accountApp.showAuthStep('welcome');
         assert.ok(document.getElementById('auth-screen').classList.contains('hidden'), 'L’onboarding ne peut pas rouvrir sans compte');
         assert.strictEqual(await accountWin.FitiaSecurity.Vault.readAccountSession(), null);
+      });
+
+      await runTest('ACCOUNT-I18N', 'La refonte Mon compte est disponible dans les cinq langues', async () => {
+        const accountApp = accountEnv.win.App;
+        const requiredKeys = [
+          'accountProfileSection', 'accountSecuritySection', 'accountWalletSection', 'accountQuickActions',
+          'accountSave', 'accountNewEmail', 'accountCurrentPassword', 'accountChangeEmail',
+          'accountNewPassword', 'accountConfirmNewPassword', 'accountChangePassword',
+          'accountPublicAddress', 'accountCopyAddress', 'accountProfileUpdated', 'accountEmailUpdated', 'accountPasswordUpdated'
+        ];
+        for (const lang of ['fr', 'en', 'de', 'zh', 'sg']) {
+          accountApp.setLanguage(lang);
+          for (const key of requiredKeys) assert.notStrictEqual(accountApp.t(key), key, `${key} absent pour ${lang}`);
+        }
+        accountApp.setLanguage('en');
+        assert.strictEqual(accountEnv.win.document.getElementById('account-profile-section-title').textContent, 'Profile');
+        assert.strictEqual(accountEnv.win.document.getElementById('account-security-section-title').textContent, 'Security');
       });
     } finally {
       accountEnv.dom.window.close();
@@ -3068,11 +3150,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 362);
-      assert.strictEqual(updateManifest.versionName, '3.6.2');
-      assert.ok(updateManifest.apkUrl.includes('/v3.6.2/'));
+      assert.strictEqual(updateManifest.versionCode, 363);
+      assert.strictEqual(updateManifest.versionName, '3.6.3');
+      assert.ok(updateManifest.apkUrl.includes('/v3.6.3/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.2 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.3 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -3090,8 +3172,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=362'), 'versionCode=362 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.2"'), 'versionName=3.6.2 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=363'), 'versionCode=363 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.3"'), 'versionName=3.6.3 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

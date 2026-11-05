@@ -24,6 +24,7 @@
       this.refreshTimer = null;
       this.refreshPromise = null;
       this.profilePromise = null;
+      this.profileInputKey = '';
       this.initialized = false;
       this.canRetry = false;
     }
@@ -44,6 +45,16 @@
       this.byId('account-signup-form')?.addEventListener('submit', (event) => {
         event.preventDefault(); this.signUp().catch(() => {});
       });
+      this.byId('account-username-form')?.addEventListener('submit', (event) => {
+        event.preventDefault(); this.updateUsername().catch(() => {});
+      });
+      this.byId('account-email-form')?.addEventListener('submit', (event) => {
+        event.preventDefault(); this.changeEmail().catch(() => {});
+      });
+      this.byId('account-password-form')?.addEventListener('submit', (event) => {
+        event.preventDefault(); this.changePassword().catch(() => {});
+      });
+      this.byId('account-copy-wallet')?.addEventListener('click', () => this.copyWalletAddress().catch(() => {}));
       this.byId('account-show-login')?.addEventListener('click', () => this.setMode('login'));
       this.byId('account-show-signup')?.addEventListener('click', () => this.setMode('signup'));
       this.byId('account-link-wallet')?.addEventListener('click', () => this.linkWallet().catch(() => {}));
@@ -80,7 +91,7 @@
 
     setBusy(busy) {
       this.busy = busy;
-      ['account-login-submit', 'account-signup-submit', 'account-link-wallet', 'account-logout', 'account-retry'].forEach((id) => {
+      ['account-login-submit', 'account-signup-submit', 'account-username-submit', 'account-email-submit', 'account-password-submit', 'account-copy-wallet', 'account-link-wallet', 'account-logout', 'account-retry'].forEach((id) => {
         const element = this.byId(id); if (element) element.disabled = busy;
       });
       this.render();
@@ -293,6 +304,68 @@
       }
     }
 
+    async updateUsername() {
+      if (this.busy || !this.session) return;
+      const username = this.byId('account-username-input').value.trim();
+      this.setBusy(true);
+      try {
+        const result = await this.request('profile', { body: { username } });
+        this.user = result.user;
+        this.message = ''; this.messageIsError = false;
+        this.app.showToast?.(this.t('accountProfileUpdated', 'Username updated.'));
+      } catch (error) { this.showMessage(error.message); }
+      finally { this.setBusy(false); }
+    }
+
+    async changeEmail() {
+      if (this.busy || !this.session) return;
+      const email = this.byId('account-email-input').value.trim();
+      const currentPassword = this.byId('account-email-current-password').value;
+      this.setBusy(true);
+      try {
+        const result = await this.request('email', { body: { email, currentPassword } });
+        await this.acceptSession(result, { notifyApp: false });
+        this.app.showToast?.(this.t('accountEmailUpdated', 'Email address updated.'));
+      } catch (error) { this.showMessage(error.message); }
+      finally {
+        this.byId('account-email-current-password').value = '';
+        this.setBusy(false);
+      }
+    }
+
+    async changePassword() {
+      if (this.busy || !this.session) return;
+      const currentPassword = this.byId('account-password-current').value;
+      const newPassword = this.byId('account-password-new').value;
+      const confirmation = this.byId('account-password-confirm').value;
+      if (newPassword !== confirmation) {
+        this.showMessage(this.t('accountPasswordMismatch', 'Passwords do not match.'));
+        this.byId('account-password-current').value = '';
+        this.byId('account-password-new').value = '';
+        this.byId('account-password-confirm').value = '';
+        return;
+      }
+      this.setBusy(true);
+      try {
+        const result = await this.request('password', { body: { currentPassword, newPassword } });
+        await this.acceptSession(result, { notifyApp: false });
+        this.app.showToast?.(this.t('accountPasswordUpdated', 'Password updated.'));
+      } catch (error) { this.showMessage(error.message); }
+      finally {
+        this.byId('account-password-current').value = '';
+        this.byId('account-password-new').value = '';
+        this.byId('account-password-confirm').value = '';
+        this.setBusy(false);
+      }
+    }
+
+    async copyWalletAddress() {
+      const address = String(this.user?.walletAddress || '');
+      if (!this.user?.walletVerified || !/^0x[0-9a-fA-F]{40}$/.test(address)) return;
+      await FitiaSecurity.Native.copyText(address);
+      this.app.showToast?.(this.t('addrCopied', 'Address copied!'));
+    }
+
     async linkWallet() {
       if (this.busy || !this.session) return;
       const walletAddress = String(this.app.user || '');
@@ -321,6 +394,10 @@
       const hadSession = Boolean(this.session || this.user);
       this.session = null; this.user = null; this.confirmation = '';
       this.canRetry = false;
+      this.profileInputKey = '';
+      ['account-email-current-password', 'account-password-current', 'account-password-new', 'account-password-confirm'].forEach((id) => {
+        const input = this.byId(id); if (input) input.value = '';
+      });
       this.render();
       if (hadSession) await this.app.onAccountSignedOut?.();
       if (this.storage) {
@@ -376,6 +453,13 @@
 
       this.byId('account-profile-name').textContent = this.user.username;
       this.byId('account-profile-email').textContent = this.user.email;
+      this.byId('account-profile-avatar').textContent = String(this.user.username || 'F').charAt(0).toUpperCase();
+      const profileInputKey = `${this.user.userId || this.user.id}:${this.user.username}:${this.user.email}`;
+      if (this.profileInputKey !== profileInputKey) {
+        this.profileInputKey = profileInputKey;
+        this.byId('account-username-input').value = this.user.username;
+        this.byId('account-email-input').value = this.user.email;
+      }
       const badges = this.byId('account-profile-badges'); badges.textContent = '';
       if (this.user.emailVerified) this.renderBadge(badges, this.t('accountEmailVerified', 'Email confirmed'), 'email');
       if (this.user.walletVerified) this.renderBadge(badges, this.t('accountWalletVerified', 'Wallet verified'), 'wallet');
@@ -386,8 +470,10 @@
       const sameWallet = Boolean(linkedWallet && linkedWallet === currentWallet);
       const walletText = this.byId('account-profile-wallet');
       walletText.textContent = this.user.walletVerified
-        ? `${this.t('accountLinkedWallet', 'Linked wallet')}: ${this.user.walletAddress}`
+        ? this.user.walletAddress
         : this.t('accountNoLinkedWallet', 'No wallet linked to this account.');
+      const copyButton = this.byId('account-copy-wallet');
+      copyButton?.classList.toggle('hidden', !this.user.walletVerified || !this.user.walletAddress);
       const linkButton = this.byId('account-link-wallet');
       linkButton.disabled = this.busy || !this.app.signer || (this.user.walletVerified && !sameWallet) || sameWallet;
       linkButton.textContent = sameWallet

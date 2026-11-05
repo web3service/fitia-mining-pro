@@ -86,18 +86,82 @@
       </div>
 
       <div id="account-profile-panel" class="account-profile hidden">
-        <div class="account-profile-heading"><strong id="account-profile-name">—</strong><span id="account-profile-email">—</span></div>
-        <div id="account-profile-badges" class="account-profile-badges"></div>
-        <p id="account-profile-wallet" class="account-profile-wallet"></p>
-        <div class="account-profile-actions">
-          <button id="account-link-wallet" class="btn-primary" type="button" data-i18n="accountLinkWallet">Verify this wallet by signature</button>
+        <div class="account-profile-hero">
+          <div id="account-profile-avatar" class="account-profile-avatar" aria-hidden="true">—</div>
+          <div class="account-profile-heading">
+            <strong id="account-profile-name">—</strong>
+            <span id="account-profile-email">—</span>
+          </div>
+          <div id="account-profile-badges" class="account-profile-badges"></div>
+        </div>
+
+        <section class="account-settings-section" aria-labelledby="account-profile-section-title">
+          <div class="account-section-heading">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6"></path></svg>
+            <h4 id="account-profile-section-title" data-i18n="accountProfileSection">Profile</h4>
+          </div>
+          <form id="account-username-form" class="account-form" novalidate>
+            <label for="account-username-input" data-i18n="accountUsername">Username</label>
+            <div class="account-input-action">
+              <input id="account-username-input" class="game-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" required>
+              <button id="account-username-submit" class="btn-secondary" type="submit" data-i18n="accountSave">Save</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="account-settings-section" aria-labelledby="account-security-section-title">
+          <div class="account-section-heading">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"></path></svg>
+            <h4 id="account-security-section-title" data-i18n="accountSecuritySection">Security</h4>
+          </div>
+          <form id="account-email-form" class="account-form" novalidate>
+            <label for="account-email-input" data-i18n="accountNewEmail">New email address</label>
+            <input id="account-email-input" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
+            <label for="account-email-current-password" data-i18n="accountCurrentPassword">Current password</label>
+            <input id="account-email-current-password" class="game-input" type="password" autocomplete="current-password" maxlength="128" required>
+            <button id="account-email-submit" class="btn-primary" type="submit" data-i18n="accountChangeEmail">Update email</button>
+          </form>
+          <div class="account-section-divider"></div>
+          <form id="account-password-form" class="account-form" novalidate>
+            <label for="account-password-current" data-i18n="accountCurrentPassword">Current password</label>
+            <input id="account-password-current" class="game-input" type="password" autocomplete="current-password" maxlength="128" required>
+            <label for="account-password-new" data-i18n="accountNewPassword">New password</label>
+            <input id="account-password-new" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+            <label for="account-password-confirm" data-i18n="accountConfirmNewPassword">Confirm new password</label>
+            <input id="account-password-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+            <button id="account-password-submit" class="btn-primary" type="submit" data-i18n="accountChangePassword">Update password</button>
+          </form>
+        </section>
+
+        <section class="account-settings-section" aria-labelledby="account-wallet-section-title">
+          <div class="account-section-heading">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h14a2 2 0 0 1 2 2v9H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h11"></path><path d="M15 12h5v4h-5a2 2 0 0 1 0-4Z"></path></svg>
+            <h4 id="account-wallet-section-title" data-i18n="accountWalletSection">Wallet</h4>
+          </div>
+          <span class="account-field-label" data-i18n="accountPublicAddress">Public Polygon address</span>
+          <div class="account-wallet-address-box">
+            <code id="account-profile-wallet"></code>
+            <button id="account-copy-wallet" class="account-copy-button hidden" type="button" data-i18n-title="accountCopyAddress" data-i18n-aria-label="accountCopyAddress" title="Copy address" aria-label="Copy address">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg>
+            </button>
+          </div>
+          <div class="account-profile-actions">
+            <button id="account-link-wallet" class="btn-primary" type="button" data-i18n="accountLinkWallet">Verify this wallet by signature</button>
+          </div>
+        </section>
+
+        <section class="account-settings-section" aria-labelledby="account-actions-section-title">
+          <div class="account-section-heading">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"></circle><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"></circle><circle cx="10" cy="18" r="2" fill="currentColor" stroke="none"></circle></svg>
+            <h4 id="account-actions-section-title" data-i18n="accountQuickActions">Quick actions</h4>
+          </div>
           <div class="account-profile-utilities">
             <button id="account-open-settings" class="btn-secondary" type="button" onclick="App.openSecurityFromAccount()" data-i18n="accountOpenSettings">Wallet & security settings</button>
             <button id="account-open-activity" class="btn-secondary" type="button" onclick="App.openActivityFromAccount()" data-i18n="accountOpenActivity">Activity & notifications</button>
           </div>
-          <button id="account-lock-wallet" class="btn-secondary" type="button" onclick="App.lockWallet()" data-i18n="accountLockWallet">Lock wallet</button>
-          <button id="account-logout" class="btn-secondary account-logout-button" type="button" data-i18n="accountLogout">Sign out of app account</button>
-        </div>
+          <button id="account-lock-wallet" class="btn-secondary account-lock-button" type="button" onclick="App.lockWallet()" data-i18n="accountLockWallet">Lock wallet</button>
+        </section>
+        <button id="account-logout" class="btn-secondary account-logout-button" type="button" data-i18n="accountLogout">Sign out of app account</button>
       </div>
       <p id="account-message" class="account-message hidden" role="alert"></p>
     </section>

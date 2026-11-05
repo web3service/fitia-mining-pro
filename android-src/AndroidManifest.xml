@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.fitia.miningpro"
-    android:versionCode="362"
-    android:versionName="3.6.2">
+    android:versionCode="363"
+    android:versionName="3.6.3">
 
     <uses-sdk
         android:minSdkVersion="24"
