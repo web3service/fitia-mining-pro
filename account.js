@@ -25,6 +25,7 @@
       this.refreshPromise = null;
       this.profilePromise = null;
       this.initialized = false;
+      this.canRetry = false;
     }
 
     t(key, fallback) {
@@ -47,13 +48,21 @@
       this.byId('account-show-signup')?.addEventListener('click', () => this.setMode('signup'));
       this.byId('account-link-wallet')?.addEventListener('click', () => this.linkWallet().catch(() => {}));
       this.byId('account-logout')?.addEventListener('click', () => this.logout().catch(() => {}));
+      this.byId('account-retry')?.addEventListener('click', () => this.retryRestore().catch(() => {}));
       this.render();
-      this.restore().catch(() => {});
     }
 
-    open() {
+    isAuthenticated() {
+      const userId = this.user?.userId || this.user?.id;
+      return typeof this.session?.accessToken === 'string' && this.session.accessToken.length > 0
+        && typeof userId === 'string' && userId.length > 0;
+    }
+
+    open(options = {}) {
       this.render();
-      if (this.session && !this.profilePromise) this.refreshProfile({ quiet: true }).catch(() => {});
+      if (options.refresh !== false && this.session && !this.profilePromise) {
+        this.refreshProfile({ quiet: true }).catch(() => {});
+      }
     }
 
     setMode(mode) {
@@ -71,7 +80,7 @@
 
     setBusy(busy) {
       this.busy = busy;
-      ['account-login-submit', 'account-signup-submit', 'account-link-wallet', 'account-logout'].forEach((id) => {
+      ['account-login-submit', 'account-signup-submit', 'account-link-wallet', 'account-logout', 'account-retry'].forEach((id) => {
         const element = this.byId(id); if (element) element.disabled = busy;
       });
       this.render();
@@ -112,11 +121,15 @@
       } finally { clearTimeout(timeout); }
     }
 
-    async acceptSession(result) {
-      if (!result.session || !result.user) throw new Error('Invalid account session response');
+    async acceptSession(result, options = {}) {
+      const accessToken = result?.session?.accessToken;
+      const refreshToken = result?.session?.refreshToken;
+      const userId = result?.user?.userId || result?.user?.id;
+      if (typeof accessToken !== 'string' || !accessToken || typeof refreshToken !== 'string' || !refreshToken
+        || typeof userId !== 'string' || !userId) throw new Error('Invalid account session response');
       this.session = {
-        accessToken: String(result.session.accessToken),
-        refreshToken: String(result.session.refreshToken),
+        accessToken,
+        refreshToken,
         tokenType: 'bearer',
         expiresAt: String(result.session.expiresAt || '')
       };
@@ -126,8 +139,10 @@
         try { await this.storage.sealAccountSession(this.session); }
         catch (_) { /* La session reste utilisable en mémoire si le stockage est indisponible. */ }
       }
+      this.canRetry = false;
       this.scheduleRefresh();
       this.render();
+      if (options.notifyApp !== false) await this.app.onAccountAuthenticated?.();
     }
 
     scheduleRefresh() {
@@ -152,7 +167,12 @@
       this.refreshPromise = (async () => {
         try {
           const result = await this.request('refresh', { auth: false, body: { refreshToken }, retry: false });
-          await this.acceptSession(result);
+          if (this.session?.refreshToken !== refreshToken) {
+            const changed = new Error(this.t('accountServiceError', 'Account session changed.'));
+            changed.code = 'ACCOUNT_SESSION_CHANGED'; changed.status = 409;
+            throw changed;
+          }
+          await this.acceptSession(result, { notifyApp: false });
           return result;
         } catch (error) {
           if (error.status === 401) await this.clearLocalSession();
@@ -163,25 +183,59 @@
     }
 
     async restore() {
-      if (!this.storage) { this.render(); return; }
-      const stored = await this.storage.readAccountSession();
-      if (!stored) { this.render(); return; }
-      this.session = stored;
-      this.scheduleRefresh();
-      await this.refreshProfile({ quiet: true });
+      this.canRetry = false;
+      this.setBusy(true);
+      try {
+        if (!this.storage) { this.render(); return false; }
+        const stored = await this.storage.readAccountSession();
+        if (!stored) { this.session = null; this.user = null; this.render(); return false; }
+        this.session = stored;
+        this.scheduleRefresh();
+        try {
+          await this.refreshProfile({ quiet: true });
+          this.canRetry = false;
+          this.render();
+          return this.isAuthenticated();
+        } catch (error) {
+          if (this.session) {
+            this.canRetry = true;
+            this.showMessage(error.message || this.t('accountServiceError', 'Account service unavailable.'));
+          }
+          this.render();
+          return false;
+        }
+      } catch (error) {
+        this.session = null; this.user = null; this.canRetry = true;
+        this.showMessage(error.message || this.t('accountServiceError', 'Account service unavailable.'));
+        return false;
+      } finally { this.setBusy(false); }
+    }
+
+    async retryRestore() {
+      if (this.busy) return;
+      this.setBusy(true);
+      try {
+        const restored = await this.restore();
+        if (restored) await this.app.onAccountAuthenticated?.();
+      } catch (error) { this.showMessage(error.message); }
+      finally { this.setBusy(false); }
     }
 
     async refreshProfile(options = {}) {
       if (this.profilePromise) return this.profilePromise;
-      if (!this.session) return null;
+      const accessToken = this.session?.accessToken;
+      if (!accessToken) return null;
       this.profilePromise = (async () => {
         try {
           const result = await this.request('session');
+          if (this.session?.accessToken !== accessToken) return null;
           this.user = result.user;
+          this.canRetry = false;
           this.message = ''; this.messageIsError = false;
           this.render();
           return result;
         } catch (error) {
+          if (this.session?.accessToken !== accessToken) return null;
           if (error.status === 401) await this.clearLocalSession();
           else if (!options.quiet) this.showMessage(error.message);
           throw error;
@@ -264,11 +318,14 @@
     async clearLocalSession() {
       if (this.refreshTimer) clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
+      const hadSession = Boolean(this.session || this.user);
       this.session = null; this.user = null; this.confirmation = '';
+      this.canRetry = false;
+      this.render();
+      if (hadSession) await this.app.onAccountSignedOut?.();
       if (this.storage) {
         try { await this.storage.clearAccountSession(); } catch (_) { /* Effacement local de secours. */ }
       }
-      this.render();
     }
 
     async logout() {
@@ -294,9 +351,13 @@
     render() {
       const auth = this.byId('account-auth-panel');
       if (!auth) return;
-      const connected = Boolean(this.session && this.user);
+      const connected = this.isAuthenticated();
       auth.classList.toggle('hidden', connected);
       this.byId('account-profile-panel')?.classList.toggle('hidden', !connected);
+      this.byId('account-access-screen')?.classList.toggle('account-required', !connected);
+      this.byId('account-access-intro')?.classList.toggle('hidden', connected);
+      this.byId('account-access-close')?.classList.toggle('hidden', !connected);
+      this.byId('account-retry')?.classList.toggle('hidden', connected || !this.canRetry);
       this.byId('account-login-form')?.classList.toggle('hidden', this.mode !== 'login');
       this.byId('account-signup-form')?.classList.toggle('hidden', this.mode !== 'signup');
       this.byId('account-show-login')?.classList.toggle('active', this.mode === 'login');

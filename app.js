@@ -35,6 +35,15 @@ const i18n = {
     updateStartError: "Impossible de lancer la mise à jour. Réessayez plus tard.",
     updateLatest: "L’application est à jour.",
     updateCheckFailed: "Impossible de vérifier la mise à jour pour le moment.",
+    accountRequiredTitle: "Connexion à FITIA PRO",
+    accountRequiredMessage: "Un compte FITIA est obligatoire pour accéder à l’application.",
+    accountMyAccount: "Mon compte",
+    accountOpenSettings: "Paramètres Wallet & Sécurité",
+    accountOpenActivity: "Activité & notifications",
+    accountLockWallet: "Verrouiller le wallet",
+    accountRetry: "Réessayer",
+    accountClose: "Fermer le compte",
+    accountLanguageLabel: "Choisir la langue",
     accountCenterTitle: "Compte FITIA",
     accountCenterSubtitle: "Email et mot de passe pour votre compte applicatif",
     accountSignIn: "Connexion",
@@ -374,6 +383,15 @@ const i18n = {
     updateStartError: "Unable to start the update. Please try again later.",
     updateLatest: "The app is up to date.",
     updateCheckFailed: "Unable to check for updates right now.",
+    accountRequiredTitle: "Sign in to FITIA PRO",
+    accountRequiredMessage: "A FITIA account is required to access the app.",
+    accountMyAccount: "My account",
+    accountOpenSettings: "Wallet & security settings",
+    accountOpenActivity: "Activity & notifications",
+    accountLockWallet: "Lock wallet",
+    accountRetry: "Retry",
+    accountClose: "Close account",
+    accountLanguageLabel: "Choose language",
     accountCenterTitle: "FITIA Account",
     accountCenterSubtitle: "Email and password for your app account",
     accountSignIn: "Sign in",
@@ -701,6 +719,40 @@ const i18n = {
     activityClaimDescription: "FITIA mining rewards"
   },
   de: {
+    accountRequiredTitle: "Anmeldung bei FITIA PRO",
+    accountRequiredMessage: "Ein FITIA-Konto ist für den Zugriff auf die App erforderlich.",
+    accountMyAccount: "Mein Konto",
+    accountOpenSettings: "Wallet- & Sicherheitseinstellungen",
+    accountOpenActivity: "Aktivität & Benachrichtigungen",
+    accountLockWallet: "Wallet sperren",
+    accountRetry: "Erneut versuchen",
+    accountClose: "Konto schließen",
+    accountLanguageLabel: "Sprache auswählen",
+    accountCenterTitle: "FITIA-Konto",
+    accountCenterSubtitle: "E-Mail und Passwort für dein App-Konto",
+    accountSignIn: "Anmelden",
+    accountSignUp: "Konto erstellen",
+    accountEmail: "E-Mail-Adresse",
+    accountPassword: "Passwort",
+    accountUsername: "Benutzername",
+    accountConfirmPassword: "Passwort bestätigen",
+    accountCreate: "Mein Konto erstellen",
+    accountSecurityNote: "Die E-Mail-Wiederherstellung gilt nur für dieses App-Konto. PIN, Signaturen und Wiederherstellungsphrase bleiben für Wallet und Guthaben erforderlich.",
+    accountConfirmEmail: "Bestätige deine E-Mail über den Posteingang und melde dich dann an.",
+    accountPasswordMismatch: "Die Passwörter stimmen nicht überein.",
+    accountServiceError: "Der Kontodienst ist nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.",
+    accountSignedIn: "Konto verbunden.",
+    accountCreated: "Konto erstellt.",
+    accountUnlockWallet: "Entsperre deine Wallet, um sie zu verknüpfen.",
+    accountWalletLinked: "Wallet per Signatur verifiziert.",
+    accountEmailVerified: "E-Mail bestätigt",
+    accountWalletVerified: "Wallet verifiziert",
+    accountAdminCertified: "Vom Admin zertifiziert",
+    accountNoBadge: "Noch kein Verifizierungsbadge",
+    accountLinkedWallet: "Verknüpfte Wallet",
+    accountNoLinkedWallet: "Mit diesem Konto ist keine Wallet verknüpft.",
+    accountLinkWallet: "Diese Wallet per Signatur verifizieren",
+    accountLogout: "Vom App-Konto abmelden",
     createNewWallet: "NEUE WALLET ERSTELLEN",
     importExistingWallet: "Bestehende Wallet importieren",
     unlockTitle: "FITIA PRO entsperren",
@@ -797,6 +849,40 @@ const i18n = {
     addrCopied: "Adresse kopiert!"
   },
   zh: {
+    accountRequiredTitle: "登录 FITIA PRO",
+    accountRequiredMessage: "需要 FITIA 账户才能访问应用。",
+    accountMyAccount: "我的账户",
+    accountOpenSettings: "钱包与安全设置",
+    accountOpenActivity: "活动与通知",
+    accountLockWallet: "锁定钱包",
+    accountRetry: "重试",
+    accountClose: "关闭账户",
+    accountLanguageLabel: "选择语言",
+    accountCenterTitle: "FITIA 账户",
+    accountCenterSubtitle: "使用电子邮件和密码登录应用账户",
+    accountSignIn: "登录",
+    accountSignUp: "创建账户",
+    accountEmail: "电子邮件地址",
+    accountPassword: "密码",
+    accountUsername: "用户名",
+    accountConfirmPassword: "确认密码",
+    accountCreate: "创建我的账户",
+    accountSecurityNote: "电子邮件恢复仅适用于此应用账户。钱包和资金仍需要 PIN、签名和恢复短语。",
+    accountConfirmEmail: "请查看收件箱确认电子邮件，然后登录。",
+    accountPasswordMismatch: "两次输入的密码不一致。",
+    accountServiceError: "账户服务不可用。请检查连接后重试。",
+    accountSignedIn: "账户已连接。",
+    accountCreated: "账户已创建。",
+    accountUnlockWallet: "请解锁钱包以进行关联。",
+    accountWalletLinked: "钱包已通过签名验证。",
+    accountEmailVerified: "电子邮件已确认",
+    accountWalletVerified: "钱包已验证",
+    accountAdminCertified: "管理员已认证",
+    accountNoBadge: "暂无验证徽章",
+    accountLinkedWallet: "已关联钱包",
+    accountNoLinkedWallet: "此账户尚未关联钱包。",
+    accountLinkWallet: "通过签名验证此钱包",
+    accountLogout: "退出应用账户",
     createNewWallet: "创建新钱包",
     importExistingWallet: "导入已有钱包（12助记词 / 私钥）",
     unlockTitle: "解锁 FITIA PRO",
@@ -893,6 +979,40 @@ const i18n = {
     addrCopied: "地址已复制！"
   },
   sg: {
+    accountRequiredTitle: "Sign in to FITIA PRO",
+    accountRequiredMessage: "A FITIA account is required to access the app.",
+    accountMyAccount: "My account",
+    accountOpenSettings: "Wallet & security settings",
+    accountOpenActivity: "Activity & notifications",
+    accountLockWallet: "Lock wallet",
+    accountRetry: "Retry",
+    accountClose: "Close account",
+    accountLanguageLabel: "Choose language",
+    accountCenterTitle: "FITIA Account",
+    accountCenterSubtitle: "Email and password for your app account",
+    accountSignIn: "Sign in",
+    accountSignUp: "Create account",
+    accountEmail: "Email address",
+    accountPassword: "Password",
+    accountUsername: "Username",
+    accountConfirmPassword: "Confirm password",
+    accountCreate: "Create my account",
+    accountSecurityNote: "Email recovery only covers this app account. Your PIN, signatures and recovery phrase remain required for the wallet and funds.",
+    accountConfirmEmail: "Check your inbox to confirm your email, then sign in.",
+    accountPasswordMismatch: "Passwords do not match.",
+    accountServiceError: "Account service unavailable. Check your connection and try again.",
+    accountSignedIn: "Account connected.",
+    accountCreated: "Account created.",
+    accountUnlockWallet: "Unlock your wallet to link it.",
+    accountWalletLinked: "Wallet verified by signature.",
+    accountEmailVerified: "Email confirmed",
+    accountWalletVerified: "Wallet verified",
+    accountAdminCertified: "Certified by admin",
+    accountNoBadge: "No verification badge yet",
+    accountLinkedWallet: "Linked wallet",
+    accountNoLinkedWallet: "No wallet linked to this account.",
+    accountLinkWallet: "Verify this wallet by signature",
+    accountLogout: "Sign out of app account",
     createNewWallet: "CREATE NEW WALLET",
     importExistingWallet: "Import Existing Wallet",
     unlockTitle: "Unlock FITIA PRO",
@@ -1216,6 +1336,7 @@ class Application {
     this.gameVisibility.init();
     this.storeCenter.init();
     this.accountCenter.init();
+    this.accountCenter.setBusy(true);
     this.farmCenter.init();
     this.luckyWheel.init();
     this.fitaDice.init();
@@ -1231,11 +1352,74 @@ class Application {
     }
 
     const meta = await FitiaSecurity.Vault.init();
-    if (meta.exists) {
-      await this.openUnlockScreen(meta);
+    const accountRestored = await this.accountCenter.restore();
+    if (accountRestored) {
+      await this.continueWalletInitialization(meta);
     } else {
-      this.showAuthStep('welcome');
+      this.showAccountAccess(true);
     }
+  }
+
+  hasRequiredAccountSession() {
+    return Boolean(this.accountCenter?.isAuthenticated());
+  }
+
+  showAccountAccess(mandatory = false) {
+    if (mandatory) {
+      this.closeModals();
+      document.getElementById('auth-screen')?.classList.add('hidden');
+      document.getElementById('app-shell')?.classList.add('hidden');
+      document.getElementById('chat-fab-btn')?.classList.add('hidden');
+      document.getElementById('chat-panel')?.classList.remove('active');
+    }
+    document.getElementById('account-access-screen')?.classList.remove('hidden');
+    document.getElementById('account-lang-menu-content')?.classList.remove('open');
+    this.accountCenter.open({ refresh: !mandatory });
+  }
+
+  openAccountAccess() {
+    this.showAccountAccess(!this.hasRequiredAccountSession());
+  }
+
+  closeAccountAccess() {
+    if (!this.hasRequiredAccountSession()) {
+      this.showAccountAccess(true);
+      return false;
+    }
+    document.getElementById('account-access-screen')?.classList.add('hidden');
+    document.getElementById('account-lang-menu-content')?.classList.remove('open');
+    return true;
+  }
+
+  async continueWalletInitialization(meta = null) {
+    if (!this.hasRequiredAccountSession()) {
+      this.showAccountAccess(true);
+      return false;
+    }
+    this.closeAccountAccess();
+    const vaultMeta = meta || FitiaSecurity.Vault.getMetadata();
+    if (vaultMeta.exists) await this.openUnlockScreen(vaultMeta);
+    else this.showAuthStep('welcome');
+    return true;
+  }
+
+  async onAccountAuthenticated() {
+    return this.continueWalletInitialization();
+  }
+
+  async onAccountSignedOut() {
+    this.lockWallet(true);
+    this.showAccountAccess(true);
+  }
+
+  async openSecurityFromAccount() {
+    if (!this.user || !this.closeAccountAccess()) return;
+    await this.openSecurityModal();
+  }
+
+  openActivityFromAccount() {
+    if (!this.user || !this.closeAccountAccess()) return;
+    this.openActivity('notifications');
   }
 
   normalizeUpdateManifest(raw) {
@@ -1312,8 +1496,8 @@ class Application {
   setupLifecycleListeners() {
     // Fermer le menu langue en cliquant ailleurs
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#lang-selector')) {
-        document.getElementById('lang-menu-content')?.classList.remove('open');
+      if (!e.target.closest('.lang-dropdown')) {
+        document.querySelectorAll('.lang-content.open').forEach((menu) => menu.classList.remove('open'));
       }
       if (!e.target.closest('#send-token-select-wrap')) this.closeSendTokenMenu();
     });
@@ -1391,6 +1575,11 @@ class Application {
         this.closeRevealModal();
         return true;
       }
+      const accountScreen = document.getElementById('account-access-screen');
+      if (accountScreen && !accountScreen.classList.contains('hidden')) {
+        if (this.hasRequiredAccountSession()) this.closeAccountAccess();
+        return true;
+      }
       const anyModal = document.querySelector('.modal.active');
       if (anyModal) {
         this.closeModals();
@@ -1411,9 +1600,12 @@ class Application {
     };
   }
 
-  toggleLangMenu(e) {
+  toggleLangMenu(e, menuId = 'lang-menu-content') {
     e?.stopPropagation();
-    document.getElementById('lang-menu-content')?.classList.toggle('open');
+    document.querySelectorAll('.lang-content.open').forEach((menu) => {
+      if (menu.id !== menuId) menu.classList.remove('open');
+    });
+    document.getElementById(menuId)?.classList.toggle('open');
   }
 
   setLanguage(lang) {
@@ -1422,9 +1614,11 @@ class Application {
     localStorage.setItem('fitia_lang', lang);
     document.documentElement.lang = lang === 'sg' ? 'en-SG' : lang;
     const flags = { en: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', zh: '🇨🇳', sg: '🇸🇬' };
-    const btn = document.getElementById('lang-btn-display');
-    if (btn) btn.innerText = `${flags[lang]} ${lang.toUpperCase()}`;
-    document.getElementById('lang-menu-content')?.classList.remove('open');
+    ['lang-btn-display', 'account-lang-btn-display'].forEach((id) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.textContent = `${flags[lang]} ${lang.toUpperCase()}`;
+    });
+    document.querySelectorAll('.lang-content.open').forEach((menu) => menu.classList.remove('open'));
     this.applyTranslations();
     const isDexSwap = this.swapMarket === 'POL_USDT';
     const swapImpactLabel = document.getElementById('swap-detail-impact-label');
@@ -1470,6 +1664,10 @@ class Application {
   //  NAVIGATION DES ÉCRANS D'AUTHENTIFICATION & CRÉATION WALLET
   // ═══════════════════════════════════════════════════════════════
   showAuthStep(stepName) {
+    if (!this.hasRequiredAccountSession()) {
+      this.showAccountAccess(true);
+      return false;
+    }
     // Active FLAG_SECURE contre les captures d'écran sur tous les écrans sensibles (création, 12 mots, PIN)
     FitiaSecurity.Native.setScreenSecure(true);
     document.getElementById('auth-screen').classList.remove('hidden');
@@ -1485,6 +1683,7 @@ class Application {
 
   // ─── 1. Créer un nouveau portefeuille 12 mots ────────────────────
   startCreateWallet() {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     FitiaSecurity.Native.vibrate(20);
     const created = FitiaSecurity.Vault.generateNewWallet();
     this.pendingWalletSecret = created;
@@ -1610,6 +1809,7 @@ class Application {
 
   // ─── 3. Importer un portefeuille existant ────────────────────────
   startImportWallet(fromLock = false) {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     this.importFromLock = fromLock;
     this.pendingWalletSecret = null;
     this.pendingWalletOrigin = 'import';
@@ -1694,6 +1894,7 @@ class Application {
 
   // ─── 4. Création & Confirmation du Code PIN à 6 chiffres ─────────
   openSetPinScreen(origin) {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     this.pendingWalletOrigin = origin;
     this.setPinStage = 'first';
     this.setPinFirstValue = '';
@@ -1706,6 +1907,7 @@ class Application {
   }
 
   backFromSetPin() {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     if (this.pendingWalletOrigin === 'changepin') {
       if (this.pendingWalletSecret) {
         this.pendingWalletSecret.privateKey = '';
@@ -1738,6 +1940,7 @@ class Application {
   }
 
   async onSetPinDigit(d) {
+    if (!this.hasRequiredAccountSession()) { this.setPinBuffer = ''; this.showAccountAccess(true); return; }
     if (this.setPinBuffer.length >= 6) return;
     FitiaSecurity.Native.vibrate(15);
     this.setPinBuffer += d;
@@ -1785,6 +1988,7 @@ class Application {
           this.pendingWalletSecret = null;
 
           if (this.pendingWalletOrigin === 'changepin') {
+            if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
             this.setLoader(false);
             FitiaSecurity.Native.setScreenSecure(false);
             document.getElementById('auth-screen').classList.add('hidden');
@@ -1814,6 +2018,7 @@ class Application {
 
   // ─── 5. Déverrouillage du Portefeuille Existant ──────────────────
   async openUnlockScreen(meta = null) {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     const m = meta || FitiaSecurity.Vault.getMetadata();
     this.unlockPinBuffer = '';
     document.getElementById('unlock-addr-badge').textContent = this.shortAddr(m.address);
@@ -1853,6 +2058,7 @@ class Application {
   }
 
   async onUnlockDigit(d) {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     if (FitiaSecurity.Vault.getLockoutRemainingSec() > 0) {
       this.startLockoutCountdownIfNeeded();
       return;
@@ -1893,6 +2099,7 @@ class Application {
   }
 
   async triggerBiometricUnlock(silent = false) {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     try {
       const secret = await FitiaSecurity.Vault.unlockWithBiometric();
       this.setLoader(true, "Connexion directe à Polygon...");
@@ -1910,9 +2117,14 @@ class Application {
 
   // ─── Verrouiller le portefeuille (efface la clé de la RAM) ───────
   lockWallet(silent = false) {
+    if (this.hasRequiredAccountSession()) this.closeAccountAccess();
     // Invalide immédiatement les synchronisations réseau de l'ancienne session.
     this.sessionGeneration += 1;
     this.sessionBootstrapPromise = null;
+    document.getElementById('app-shell')?.classList.add('hidden');
+    document.getElementById('chat-fab-btn')?.classList.add('hidden');
+    document.getElementById('chat-panel')?.classList.remove('active');
+    if (!this.hasRequiredAccountSession()) document.getElementById('auth-screen')?.classList.add('hidden');
     // 1) Purge immédiate et atomique de toutes les clés & secrets en RAM
     this.pendingWalletSecret = null;
     this.revealedSecretText = '';
@@ -1965,6 +2177,7 @@ class Application {
   //  HISTORIQUE & NOTIFICATIONS DES TRANSACTIONS
   // ═══════════════════════════════════════════════════════════════
   openActivity(tab = 'history') {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     if (!this.user) return;
     this.closeModals();
     this.activity.setTab(tab);
@@ -2219,6 +2432,11 @@ class Application {
   }
 
   async activateUnlockedSession(secret) {
+    if (!this.hasRequiredAccountSession()) {
+      if (secret) { secret.privateKey = ''; secret.mnemonic = ''; }
+      this.showAccountAccess(true);
+      return false;
+    }
     const generation = ++this.sessionGeneration;
 
     // Crée la session localement, sans attendre de réseau. Les lectures Polygon
@@ -2247,6 +2465,7 @@ class Application {
     // L'interface devient utilisable sans dépendre de la disponibilité du RPC,
     // des contrats ou des services de prix externes.
     FitiaSecurity.Native.setScreenSecure(false);
+    document.getElementById('account-access-screen')?.classList.add('hidden');
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('app-shell').classList.remove('hidden');
     document.getElementById('chat-fab-btn')?.classList.remove('hidden');
@@ -4146,6 +4365,7 @@ class Application {
   //  CENTRE DE SÉCURITÉ & GESTION DU PORTEFEUILLE INTÉGRÉ
   // ═══════════════════════════════════════════════════════════════
   async openSecurityModal() {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     if (!this.user) return;
     const meta = FitiaSecurity.Vault.getMetadata();
     const settings = FitiaSecurity.Vault.getSettings();
@@ -4180,7 +4400,6 @@ class Application {
     document.getElementById('custom-rpc-input').value = settings.customRpcUrl || '';
 
     document.getElementById('modal-security').classList.add('active');
-    this.accountCenter.open();
   }
 
   openPolygonScan() {
@@ -4190,6 +4409,10 @@ class Application {
 
   // ─── Vérification interactive du PIN (retourne le secret déchiffré ou null) ───
   requestPinVerification(titleText) {
+    if (!this.hasRequiredAccountSession()) {
+      this.showAccountAccess(true);
+      return Promise.resolve(null);
+    }
     return new Promise((resolve) => {
       FitiaSecurity.Native.setScreenSecure(true);
       this.pinVerifyResolver = resolve;
@@ -4215,6 +4438,11 @@ class Application {
   }
 
   async onConfirmPinDigit(d) {
+    if (!this.hasRequiredAccountSession()) {
+      this.cancelPinVerification();
+      this.showAccountAccess(true);
+      return;
+    }
     if (this.confirmPinBuffer.length >= 6) return;
     FitiaSecurity.Native.vibrate(15);
     this.confirmPinBuffer += d;
@@ -4532,6 +4760,7 @@ class Application {
   }
 
   nav(viewId, btnEl) {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return false; }
     this.farmCenter?.exit();
     this.luckyWheel?.exit();
     this.fitaDice?.exit();
@@ -4658,6 +4887,7 @@ class Application {
 
   // ─── Assistant Chat Intégré ──────────────────────────────────────
   toggleChat() {
+    if (!this.hasRequiredAccountSession()) { this.showAccountAccess(true); return; }
     const panel = document.getElementById('chat-panel');
     const isActive = panel.classList.toggle('active');
     if (isActive && !this.chatInitialized) {
