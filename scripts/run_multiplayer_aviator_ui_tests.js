@@ -14,6 +14,7 @@ window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventLi
 for (const file of ['vendor/ethers.umd.min.js', 'farm-config.js', 'farm-protocol.js', 'arcade-config.js', 'arcade.js', 'game-experience-crash.js']) {
   window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
 }
+const Config = window.FitiaArcadeConfig;
 let passed = 0; let failed = 0;
 async function test(name, run) {
   try { await run(); passed += 1; console.log(`  ✅ ${name}`); }
@@ -28,9 +29,10 @@ const other = `0x${'22'.repeat(20)}`;
 const roundId = crypto.randomUUID();
 const scene = { setActive() {}, resize() {}, reset() {}, setRound(value) { this.round = value; }, cancelAnimation() {}, startWaiting() {} };
 const app = { nav() {}, showToast() {} };
+let clockMs = Date.now();
 const farm = {
   state: null, aviator: null, serverOffset: 0,
-  serverNow() { return Date.now(); },
+  serverNow() { return clockMs; },
   applyView(data) { this.state = data.state; this.aviator = data.aviator || null; },
   async request() { throw new Error('Unexpected request'); }
 };
@@ -55,8 +57,8 @@ function setRound(shared, ownBets, ownHistory = [], globalHistory = []) {
   };
   crash.render();
 }
-const createdAt = new Date(Date.now() + 10000).toISOString();
-const startsAt = new Date(Date.parse(createdAt) + 4500).toISOString();
+const createdAt = new Date(clockMs).toISOString();
+const startsAt = new Date(Date.parse(createdAt) + Config.CRASH_AVIATOR_BETTING_MS).toISOString();
 const shared = {
   version: 3, id: roundId, status: 'betting', playerCount: 2, stake: 300, coins: 0,
   clientSeed: 'aviator-global-v3', seedHash: 'ab'.repeat(32), createdAt, startsAt,
@@ -76,10 +78,31 @@ const ownBet = { slot: 1, actionId: crypto.randomUUID(), stake: 100, autoTargetB
     assert.strictEqual(window.document.getElementById('crash-live-player-count').textContent, '2');
     assert.strictEqual(window.document.getElementById('crash-live-bet-count').textContent, '2');
     assert.strictEqual(window.document.getElementById('crash-live-total-stake').textContent, '300 coins');
-    assert.strictEqual(window.document.getElementById('crash-stage-target-value').textContent, '2 PLAYERS');
     const text = window.document.getElementById('crash-live-bets-body').textContent;
     assert.ok(text.includes('0x2222…2222')); assert.ok(!text.includes(other));
-    assert.ok(window.document.getElementById('flight-live-title'));
+    assert.ok(window.document.querySelector('.flight-live-panel[aria-label="Players"]'));
+  });
+
+  await test('Interface épurée : aucun badge technique, décompte de 5 s et avion à hélice local', async () => {
+    setRound(shared, [ownBet]);
+    const view = window.document.getElementById('view-crash');
+    const forbidden = ['AVIATOR CONTROLS', 'ADD BET', 'MULTIPLAYER ROOM', 'LIVE · SERVER', 'REAL HISTORY', 'YOUR ACTIVITY', 'FAIRNESS', 'SHA-256', 'SERVER FLIGHT', 'MULTIPLIER', 'IN FLIGHT', 'NEXT FLIGHT', 'ROOM', 'YOUR CASHOUTS'];
+    const assertClean = () => {
+      const text = view.textContent.replace(/\s+/g, ' ').toUpperCase();
+      forbidden.forEach((label) => assert.ok(!text.includes(label), `${label} doit rester absent`));
+    };
+    assertClean();
+    assert.strictEqual(Config.CRASH_AVIATOR_BETTING_MS, 5000);
+    assert.strictEqual(window.document.getElementById('crash-multiplier-caption').textContent, '5s');
+    assert.strictEqual(window.document.getElementById('crash-add-bet').textContent.trim(), '+');
+    assert.ok(window.document.querySelector('.flight-plane svg[data-aircraft="red-propeller"]'));
+    assert.ok(window.document.querySelector('.flight-plane .flight-propeller'));
+    clockMs += 1000; crash.render();
+    assert.strictEqual(window.document.getElementById('crash-multiplier-caption').textContent, '4s');
+    setRound({ ...shared, status: 'flying' }, [ownBet]); assertClean();
+    assert.strictEqual(window.document.getElementById('crash-multiplier-caption').textContent, '');
+    assert.strictEqual(window.document.getElementById('crash-bet-state-1').textContent, 'BET PLACED');
+    clockMs -= 1000; setRound(shared, [ownBet]);
   });
 
   await test('Historique mondial séparé de votre activité et crash figé au point serveur', async () => {

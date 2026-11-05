@@ -123,7 +123,7 @@ function normalizeAviatorRound(raw) {
   if (bets.length !== raw.bets.length || new Set(bets.map((bet) => bet.slot)).size !== bets.length) return null;
   bets.sort((a, b) => a.slot - b.slot);
   const createdAt = isoTime(raw.createdAt); const startsAt = isoTime(raw.startsAt); const crashAt = isoTime(raw.crashAt);
-  if (!createdAt || !startsAt || !crashAt || Date.parse(startsAt) !== Date.parse(createdAt) + Config.CRASH_AVIATOR_BETTING_MS) return null;
+  if (!createdAt || !startsAt || !crashAt || ![Config.CRASH_AVIATOR_BETTING_MS, Config.CRASH_AVIATOR_PREVIOUS_BETTING_MS].includes(Date.parse(startsAt) - Date.parse(createdAt))) return null;
   if (!Number.isSafeInteger(raw.crashBps) || raw.crashBps < 100 || raw.crashBps > Config.CRASH_MAX_BPS) return null;
   if (Date.parse(crashAt) !== Date.parse(startsAt) + Config.crashTimeForMultiplier(raw.crashBps)) return null;
   if (!Number.isSafeInteger(raw.randomValue) || raw.randomValue < 0 || raw.randomValue >= Config.CRASH_RANDOM_RANGE || Config.selectCrashPoint(raw.randomValue) !== raw.crashBps) return null;

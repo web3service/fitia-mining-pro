@@ -6,8 +6,9 @@ const fs = require('fs');
 const ethers = require('../vendor/ethers.umd.min.js');
 const Protocol = require('../farm-protocol');
 const Config = require('../arcade-config');
+const ArcadeState = require('../arcade-state');
 const { MemoryFarmRepository, createFarmService, FarmError } = require('../farm-service');
-const { GLOBAL_CLIENT_SEED, RESULTS_MS } = require('../aviator-service');
+const { GLOBAL_CLIENT_SEED, RESULTS_MS, normalizeGlobal } = require('../aviator-service');
 
 let passed = 0; let failed = 0;
 async function test(name, run) {
@@ -80,6 +81,8 @@ function harness() {
     const round = first.aviator.round;
     assert.strictEqual(second.aviator.round.id, round.id);
     assert.strictEqual(round.status, 'betting'); assert.strictEqual(round.bets.length, 0);
+    assert.strictEqual(Config.CRASH_AVIATOR_BETTING_MS, 5000);
+    assert.strictEqual(Date.parse(round.startsAt) - Date.parse(round.createdAt), 5000);
     assert.strictEqual(round.crashBps, undefined); assert.strictEqual(round.serverSeed, undefined);
     assert.ok(!JSON.stringify(first).includes('serverSeed'));
     h.setNow(Date.parse(round.startsAt));
@@ -99,8 +102,24 @@ function harness() {
     const next = await h.state(walletB);
     assert.notStrictEqual(next.aviator.round.id, round.id);
     assert.strictEqual(next.aviator.round.status, 'betting');
+    assert.strictEqual(Date.parse(next.aviator.round.startsAt) - Date.parse(next.aviator.round.createdAt), 5000);
     assert.strictEqual(next.aviator.history[0].id, round.id);
     assert.strictEqual(next.aviator.history[0].crashBps, proof.crashBps);
+  });
+
+  await test('Transition : une manche existante de 4,5 s reste valide côté salle et wallet', async () => {
+    const h = harness(); await h.setup();
+    await h.call('crash_start', { slot: 1, stake: 50, autoTargetBps: null, clientSeed: 'legacy-countdown-seed' }, walletA);
+    const current = (await h.internal()).active;
+    const duration = Date.parse(current.crashAt) - Date.parse(current.startsAt);
+    const startsAt = new Date(Date.parse(current.createdAt) + Config.CRASH_AVIATOR_PREVIOUS_BETTING_MS).toISOString();
+    const previous = { ...current, startsAt, crashAt: new Date(Date.parse(startsAt) + duration).toISOString() };
+    assert.strictEqual(Date.parse(previous.startsAt) - Date.parse(previous.createdAt), 4500);
+    const global = normalizeGlobal({ version: 3, active: previous, history: [] });
+    assert.strictEqual(global.active.id, current.id); assert.strictEqual(global.active.bets.length, 1);
+    const own = ArcadeState.normalizeArcadeState({ crash: { active: previous, recentRounds: [] } });
+    assert.strictEqual(own.crash.active.id, current.id); assert.strictEqual(own.crash.active.bets.length, 1);
+    assert.strictEqual(own.crash.active.startsAt, startsAt);
   });
 
   await test('Deux wallets réels : mises visibles, adresses masquées et débits isolés', async () => {

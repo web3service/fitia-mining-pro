@@ -84,7 +84,7 @@ function normalizeRound(raw) {
   const startsAt = typeof raw.startsAt === 'string' ? raw.startsAt : '';
   const crashAt = typeof raw.crashAt === 'string' ? raw.crashAt : '';
   if (!Number.isFinite(Date.parse(createdAt)) || !Number.isFinite(Date.parse(startsAt)) || !Number.isFinite(Date.parse(crashAt))
-    || Date.parse(startsAt) !== Date.parse(createdAt) + ArcadeConfig.CRASH_AVIATOR_BETTING_MS
+    || ![ArcadeConfig.CRASH_AVIATOR_BETTING_MS, ArcadeConfig.CRASH_AVIATOR_PREVIOUS_BETTING_MS].includes(Date.parse(startsAt) - Date.parse(createdAt))
     || Date.parse(crashAt) !== Date.parse(startsAt) + ArcadeConfig.crashTimeForMultiplier(raw.crashBps)) return null;
   if (!Number.isSafeInteger(raw.crashBps) || raw.crashBps < 100 || raw.crashBps > ArcadeConfig.CRASH_MAX_BPS
     || !Number.isSafeInteger(raw.randomValue) || raw.randomValue < 0 || raw.randomValue >= ArcadeConfig.CRASH_RANDOM_RANGE

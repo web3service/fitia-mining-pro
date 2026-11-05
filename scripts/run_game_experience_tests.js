@@ -203,11 +203,13 @@ function setAccounts(account) {
       assert.ok(window.document.querySelector('[data-mines-index="3"] img[src="assets/games/mines-gem.svg"]'));
     });
 
-    await test('Aviator : avion détaillé, deux mises et cashouts réels signés', async () => {
+    await test('Aviator : avion à hélice détaillé, deux mises et cashouts réels signés', async () => {
       crash.enter();
       assert.ok(crash.scene.available);
-      assert.ok(window.document.querySelectorAll('#view-crash .flight-plane svg path').length >= 14);
-      assert.strictEqual(window.document.querySelectorAll('#view-crash .flight-plane svg circle').length, 9);
+      assert.ok(window.document.querySelector('#view-crash .flight-plane svg[data-aircraft="red-propeller"]'));
+      assert.ok(window.document.querySelector('#view-crash .flight-plane .flight-propeller'));
+      assert.ok(window.document.querySelectorAll('#view-crash .flight-plane svg path').length >= 18);
+      assert.ok(window.document.querySelectorAll('#view-crash .flight-plane svg circle').length >= 9);
       assert.strictEqual(window.document.querySelectorAll('#view-crash .impact-spark').length, 8);
       window.document.querySelector('[data-crash-slot="1"][data-crash-stake="100"]').click();
       window.document.getElementById('crash-add-bet').click();
