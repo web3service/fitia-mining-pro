@@ -7,6 +7,30 @@
   'use strict';
 
   const DEFAULT_API_URL = 'https://fitia-mining-pro.vercel.app/api/account';
+  const PASSWORD_FIELDS = [
+    'account-login-password', 'account-signup-password', 'account-signup-confirm',
+    'account-email-current-password', 'account-password-current',
+    'account-password-new', 'account-password-confirm'
+  ];
+  const USERNAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_]{2,23}$/;
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
+
+  // Ces contrôles reflètent les règles du service, qui reste l'autorité finale.
+  function validEmail(value) {
+    return value.length <= 254 && EMAIL_PATTERN.test(value) && !CONTROL_CHARACTERS.test(value);
+  }
+
+  function validNewPassword(value) {
+    return typeof value === 'string' && value.length >= 12 && value.length <= 128
+      && !CONTROL_CHARACTERS.test(value) && /[A-Za-z]/.test(value) && /\d/.test(value)
+      && !/^(password|motdepasse|qwerty|letmein)/i.test(value);
+  }
+
+  function validCurrentPassword(value) {
+    return typeof value === 'string' && value.length > 0 && value.length <= 128
+      && !CONTROL_CHARACTERS.test(value);
+  }
 
   class FitiaAccountCenter {
     constructor(app, options = {}) {
@@ -21,9 +45,12 @@
       this.confirmation = '';
       this.message = '';
       this.messageIsError = false;
+      this.messageScope = 'global';
+      this.logoutConfirmationOpen = false;
       this.refreshTimer = null;
       this.refreshPromise = null;
       this.profilePromise = null;
+      this.profileRevision = 0;
       this.profileInputKey = '';
       this.initialized = false;
       this.canRetry = false;
@@ -58,8 +85,36 @@
       this.byId('account-show-login')?.addEventListener('click', () => this.setMode('login'));
       this.byId('account-show-signup')?.addEventListener('click', () => this.setMode('signup'));
       this.byId('account-link-wallet')?.addEventListener('click', () => this.linkWallet().catch(() => {}));
-      this.byId('account-logout')?.addEventListener('click', () => this.logout().catch(() => {}));
+      this.byId('account-refresh-profile')?.addEventListener('click', () => this.refreshAccount().catch(() => {}));
+      this.byId('account-logout')?.addEventListener('click', () => this.setLogoutConfirmation(!this.logoutConfirmationOpen));
+      this.byId('account-logout-cancel')?.addEventListener('click', () => this.setLogoutConfirmation(false, true));
+      this.byId('account-logout-confirm')?.addEventListener('click', () => this.logout().catch(() => {}));
       this.byId('account-retry')?.addEventListener('click', () => this.retryRestore().catch(() => {}));
+      document.querySelectorAll('[data-account-password-toggle]').forEach((button) => {
+        button.addEventListener('click', () => this.togglePassword(button.getAttribute('data-account-password-toggle')));
+      });
+      const inputs = {
+        global: ['account-login-email', 'account-login-password', 'account-signup-username', 'account-signup-email', 'account-signup-password', 'account-signup-confirm'],
+        username: ['account-username-input'],
+        email: ['account-email-input', 'account-email-current-password'],
+        password: ['account-password-current', 'account-password-new', 'account-password-confirm']
+      };
+      Object.entries(inputs).forEach(([scope, ids]) => ids.forEach((id) => {
+        this.byId(id)?.addEventListener('input', (event) => {
+          event.currentTarget.removeAttribute('aria-invalid');
+          this.clearMessage(scope);
+          this.render();
+        });
+      }));
+      [
+        ['account-email-disclosure', ['account-email-current-password']],
+        ['account-password-disclosure', ['account-password-current', 'account-password-new', 'account-password-confirm']]
+      ].forEach(([id, fields]) => {
+        const disclosure = this.byId(id);
+        disclosure?.addEventListener('toggle', () => {
+          if (!disclosure.open) this.clearPasswords(fields);
+        });
+      });
       this.render();
     }
 
@@ -72,28 +127,115 @@
     open(options = {}) {
       this.render();
       if (options.refresh !== false && this.session && !this.profilePromise) {
-        this.refreshProfile({ quiet: true }).catch(() => {});
+        this.refreshProfile({ quiet: true }).catch(() => {
+          if (this.isAuthenticated()) this.showMessage(this.t('accountSyncFailed', 'Could not refresh your account.'), true, 'profile');
+        });
       }
     }
 
     setMode(mode) {
       this.mode = mode === 'signup' ? 'signup' : 'login';
-      this.message = ''; this.messageIsError = false; this.confirmation = '';
+      this.clearPasswords(['account-login-password', 'account-signup-password', 'account-signup-confirm']);
+      ['account-login-email', 'account-signup-username', 'account-signup-email'].forEach((id) => this.byId(id)?.removeAttribute('aria-invalid'));
+      this.clearMessage(); this.confirmation = '';
       this.render();
-      this.byId(this.mode === 'signup' ? 'account-signup-email' : 'account-login-email')?.focus();
+      this.byId(this.mode === 'signup' ? 'account-signup-username' : 'account-login-email')?.focus();
     }
 
-    showMessage(message, isError = true) {
+    clearMessage(scope = null) {
+      if (scope && this.messageScope !== scope) return;
+      this.message = ''; this.messageIsError = false; this.messageScope = 'global';
+    }
+
+    showMessage(message, isError = true, scope = 'global') {
       this.message = String(message || '');
       this.messageIsError = isError;
+      this.messageScope = scope;
       this.render();
     }
 
-    setBusy(busy) {
+    invalidField(id, message, scope = 'global') {
+      const input = this.byId(id);
+      input?.setAttribute('aria-invalid', 'true');
+      this.showMessage(message, true, scope);
+      input?.focus();
+    }
+
+    setBusy(busy, action = '') {
       this.busy = busy;
-      ['account-login-submit', 'account-signup-submit', 'account-username-submit', 'account-email-submit', 'account-password-submit', 'account-copy-wallet', 'account-link-wallet', 'account-logout', 'account-retry'].forEach((id) => {
-        const element = this.byId(id); if (element) element.disabled = busy;
+      ['account-login-submit', 'account-signup-submit', 'account-show-login', 'account-show-signup',
+        'account-username-submit', 'account-email-submit', 'account-password-submit', 'account-copy-wallet',
+        'account-link-wallet', 'account-refresh-profile', 'account-logout', 'account-logout-confirm',
+        'account-logout-cancel', 'account-retry'].forEach((id) => {
+        const element = this.byId(id);
+        if (!element) return;
+        element.disabled = busy;
+        element.classList.toggle('account-button-busy', busy && action === id);
+        element.setAttribute('aria-busy', String(busy && action === id));
       });
+      document.querySelectorAll('#account-access-screen .account-form input').forEach((input) => { input.disabled = busy; });
+      this.render();
+    }
+
+    setLogoutConfirmation(open, returnFocus = false) {
+      if (this.busy) return;
+      this.logoutConfirmationOpen = Boolean(open);
+      this.render();
+      if (open) this.byId('account-logout-cancel')?.focus();
+      else if (returnFocus) this.byId('account-logout')?.focus();
+    }
+
+    renderPasswordToggles() {
+      document.querySelectorAll('[data-account-password-toggle]').forEach((button) => {
+        const id = button.getAttribute('data-account-password-toggle');
+        const input = this.byId(id);
+        if (!input) return;
+        const visible = input.type === 'text';
+        const action = visible ? this.t('accountHidePassword', 'Hide') : this.t('accountShowPassword', 'Show');
+        const label = document.querySelector(`label[for="${id}"]`)?.textContent || '';
+        button.textContent = action;
+        button.setAttribute('aria-pressed', String(visible));
+        button.setAttribute('aria-label', label ? `${action} : ${label}` : action);
+        button.disabled = this.busy;
+      });
+    }
+
+    togglePassword(id) {
+      if (this.busy) return;
+      const input = this.byId(id);
+      if (!input || !PASSWORD_FIELDS.includes(id)) return;
+      input.type = input.type === 'password' ? 'text' : 'password';
+      this.renderPasswordToggles();
+    }
+
+    maskPasswords(ids = PASSWORD_FIELDS) {
+      ids.forEach((id) => {
+        const input = this.byId(id);
+        if (input) input.type = 'password';
+      });
+      this.renderPasswordToggles();
+    }
+
+    clearPasswords(ids = PASSWORD_FIELDS) {
+      ids.forEach((id) => {
+        const input = this.byId(id);
+        if (input) { input.value = ''; input.removeAttribute('aria-invalid'); }
+      });
+      this.maskPasswords(ids);
+    }
+
+    close() {
+      this.clearPasswords();
+      ['account-email-disclosure', 'account-password-disclosure'].forEach((id) => {
+        const disclosure = this.byId(id); if (disclosure) disclosure.open = false;
+      });
+      ['account-username-input', 'account-email-input'].forEach((id) => {
+        const input = this.byId(id);
+        if (input) { input.value = id === 'account-username-input' ? (this.user?.username || '') : ''; input.removeAttribute('aria-invalid'); }
+      });
+      this.profileInputKey = '';
+      this.logoutConfirmationOpen = false;
+      this.clearMessage();
       this.render();
     }
 
@@ -138,6 +280,7 @@
       const userId = result?.user?.userId || result?.user?.id;
       if (typeof accessToken !== 'string' || !accessToken || typeof refreshToken !== 'string' || !refreshToken
         || typeof userId !== 'string' || !userId) throw new Error('Invalid account session response');
+      this.profileRevision += 1;
       this.session = {
         accessToken,
         refreshToken,
@@ -145,7 +288,7 @@
         expiresAt: String(result.session.expiresAt || '')
       };
       this.user = result.user;
-      this.confirmation = ''; this.message = ''; this.messageIsError = false;
+      this.confirmation = ''; this.clearMessage();
       if (this.storage) {
         try { await this.storage.sealAccountSession(this.session); }
         catch (_) { /* La session reste utilisable en mémoire si le stockage est indisponible. */ }
@@ -236,17 +379,19 @@
       if (this.profilePromise) return this.profilePromise;
       const accessToken = this.session?.accessToken;
       if (!accessToken) return null;
+      // Une actualisation antérieure ne doit pas écraser un profil modifié entre-temps.
+      const revision = this.profileRevision;
       this.profilePromise = (async () => {
         try {
           const result = await this.request('session');
-          if (this.session?.accessToken !== accessToken) return null;
+          if (this.session?.accessToken !== accessToken || this.profileRevision !== revision) return null;
           this.user = result.user;
           this.canRetry = false;
-          this.message = ''; this.messageIsError = false;
+          this.clearMessage('profile');
           this.render();
           return result;
         } catch (error) {
-          if (this.session?.accessToken !== accessToken) return null;
+          if (this.session?.accessToken !== accessToken || this.profileRevision !== revision) return null;
           if (error.status === 401) await this.clearLocalSession();
           else if (!options.quiet) this.showMessage(error.message);
           throw error;
@@ -255,18 +400,42 @@
       return this.profilePromise;
     }
 
+    async refreshAccount() {
+      if (this.busy || !this.session) return;
+      this.clearMessage('profile');
+      this.setBusy(true, 'account-refresh-profile');
+      try {
+        await this.refreshProfile({ quiet: true });
+        if (this.isAuthenticated()) this.showMessage(this.t('accountSyncSuccess', 'Account refreshed.'), false, 'profile');
+      } catch (error) {
+        if (this.isAuthenticated()) this.showMessage(this.t('accountSyncFailed', 'Could not refresh your account.'), true, 'profile');
+        else this.showMessage(error.message || this.t('accountServiceError', 'Account service unavailable.'));
+      } finally { this.setBusy(false); }
+    }
+
     async signIn() {
       if (this.busy) return;
       const email = this.byId('account-login-email').value.trim();
       const password = this.byId('account-login-password').value;
-      this.setBusy(true);
+      if (!validEmail(email)) {
+        this.clearPasswords(['account-login-password']);
+        this.invalidField('account-login-email', this.t('accountEmailInvalid', 'Enter a valid email address.'));
+        return;
+      }
+      if (!validCurrentPassword(password)) {
+        this.clearPasswords(['account-login-password']);
+        this.invalidField('account-login-password', this.t('accountCurrentPasswordRequired', 'Enter your password.'));
+        return;
+      }
+      this.clearMessage();
+      this.setBusy(true, 'account-login-submit');
       try {
         const result = await this.request('login', { auth: false, body: { email, password } });
         await this.acceptSession(result);
         this.app.showToast?.(this.t('accountSignedIn', 'Account connected.'));
       } catch (error) { this.showMessage(error.message); }
       finally {
-        this.byId('account-login-password').value = '';
+        this.clearPasswords(['account-login-password']);
         this.setBusy(false);
       }
     }
@@ -277,12 +446,27 @@
       const email = this.byId('account-signup-email').value.trim();
       const password = this.byId('account-signup-password').value;
       const confirmation = this.byId('account-signup-confirm').value;
-      if (password !== confirmation) {
-        this.showMessage(this.t('accountPasswordMismatch', 'Passwords do not match.'));
-        this.byId('account-signup-password').value = ''; this.byId('account-signup-confirm').value = '';
+      if (!USERNAME_PATTERN.test(username)) {
+        this.invalidField('account-signup-username', this.t('accountUsernameHelp', 'Choose a valid username.'));
         return;
       }
-      this.setBusy(true);
+      if (!validEmail(email)) {
+        this.invalidField('account-signup-email', this.t('accountEmailInvalid', 'Enter a valid email address.'));
+        return;
+      }
+      if (!validNewPassword(password)) {
+        this.clearPasswords(['account-signup-password', 'account-signup-confirm']);
+        this.invalidField('account-signup-password', this.t('accountPasswordHelp', 'Choose a valid password.'));
+        return;
+      }
+      if (password !== confirmation) {
+        this.clearPasswords(['account-signup-password', 'account-signup-confirm']);
+        this.invalidField('account-signup-confirm', this.t('accountPasswordMismatch', 'Passwords do not match.'));
+        this.byId('account-signup-password')?.focus();
+        return;
+      }
+      this.clearMessage();
+      this.setBusy(true, 'account-signup-submit');
       try {
         const result = await this.request('signup', { auth: false, body: { email, password, username } });
         if (result.pendingConfirmation) {
@@ -290,7 +474,7 @@
           this.mode = 'login';
           this.byId('account-login-email').value = email;
           this.confirmation = this.t('accountConfirmEmail', 'Check your inbox to confirm your email, then sign in.');
-          this.message = ''; this.messageIsError = false;
+          this.clearMessage();
           this.render();
         } else {
           await this.acceptSession(result);
@@ -298,8 +482,7 @@
         }
       } catch (error) { this.showMessage(error.message); }
       finally {
-        this.byId('account-signup-password').value = '';
-        this.byId('account-signup-confirm').value = '';
+        this.clearPasswords(['account-signup-password', 'account-signup-confirm']);
         this.setBusy(false);
       }
     }
@@ -307,13 +490,24 @@
     async updateUsername() {
       if (this.busy || !this.session) return;
       const username = this.byId('account-username-input').value.trim();
-      this.setBusy(true);
+      if (!USERNAME_PATTERN.test(username)) {
+        this.invalidField('account-username-input', this.t('accountUsernameHelp', 'Choose a valid username.'), 'username');
+        return;
+      }
+      if (username === this.user?.username) {
+        this.showMessage(this.t('accountNothingToSave', 'There are no changes to save.'), false, 'username');
+        return;
+      }
+      this.clearMessage();
+      this.setBusy(true, 'account-username-submit');
       try {
         const result = await this.request('profile', { body: { username } });
+        if (!this.session) return;
+        this.profileRevision += 1;
         this.user = result.user;
-        this.message = ''; this.messageIsError = false;
+        this.showMessage(this.t('accountProfileUpdated', 'Username updated.'), false, 'username');
         this.app.showToast?.(this.t('accountProfileUpdated', 'Username updated.'));
-      } catch (error) { this.showMessage(error.message); }
+      } catch (error) { this.showMessage(error.message, true, 'username'); }
       finally { this.setBusy(false); }
     }
 
@@ -321,40 +515,75 @@
       if (this.busy || !this.session) return;
       const email = this.byId('account-email-input').value.trim();
       const currentPassword = this.byId('account-email-current-password').value;
-      this.setBusy(true);
+      if (!validEmail(email)) {
+        this.invalidField('account-email-input', this.t('accountEmailInvalid', 'Enter a valid email address.'), 'email');
+        return;
+      }
+      if (email.toLowerCase() === String(this.user?.email || '').toLowerCase()) {
+        this.invalidField('account-email-input', this.t('accountEmailSame', 'Enter a different email address.'), 'email');
+        return;
+      }
+      if (!validCurrentPassword(currentPassword)) {
+        this.clearPasswords(['account-email-current-password']);
+        this.invalidField('account-email-current-password', this.t('accountCurrentPasswordRequired', 'Enter your current password.'), 'email');
+        return;
+      }
+      this.clearMessage();
+      this.setBusy(true, 'account-email-submit');
       try {
         const result = await this.request('email', { body: { email, currentPassword } });
+        if (!this.session) return;
         await this.acceptSession(result, { notifyApp: false });
+        this.byId('account-email-input').value = '';
+        this.showMessage(this.t('accountEmailUpdated', 'Email address updated.'), false, 'email');
         this.app.showToast?.(this.t('accountEmailUpdated', 'Email address updated.'));
-      } catch (error) { this.showMessage(error.message); }
+      } catch (error) { this.showMessage(error.message, true, 'email'); }
       finally {
-        this.byId('account-email-current-password').value = '';
+        this.clearPasswords(['account-email-current-password']);
         this.setBusy(false);
       }
     }
 
     async changePassword() {
       if (this.busy || !this.session) return;
+      const fields = ['account-password-current', 'account-password-new', 'account-password-confirm'];
       const currentPassword = this.byId('account-password-current').value;
       const newPassword = this.byId('account-password-new').value;
       const confirmation = this.byId('account-password-confirm').value;
-      if (newPassword !== confirmation) {
-        this.showMessage(this.t('accountPasswordMismatch', 'Passwords do not match.'));
-        this.byId('account-password-current').value = '';
-        this.byId('account-password-new').value = '';
-        this.byId('account-password-confirm').value = '';
+      if (!validCurrentPassword(currentPassword)) {
+        this.clearPasswords(['account-password-current']);
+        this.invalidField('account-password-current', this.t('accountCurrentPasswordRequired', 'Enter your current password.'), 'password');
         return;
       }
-      this.setBusy(true);
+      if (newPassword !== confirmation) {
+        this.clearPasswords(fields);
+        this.invalidField('account-password-confirm', this.t('accountPasswordMismatch', 'Passwords do not match.'), 'password');
+        this.byId('account-password-current')?.focus();
+        return;
+      }
+      if (!validNewPassword(newPassword)) {
+        this.clearPasswords(fields);
+        this.invalidField('account-password-new', this.t('accountPasswordHelp', 'Choose a valid password.'), 'password');
+        this.byId('account-password-current')?.focus();
+        return;
+      }
+      if (newPassword === currentPassword) {
+        this.clearPasswords(fields);
+        this.invalidField('account-password-new', this.t('accountPasswordSame', 'Choose a different password.'), 'password');
+        this.byId('account-password-current')?.focus();
+        return;
+      }
+      this.clearMessage();
+      this.setBusy(true, 'account-password-submit');
       try {
         const result = await this.request('password', { body: { currentPassword, newPassword } });
+        if (!this.session) return;
         await this.acceptSession(result, { notifyApp: false });
+        this.showMessage(this.t('accountPasswordUpdated', 'Password updated.'), false, 'password');
         this.app.showToast?.(this.t('accountPasswordUpdated', 'Password updated.'));
-      } catch (error) { this.showMessage(error.message); }
+      } catch (error) { this.showMessage(error.message, true, 'password'); }
       finally {
-        this.byId('account-password-current').value = '';
-        this.byId('account-password-new').value = '';
-        this.byId('account-password-confirm').value = '';
+        this.clearPasswords(fields);
         this.setBusy(false);
       }
     }
@@ -362,43 +591,58 @@
     async copyWalletAddress() {
       const address = String(this.user?.walletAddress || '');
       if (!this.user?.walletVerified || !/^0x[0-9a-fA-F]{40}$/.test(address)) return;
-      await FitiaSecurity.Native.copyText(address);
-      this.app.showToast?.(this.t('addrCopied', 'Address copied!'));
+      try {
+        if (!await FitiaSecurity.Native.copyText(address)) throw new Error('COPY_FAILED');
+        this.showMessage(this.t('addrCopied', 'Address copied!'), false, 'wallet');
+        this.app.showToast?.(this.t('addrCopied', 'Address copied!'));
+      } catch (_) {
+        this.showMessage(this.t('accountWalletCopyFailed', 'Could not copy the address.'), true, 'wallet');
+      }
     }
 
     async linkWallet() {
       if (this.busy || !this.session) return;
       const walletAddress = String(this.app.user || '');
       if (!this.app.signer || !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
-        this.showMessage(this.t('accountUnlockWallet', 'Unlock your wallet to link it.'));
+        this.showMessage(this.t('accountUnlockWallet', 'Unlock your wallet to link it.'), true, 'wallet');
         return;
       }
-      this.setBusy(true);
+      const signer = this.app.signer;
+      const walletUnchanged = () => Boolean(this.session && this.app.signer === signer
+        && String(this.app.user || '').toLowerCase() === walletAddress.toLowerCase());
+      const changedError = () => new Error(this.t('accountWalletChanged', 'The wallet changed or was locked. Unlock it and try again.'));
+      this.clearMessage();
+      this.setBusy(true, 'account-link-wallet');
       try {
         const challenge = await this.request('challenge', { body: { walletAddress } });
-        if (String(this.app.user || '').toLowerCase() !== walletAddress.toLowerCase()) throw new Error('Wallet changed during account linking');
-        const signature = await this.app.signer.signMessage(challenge.message);
+        if (!walletUnchanged()) throw changedError();
+        const signature = await signer.signMessage(challenge.message);
+        if (!walletUnchanged()) throw changedError();
         const result = await this.request('link', {
           body: { challengeId: challenge.challengeId, walletAddress, message: challenge.message, signature }
         });
+        if (!this.session) return;
+        this.profileRevision += 1;
         this.user = result.user;
-        this.message = ''; this.messageIsError = false;
+        this.showMessage(this.t('accountWalletLinked', 'Wallet verified by signature.'), false, 'wallet');
         this.app.showToast?.(this.t('accountWalletLinked', 'Wallet verified by signature.'));
-      } catch (error) { this.showMessage(error.message); }
-      finally { this.setBusy(false); }
+      } catch (error) {
+        if (this.isAuthenticated()) this.showMessage(error.message, true, 'wallet');
+        else this.clearMessage();
+      } finally { this.setBusy(false); }
     }
 
     async clearLocalSession() {
       if (this.refreshTimer) clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
       const hadSession = Boolean(this.session || this.user);
+      this.profileRevision += 1;
       this.session = null; this.user = null; this.confirmation = '';
       this.canRetry = false;
-      this.profileInputKey = '';
-      ['account-email-current-password', 'account-password-current', 'account-password-new', 'account-password-confirm'].forEach((id) => {
-        const input = this.byId(id); if (input) input.value = '';
+      ['account-login-email', 'account-signup-username', 'account-signup-email'].forEach((id) => {
+        const input = this.byId(id); if (input) { input.value = ''; input.removeAttribute('aria-invalid'); }
       });
-      this.render();
+      this.close();
       if (hadSession) await this.app.onAccountSignedOut?.();
       if (this.storage) {
         try { await this.storage.clearAccountSession(); } catch (_) { /* Effacement local de secours. */ }
@@ -407,13 +651,13 @@
 
     async logout() {
       if (this.busy) return;
-      this.setBusy(true);
+      this.setBusy(true, 'account-logout-confirm');
       try {
         if (this.session?.accessToken) {
           try { await this.request('logout', { body: {}, retry: false }); } catch (_) { /* Le jeton local est effacé dans tous les cas. */ }
         }
         await this.clearLocalSession();
-        this.mode = 'login'; this.message = ''; this.messageIsError = false;
+        this.mode = 'login'; this.clearMessage();
         this.render();
       } finally { this.setBusy(false); }
     }
@@ -441,45 +685,75 @@
       this.byId('account-show-signup')?.classList.toggle('active', this.mode === 'signup');
       this.byId('account-show-login')?.setAttribute('aria-selected', String(this.mode === 'login'));
       this.byId('account-show-signup')?.setAttribute('aria-selected', String(this.mode === 'signup'));
-      const message = this.byId('account-message');
-      if (message) {
-        message.textContent = this.message;
-        message.classList.toggle('account-message-success', !this.messageIsError);
-        message.classList.toggle('hidden', !this.message);
-      }
+      this.renderPasswordToggles();
+      const live = this.byId('account-live-status');
+      if (live) live.textContent = this.busy ? this.t('accountWorking', 'Working…') : '';
+      const messageIds = {
+        global: 'account-message', profile: 'account-profile-message', username: 'account-username-message',
+        email: 'account-email-message', password: 'account-password-message', wallet: 'account-wallet-message'
+      };
+      Object.entries(messageIds).forEach(([scope, id]) => {
+        const element = this.byId(id);
+        if (!element) return;
+        const visible = Boolean(this.message) && this.messageScope === scope;
+        element.textContent = visible ? this.message : '';
+        element.classList.toggle('account-message-success', visible && !this.messageIsError);
+        element.classList.toggle('hidden', !visible);
+        element.setAttribute('role', visible && this.messageIsError ? 'alert' : 'status');
+      });
       const confirmation = this.byId('account-confirmation');
       if (confirmation) { confirmation.textContent = this.confirmation; confirmation.classList.toggle('hidden', !this.confirmation); }
+      this.byId('account-logout-confirmation')?.classList.toggle('hidden', !connected || !this.logoutConfirmationOpen);
+      this.byId('account-logout')?.setAttribute('aria-expanded', String(connected && this.logoutConfirmationOpen));
       if (!connected) return;
 
       this.byId('account-profile-name').textContent = this.user.username;
       this.byId('account-profile-email').textContent = this.user.email;
       this.byId('account-profile-avatar').textContent = String(this.user.username || 'F').charAt(0).toUpperCase();
-      const profileInputKey = `${this.user.userId || this.user.id}:${this.user.username}:${this.user.email}`;
+      const profileInputKey = `${this.user.userId || this.user.id}:${this.user.username}`;
       if (this.profileInputKey !== profileInputKey) {
         this.profileInputKey = profileInputKey;
         this.byId('account-username-input').value = this.user.username;
-        this.byId('account-email-input').value = this.user.email;
       }
+      const usernameInput = this.byId('account-username-input');
+      const usernameSubmit = this.byId('account-username-submit');
+      if (usernameInput && usernameSubmit) usernameSubmit.disabled = this.busy || usernameInput.value.trim() === this.user.username;
+
       const badges = this.byId('account-profile-badges'); badges.textContent = '';
-      if (this.user.emailVerified) this.renderBadge(badges, this.t('accountEmailVerified', 'Email confirmed'), 'email');
-      if (this.user.walletVerified) this.renderBadge(badges, this.t('accountWalletVerified', 'Wallet verified'), 'wallet');
-      if (this.user.certified) this.renderBadge(badges, this.t('accountAdminCertified', 'Certified by admin'), 'admin');
-      if (!badges.children.length) this.renderBadge(badges, this.t('accountNoBadge', 'No verification badge yet'), 'none');
-      const currentWallet = String(this.app.user || '').toLowerCase();
-      const linkedWallet = String(this.user.walletAddress || '').toLowerCase();
-      const sameWallet = Boolean(linkedWallet && linkedWallet === currentWallet);
-      const walletText = this.byId('account-profile-wallet');
-      walletText.textContent = this.user.walletVerified
-        ? this.user.walletAddress
-        : this.t('accountNoLinkedWallet', 'No wallet linked to this account.');
-      const copyButton = this.byId('account-copy-wallet');
-      copyButton?.classList.toggle('hidden', !this.user.walletVerified || !this.user.walletAddress);
-      const linkButton = this.byId('account-link-wallet');
-      linkButton.disabled = this.busy || !this.app.signer || (this.user.walletVerified && !sameWallet) || sameWallet;
-      linkButton.textContent = sameWallet
+      this.renderBadge(badges, this.user.emailVerified
+        ? this.t('accountEmailVerified', 'Email confirmed')
+        : this.t('accountEmailPending', 'Email unconfirmed'), this.user.emailVerified ? 'email' : 'pending');
+      const linkedAddress = String(this.user.walletAddress || '');
+      const walletVerified = Boolean(this.user.walletVerified && /^0x[0-9a-fA-F]{40}$/.test(linkedAddress));
+      this.renderBadge(badges, walletVerified
         ? this.t('accountWalletVerified', 'Wallet verified')
-        : this.t('accountLinkWallet', 'Verify this wallet by signature');
-      linkButton.classList.toggle('hidden', sameWallet);
+        : this.t('accountWalletPending', 'Wallet not linked'), walletVerified ? 'wallet' : 'pending');
+      if (this.user.certified) this.renderBadge(badges, this.t('accountAdminCertified', 'Certified by admin'), 'admin');
+
+      const currentWallet = String(this.app.user || '').toLowerCase();
+      const linkedWallet = linkedAddress.toLowerCase();
+      const sameWallet = Boolean(walletVerified && linkedWallet === currentWallet);
+      const hasUnlockedWallet = Boolean(this.app.signer && /^0x[0-9a-fA-F]{40}$/.test(currentWallet));
+      const walletText = this.byId('account-profile-wallet');
+      walletText.textContent = walletVerified ? linkedAddress : this.t('accountNoLinkedWallet', 'No wallet linked to this account.');
+      this.byId('account-copy-wallet')?.classList.toggle('hidden', !walletVerified);
+      const explanation = this.byId('account-wallet-explanation');
+      if (explanation) {
+        explanation.textContent = walletVerified && currentWallet && !sameWallet
+          ? this.t('accountWalletDifferent', 'The open wallet differs from the wallet linked to this account.')
+          : walletVerified
+            ? this.t('accountWalletVerifiedHelp', 'This wallet is linked and verified by signature.')
+            : hasUnlockedWallet
+              ? this.t('accountWalletSignatureHelp', 'A signature verifies your wallet without a transaction or network fee.')
+              : this.t('accountUnlockWallet', 'Unlock your wallet to link it.');
+      }
+      const linkButton = this.byId('account-link-wallet');
+      this.byId('account-profile-actions')?.classList.toggle('hidden', walletVerified);
+      if (linkButton) {
+        linkButton.disabled = this.busy || !hasUnlockedWallet || walletVerified;
+        linkButton.textContent = this.t('accountLinkWallet', 'Verify this wallet by signature');
+        linkButton.classList.toggle('hidden', walletVerified);
+      }
     }
   }
 

@@ -16,6 +16,16 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 
 ---
 
+## 👤 Espace « Mon compte »
+
+- Le profil distingue les statuts réels de confirmation de l’email, de vérification du wallet et de certification ; il peut être actualisé manuellement.
+- La modification du nom d’utilisateur, de l’email et du mot de passe dispose de règles explicites et de messages à côté du formulaire. L’email et le mot de passe exigent toujours le mot de passe actuel côté serveur.
+- La liaison du wallet reste une signature de propriété **sans transaction ni frais réseau**. Un wallet déjà lié ne peut pas être remplacé depuis cet écran.
+- Les mots de passe peuvent être affichés temporairement ; la capture d’écran est bloquée dans l’APK pendant l’ouverture du compte, ils sont masqués en arrière-plan et effacés à la fermeture des réglages.
+- La déconnexion demande confirmation et verrouille le wallet sans supprimer son coffre chiffré. Le compte applicatif reste distinct du PIN et de la phrase de récupération du wallet.
+
+---
+
 ## 🛡️ Architecture Sécurité Durcie (V3.3.21)
 
 - **Chiffrement du Coffre-Fort à 3 Couches Indépendantes** :
@@ -101,9 +111,20 @@ Consultez **`ADMIN.md`** pour les modes local et GitHub, les variables d’envir
 ## 🧪 Tests Automatisés & Recompilation APK
 
 ```bash
-# Lancer la suite complète d'audit sécurité & tests E2E (30 tests)
-npm test
+# Installer la dépendance de test UI (Node.js 22)
+npm install
 
-# Recompiler, aligner (4 octets) et signer l'APK Android (v2 + v3)
+# Vérifier le service de compte et l’interface « Mon compte »
+npm run test:account
+
+# Recompiler, aligner (4 octets) et signer l’APK Android avec la clé officielle
 npm run build:apk
+
+# Avec le serveur lancé séparément (node server.js), exécuter la suite complète.
+# L’audit vérifie que l’APK signé embarque exactement les sources courantes.
+npm test
 ```
+
+La version Android 3.6.4 est publiée avec sa signature officielle ; le canal `update-current.json` référence son APK et son SHA-256.
+
+Avant toute publication d’une mise à jour Android, incrémentez `versionCode` et `versionName` dans `android-src/AndroidManifest.xml` ainsi que la version dans `package.json`. Générez et publiez ensuite l’APK avec la signature officielle, puis actualisez le manifeste de diffusion avec son URL et son SHA-256 réels. Ne modifiez pas le canal public pour une version dont l’APK n’est pas encore disponible.

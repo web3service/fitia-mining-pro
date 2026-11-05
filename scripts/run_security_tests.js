@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.3 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.4 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -521,7 +521,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.3\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.4\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -574,6 +574,23 @@ function httpRequest(port, method, reqPath) {
         const walletSecret = accessWin.FitiaSecurity.Vault.generateNewWallet();
         await accessApp.activateUnlockedSession(walletSecret);
         await withDeadline(accessApp.sessionBootstrapPromise, 2500, 'La session de test doit se synchroniser');
+        accessApp.openAccountAccess();
+        assert.strictEqual(accessWin.FitiaNative._state.screenSecure, true, 'Mon compte protège les mots de passe contre les captures');
+        const password = document.getElementById('account-password-current');
+        document.getElementById('account-password-disclosure').open = true;
+        password.value = 'secret- temporaire';
+        document.querySelector('[data-account-password-toggle="account-password-current"]').click();
+        assert.strictEqual(password.type, 'text');
+        Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+        document.dispatchEvent(new accessWin.Event('visibilitychange'));
+        assert.strictEqual(password.type, 'password', 'Un mot de passe visible est masqué en arrière-plan');
+        Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+        document.dispatchEvent(new accessWin.Event('visibilitychange'));
+        assert.strictEqual(accessWin.FitiaNative._state.screenSecure, true, 'Le compte reste protégé au retour au premier plan');
+        delete document.hidden;
+        accessApp.closeAccountAccess();
+        assert.strictEqual(password.value, '', 'La fermeture du compte efface les mots de passe saisis');
+        assert.strictEqual(accessWin.FitiaNative._state.screenSecure, false, 'La protection est retirée après fermeture sur le wallet déverrouillé');
         accessApp.openAccountAccess();
         accessApp.openActivityFromAccount();
         assert.ok(document.getElementById('modal-activity').classList.contains('active'), 'Les notifications restent accessibles depuis le profil');
@@ -3148,13 +3165,19 @@ function httpRequest(port, method, reqPath) {
       const legacy35Manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update.json'), 'utf8'));
       const legacy36Manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'update-stable.json'), 'utf8'));
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+      const androidSource = fs.readFileSync(path.join(ROOT, 'android-src/AndroidManifest.xml'), 'utf8');
+      const packageVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+      const androidVersion = androidSource.match(/android:versionName="([^"]+)"/)?.[1];
+      const androidVersionCode = Number(androidSource.match(/android:versionCode="(\d+)"/)?.[1]);
+      assert.ok(androidVersion && Number.isSafeInteger(androidVersionCode) && androidVersionCode > 0, 'La version Android source est valide');
+      assert.strictEqual(androidVersion, packageVersion, 'Les versions Android et package.json correspondent');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 363);
-      assert.strictEqual(updateManifest.versionName, '3.6.3');
-      assert.ok(updateManifest.apkUrl.includes('/v3.6.3/'));
+      assert.strictEqual(updateManifest.versionCode, androidVersionCode);
+      assert.strictEqual(updateManifest.versionName, androidVersion);
+      assert.strictEqual(updateManifest.apkUrl, `https://github.com/web3service/fitia-mining-pro/releases/download/v${androidVersion}/FITIA-PRO-Miner.apk`);
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.3 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet utilise le canal courant de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -3172,8 +3195,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=363'), 'versionCode=363 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.3"'), 'versionName=3.6.3 présent');
+        assert.ok(manifestTree.includes(`versionCode(0x0101021b)=${androidVersionCode}`), `versionCode=${androidVersionCode} présent`);
+        assert.ok(manifestTree.includes(`versionName(0x0101021c)="${androidVersion}"`), `versionName=${androidVersion} présent`);
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

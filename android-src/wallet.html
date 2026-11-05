@@ -58,6 +58,8 @@
         <div><h3 id="account-center-title" data-i18n="accountCenterTitle">FITIA Account</h3></div>
       </div>
 
+      <p id="account-message" class="account-message hidden" role="alert"></p>
+      <span id="account-live-status" class="sr-only" role="status" aria-live="polite"></span>
       <div id="account-auth-panel">
         <div class="account-auth-tabs" role="tablist" aria-label="FITIA Account" data-i18n-aria-label="accountCenterTitle">
           <button id="account-show-login" class="active" type="button" role="tab" aria-selected="true" data-i18n="accountSignIn">Sign in</button>
@@ -67,18 +69,29 @@
           <label for="account-login-email" data-i18n="accountEmail">Email address</label>
           <input id="account-login-email" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
           <label for="account-login-password" data-i18n="accountPassword">Password</label>
-          <input id="account-login-password" class="game-input" type="password" autocomplete="current-password" minlength="12" maxlength="128" required>
+          <div class="account-password-field">
+            <input id="account-login-password" class="game-input" type="password" autocomplete="current-password" minlength="12" maxlength="128" required>
+            <button class="account-password-toggle" type="button" data-account-password-toggle="account-login-password" aria-controls="account-login-password" aria-pressed="false">Show</button>
+          </div>
           <button id="account-login-submit" class="btn-primary" type="submit" data-i18n="accountSignIn">Sign in</button>
         </form>
         <form id="account-signup-form" class="account-form hidden" novalidate>
           <label for="account-signup-username" data-i18n="accountUsername">Username</label>
-          <input id="account-signup-username" class="game-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" required>
+          <input id="account-signup-username" class="game-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" aria-describedby="account-signup-username-help" required>
+          <p id="account-signup-username-help" class="account-form-help" data-i18n="accountUsernameHelp">3–24 characters: A–Z, numbers or underscores. Begin with a letter or number.</p>
           <label for="account-signup-email" data-i18n="accountEmail">Email address</label>
           <input id="account-signup-email" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
           <label for="account-signup-password" data-i18n="accountPassword">Password</label>
-          <input id="account-signup-password" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <div class="account-password-field">
+            <input id="account-signup-password" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="account-signup-password-help" required>
+            <button class="account-password-toggle" type="button" data-account-password-toggle="account-signup-password" aria-controls="account-signup-password" aria-pressed="false">Show</button>
+          </div>
+          <p id="account-signup-password-help" class="account-form-help" data-i18n="accountPasswordHelp">12–128 characters, including an A–Z letter and a number. Avoid common passwords.</p>
           <label for="account-signup-confirm" data-i18n="accountConfirmPassword">Confirm password</label>
-          <input id="account-signup-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <div class="account-password-field">
+            <input id="account-signup-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+            <button class="account-password-toggle" type="button" data-account-password-toggle="account-signup-confirm" aria-controls="account-signup-confirm" aria-pressed="false">Show</button>
+          </div>
           <button id="account-signup-submit" class="btn-primary" type="submit" data-i18n="accountCreate">Create my account</button>
         </form>
         <p id="account-confirmation" class="account-confirmation hidden" role="status"></p>
@@ -87,83 +100,147 @@
 
       <div id="account-profile-panel" class="account-profile hidden">
         <div class="account-profile-hero">
-          <div id="account-profile-avatar" class="account-profile-avatar" aria-hidden="true">—</div>
-          <div class="account-profile-heading">
-            <strong id="account-profile-name">—</strong>
-            <span id="account-profile-email">—</span>
+          <div class="account-hero-topline">
+            <span data-i18n="accountPersonalSpace">Your FITIA space</span>
+            <div class="account-hero-actions">
+              <span class="account-session-label"><span aria-hidden="true"></span><span data-i18n="accountActiveSession">Signed in</span></span>
+              <button id="account-refresh-profile" class="account-refresh-button" type="button" data-i18n-title="accountRefresh" data-i18n-aria-label="accountRefresh" title="Refresh account" aria-label="Refresh account"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"></path><path d="M5.5 9a7 7 0 0 1 12-2L20 12M4 12l2.5 5a7 7 0 0 0 12-2"></path></svg></button>
+            </div>
+          </div>
+          <div class="account-profile-identity">
+            <div id="account-profile-avatar" class="account-profile-avatar" aria-hidden="true">—</div>
+            <div class="account-profile-heading">
+              <strong id="account-profile-name">—</strong>
+              <span id="account-profile-email">—</span>
+            </div>
           </div>
           <div id="account-profile-badges" class="account-profile-badges"></div>
+          <p id="account-profile-message" class="account-message hidden" role="status" aria-live="polite"></p>
         </div>
 
         <section class="account-settings-section" aria-labelledby="account-profile-section-title">
           <div class="account-section-heading">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6"></path></svg>
-            <h4 id="account-profile-section-title" data-i18n="accountProfileSection">Profile</h4>
+            <span class="account-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6"></path></svg></span>
+            <div><h4 id="account-profile-section-title" data-i18n="accountProfileSection">Profile</h4><p data-i18n="accountProfileDescription">Manage your personal information.</p></div>
           </div>
           <form id="account-username-form" class="account-form" novalidate>
             <label for="account-username-input" data-i18n="accountUsername">Username</label>
             <div class="account-input-action">
-              <input id="account-username-input" class="game-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" required>
+              <input id="account-username-input" class="game-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" aria-describedby="account-username-help account-username-message" required>
               <button id="account-username-submit" class="btn-secondary" type="submit" data-i18n="accountSave">Save</button>
             </div>
+            <p id="account-username-help" class="account-form-help" data-i18n="accountUsernameHelp">3–24 characters: A–Z, numbers or underscores. Begin with a letter or number.</p>
+            <p id="account-username-message" class="account-message hidden" role="status" aria-live="polite"></p>
           </form>
         </section>
 
         <section class="account-settings-section" aria-labelledby="account-security-section-title">
           <div class="account-section-heading">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"></path></svg>
-            <h4 id="account-security-section-title" data-i18n="accountSecuritySection">Security</h4>
+            <span class="account-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"></path></svg></span>
+            <div><h4 id="account-security-section-title" data-i18n="accountSecuritySection">Security</h4><p data-i18n="accountSecurityDescription">Manage your sign-in details.</p></div>
           </div>
-          <form id="account-email-form" class="account-form" novalidate>
-            <label for="account-email-input" data-i18n="accountNewEmail">New email address</label>
-            <input id="account-email-input" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
-            <label for="account-email-current-password" data-i18n="accountCurrentPassword">Current password</label>
-            <input id="account-email-current-password" class="game-input" type="password" autocomplete="current-password" maxlength="128" required>
-            <button id="account-email-submit" class="btn-primary" type="submit" data-i18n="accountChangeEmail">Update email</button>
-          </form>
-          <div class="account-section-divider"></div>
-          <form id="account-password-form" class="account-form" novalidate>
-            <label for="account-password-current" data-i18n="accountCurrentPassword">Current password</label>
-            <input id="account-password-current" class="game-input" type="password" autocomplete="current-password" maxlength="128" required>
-            <label for="account-password-new" data-i18n="accountNewPassword">New password</label>
-            <input id="account-password-new" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
-            <label for="account-password-confirm" data-i18n="accountConfirmNewPassword">Confirm new password</label>
-            <input id="account-password-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
-            <button id="account-password-submit" class="btn-primary" type="submit" data-i18n="accountChangePassword">Update password</button>
-          </form>
+          <details id="account-email-disclosure" class="account-disclosure">
+            <summary>
+              <span class="account-disclosure-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg></span>
+              <span class="account-disclosure-copy"><strong data-i18n="accountChangeEmail">Update email</strong><small data-i18n="accountEmailActionHelp">Change your sign-in address.</small></span>
+              <svg class="account-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </summary>
+            <form id="account-email-form" class="account-form account-disclosure-form" novalidate>
+              <label for="account-email-input" data-i18n="accountNewEmail">New email address</label>
+              <input id="account-email-input" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" aria-describedby="account-email-message" required>
+              <label for="account-email-current-password" data-i18n="accountCurrentPassword">Current password</label>
+              <div class="account-password-field">
+                <input id="account-email-current-password" class="game-input" type="password" autocomplete="current-password" maxlength="128" aria-describedby="account-email-message" required>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-email-current-password" aria-controls="account-email-current-password" aria-pressed="false">Show</button>
+              </div>
+              <button id="account-email-submit" class="btn-primary" type="submit" data-i18n="accountChangeEmail">Update email</button>
+            </form>
+          </details>
+          <p id="account-email-message" class="account-message hidden" role="status" aria-live="polite"></p>
+          <details id="account-password-disclosure" class="account-disclosure">
+            <summary>
+              <span class="account-disclosure-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"></circle><path d="m11 12 7-7 2 2-2 2 2 2-2 2-2-2-2 2"></path></svg></span>
+              <span class="account-disclosure-copy"><strong data-i18n="accountChangePassword">Update password</strong><small data-i18n="accountPasswordActionHelp">Choose a new password.</small></span>
+              <svg class="account-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </summary>
+            <form id="account-password-form" class="account-form account-disclosure-form" novalidate>
+              <label for="account-password-current" data-i18n="accountCurrentPassword">Current password</label>
+              <div class="account-password-field">
+                <input id="account-password-current" class="game-input" type="password" autocomplete="current-password" maxlength="128" aria-describedby="account-password-message" required>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-current" aria-controls="account-password-current" aria-pressed="false">Show</button>
+              </div>
+              <label for="account-password-new" data-i18n="accountNewPassword">New password</label>
+              <div class="account-password-field">
+                <input id="account-password-new" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="account-password-help account-password-message" required>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-new" aria-controls="account-password-new" aria-pressed="false">Show</button>
+              </div>
+              <p id="account-password-help" class="account-form-help" data-i18n="accountPasswordHelp">12–128 characters, including an A–Z letter and a number. Avoid common passwords.</p>
+              <label for="account-password-confirm" data-i18n="accountConfirmNewPassword">Confirm new password</label>
+              <div class="account-password-field">
+                <input id="account-password-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="account-password-message" required>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-confirm" aria-controls="account-password-confirm" aria-pressed="false">Show</button>
+              </div>
+              <button id="account-password-submit" class="btn-primary" type="submit" data-i18n="accountChangePassword">Update password</button>
+            </form>
+          </details>
+          <p id="account-password-message" class="account-message hidden" role="status" aria-live="polite"></p>
+          <p class="account-security-footnote"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-3.5 7-10V5l-7-3-7 3v7c0 6.5 7 10 7 10Z"></path><path d="m9 12 2 2 4-4"></path></svg><span data-i18n="accountWalletSeparation">Your app account and wallet are separate. Keep your PIN and recovery phrase safe.</span></p>
         </section>
 
         <section class="account-settings-section" aria-labelledby="account-wallet-section-title">
           <div class="account-section-heading">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h14a2 2 0 0 1 2 2v9H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h11"></path><path d="M15 12h5v4h-5a2 2 0 0 1 0-4Z"></path></svg>
-            <h4 id="account-wallet-section-title" data-i18n="accountWalletSection">Wallet</h4>
+            <span class="account-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h14a2 2 0 0 1 2 2v9H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h11"></path><path d="M15 12h5v4h-5a2 2 0 0 1 0-4Z"></path></svg></span>
+            <div><h4 id="account-wallet-section-title" data-i18n="accountWalletSection">Wallet</h4><p data-i18n="accountWalletDescription">The public address associated with your account.</p></div>
           </div>
           <span class="account-field-label" data-i18n="accountPublicAddress">Public Polygon address</span>
           <div class="account-wallet-address-box">
-            <code id="account-profile-wallet"></code>
+            <code id="account-profile-wallet" class="account-profile-wallet"></code>
             <button id="account-copy-wallet" class="account-copy-button hidden" type="button" data-i18n-title="accountCopyAddress" data-i18n-aria-label="accountCopyAddress" title="Copy address" aria-label="Copy address">
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg>
             </button>
           </div>
-          <div class="account-profile-actions">
+          <p id="account-wallet-explanation" class="account-wallet-explanation"></p>
+          <div id="account-profile-actions" class="account-profile-actions">
             <button id="account-link-wallet" class="btn-primary" type="button" data-i18n="accountLinkWallet">Verify this wallet by signature</button>
           </div>
+          <p id="account-wallet-message" class="account-message hidden" role="status" aria-live="polite"></p>
         </section>
 
         <section class="account-settings-section" aria-labelledby="account-actions-section-title">
           <div class="account-section-heading">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"></circle><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"></circle><circle cx="10" cy="18" r="2" fill="currentColor" stroke="none"></circle></svg>
-            <h4 id="account-actions-section-title" data-i18n="accountQuickActions">Quick actions</h4>
+            <span class="account-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"></circle><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"></circle><circle cx="10" cy="18" r="2" fill="currentColor" stroke="none"></circle></svg></span>
+            <div><h4 id="account-actions-section-title" data-i18n="accountQuickActions">Quick actions</h4><p data-i18n="accountQuickActionsDescription">Your essential tools, in one place.</p></div>
           </div>
           <div class="account-profile-utilities">
-            <button id="account-open-settings" class="btn-secondary" type="button" onclick="App.openSecurityFromAccount()" data-i18n="accountOpenSettings">Wallet & security settings</button>
-            <button id="account-open-activity" class="btn-secondary" type="button" onclick="App.openActivityFromAccount()" data-i18n="accountOpenActivity">Activity & notifications</button>
+            <button id="account-open-settings" class="account-utility" type="button" onclick="App.openSecurityFromAccount()">
+              <span class="account-utility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 8.8 8 11 4.6-2.2 8-5.7 8-11V5l-8-3Z"></path><path d="M9 12h6M12 9v6"></path></svg></span>
+              <span class="account-utility-copy"><strong data-i18n="accountOpenSettings">Wallet & security settings</strong><small data-i18n="accountSettingsHelp">Manage your wallet and PIN.</small></span>
+              <svg class="account-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+            <button id="account-open-activity" class="account-utility" type="button" onclick="App.openActivityFromAccount()">
+              <span class="account-utility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path></svg></span>
+              <span class="account-utility-copy"><strong data-i18n="accountOpenActivity">Activity & notifications</strong><small data-i18n="accountActivityHelp">View your latest updates.</small></span>
+              <svg class="account-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+            <button id="account-lock-wallet" class="account-utility" type="button" onclick="App.lockWallet()">
+              <span class="account-utility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"></path></svg></span>
+              <span class="account-utility-copy"><strong data-i18n="accountLockWallet">Lock wallet</strong><small data-i18n="accountLockHelp">Require your PIN to unlock.</small></span>
+              <svg class="account-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
           </div>
-          <button id="account-lock-wallet" class="btn-secondary account-lock-button" type="button" onclick="App.lockWallet()" data-i18n="accountLockWallet">Lock wallet</button>
         </section>
-        <button id="account-logout" class="btn-secondary account-logout-button" type="button" data-i18n="accountLogout">Sign out of app account</button>
+        <button id="account-logout" class="btn-secondary account-logout-button" type="button" aria-expanded="false" aria-controls="account-logout-confirmation">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17v2H5V5h5v2M14 8l4 4-4 4M8 12h10"></path></svg><span data-i18n="accountLogout">Sign out of app account</span>
+        </button>
+        <div id="account-logout-confirmation" class="account-logout-confirmation hidden" role="group" aria-labelledby="account-logout-confirm-title">
+          <strong id="account-logout-confirm-title" data-i18n="accountLogoutConfirmTitle">Sign out?</strong>
+          <p data-i18n="accountLogoutConfirmHelp">This will also lock your wallet. Your wallet data remains on this device.</p>
+          <div class="account-confirm-actions">
+            <button id="account-logout-cancel" class="btn-secondary" type="button" data-i18n="accountCancel">Cancel</button>
+            <button id="account-logout-confirm" class="btn-secondary account-confirm-danger" type="button" data-i18n="accountLogoutConfirmAction">Sign out</button>
+          </div>
+        </div>
       </div>
-      <p id="account-message" class="account-message hidden" role="alert"></p>
     </section>
   </div>
 </div>
