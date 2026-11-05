@@ -393,11 +393,13 @@ public class MainActivity extends Activity {
     }
 
     private void deliverProfilePhoto(String requestId, String data) {
-        mainHandler.post(() -> {
+        mainHandler.post(new Runnable() {
+          @Override public void run() {
             if (webView != null) {
                 webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('fitia-profile-photo',{detail:"
                     + "{id:" + JSONObject.quote(requestId) + ",data:" + JSONObject.quote(data) + "}}));", null);
             }
+          }
         });
     }
 
@@ -411,7 +413,8 @@ public class MainActivity extends Activity {
         if (resultCode != RESULT_OK || uri == null) { deliverProfilePhoto(requestId, ""); return; }
         // Only content providers selected by the Android picker; never expose content access to the WebView.
         if (!"content".equalsIgnoreCase(uri.getScheme())) { deliverProfilePhoto(requestId, "error"); return; }
-        new Thread(() -> {
+        new Thread(new Runnable() {
+          @Override public void run() {
             try (InputStream input = getContentResolver().openInputStream(uri);
                  ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
                 if (input == null) throw new IOException("No image");
@@ -440,6 +443,7 @@ public class MainActivity extends Activity {
                 if (square != original) square.recycle();
                 original.recycle();
             } catch (Exception | OutOfMemoryError e) { deliverProfilePhoto(requestId, "error"); }
+          }
         }).start();
     }
 
@@ -804,7 +808,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void chooseProfilePhoto(String requestId) {
             if (requestId == null || !requestId.matches("[A-Za-z0-9-]{1,80}")) return;
-            mainHandler.post(() -> selectProfilePhoto(requestId));
+            mainHandler.post(new Runnable() {
+                @Override public void run() { selectProfilePhoto(requestId); }
+            });
         }
 
         @JavascriptInterface
