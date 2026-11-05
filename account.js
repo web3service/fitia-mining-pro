@@ -1,0 +1,340 @@
+/* FITIA PRO — compte applicatif Supabase, séparé du coffre non-custodial. */
+(function (root, factory) {
+  const AccountCenter = factory();
+  if (typeof module === 'object' && module.exports) module.exports = AccountCenter;
+  else root.FitiaAccountCenter = AccountCenter;
+})(typeof window !== 'undefined' ? window : globalThis, function () {
+  'use strict';
+
+  const DEFAULT_API_URL = 'https://fitia-mining-pro.vercel.app/api/account';
+
+  class FitiaAccountCenter {
+    constructor(app, options = {}) {
+      this.app = app;
+      this.apiUrl = String(options.apiUrl || DEFAULT_API_URL).replace(/\/+$/, '');
+      this.fetch = options.fetch || ((...args) => globalThis.fetch(...args));
+      this.storage = options.storage || (typeof FitiaSecurity !== 'undefined' ? FitiaSecurity.Vault : null);
+      this.session = null;
+      this.user = null;
+      this.mode = 'login';
+      this.busy = false;
+      this.confirmation = '';
+      this.message = '';
+      this.messageIsError = false;
+      this.refreshTimer = null;
+      this.refreshPromise = null;
+      this.profilePromise = null;
+      this.initialized = false;
+    }
+
+    t(key, fallback) {
+      const value = this.app && typeof this.app.t === 'function' ? this.app.t(key) : key;
+      return value && value !== key ? value : fallback;
+    }
+
+    byId(id) { return document.getElementById(id); }
+
+    init() {
+      if (this.initialized) return;
+      this.initialized = true;
+      this.byId('account-login-form')?.addEventListener('submit', (event) => {
+        event.preventDefault(); this.signIn().catch(() => {});
+      });
+      this.byId('account-signup-form')?.addEventListener('submit', (event) => {
+        event.preventDefault(); this.signUp().catch(() => {});
+      });
+      this.byId('account-show-login')?.addEventListener('click', () => this.setMode('login'));
+      this.byId('account-show-signup')?.addEventListener('click', () => this.setMode('signup'));
+      this.byId('account-link-wallet')?.addEventListener('click', () => this.linkWallet().catch(() => {}));
+      this.byId('account-logout')?.addEventListener('click', () => this.logout().catch(() => {}));
+      this.render();
+      this.restore().catch(() => {});
+    }
+
+    open() {
+      this.render();
+      if (this.session && !this.profilePromise) this.refreshProfile({ quiet: true }).catch(() => {});
+    }
+
+    setMode(mode) {
+      this.mode = mode === 'signup' ? 'signup' : 'login';
+      this.message = ''; this.messageIsError = false; this.confirmation = '';
+      this.render();
+      this.byId(this.mode === 'signup' ? 'account-signup-email' : 'account-login-email')?.focus();
+    }
+
+    showMessage(message, isError = true) {
+      this.message = String(message || '');
+      this.messageIsError = isError;
+      this.render();
+    }
+
+    setBusy(busy) {
+      this.busy = busy;
+      ['account-login-submit', 'account-signup-submit', 'account-link-wallet', 'account-logout'].forEach((id) => {
+        const element = this.byId(id); if (element) element.disabled = busy;
+      });
+      this.render();
+    }
+
+    async request(action, options = {}) {
+      const auth = options.auth !== false;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const headers = { Accept: 'application/json' };
+        if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+        if (auth && this.session?.accessToken) headers.Authorization = `Bearer ${this.session.accessToken}`;
+        const response = await this.fetch(`${this.apiUrl}/${action}`, {
+          method: options.method || (options.body === undefined ? 'GET' : 'POST'),
+          headers,
+          body: options.body === undefined ? undefined : JSON.stringify(options.body),
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        let data = {};
+        try { data = await response.json(); } catch (_) { /* Réponse vide ou invalide. */ }
+        if (response.status === 401 && auth && options.retry !== false && this.session?.refreshToken) {
+          await this.refreshSession();
+          return this.request(action, { ...options, retry: false });
+        }
+        if (!response.ok) {
+          const error = new Error(data.error || this.t('accountServiceError', 'Account service unavailable.'));
+          error.code = data.code || 'ACCOUNT_ERROR'; error.status = response.status;
+          throw error;
+        }
+        return data;
+      } catch (error) {
+        if (error && error.status) throw error;
+        const unavailable = new Error(this.t('accountServiceError', 'Account service unavailable. Check your connection and try again.'));
+        unavailable.code = 'ACCOUNT_UNAVAILABLE'; unavailable.status = 503;
+        throw unavailable;
+      } finally { clearTimeout(timeout); }
+    }
+
+    async acceptSession(result) {
+      if (!result.session || !result.user) throw new Error('Invalid account session response');
+      this.session = {
+        accessToken: String(result.session.accessToken),
+        refreshToken: String(result.session.refreshToken),
+        tokenType: 'bearer',
+        expiresAt: String(result.session.expiresAt || '')
+      };
+      this.user = result.user;
+      this.confirmation = ''; this.message = ''; this.messageIsError = false;
+      if (this.storage) {
+        try { await this.storage.sealAccountSession(this.session); }
+        catch (_) { /* La session reste utilisable en mémoire si le stockage est indisponible. */ }
+      }
+      this.scheduleRefresh();
+      this.render();
+    }
+
+    scheduleRefresh() {
+      if (this.refreshTimer) clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+      const expiresAt = Date.parse(this.session?.expiresAt || '');
+      if (!Number.isFinite(expiresAt)) return;
+      const delay = Math.max(5000, Math.min(2147480000, expiresAt - Date.now() - 60000));
+      this.refreshTimer = setTimeout(() => {
+        this.refreshSession().catch((error) => {
+          if (error.status !== 401 && this.session) {
+            this.refreshTimer = setTimeout(() => this.refreshSession().catch(() => {}), 60000);
+          }
+        });
+      }, delay);
+    }
+
+    async refreshSession() {
+      if (this.refreshPromise) return this.refreshPromise;
+      const refreshToken = this.session?.refreshToken;
+      if (!refreshToken) throw new Error('No account session');
+      this.refreshPromise = (async () => {
+        try {
+          const result = await this.request('refresh', { auth: false, body: { refreshToken }, retry: false });
+          await this.acceptSession(result);
+          return result;
+        } catch (error) {
+          if (error.status === 401) await this.clearLocalSession();
+          throw error;
+        } finally { this.refreshPromise = null; }
+      })();
+      return this.refreshPromise;
+    }
+
+    async restore() {
+      if (!this.storage) { this.render(); return; }
+      const stored = await this.storage.readAccountSession();
+      if (!stored) { this.render(); return; }
+      this.session = stored;
+      this.scheduleRefresh();
+      await this.refreshProfile({ quiet: true });
+    }
+
+    async refreshProfile(options = {}) {
+      if (this.profilePromise) return this.profilePromise;
+      if (!this.session) return null;
+      this.profilePromise = (async () => {
+        try {
+          const result = await this.request('session');
+          this.user = result.user;
+          this.message = ''; this.messageIsError = false;
+          this.render();
+          return result;
+        } catch (error) {
+          if (error.status === 401) await this.clearLocalSession();
+          else if (!options.quiet) this.showMessage(error.message);
+          throw error;
+        } finally { this.profilePromise = null; }
+      })();
+      return this.profilePromise;
+    }
+
+    async signIn() {
+      if (this.busy) return;
+      const email = this.byId('account-login-email').value.trim();
+      const password = this.byId('account-login-password').value;
+      this.setBusy(true);
+      try {
+        const result = await this.request('login', { auth: false, body: { email, password } });
+        await this.acceptSession(result);
+        this.app.showToast?.(this.t('accountSignedIn', 'Account connected.'));
+      } catch (error) { this.showMessage(error.message); }
+      finally {
+        this.byId('account-login-password').value = '';
+        this.setBusy(false);
+      }
+    }
+
+    async signUp() {
+      if (this.busy) return;
+      const username = this.byId('account-signup-username').value.trim();
+      const email = this.byId('account-signup-email').value.trim();
+      const password = this.byId('account-signup-password').value;
+      const confirmation = this.byId('account-signup-confirm').value;
+      if (password !== confirmation) {
+        this.showMessage(this.t('accountPasswordMismatch', 'Passwords do not match.'));
+        this.byId('account-signup-password').value = ''; this.byId('account-signup-confirm').value = '';
+        return;
+      }
+      this.setBusy(true);
+      try {
+        const result = await this.request('signup', { auth: false, body: { email, password, username } });
+        if (result.pendingConfirmation) {
+          this.user = null; this.session = null;
+          this.mode = 'login';
+          this.byId('account-login-email').value = email;
+          this.confirmation = this.t('accountConfirmEmail', 'Check your inbox to confirm your email, then sign in.');
+          this.message = ''; this.messageIsError = false;
+          this.render();
+        } else {
+          await this.acceptSession(result);
+          this.app.showToast?.(this.t('accountCreated', 'Account created.'));
+        }
+      } catch (error) { this.showMessage(error.message); }
+      finally {
+        this.byId('account-signup-password').value = '';
+        this.byId('account-signup-confirm').value = '';
+        this.setBusy(false);
+      }
+    }
+
+    async linkWallet() {
+      if (this.busy || !this.session) return;
+      const walletAddress = String(this.app.user || '');
+      if (!this.app.signer || !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
+        this.showMessage(this.t('accountUnlockWallet', 'Unlock your wallet to link it.'));
+        return;
+      }
+      this.setBusy(true);
+      try {
+        const challenge = await this.request('challenge', { body: { walletAddress } });
+        if (String(this.app.user || '').toLowerCase() !== walletAddress.toLowerCase()) throw new Error('Wallet changed during account linking');
+        const signature = await this.app.signer.signMessage(challenge.message);
+        const result = await this.request('link', {
+          body: { challengeId: challenge.challengeId, walletAddress, message: challenge.message, signature }
+        });
+        this.user = result.user;
+        this.message = ''; this.messageIsError = false;
+        this.app.showToast?.(this.t('accountWalletLinked', 'Wallet verified by signature.'));
+      } catch (error) { this.showMessage(error.message); }
+      finally { this.setBusy(false); }
+    }
+
+    async clearLocalSession() {
+      if (this.refreshTimer) clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+      this.session = null; this.user = null; this.confirmation = '';
+      if (this.storage) {
+        try { await this.storage.clearAccountSession(); } catch (_) { /* Effacement local de secours. */ }
+      }
+      this.render();
+    }
+
+    async logout() {
+      if (this.busy) return;
+      this.setBusy(true);
+      try {
+        if (this.session?.accessToken) {
+          try { await this.request('logout', { body: {}, retry: false }); } catch (_) { /* Le jeton local est effacé dans tous les cas. */ }
+        }
+        await this.clearLocalSession();
+        this.mode = 'login'; this.message = ''; this.messageIsError = false;
+        this.render();
+      } finally { this.setBusy(false); }
+    }
+
+    renderBadge(container, label, kind) {
+      const item = document.createElement('span');
+      item.className = `account-status-badge account-status-${kind}`;
+      item.textContent = label;
+      container.appendChild(item);
+    }
+
+    render() {
+      const auth = this.byId('account-auth-panel');
+      if (!auth) return;
+      const connected = Boolean(this.session && this.user);
+      auth.classList.toggle('hidden', connected);
+      this.byId('account-profile-panel')?.classList.toggle('hidden', !connected);
+      this.byId('account-login-form')?.classList.toggle('hidden', this.mode !== 'login');
+      this.byId('account-signup-form')?.classList.toggle('hidden', this.mode !== 'signup');
+      this.byId('account-show-login')?.classList.toggle('active', this.mode === 'login');
+      this.byId('account-show-signup')?.classList.toggle('active', this.mode === 'signup');
+      this.byId('account-show-login')?.setAttribute('aria-selected', String(this.mode === 'login'));
+      this.byId('account-show-signup')?.setAttribute('aria-selected', String(this.mode === 'signup'));
+      const message = this.byId('account-message');
+      if (message) {
+        message.textContent = this.message;
+        message.classList.toggle('account-message-success', !this.messageIsError);
+        message.classList.toggle('hidden', !this.message);
+      }
+      const confirmation = this.byId('account-confirmation');
+      if (confirmation) { confirmation.textContent = this.confirmation; confirmation.classList.toggle('hidden', !this.confirmation); }
+      if (!connected) return;
+
+      this.byId('account-profile-name').textContent = this.user.username;
+      this.byId('account-profile-email').textContent = this.user.email;
+      const badges = this.byId('account-profile-badges'); badges.textContent = '';
+      if (this.user.emailVerified) this.renderBadge(badges, this.t('accountEmailVerified', 'Email confirmed'), 'email');
+      if (this.user.walletVerified) this.renderBadge(badges, this.t('accountWalletVerified', 'Wallet verified'), 'wallet');
+      if (this.user.certified) this.renderBadge(badges, this.t('accountAdminCertified', 'Certified by admin'), 'admin');
+      if (!badges.children.length) this.renderBadge(badges, this.t('accountNoBadge', 'No verification badge yet'), 'none');
+      const currentWallet = String(this.app.user || '').toLowerCase();
+      const linkedWallet = String(this.user.walletAddress || '').toLowerCase();
+      const sameWallet = Boolean(linkedWallet && linkedWallet === currentWallet);
+      const walletText = this.byId('account-profile-wallet');
+      walletText.textContent = this.user.walletVerified
+        ? `${this.t('accountLinkedWallet', 'Linked wallet')}: ${this.user.walletAddress}`
+        : this.t('accountNoLinkedWallet', 'No wallet linked to this account.');
+      const linkButton = this.byId('account-link-wallet');
+      linkButton.disabled = this.busy || !this.app.signer || (this.user.walletVerified && !sameWallet) || sameWallet;
+      linkButton.textContent = sameWallet
+        ? this.t('accountWalletVerified', 'Wallet verified')
+        : this.t('accountLinkWallet', 'Verify this wallet by signature');
+      linkButton.classList.toggle('hidden', sameWallet);
+    }
+  }
+
+  return FitiaAccountCenter;
+});

@@ -13,6 +13,7 @@ const {
 const { validateManifest: validateStoreCatalog } = require('./store-catalog');
 const { getDefaultOrderService } = require('./store-order-service');
 const { getDefaultFarmService } = require('./farm-service');
+const { getDefaultAccountService } = require('./account-service');
 const { getClientKey, getLoginFailure, recordLoginFailure } = require('./request-security');
 const GameVisibility = require('./game-visibility-config');
 
@@ -323,6 +324,11 @@ function createAdminServer(options = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('Node.js 18+ est requis pour la connexion GitHub.');
   let orderService = options.orderService || null;
   let farmService = options.farmService || null;
+  let accountService = options.accountService || null;
+  const accounts = () => {
+    if (!accountService) accountService = getDefaultAccountService();
+    return accountService;
+  };
   const orders = () => {
     if (!orderService) orderService = getDefaultOrderService();
     return orderService;
@@ -544,6 +550,7 @@ function createAdminServer(options = {}) {
     ['/admin/store-admin.js', { file: path.join(ADMIN_DIR, 'store-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/orders-admin.js', { file: path.join(ADMIN_DIR, 'orders-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/admin/farm-admin.js', { file: path.join(ADMIN_DIR, 'farm-admin.js'), type: 'application/javascript; charset=utf-8' }],
+    ['/admin/users-admin.js', { file: path.join(ADMIN_DIR, 'users-admin.js'), type: 'application/javascript; charset=utf-8' }],
     ['/game-visibility-config.js', { file: path.join(ROOT, 'game-visibility-config.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.js', { file: path.join(ROOT, 'promotion-effects.js'), type: 'application/javascript; charset=utf-8' }],
     ['/promotion-effects.css', { file: path.join(ROOT, 'promotion-effects.css'), type: 'text/css; charset=utf-8' }],
@@ -630,6 +637,23 @@ function createAdminServer(options = {}) {
       if (!session || !requireCsrf(req, res, session)) return;
       const body = await readJson(req, MAX_BODY_BYTES);
       sendJson(res, 200, { order: await orders().updateAdminOrder(body) });
+      return;
+    }
+
+    if (pathname === '/api/users' && req.method === 'GET') {
+      const session = requireSession(req, res);
+      if (!session) return;
+      const query = new URL(req.url || '/', 'http://localhost').searchParams;
+      const userId = query.get('userId') || '';
+      sendJson(res, 200, userId ? await accounts().getUserDetail(userId) : await accounts().listUsers(query.get('search') || ''));
+      return;
+    }
+
+    if (pathname === '/api/users' && req.method === 'PATCH') {
+      const session = requireSession(req, res);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_BODY_BYTES);
+      sendJson(res, 200, await accounts().setCertified(body.userId, body.certified, 'admin'));
       return;
     }
 

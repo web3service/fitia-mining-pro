@@ -1227,6 +1227,55 @@ main::-webkit-scrollbar { display: none; }
   overflow-y: auto;
 }
 .update-required-message { margin-bottom: 12px; line-height: 1.5; }
+
+/* Compte applicatif — indépendant du coffre et des clés du wallet */
+.account-center-card { margin: 14px 0; padding: 16px; border: 1px solid rgba(59,130,246,0.22); background: linear-gradient(145deg, rgba(59,130,246,0.08), rgba(255,255,255,0.025)); }
+.account-center-header { display: flex; align-items: center; gap: 11px; margin-bottom: 15px; }
+.account-center-brand { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border: 1px solid rgba(96,165,250,0.3); border-radius: 12px; background: rgba(59,130,246,0.12); color: #93c5fd; }
+.account-center-header h3 { margin: 0 0 3px; font-size: 0.94rem; }
+.account-center-header p { margin: 0; color: var(--text-muted); font-size: 0.67rem; line-height: 1.4; }
+.account-auth-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 15px; padding: 4px; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; background: rgba(0,0,0,0.22); }
+.account-auth-tabs button { min-height: 42px; padding: 8px; border: 0; border-radius: 9px; background: transparent; color: var(--text-muted); font: inherit; font-size: 0.72rem; font-weight: 750; cursor: pointer; }
+.account-auth-tabs button.active { background: rgba(59,130,246,0.18); color: #bfdbfe; box-shadow: inset 0 0 0 1px rgba(96,165,250,0.16); }
+.account-form label { display: block; margin: 0 0 6px; color: var(--text-muted); font-size: 0.69rem; font-weight: 650; text-align: left; }
+.account-form .game-input { width: 100%; min-height: 48px; margin: 0 0 12px; padding: 12px 13px; font-size: 16px; text-align: left; }
+.account-form .btn-primary { width: 100%; min-height: 49px; margin-top: 2px; }
+.account-security-note { margin: 14px 0 0; color: var(--text-muted); font-size: 0.65rem; line-height: 1.55; }
+.account-message { margin: 12px 0 0; padding: 10px 11px; border: 1px solid rgba(248,113,113,0.24); border-radius: 10px; background: rgba(239,68,68,0.08); color: #fca5a5; font-size: 0.7rem; line-height: 1.45; }
+.account-message.account-message-success { border-color: rgba(52,211,153,0.24); background: rgba(16,185,129,0.08); color: #a7f3d0; }
+.account-confirmation { margin: 13px 0 0; padding: 11px; border: 1px solid rgba(52,211,153,0.22); border-radius: 10px; background: rgba(16,185,129,0.07); color: #a7f3d0; font-size: 0.72rem; line-height: 1.5; }
+.account-profile-heading { display: grid; gap: 4px; }
+.account-profile-heading strong { font-size: 0.95rem; overflow-wrap: anywhere; }
+.account-profile-heading span { color: var(--text-muted); font-size: 0.72rem; overflow-wrap: anywhere; }
+.account-profile-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.account-status-badge { display: inline-flex; align-items: center; min-height: 26px; padding: 4px 8px; border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; color: var(--text-muted); font-size: 0.59rem; font-weight: 750; }
+.account-status-email { border-color: rgba(34,211,238,0.26); background: rgba(34,211,238,0.08); color: #a5f3fc; }
+.account-status-wallet { border-color: rgba(167,139,250,0.28); background: rgba(139,92,246,0.09); color: #ddd6fe; }
+.account-status-admin { border-color: rgba(240,185,11,0.3); background: rgba(240,185,11,0.08); color: #fde68a; }
+.account-profile-wallet { margin: 13px 0; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.63rem; line-height: 1.55; overflow-wrap: anywhere; }
+.account-profile-actions { display: grid; gap: 9px; }
+.account-profile-actions .btn-primary, .account-profile-actions .btn-secondary { width: 100%; min-height: 48px; margin: 0; }
+
+/* Mise à jour obligatoire : fenêtre centrale, version réelle et police Inter locale */
+.modal.modal-centered { align-items: center; padding: 20px 18px; }
+.update-modal { z-index: 4000; }
+.update-modal-content { width: min(100%, 420px); max-height: calc(100dvh - 40px); overflow-y: auto; padding: 28px 24px 24px; border: 1px solid rgba(240,185,11,0.28); border-radius: 24px; background: linear-gradient(155deg, rgba(31,41,55,0.99), rgba(10,15,26,0.99)); box-shadow: 0 24px 80px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.05); animation: updateModalIn 0.22s ease-out; font-family: 'Inter', system-ui, sans-serif; text-align: center; }
+.update-modal-icon { display: grid; width: 58px; height: 58px; margin: 0 auto 17px; place-items: center; border: 1px solid rgba(240,185,11,0.3); border-radius: 18px; background: linear-gradient(145deg, rgba(240,185,11,0.17), rgba(240,185,11,0.06)); color: var(--primary); }
+.update-modal-heading { display: grid; justify-items: center; gap: 10px; margin-bottom: 16px; }
+.update-modal-heading h3 { margin: 0; color: var(--text); font-size: 1.32rem; font-weight: 800; letter-spacing: -0.025em; }
+.update-version { display: inline-flex; min-height: 30px; align-items: center; padding: 5px 12px; border: 1px solid rgba(240,185,11,0.28); border-radius: 999px; background: rgba(240,185,11,0.09); color: var(--primary); font-family: 'Inter', system-ui, sans-serif; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; }
+.update-modal-content .update-required-message { margin: 0 0 12px; color: var(--text-muted); font-size: 0.82rem; line-height: 1.65; }
+.update-install-hint { margin: 0 0 20px; color: var(--text-muted); font-size: 0.7rem; line-height: 1.5; }
+.update-install-button { width: 100%; min-height: 52px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.84rem; font-weight: 800; }
+@keyframes updateModalIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (max-width: 360px) {
+  .modal.modal-centered { padding: 14px 12px; }
+  .update-modal-content { max-height: calc(100dvh - 28px); padding: 22px 18px 18px; border-radius: 20px; }
+  .update-modal-icon { width: 52px; height: 52px; margin-bottom: 14px; }
+  .update-modal-heading h3 { font-size: 1.18rem; }
+  .account-center-card { padding: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { .update-modal-content { animation: none; } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .modal-header h3 { margin: 0; font-size: 1.12rem; }

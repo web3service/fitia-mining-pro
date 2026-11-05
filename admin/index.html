@@ -15,6 +15,7 @@
   <script src="/admin/store-admin.js" defer></script>
   <script src="/admin/orders-admin.js" defer></script>
   <script src="/admin/farm-admin.js" defer></script>
+  <script src="/admin/users-admin.js" defer></script>
   <script src="/admin/admin.js" defer></script>
 </head>
 <body>
@@ -46,6 +47,9 @@
       <nav class="sidebar-nav" aria-label="Navigation principale">
         <button class="nav-button active" type="button" data-section="dashboard">
           <span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Vue d’ensemble</span><span class="nav-short-label">Accueil</span>
+        </button>
+        <button class="nav-button" type="button" data-section="users">
+          <span class="nav-icon" aria-hidden="true">◎</span><span class="nav-label">Comptes utilisateurs</span><span class="nav-short-label">Comptes</span>
         </button>
         <button class="nav-button" type="button" data-section="announcements">
           <span class="nav-icon" aria-hidden="true">◉</span><span class="nav-label">Événements &amp; annonces</span><span class="nav-short-label">Annonces</span>
@@ -121,6 +125,35 @@
                 <button class="button button-secondary" type="button" data-new-store-product>Nouveau produit STORE</button>
               </div>
             </article>
+          </div>
+        </section>
+
+        <section id="section-users" class="page-section hidden">
+          <div class="section-heading">
+            <div><p class="eyebrow">Comptes &amp; vérifications</p><h2>Utilisateurs FITIA PRO</h2><p class="muted">Consultez les comptes, leurs badges et leurs actifs miniers réellement enregistrés sur Polygon.</p></div>
+            <button id="users-refresh" class="button button-secondary" type="button">Actualiser</button>
+          </div>
+          <div class="promotion-notice store-privacy-notice">
+            <strong>Emails privés, badges sans confusion</strong>
+            <p>Les emails sont visibles uniquement dans cet espace administrateur. Email confirmé et Wallet vérifié ne constituent pas une vérification d’identité réelle ; la certification admin est indépendante.</p>
+          </div>
+          <div class="stats-grid store-stats-grid" aria-label="Statistiques des comptes">
+            <article class="stat-card"><span>Comptes affichés</span><strong id="users-stat-total">0</strong><small>Résultats de la recherche</small></article>
+            <article class="stat-card stat-active"><span>Emails confirmés</span><strong id="users-stat-email">0</strong><small>Confirmation Supabase Auth</small></article>
+            <article class="stat-card stat-scheduled"><span>Wallets vérifiés</span><strong id="users-stat-wallet">0</strong><small>Signature du wallet contrôlée</small></article>
+            <article class="stat-card"><span>Certifiés admin</span><strong id="users-stat-certified">0</strong><small>Décision distincte journalisée</small></article>
+          </div>
+          <form id="users-search-form" class="list-toolbar users-list-toolbar">
+            <label class="search-field"><span class="sr-only">Rechercher un compte</span><input id="users-search" type="search" maxlength="64" placeholder="Nom d’utilisateur, email ou adresse Polygon…"></label>
+            <button class="button button-primary" type="submit">Rechercher</button>
+          </form>
+          <div id="users-list-error" class="alert alert-error hidden" role="alert"></div>
+          <div id="user-detail" class="user-detail hidden" aria-live="polite"></div>
+          <div id="users-list" class="announcements-list users-admin-list"></div>
+          <div id="users-empty" class="empty-state hidden">
+            <img src="/assets/icon-192.png" width="52" height="52" alt="">
+            <h3>Aucun compte trouvé</h3>
+            <p>Modifiez la recherche ou actualisez la liste.</p>
           </div>
         </section>
 
