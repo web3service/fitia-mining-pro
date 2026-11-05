@@ -114,7 +114,19 @@ jobs:
         env:
           FITIA_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
           FITIA_ANDROID_KEY_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
-        run: python3 scripts/build_apk.py
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/build_apk.py 2>&1 | tee /tmp/fitia-build-output.log || {
+            python3 - <<'PYLOG'
+          from pathlib import Path
+          text = Path('/tmp/fitia-build-output.log').read_text(errors='replace')
+          for line in text.splitlines():
+              if any(word in line.lower() for word in ('error', 'cannot', 'undefined', 'exception', 'failed')):
+                  print('::error::' + line.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          PYLOG
+            exit 1
+          }
 
       - name: Update the current release manifest
         shell: bash
