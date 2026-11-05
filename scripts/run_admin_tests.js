@@ -8,6 +8,19 @@ const { createAdminServer } = require('../admin-server');
 const ROOT = path.resolve(__dirname, '..');
 const PASSWORD = 'test-admin-password-123';
 const INITIAL_ANNOUNCEMENT_COUNT = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8')).announcements.length;
+const accountUser = {
+  userId: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', username: 'Local_Admin_User', email: 'local-private@example.com',
+  emailVerified: true, walletVerified: true, certified: false,
+  walletAddress: '0x9999999999999999999999999999999999999999', createdAt: '2026-11-05T10:00:00.000Z'
+};
+const accountService = {
+  async listUsers() { return { users: [{ ...accountUser }] }; },
+  async getUserDetail(userId) {
+    assert.strictEqual(userId, accountUser.userId);
+    return { user: { ...accountUser }, assets: { source: 'polygon', machineCount: 1, activeMachineCount: 1, batteryCount: '2', miningActive: true }, certificationHistory: [] };
+  },
+  async setCertified(userId, certified) { accountUser.certified = certified; return { user: { ...accountUser } }; }
+};
 let passed = 0;
 let failed = 0;
 
@@ -67,7 +80,7 @@ function clone(value) {
   fs.copyFileSync(path.join(ROOT, 'promotions.json'), promotionsFile);
   fs.copyFileSync(path.join(ROOT, 'game-visibility.json'), gameVisibilityFile);
   fs.copyFileSync(path.join(ROOT, 'store-products.json'), storeDataFile);
-  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, gameVisibilityFile, assetDirectory, storeDataFile, storeAssetDirectory });
+  const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, gameVisibilityFile, assetDirectory, storeDataFile, storeAssetDirectory, accountService });
   const localPort = await listen(localServer);
   const localBase = `http://127.0.0.1:${localPort}`;
   let githubServer = null;
@@ -142,6 +155,8 @@ function clone(value) {
       assert.strictEqual(upload.response.status, 401);
       const orders = await request(localBase, '/api/admin/store-orders');
       assert.strictEqual(orders.response.status, 401);
+      const users = await request(localBase, '/api/admin/users');
+      assert.strictEqual(users.response.status, 401);
     });
 
     await runTest('Connexion par mot de passe, cookie HttpOnly et jeton CSRF temporaire', async () => {
@@ -161,6 +176,23 @@ function clone(value) {
       const session = await request(localBase, '/api/admin/session', { cookie });
       assert.strictEqual(session.response.status, 200);
       assert.strictEqual(session.data.csrfToken, csrf);
+    });
+
+    await runTest('Gestion locale des comptes avec actifs Polygon et certification CSRF', async () => {
+      const list = await request(localBase, '/api/admin/users', { cookie });
+      assert.strictEqual(list.response.status, 200, list.text);
+      assert.strictEqual(list.data.users[0].email, 'local-private@example.com');
+      const detail = await request(localBase, `/api/admin/users?userId=${accountUser.userId}`, { cookie });
+      assert.strictEqual(detail.response.status, 200, detail.text);
+      assert.strictEqual(detail.data.assets.source, 'polygon');
+      const rejected = await request(localBase, '/api/admin/users', { method: 'PATCH', cookie, body: { userId: accountUser.userId, certified: true } });
+      assert.strictEqual(rejected.response.status, 403);
+      const certified = await request(localBase, '/api/admin/users', { method: 'PATCH', cookie, csrf, body: { userId: accountUser.userId, certified: true } });
+      assert.strictEqual(certified.response.status, 200, certified.text);
+      assert.strictEqual(certified.data.user.certified, true);
+      const script = await request(localBase, '/admin/users-admin.js');
+      assert.strictEqual(script.response.status, 200);
+      assert.ok(script.text.includes('FitiaUsersAdmin'));
     });
 
     await runTest('Chargement du manifeste sans exposer de secret ni d’identifiant', async () => {

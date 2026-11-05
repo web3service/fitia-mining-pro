@@ -1192,6 +1192,53 @@
       </div>
     </div>
 
+    <section class="card account-center-card" aria-labelledby="account-center-title">
+      <div class="account-center-header">
+        <div class="account-center-brand" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6"></path><path d="m17 5 1.2 1.2L20.5 4"></path></svg>
+        </div>
+        <div><h3 id="account-center-title" data-i18n="accountCenterTitle">FITIA Account</h3><p data-i18n="accountCenterSubtitle">Email and password for your app account</p></div>
+      </div>
+
+      <div id="account-auth-panel">
+        <div class="account-auth-tabs" role="tablist" aria-label="Account access">
+          <button id="account-show-login" class="active" type="button" role="tab" aria-selected="true" data-i18n="accountSignIn">Sign in</button>
+          <button id="account-show-signup" type="button" role="tab" aria-selected="false" data-i18n="accountSignUp">Create account</button>
+        </div>
+        <form id="account-login-form" class="account-form" novalidate>
+          <label for="account-login-email" data-i18n="accountEmail">Email address</label>
+          <input id="account-login-email" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
+          <label for="account-login-password" data-i18n="accountPassword">Password</label>
+          <input id="account-login-password" class="game-input" type="password" autocomplete="current-password" minlength="12" maxlength="128" required>
+          <button id="account-login-submit" class="btn-primary" type="submit" data-i18n="accountSignIn">Sign in</button>
+        </form>
+        <form id="account-signup-form" class="account-form hidden" novalidate>
+          <label for="account-signup-username" data-i18n="accountUsername">Username</label>
+          <input id="account-signup-username" class="game-input" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" required>
+          <label for="account-signup-email" data-i18n="accountEmail">Email address</label>
+          <input id="account-signup-email" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
+          <label for="account-signup-password" data-i18n="accountPassword">Password</label>
+          <input id="account-signup-password" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <label for="account-signup-confirm" data-i18n="accountConfirmPassword">Confirm password</label>
+          <input id="account-signup-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <button id="account-signup-submit" class="btn-primary" type="submit" data-i18n="accountCreate">Create my account</button>
+        </form>
+        <p id="account-confirmation" class="account-confirmation hidden" role="status"></p>
+      </div>
+
+      <div id="account-profile-panel" class="account-profile hidden">
+        <div class="account-profile-heading"><strong id="account-profile-name">—</strong><span id="account-profile-email">—</span></div>
+        <div id="account-profile-badges" class="account-profile-badges"></div>
+        <p id="account-profile-wallet" class="account-profile-wallet"></p>
+        <div class="account-profile-actions">
+          <button id="account-link-wallet" class="btn-primary" type="button" data-i18n="accountLinkWallet">Verify this wallet by signature</button>
+          <button id="account-logout" class="btn-secondary" type="button" data-i18n="accountLogout">Sign out of app account</button>
+        </div>
+      </div>
+      <p id="account-message" class="account-message hidden" role="alert"></p>
+      <p class="account-security-note" data-i18n="accountSecurityNote">Email recovery only covers this app account. Your PIN, signatures and recovery phrase remain required for the wallet and funds.</p>
+    </section>
+
     <div class="card referral-card">
       <div class="ref-header-row">
         <div class="ref-brand">
@@ -1322,14 +1369,18 @@
 </div>
 
 <!-- Mise à jour Android obligatoire -->
-<div id="modal-update" class="modal" role="dialog" aria-modal="true" aria-labelledby="update-required-title">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="update-required-title" data-i18n="updateRequiredTitle">Mise à jour requise</h3>
+<div id="modal-update" class="modal modal-centered update-modal" role="dialog" aria-modal="true" aria-labelledby="update-required-title" aria-describedby="update-required-message">
+  <div class="modal-content update-modal-content">
+    <div class="update-modal-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14a2 2 0 0 0 2-2v-3"></path><path d="M3 16v3a2 2 0 0 0 2 2"></path></svg>
+    </div>
+    <div class="update-modal-heading">
+      <span id="update-required-version" class="update-version">V —</span>
+      <h3 id="update-required-title" data-i18n="updateRequiredTitle">Mise à jour disponible</h3>
     </div>
     <p id="update-required-message" class="small-text update-required-message" data-i18n="updateRequiredMessage">Des améliorations de sécurité et de nouvelles fonctionnalités sont disponibles. Installez la dernière version pour continuer à utiliser FITIA PRO.</p>
-    <p class="small-text" data-i18n="updateInstallHint">Android vous demandera de confirmer l’installation.</p>
-    <button class="btn-primary" onclick="App.startUpdateDownload()" data-i18n="updateDownloadInstall">Télécharger et installer</button>
+    <p class="small-text update-install-hint" data-i18n="updateInstallHint">Android vous demandera de confirmer l’installation.</p>
+    <button id="update-install-button" class="btn-primary update-install-button" onclick="App.startUpdateDownload()" data-i18n="updateDownloadInstall">Télécharger et installer</button>
   </div>
 </div>
 
@@ -1469,6 +1520,7 @@
   <script src="arcade-3d.js"></script>
   <script src="arcade.js"></script>
   <script src="assistant.js"></script>
+<script src="account.js"></script>
 <script src="app.js"></script>
 <script src="game-experience-dice-3d.js"></script>
 <script src="game-experience-flip-3d.js"></script>

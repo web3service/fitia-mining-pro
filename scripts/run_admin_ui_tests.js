@@ -18,6 +18,7 @@ const storeCatalogScript = fs.readFileSync(path.join(ROOT, 'store-catalog.js'), 
 const storeAdminScript = fs.readFileSync(path.join(ROOT, 'admin/store-admin.js'), 'utf8');
 const ordersAdminScript = fs.readFileSync(path.join(ROOT, 'admin/orders-admin.js'), 'utf8');
 const farmAdminScript = fs.readFileSync(path.join(ROOT, 'admin/farm-admin.js'), 'utf8');
+const usersAdminScript = fs.readFileSync(path.join(ROOT, 'admin/users-admin.js'), 'utf8');
 const gameVisibilityConfigScript = fs.readFileSync(path.join(ROOT, 'game-visibility-config.js'), 'utf8');
 const gamesAdminScript = fs.readFileSync(path.join(ROOT, 'admin/games-admin.js'), 'utf8');
 let manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'announcements.json'), 'utf8'));
@@ -55,6 +56,12 @@ let farmWithdrawals = [{
   coins: 500, ftaUnits: '500000000', status: 'pending', createdAt: '2026-10-28T10:00:00.000Z', paidAt: null, payoutTxHash: null
 }];
 const farmUpdates = [];
+const adminUser = {
+  userId: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', username: 'Miner <img src=x data-user-xss>',
+  email: 'private-admin-only@example.com', emailVerified: true, walletVerified: true, certified: false,
+  walletAddress: '0x9999999999999999999999999999999999999999', createdAt: '2026-11-05T10:00:00.000Z'
+};
+const certificationHistory = [];
 const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
 const { window } = dom;
 Object.defineProperty(window, 'crypto', { value: crypto.webcrypto });
@@ -132,6 +139,29 @@ window.fetch = async (url, options = {}) => {
     farmWithdrawals = farmWithdrawals.map((item) => item.id === body.id ? { ...item, status: 'paid', payoutTxHash: body.txHash, paidAt: new Date().toISOString() } : item);
     return response({ pending: false, withdrawal: JSON.parse(JSON.stringify(farmWithdrawals.find((item) => item.id === body.id))) });
   }
+  if (url === '/api/admin/users' && options.method === 'PATCH') {
+    assert.ok(options.headers['X-CSRF-Token']);
+    const body = JSON.parse(options.body);
+    adminUser.certified = body.certified;
+    certificationHistory.unshift({ id: `event-${certificationHistory.length + 1}`, certified: body.certified, actor: 'admin', createdAt: new Date().toISOString() });
+    return response({ user: { ...adminUser } });
+  }
+  if (String(url).startsWith('/api/admin/users') && (!options.method || options.method === 'GET')) {
+    const parsed = new URL(String(url), 'http://localhost');
+    if (parsed.searchParams.get('userId')) {
+      return response({
+        user: { ...adminUser },
+        assets: {
+          source: 'polygon', chainId: 137, machineCount: 2, activeMachineCount: 1,
+          batteryCount: '3', miningActive: true, activePower: '75',
+          machines: [{ type: 2, active: true, expiresAt: '2026-12-01T10:00:00.000Z' }, { type: 1, active: false, expiresAt: '2026-10-01T10:00:00.000Z' }],
+          batteries: [{ type: 0, quantity: '2' }, { type: 2, quantity: '1' }]
+        },
+        certificationHistory: [...certificationHistory]
+      });
+    }
+    return response({ users: [{ ...adminUser }] });
+  }
   throw new Error(`Requête inattendue ${options.method || 'GET'} ${url}`);
 };
 
@@ -146,6 +176,7 @@ async function waitFor(condition, label) {
 (async () => {
   assert.ok(html.includes('viewport-fit=cover'));
   assert.ok(html.indexOf('src="/promotion-effects.js"') < html.indexOf('src="/admin/admin.js"'));
+  assert.ok(html.indexOf('src="/admin/users-admin.js"') < html.indexOf('src="/admin/admin.js"'));
   assert.deepStrictEqual(
     Array.from(window.document.querySelectorAll('#promotion-variant option'), (option) => option.value),
     ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge']
@@ -162,6 +193,7 @@ async function waitFor(condition, label) {
   window.eval(storeAdminScript);
   window.eval(ordersAdminScript);
   window.eval(farmAdminScript);
+  window.eval(usersAdminScript);
   window.eval(script);
   await waitFor(() => !window.document.getElementById('admin-view').classList.contains('hidden'), 'connexion');
   await waitFor(() => window.document.querySelectorAll('#announcements-list .announcement-row').length === initialAnnouncementCount, 'liste initiale');
@@ -474,7 +506,28 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('farm-stat-paid').textContent === '1', 'retrait payé affiché');
   assert.ok(window.document.querySelector('#farm-withdrawals-list .farm-withdrawal-card').textContent.includes('Payé · vérifié'));
   assert.ok(adminCss.includes('.farm-withdrawal-controls'));
-  console.log('  ✅ UI admin : annonces, décorations, visibilité des jeux, STORE, commandes et retraits FARM — CRUD, suivi privé, mobile et blocage XSS validés');
+
+  window.document.querySelector('[data-section="users"]').click();
+  await waitFor(() => window.document.querySelectorAll('#users-list .user-account-row').length === 1, 'chargement des comptes');
+  assert.strictEqual(window.document.getElementById('page-title').textContent, 'Comptes utilisateurs');
+  assert.ok(window.document.getElementById('users-list').textContent.includes('private-admin-only@example.com'));
+  assert.strictEqual(window.document.querySelector('#users-list [data-user-xss]'), null);
+  window.document.querySelector('#users-list .button-primary').click();
+  await waitFor(() => !window.document.getElementById('user-detail').classList.contains('hidden'), 'détail du compte');
+  await waitFor(() => window.document.getElementById('user-detail').textContent.includes('Batteries possédées'), 'actifs Polygon affichés');
+  const userDetailText = window.document.getElementById('user-detail').textContent;
+  assert.ok(userDetailText.includes('Email confirmé'));
+  assert.ok(userDetailText.includes('Wallet vérifié'));
+  assert.ok(userDetailText.includes('ACTIF'));
+  assert.ok(userDetailText.includes('Quantité : 2'));
+  assert.ok(userDetailText.includes('ne prouvent pas une identité réelle'));
+  window.document.getElementById('user-certify-button').click();
+  await waitFor(() => adminUser.certified && certificationHistory.length === 1, 'certification admin');
+  await waitFor(() => window.document.getElementById('user-detail').textContent.includes('Badge attribué'), 'journal de certification');
+  assert.ok(window.document.getElementById('user-detail').textContent.includes('Certifié par l’admin'));
+  assert.ok(adminCss.includes('@media (max-width: 760px)'));
+  assert.ok(adminCss.includes('.user-asset-stats'));
+  console.log('  ✅ UI admin : annonces, décorations, jeux, STORE, commandes, FARM et comptes Polygon — CRUD, badges, confidentialité, mobile et blocage XSS validés');
   window.close();
 })().catch((error) => {
   console.error(error);

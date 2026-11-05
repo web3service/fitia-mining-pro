@@ -5,6 +5,7 @@ server.js
 README.md
 .git/
 app.js
+account.js
 activity.js
 wallet.js
 /farm.js

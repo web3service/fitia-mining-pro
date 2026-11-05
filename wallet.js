@@ -15,6 +15,8 @@
   const PIN_STATE_KEY = 'fitia_pin_guard_v2';
   const BIO_META_KEY = 'fitia_bio_enabled_v2';
   const SETTINGS_KEY = 'fitia_wallet_settings_v1';
+  const ACCOUNT_SESSION_KEY = 'fitia_account_session_v1';
+  const ACCOUNT_DEVICE_KEY_ID = 'fitia_account_session_wrap_key_v1';
   const DEVICE_KEY_ID = 'fitia_non_extractable_wrap_key_v1';
   const IDB_NAME = 'FitiaSecureVaultDB';
   const IDB_VERSION = 1;
@@ -293,17 +295,17 @@
   };
 
   // ─── Clé d'appareil non-exportable (WebCrypto extractable: false) ─
-  async function getOrCreateDeviceWrapKey() {
+  async function getOrCreateDeviceWrapKey(keyId = DEVICE_KEY_ID) {
     if (!global.indexedDB) return null;
     try {
-      let key = await VaultIDB.get(DEVICE_KEY_ID);
+      let key = await VaultIDB.get(keyId);
       if (key && key.type === 'secret') return key;
       key = await crypto.subtle.generateKey(
         { name: 'AES-GCM', length: 256 },
         false, // NON-EXPORTABLE : même du code JS ne peut pas lire les octets bruts de la clé !
         ['encrypt', 'decrypt']
       );
-      const saved = await VaultIDB.set(DEVICE_KEY_ID, key);
+      const saved = await VaultIDB.set(keyId, key);
       return saved ? key : null;
     } catch (_) {
       return null;
@@ -410,6 +412,75 @@
       const next = { ...this.getSettings(), ...patch };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
       return next;
+    },
+
+    // Les jetons du compte applicatif sont chiffrés séparément du coffre wallet.
+    // Ils ne contiennent ni PIN, ni clé privée, ni phrase de récupération et ne
+    // donnent aucune capacité de signature ou de transfert sur Polygon.
+    async sealAccountSession(session) {
+      if (!session || typeof session.accessToken !== 'string' || typeof session.refreshToken !== 'string') {
+        throw new Error('Invalid account session');
+      }
+      const key = await getOrCreateDeviceWrapKey(ACCOUNT_DEVICE_KEY_ID);
+      if (!key) throw new Error('Secure account storage is unavailable');
+      const payload = JSON.stringify({
+        accessToken: session.accessToken.slice(0, 4096),
+        refreshToken: session.refreshToken.slice(0, 4096),
+        tokenType: 'bearer',
+        expiresAt: String(session.expiresAt || '')
+      });
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const additionalData = new TextEncoder().encode('FITIA_ACCOUNT_SESSION_V1');
+      const encrypted = new Uint8Array(await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv, additionalData }, key, new TextEncoder().encode(payload)
+      ));
+      const envelope = JSON.stringify({ v: 1, iv: bytesToB64(iv), ct: bytesToB64(encrypted) });
+      const sealed = NativeHelper.hardwareSeal(envelope);
+      if (!sealed) throw new Error('Secure hardware account storage is unavailable');
+      localStorage.setItem(ACCOUNT_SESSION_KEY, sealed);
+      const saved = await VaultIDB.set(ACCOUNT_SESSION_KEY, sealed);
+      if (!saved) {
+        localStorage.removeItem(ACCOUNT_SESSION_KEY);
+        throw new Error('Secure account storage could not be persisted');
+      }
+      return true;
+    },
+
+    async readAccountSession() {
+      try {
+        const raw = localStorage.getItem(ACCOUNT_SESSION_KEY) || await VaultIDB.get(ACCOUNT_SESSION_KEY);
+        if (!raw) return null;
+        const unsealed = NativeHelper.hardwareUnseal(raw);
+        if (!unsealed) throw new Error('unseal');
+        const envelope = JSON.parse(unsealed);
+        if (envelope.v !== 1 || !envelope.iv || !envelope.ct) throw new Error('envelope');
+        const key = await getOrCreateDeviceWrapKey(ACCOUNT_DEVICE_KEY_ID);
+        if (!key) throw new Error('key');
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: b64ToBytes(envelope.iv), additionalData: new TextEncoder().encode('FITIA_ACCOUNT_SESSION_V1') },
+          key,
+          b64ToBytes(envelope.ct)
+        );
+        const session = JSON.parse(new TextDecoder().decode(decrypted));
+        if (!session || typeof session.accessToken !== 'string' || typeof session.refreshToken !== 'string'
+          || !session.accessToken || !session.refreshToken || session.accessToken.length > 4096 || session.refreshToken.length > 4096) {
+          throw new Error('session');
+        }
+        return {
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          tokenType: 'bearer',
+          expiresAt: String(session.expiresAt || '')
+        };
+      } catch (_) {
+        await this.clearAccountSession();
+        return null;
+      }
+    },
+
+    async clearAccountSession() {
+      localStorage.removeItem(ACCOUNT_SESSION_KEY);
+      await VaultIDB.remove(ACCOUNT_SESSION_KEY);
     },
 
     generateNewWallet() {

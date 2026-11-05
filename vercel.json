@@ -55,6 +55,38 @@
     {
       "source": "/api/admin/farm-withdrawals",
       "destination": "/api/admin?action=farm-withdrawals"
+    },
+    {
+      "source": "/api/admin/users",
+      "destination": "/api/admin?action=users"
+    },
+    {
+      "source": "/api/account/signup",
+      "destination": "/api/account?action=signup"
+    },
+    {
+      "source": "/api/account/login",
+      "destination": "/api/account?action=login"
+    },
+    {
+      "source": "/api/account/refresh",
+      "destination": "/api/account?action=refresh"
+    },
+    {
+      "source": "/api/account/session",
+      "destination": "/api/account?action=session"
+    },
+    {
+      "source": "/api/account/logout",
+      "destination": "/api/account?action=logout"
+    },
+    {
+      "source": "/api/account/challenge",
+      "destination": "/api/account?action=challenge"
+    },
+    {
+      "source": "/api/account/link",
+      "destination": "/api/account?action=link"
     }
   ],
   "headers": [

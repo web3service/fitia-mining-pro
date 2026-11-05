@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.5.9 (STANDALONE)
+//  SUITE D'AUDIT SÉCURITÉ & TESTS E2E — FITIA PRO MINER V3.6.0 (STANDALONE)
 // ═══════════════════════════════════════════════════════════════════════════
 const assert = require('assert');
 const crypto = require('crypto');
@@ -460,6 +460,7 @@ async function bootAppEnvironment(mockRpcUrl) {
   win.eval(fs.readFileSync(path.join(ROOT, 'arcade-3d.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'arcade.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'assistant.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'account.js'), 'utf8'));
 
   if (mockRpcUrl) {
     win.FitiaSecurity.Rpc.connectBestProvider = async () => {
@@ -495,7 +496,7 @@ function httpRequest(port, method, reqPath) {
 //  EXÉCUTION DES 6 SUITES D'AUDIT ET DE TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 (async () => {
-  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.5.9\n' + '═'.repeat(72));
+  console.log('\n🛡️  AUDIT DE SÉCURITÉ & TESTS AUTOMATISÉS — FITIA PRO MINER V3.6.0\n' + '═'.repeat(72));
 
   const ethersLib = require(path.join(ROOT, 'vendor', 'ethers.umd.min.js'));
   const mockRpc = await startMockPolygonRpc(ethersLib);
@@ -1211,9 +1212,9 @@ function httpRequest(port, method, reqPath) {
       const originalDownloads = nativeState.updateDownloads;
       const update = {
         enabled: true,
-        versionCode: 359,
-        versionName: '3.5.9',
-        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.5.9/FITIA-PRO-Miner.apk',
+        versionCode: 999001,
+        versionName: '9.8.7',
+        apkUrl: 'https://github.com/web3service/fitia-mining-pro/releases/download/v9.8.7/FITIA-PRO-Miner.apk',
         sha256: 'a'.repeat(64),
         notes: '<img src=x onerror=alert(1)> Notes techniques qui ne doivent pas être affichées'
       };
@@ -1230,7 +1231,10 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(e2eWin.document.getElementById('update-required-message').textContent, App.t('updateRequiredMessage'));
         assert.ok(!modal.textContent.includes('Notes techniques') && !modal.textContent.includes('onerror'), 'Les notes du manifeste ne sont jamais affichées');
         assert.strictEqual(modal.querySelector('img'), null, 'Aucun contenu HTML issu du manifeste');
-        assert.strictEqual(e2eWin.document.getElementById('update-version'), null, 'Aucune description de version dans la modale');
+        assert.strictEqual(e2eWin.document.getElementById('update-required-version').textContent, 'V 9.8.7', 'La version réelle du manifeste est affichée');
+        assert.ok(modal.classList.contains('modal-centered'), 'La mise à jour est présentée au centre de l’application');
+        assert.ok(!fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8').includes('3.3.56'), 'Aucun ancien numéro de version n’est codé en dur');
+        assert.ok(!fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'), 'utf8').includes('3.3.56'), 'La modale ne contient aucun numéro obsolète');
         assert.strictEqual(modal.querySelector('.modal-close'), null, 'Aucun bouton de fermeture');
         assert.strictEqual(modal.querySelector('.update-later-btn'), null, 'Aucun bouton Plus tard');
         assert.strictEqual(App.availableUpdate.notes, undefined, 'Les notes distantes sont ignorées à la validation');
@@ -1256,7 +1260,7 @@ function httpRequest(port, method, reqPath) {
 
         modal.classList.remove('active');
         App.availableUpdate = null;
-        nativeState.appVersionCode = 359;
+        nativeState.appVersionCode = 999001;
         await App.checkForUpdates(true);
         assert.ok(!modal.classList.contains('active'), 'Aucune notification si la version installée est à jour');
       } finally {
@@ -2609,6 +2613,91 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(e2eWin.FitiaNative._state.screenSecure, true, 'FLAG_SECURE réactivé au verrouillage');
     });
 
+    // ─── Comptes applicatifs : sessions protégées et wallet non-custodial ───
+    const accountEnv = await bootAppEnvironment(mockRpc.url);
+    try {
+      await runTest('ACCOUNT-STORAGE', 'Jetons du compte chiffrés par WebCrypto et scellés par AndroidKeyStore', async () => {
+        const vault = accountEnv.win.FitiaSecurity.Vault;
+        const session = {
+          accessToken: `access-secret-${'a'.repeat(40)}`,
+          refreshToken: `refresh-secret-${'b'.repeat(40)}`,
+          expiresAt: new Date(Date.now() + 3600000).toISOString()
+        };
+        await vault.sealAccountSession(session);
+        const raw = accountEnv.win.localStorage.getItem('fitia_account_session_v1');
+        assert.ok(raw && raw.startsWith('AKS1:'), 'La session persistée est scellée matériellement');
+        assert.ok(!raw.includes(session.accessToken) && !raw.includes(session.refreshToken), 'Aucun jeton en clair dans le stockage');
+        const restored = await vault.readAccountSession();
+        assert.strictEqual(restored.accessToken, session.accessToken);
+        assert.strictEqual(restored.refreshToken, session.refreshToken);
+        accountEnv.win.localStorage.setItem('fitia_account_session_v1', `${raw.slice(0, -8)}AAAAAA==`);
+        assert.strictEqual(await vault.readAccountSession(), null, 'Une session altérée est supprimée');
+        await vault.clearAccountSession();
+      });
+
+      await runTest('ACCOUNT-WALLET-UI', 'Inscription, liaison signée et déconnexion sans accès aux fonds', async () => {
+        const accountWin = accountEnv.win;
+        const accountApp = accountWin.App;
+        const center = accountApp.accountCenter;
+        const document = accountWin.document;
+        const wallet = ethersLib.Wallet.createRandom();
+        const user = {
+          userId: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', username: 'Mobile_Miner', email: 'mobile@example.com',
+          emailVerified: true, walletVerified: false, certified: false, walletAddress: null
+        };
+        const session = {
+          accessToken: `mobile-access-${'c'.repeat(40)}`, refreshToken: `mobile-refresh-${'d'.repeat(40)}`,
+          expiresAt: new Date(Date.now() + 3600000).toISOString()
+        };
+        const challengeId = '0eb65a4e-2d33-4cbe-a834-f2f76d9b98f0';
+        const message = `FITIA PRO wallet linking\nWallet: ${wallet.address}\nChallenge: ${challengeId}`;
+        const calls = [];
+        center.fetch = async (url, options = {}) => {
+          const action = String(url).split('/').pop();
+          const body = options.body ? JSON.parse(options.body) : null;
+          calls.push({ action, body, headers: options.headers });
+          const payload = action === 'signup' ? { user, session }
+            : action === 'challenge' ? { challengeId, walletAddress: wallet.address, message, expiresAt: new Date(Date.now() + 600000).toISOString() }
+            : action === 'link' ? (() => {
+                assert.strictEqual(ethersLib.verifyMessage(body.message, body.signature).toLowerCase(), wallet.address.toLowerCase());
+                return { user: { ...user, walletVerified: true, walletAddress: wallet.address.toLowerCase() } };
+              })()
+            : action === 'logout' ? { signedOut: true } : { user };
+          return { ok: true, status: 200, json: async () => payload };
+        };
+        document.getElementById('account-signup-username').value = 'Mobile_Miner';
+        document.getElementById('account-signup-email').value = 'mobile@example.com';
+        document.getElementById('account-signup-password').value = 'A-correct-passphrase-2026';
+        document.getElementById('account-signup-confirm').value = 'A-correct-passphrase-2026';
+        await center.signUp();
+        assert.strictEqual(center.user.username, 'Mobile_Miner');
+        assert.strictEqual(document.getElementById('account-signup-password').value, '');
+        assert.strictEqual(document.getElementById('account-signup-confirm').value, '');
+        assert.ok(!document.getElementById('account-profile-panel').classList.contains('hidden'));
+        const rawSession = accountWin.localStorage.getItem('fitia_account_session_v1');
+        assert.ok(rawSession && !rawSession.includes(session.accessToken) && !rawSession.includes(session.refreshToken));
+        assert.ok(!rawSession.includes('A-correct-passphrase-2026'));
+
+        accountApp.user = wallet.address;
+        accountApp.signer = wallet;
+        wallet.sendTransaction = async () => { throw new Error('TRANSACTION_FORBIDDEN'); };
+        await center.linkWallet();
+        assert.strictEqual(center.user.walletVerified, true);
+        assert.strictEqual(calls.filter((call) => call.action === 'link').length, 1);
+        const linkCall = calls.find((call) => call.action === 'link');
+        assert.ok(!JSON.stringify(linkCall).includes('privateKey'));
+        assert.ok(!JSON.stringify(linkCall).includes('A-correct-passphrase-2026'));
+        assert.ok(document.getElementById('account-profile-badges').textContent.includes('Wallet verified'));
+        await center.logout();
+        assert.strictEqual(center.session, null);
+        assert.strictEqual(accountApp.user, wallet.address, 'La déconnexion email ne verrouille pas le wallet');
+        assert.strictEqual(accountApp.signer, wallet, 'Le compte email ne supprime jamais le signer wallet');
+        assert.strictEqual(await accountWin.FitiaSecurity.Vault.readAccountSession(), null);
+      });
+    } finally {
+      accountEnv.dom.window.close();
+    }
+
     // ─── SUITE 5 : Durcissement du Serveur HTTP ─────────────────────────
     await runTest('HTTP-SERVER', 'En-têtes de sécurité CSP/nosniff actifs & blocage 403 sur /.git, /server.js, /scripts', async () => {
       const rootRes = await httpRequest(8080, 'GET', '/');
@@ -2673,6 +2762,7 @@ function httpRequest(port, method, reqPath) {
       ].join(';'), apkPath], { encoding: 'utf8' });
       assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/assistant.js'), 'Le moteur local de l’assistant est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/account.js'), 'Le compte applicatif est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/announcements.js'), 'Le module annonces est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/promotions.js'), 'Le module décorations est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/game-visibility-config.js'), 'La configuration de visibilité des jeux est embarquée dans l’APK');
@@ -2714,7 +2804,7 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
       assert.ok(!packagedFiles.includes('assets/www/store-order-service.js'), 'Le service privé de chiffrement serveur n’est pas embarqué dans l’APK');
       assert.ok(!packagedFiles.includes('assets/www/farm-service.js'), 'Le registre privé FARM n’est pas embarqué dans l’APK');
-      for (const sourceFile of ['app.js', 'wallet.js', 'game-visibility-config.js', 'game-visibility.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js', 'arcade-config.js', 'arcade-3d.js', 'arcade.js', 'game-experience.js', 'game-experience-farm.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-crash.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
+      for (const sourceFile of ['app.js', 'account.js', 'wallet.js', 'game-visibility-config.js', 'game-visibility.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js', 'arcade-config.js', 'arcade-3d.js', 'arcade.js', 'game-experience.js', 'game-experience-farm.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-crash.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
         const packagedSource = execFileSync('python3', ['-c', [
           'import zipfile, sys',
           'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'
@@ -2743,11 +2833,11 @@ function httpRequest(port, method, reqPath) {
       const appSource = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
       const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
       assert.strictEqual(updateManifest.enabled, true, 'Le canal de mise à jour dans l’application est actif');
-      assert.strictEqual(updateManifest.versionCode, 359);
-      assert.strictEqual(updateManifest.versionName, '3.5.9');
-      assert.ok(updateManifest.apkUrl.includes('/v3.5.9/'));
+      assert.strictEqual(updateManifest.versionCode, 360);
+      assert.strictEqual(updateManifest.versionName, '3.6.0');
+      assert.ok(updateManifest.apkUrl.includes('/v3.6.0/'));
       assert.strictEqual(updateManifest.sha256, apkSha256, 'Le manifeste courant épingle le SHA-256 exact de l’APK');
-      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.5.9 utilise le nouveau canal de mise à jour');
+      assert.ok(appSource.includes('main/update-current.json'), 'Le wallet 3.6.0 utilise le nouveau canal de mise à jour');
       assert.ok(!appSource.includes('main/update-stable.json'), 'Le nouveau wallet ne consulte plus le canal 3.3.6');
       assert.strictEqual(legacy35Manifest.versionCode, 311, 'Les versions 3.3.5 ne reçoivent pas un APK au certificat incompatible');
       assert.strictEqual(legacy35Manifest.versionName, '3.3.5');
@@ -2765,8 +2855,8 @@ function httpRequest(port, method, reqPath) {
         assert.ok(badgingOut.includes('res/mipmap-anydpi-v26/fitia_pro_launcher.xml'), 'Android présente la nouvelle icône FITIA');
         assert.ok(!badgingOut.includes('res/mipmap-anydpi-v26/ic_launcher.xml'), 'Aucune ancienne icône dans le badging APK');
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
-        assert.ok(manifestTree.includes('versionCode(0x0101021b)=359'), 'versionCode=359 présent');
-        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.5.9"'), 'versionName=3.5.9 présent');
+        assert.ok(manifestTree.includes('versionCode(0x0101021b)=360'), 'versionCode=360 présent');
+        assert.ok(manifestTree.includes('versionName(0x0101021c)="3.6.0"'), 'versionName=3.6.0 présent');
         assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
         assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
         assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');

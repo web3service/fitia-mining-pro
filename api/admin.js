@@ -7,6 +7,7 @@ const {
 const { validateManifest: validateStoreCatalog } = require('../store-catalog');
 const { getDefaultOrderService } = require('../store-order-service');
 const { getDefaultFarmService } = require('../farm-service');
+const { getDefaultAccountService } = require('../account-service');
 const { getClientKey, getLoginFailure, recordLoginFailure } = require('../request-security');
 const GameVisibility = require('../game-visibility-config');
 
@@ -423,6 +424,11 @@ async function saveAnnouncementAsset(config, payload, kind = 'announcement') {
 function createAdminHandler(options = {}) {
   let orderService = options.orderService || null;
   let farmService = options.farmService || null;
+  let accountService = options.accountService || null;
+  const accounts = () => {
+    if (!accountService) accountService = getDefaultAccountService();
+    return accountService;
+  };
   const orders = () => {
     if (!orderService) orderService = getDefaultOrderService();
     return orderService;
@@ -513,6 +519,23 @@ function createAdminHandler(options = {}) {
       if (!session || !requireCsrf(req, res, session)) return;
       const body = await readJson(req, MAX_BODY_BYTES);
       sendJson(res, 200, { order: await orders().updateAdminOrder(body) });
+      return;
+    }
+
+    if (action === 'users' && req.method === 'GET') {
+      const session = requireSession(req, res, config);
+      if (!session) return;
+      const userId = req.query?.userId || url.searchParams.get('userId') || '';
+      const search = req.query?.search || url.searchParams.get('search') || '';
+      sendJson(res, 200, userId ? await accounts().getUserDetail(userId) : await accounts().listUsers(search));
+      return;
+    }
+
+    if (action === 'users' && req.method === 'PATCH') {
+      const session = requireSession(req, res, config);
+      if (!session || !requireCsrf(req, res, session)) return;
+      const body = await readJson(req, MAX_BODY_BYTES);
+      sendJson(res, 200, await accounts().setCertified(body.userId, body.certified, 'admin'));
       return;
     }
 

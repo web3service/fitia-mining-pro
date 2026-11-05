@@ -27,7 +27,7 @@ const i18n = {
     importExistingWallet: "J'ai déjà un portefeuille (12 mots / Clé)",
     downloadApkTitle: "Télécharger l'application Android (.APK)",
     downloadApkSub: "Installation directe sur votre téléphone",
-    updateRequiredTitle: "Mise à jour requise",
+    updateRequiredTitle: "Mise à jour disponible",
     updateRequiredMessage: "Des améliorations de sécurité et de nouvelles fonctionnalités sont disponibles. Installez la dernière version pour continuer à utiliser FITIA PRO.",
     updateDownloadInstall: "Télécharger et installer",
     updateInstallHint: "Android vous demandera de confirmer l’installation.",
@@ -35,6 +35,31 @@ const i18n = {
     updateStartError: "Impossible de lancer la mise à jour. Réessayez plus tard.",
     updateLatest: "L’application est à jour.",
     updateCheckFailed: "Impossible de vérifier la mise à jour pour le moment.",
+    accountCenterTitle: "Compte FITIA",
+    accountCenterSubtitle: "Email et mot de passe pour votre compte applicatif",
+    accountSignIn: "Connexion",
+    accountSignUp: "Créer un compte",
+    accountEmail: "Adresse email",
+    accountPassword: "Mot de passe",
+    accountUsername: "Nom d’utilisateur",
+    accountConfirmPassword: "Confirmer le mot de passe",
+    accountCreate: "Créer mon compte",
+    accountSecurityNote: "La récupération email concerne uniquement ce compte applicatif. Le PIN, les signatures et la phrase de récupération restent nécessaires pour le wallet et les fonds.",
+    accountConfirmEmail: "Consultez votre boîte mail pour confirmer votre email, puis connectez-vous.",
+    accountPasswordMismatch: "Les mots de passe ne correspondent pas.",
+    accountServiceError: "Le service de compte est indisponible. Vérifiez votre connexion et réessayez.",
+    accountSignedIn: "Compte connecté.",
+    accountCreated: "Compte créé.",
+    accountUnlockWallet: "Déverrouillez votre wallet pour le lier.",
+    accountWalletLinked: "Wallet vérifié par signature.",
+    accountEmailVerified: "Email confirmé",
+    accountWalletVerified: "Wallet vérifié",
+    accountAdminCertified: "Certifié par l’admin",
+    accountNoBadge: "Aucun badge de vérification",
+    accountLinkedWallet: "Wallet lié",
+    accountNoLinkedWallet: "Aucun wallet lié à ce compte.",
+    accountLinkWallet: "Vérifier ce wallet par signature",
+    accountLogout: "Déconnecter le compte applicatif",
     back: "Retour",
     backupSeedTitle: "Phrase de récupération (12 mots)",
     backupSeedWarn: "Notez ces 12 mots dans l'ordre exact et gardez-les en lieu sûr. Ne les partagez jamais : quiconque possède ces mots contrôle vos fonds.",
@@ -341,7 +366,7 @@ const i18n = {
     importExistingWallet: "I already have a wallet (12 words / Key)",
     downloadApkTitle: "Download Android App (.APK)",
     downloadApkSub: "Direct installation on your phone",
-    updateRequiredTitle: "Update required",
+    updateRequiredTitle: "Update available",
     updateRequiredMessage: "Security improvements and new features are available. Install the latest version to continue using FITIA PRO.",
     updateDownloadInstall: "Download and install",
     updateInstallHint: "Android will ask you to confirm the installation.",
@@ -349,6 +374,31 @@ const i18n = {
     updateStartError: "Unable to start the update. Please try again later.",
     updateLatest: "The app is up to date.",
     updateCheckFailed: "Unable to check for updates right now.",
+    accountCenterTitle: "FITIA Account",
+    accountCenterSubtitle: "Email and password for your app account",
+    accountSignIn: "Sign in",
+    accountSignUp: "Create account",
+    accountEmail: "Email address",
+    accountPassword: "Password",
+    accountUsername: "Username",
+    accountConfirmPassword: "Confirm password",
+    accountCreate: "Create my account",
+    accountSecurityNote: "Email recovery only covers this app account. Your PIN, signatures and recovery phrase remain required for the wallet and funds.",
+    accountConfirmEmail: "Check your inbox to confirm your email, then sign in.",
+    accountPasswordMismatch: "Passwords do not match.",
+    accountServiceError: "Account service unavailable. Check your connection and try again.",
+    accountSignedIn: "Account connected.",
+    accountCreated: "Account created.",
+    accountUnlockWallet: "Unlock your wallet to link it.",
+    accountWalletLinked: "Wallet verified by signature.",
+    accountEmailVerified: "Email confirmed",
+    accountWalletVerified: "Wallet verified",
+    accountAdminCertified: "Certified by admin",
+    accountNoBadge: "No verification badge yet",
+    accountLinkedWallet: "Linked wallet",
+    accountNoLinkedWallet: "No wallet linked to this account.",
+    accountLinkWallet: "Verify this wallet by signature",
+    accountLogout: "Sign out of app account",
     back: "Back",
     backupSeedTitle: "Recovery Phrase (12 words)",
     backupSeedWarn: "Write down these 12 words in exact order and keep them safe. Never share them: anyone with these words controls your funds.",
@@ -1082,6 +1132,7 @@ class Application {
     this.promotionCenter = new FitiaPromotionCenter(this);
     this.gameVisibility = new FitiaGameVisibilityCenter(this);
     this.storeCenter = new FitiaStoreCenter(this);
+    this.accountCenter = new FitiaAccountCenter(this);
     this.farmCenter = new FitiaFarmCenter(this);
     this.luckyWheel = new FitiaLuckyWheel(this, this.farmCenter);
     this.fitaDice = new FitiaDice(this, this.farmCenter);
@@ -1164,6 +1215,7 @@ class Application {
     this.promotionCenter.init();
     this.gameVisibility.init();
     this.storeCenter.init();
+    this.accountCenter.init();
     this.farmCenter.init();
     this.luckyWheel.init();
     this.fitaDice.init();
@@ -1241,6 +1293,7 @@ class Application {
     this.availableUpdate = update;
     localStorage.removeItem('fitia_update_dismissed_code');
     document.getElementById('update-required-message').textContent = this.t('updateRequiredMessage');
+    document.getElementById('update-required-version').textContent = `V ${update.versionName}`;
     document.getElementById('modal-update').classList.add('active');
   }
 
@@ -1384,6 +1437,7 @@ class Application {
     if (this.announcementCenter?.initialized) this.announcementCenter.render();
     this.activity?.render();
     this.storeCenter?.render();
+    this.accountCenter?.render();
     if (this.user) {
       this.renderShop();
       this.renderActiveMachines();
@@ -4126,6 +4180,7 @@ class Application {
     document.getElementById('custom-rpc-input').value = settings.customRpcUrl || '';
 
     document.getElementById('modal-security').classList.add('active');
+    this.accountCenter.open();
   }
 
   openPolygonScan() {

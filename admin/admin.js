@@ -92,6 +92,7 @@
   let storeAdmin = null;
   let ordersAdmin = null;
   let farmAdmin = null;
+  let usersAdmin = null;
   const byId = (id) => document.getElementById(id);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const localized = (value) => value?.fr || value?.en || '';
@@ -213,6 +214,7 @@
     if (storeAdmin) storeAdmin.reset();
     if (ordersAdmin) ordersAdmin.reset();
     if (farmAdmin) farmAdmin.reset();
+    if (usersAdmin) usersAdmin.reset();
     state.csrfToken = '';
     byId('admin-view').classList.add('hidden');
     byId('login-view').classList.remove('hidden');
@@ -625,17 +627,19 @@
   function setSection(section) {
     state.section = section;
     byId('section-dashboard').classList.toggle('hidden', section !== 'dashboard');
+    byId('section-users').classList.toggle('hidden', section !== 'users');
     byId('section-announcements').classList.toggle('hidden', section !== 'announcements');
     byId('section-promotions').classList.toggle('hidden', section !== 'promotions');
     byId('section-games').classList.toggle('hidden', section !== 'games');
     byId('section-store').classList.toggle('hidden', section !== 'store');
     byId('section-orders').classList.toggle('hidden', section !== 'orders');
     byId('section-farm').classList.toggle('hidden', section !== 'farm');
-    const titles = { dashboard: 'Vue d’ensemble', announcements: 'Événements & annonces', promotions: 'Effets & décorations', games: 'Visibilité des jeux', store: 'FITIA STORE', orders: 'Commandes clients', farm: 'Retraits FITIA FARM' };
+    const titles = { dashboard: 'Vue d’ensemble', users: 'Comptes utilisateurs', announcements: 'Événements & annonces', promotions: 'Effets & décorations', games: 'Visibilité des jeux', store: 'FITIA STORE', orders: 'Commandes clients', farm: 'Retraits FITIA FARM' };
     byId('page-title').textContent = titles[section] || titles.dashboard;
     document.querySelectorAll('.nav-button[data-section]').forEach((button) => {
       button.classList.toggle('active', button.dataset.section === section);
     });
+    if (section === 'users' && usersAdmin) usersAdmin.load().catch(() => {});
     if (section === 'orders' && ordersAdmin) ordersAdmin.load().catch(() => {});
     if (section === 'farm' && farmAdmin) farmAdmin.load().catch(() => {});
   }
@@ -1062,7 +1066,8 @@
       showLogin();
     });
     byId('refresh-button').addEventListener('click', () => {
-      if (state.section === 'orders' && ordersAdmin) ordersAdmin.load().catch(() => {});
+      if (state.section === 'users' && usersAdmin) usersAdmin.load().catch(() => {});
+      else if (state.section === 'orders' && ordersAdmin) ordersAdmin.load().catch(() => {});
       else if (state.section === 'farm' && farmAdmin) farmAdmin.load().catch(() => {});
       else loadData();
     });
@@ -1104,6 +1109,7 @@
     storeAdmin.bindEvents();
     ordersAdmin.bindEvents();
     farmAdmin.bindEvents();
+    usersAdmin.bindEvents();
     ['search-input', 'category-filter', 'status-filter'].forEach((id) => {
       byId(id).addEventListener('input', () => state.manifest && renderAnnouncements());
       byId(id).addEventListener('change', () => state.manifest && renderAnnouncements());
@@ -1159,6 +1165,9 @@
     byId, api, showToast, setLoading, setConnection, makeButton, formatDate
   });
   farmAdmin = window.FitiaFarmAdmin.create({
+    byId, api, showToast, setLoading, setConnection, makeButton, formatDate
+  });
+  usersAdmin = window.FitiaUsersAdmin.create({
     byId, api, showToast, setLoading, setConnection, makeButton, formatDate
   });
 

@@ -24,12 +24,28 @@ async function runTest(name, fn) {
   }
 }
 
+const accountUser = {
+  userId: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', username: 'Admin_Test_User', email: 'private@example.com',
+  emailVerified: true, walletVerified: true, certified: false,
+  walletAddress: '0x9999999999999999999999999999999999999999', createdAt: '2026-11-05T10:00:00.000Z'
+};
+const accountService = {
+  async listUsers(search) { return { users: search && !accountUser.email.includes(search) ? [] : [{ ...accountUser }] }; },
+  async getUserDetail(userId) {
+    assert.strictEqual(userId, accountUser.userId);
+    return { user: { ...accountUser }, assets: { source: 'polygon', machineCount: 2, activeMachineCount: 1, batteryCount: '3', miningActive: true, activePower: '75', machines: [], batteries: [] }, certificationHistory: [] };
+  },
+  async setCertified(userId, certified) { assert.strictEqual(userId, accountUser.userId); accountUser.certified = certified; return { user: { ...accountUser } }; }
+};
+
 function createHarness() {
+  const handler = adminHandler.createAdminHandler({ accountService });
   return http.createServer((req, res) => {
-    const parts = new URL(req.url || '/', 'http://localhost').pathname.split('/').filter(Boolean);
+    const parsed = new URL(req.url || '/', 'http://localhost');
+    const parts = parsed.pathname.split('/').filter(Boolean);
     if (parts[0] === 'api' && parts[1] === 'admin' && parts[2]) {
-      req.query = { action: parts[2] };
-      return adminHandler(req, res);
+      req.query = { ...Object.fromEntries(parsed.searchParams), action: parts[2] };
+      return handler(req, res);
     }
     res.writeHead(404);
     res.end();
@@ -152,14 +168,18 @@ async function request(base, action, options = {}) {
   };
 
   try {
-    await runTest('Vercel sert /admin et réécrit les onze routes API serverless', async () => {
+    await runTest('Vercel sert /admin et réécrit les routes API serverless', async () => {
       const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
       const rewrites = new Map(config.rewrites.map((item) => [item.source, item.destination]));
       assert.strictEqual(rewrites.get('/admin'), '/admin/index.html');
       assert.strictEqual(rewrites.get('/admin/'), '/admin/index.html');
-      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'game-visibility', 'store-products', 'store-assets', 'store-orders', 'farm-withdrawals']) {
+      for (const action of ['login', 'session', 'logout', 'announcements', 'announcement-assets', 'promotions', 'game-visibility', 'store-products', 'store-assets', 'store-orders', 'farm-withdrawals', 'users']) {
         assert.strictEqual(rewrites.get(`/api/admin/${action}`), `/api/admin?action=${action}`);
       }
+      for (const action of ['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link']) {
+        assert.strictEqual(rewrites.get(`/api/account/${action}`), `/api/account?action=${action}`);
+      }
+      assert.ok(fs.existsSync(path.join(ROOT, 'api/account.js')));
       const html = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
       assert.ok(html.includes('href="/admin/admin.css"'));
       assert.ok(html.includes('src="/admin/admin.js"'));
@@ -234,6 +254,22 @@ async function request(base, action, options = {}) {
       assert.strictEqual(session.response.status, 200);
       assert.strictEqual(session.data.csrfToken, csrf);
       assert.strictEqual(session.data.mode, 'github');
+    });
+
+    await runTest('Les comptes admin exposent les actifs Polygon et exigent CSRF pour certifier', async () => {
+      const list = await request(baseB, 'users?search=private%40example.com', { cookie });
+      assert.strictEqual(list.response.status, 200, list.text);
+      assert.strictEqual(list.data.users[0].email, 'private@example.com');
+      const detail = await request(baseB, `users?userId=${accountUser.userId}`, { cookie });
+      assert.strictEqual(detail.response.status, 200, detail.text);
+      assert.strictEqual(detail.data.assets.source, 'polygon');
+      assert.strictEqual(detail.data.assets.miningActive, true);
+      const rejected = await request(baseB, 'users', { method: 'PATCH', cookie, body: { userId: accountUser.userId, certified: true } });
+      assert.strictEqual(rejected.response.status, 403);
+      const certified = await request(baseB, 'users', { method: 'PATCH', cookie, csrf, body: { userId: accountUser.userId, certified: true } });
+      assert.strictEqual(certified.response.status, 200, certified.text);
+      assert.strictEqual(certified.data.user.certified, true);
+      assert.strictEqual(certified.data.user.walletVerified, true);
     });
 
     await runTest('Les visuels serverless exigent CSRF et sont publiés comme actifs GitHub validés', async () => {
