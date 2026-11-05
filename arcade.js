@@ -28,6 +28,9 @@
     CRASH_ROUND_ACTIVE: 'Finish the current flight first.', CRASH_ROUND: 'The flight is no longer active.',
     CRASH_BETTING_CLOSED: 'Betting is closed for this flight.', CRASH_BET_ACTIVE: 'This bet is already placed.',
     CRASH_NOT_FLYING: 'Wait for takeoff.', CRASH_CASHOUT_EARLY: 'Cashout is available above 1.00×.',
+    CRASH_CASHOUT_LATE: 'This flight already crashed. Your bet was not cashed out.',
+    CRASH_CASHOUT_SETTLED: 'This bet was already settled.', CRASH_ROUND_FULL: 'This flight is full. Wait for the next round.',
+    AVIATOR_CONFLICT: 'The multiplayer room is busy. Resume to verify your action.', AVIATOR_STORAGE: 'The multiplayer room is temporarily unavailable.',
     CRASH_CLIENT_SEED: 'The flight could not be prepared.', CRASH_RANDOM: 'The flight could not be prepared.',
     FLIP_STAKE: 'Invalid Coin Flip stake.', FLIP_CHOICE: 'Choose heads or tails.'
   };
@@ -377,7 +380,8 @@
     toggleSecondBet(enabled) {
       if (this.operation || this.pending || this.betFor(2)) return;
       this.secondBetEnabled = enabled === undefined ? !this.secondBetEnabled : Boolean(enabled);
-      this.render();
+      clearTimeout(this.autoTimer); this.autoTimer = null; this.autoScheduledFor = null;
+      this.render(); this.maybeScheduleAuto();
     }
     play(slot = 1) {
       slot = Number(slot);
@@ -457,27 +461,37 @@
       } catch (error) {
         if (error?.code === 'FARM_REVISION') this.farm.refresh({ quiet: true }).catch(() => {});
       } finally {
-        if (session === this.session) { this.syncing = false; this.render(); this.scheduleSync(280); this.maybeScheduleAuto(); }
+        if (session === this.session) { this.syncing = false; this.render(); this.scheduleSync(500); this.maybeScheduleAuto(); }
       }
     }
     maybeScheduleAuto() {
-      if (!this.active || this.operation || this.pending || this.activeRound() || !this.currentResult || this.autoTimer) return;
+      if (!this.active || this.operation || this.pending || this.autoTimer) return;
+      const round = this.activeRound();
+      if (round ? round.status !== 'betting' : !this.currentResult) return;
       const slots = this.betSettings.map((settings, index) => ({ settings, slot: index + 1 }))
-        .filter((entry) => entry.settings.autoBet && (entry.slot === 1 || this.secondBetEnabled));
-      if (!slots.length || this.autoScheduledFor === this.currentResult.id) return;
-      const roundId = this.currentResult.id; this.autoScheduledFor = roundId;
+        .filter((entry) => entry.settings.autoBet && (entry.slot === 1 || this.secondBetEnabled) && !this.betFor(entry.slot, round));
+      if (!slots.length) return;
+      const scheduleKey = round ? round.id : `legacy:${this.currentResult.id}`;
+      if (this.autoScheduledFor === scheduleKey) return;
+      this.autoScheduledFor = scheduleKey;
       this.autoTimer = globalThis.setTimeout(async () => {
         this.autoTimer = null;
-        if (!this.active || this.activeRound() || this.pending || this.operation || this.currentResult?.id !== roundId) return;
+        const current = this.activeRound();
+        if (!this.active) return;
+        if (this.pending || this.operation) { this.autoScheduledFor = null; return; }
+        if (round && (!current || current.id !== round.id || current.status !== 'betting')) { this.autoScheduledFor = null; this.maybeScheduleAuto(); return; }
+        if (!round && current) return;
         for (const entry of slots) {
-          if (!this.settings(entry.slot).autoBet) continue;
+          if (!this.settings(entry.slot).autoBet || this.betFor(entry.slot)) continue;
           await this.play(entry.slot);
-          if (this.pending || !this.activeRound()) break;
+          if (this.pending) break;
         }
-      }, 1300);
+      }, round ? 650 : 1300);
     }
     liveMultiplier(round = this.activeRound()) {
-      if (!round || round.status !== 'flying') return 100;
+      if (!round) return 100;
+      if (round.status === 'crashed') return Number(round.crashBps || 100);
+      if (round.status !== 'flying') return 100;
       return Config.crashMultiplierAt(this.serverNow() - Date.parse(round.startsAt));
     }
     livePayout(slot, bps = this.liveMultiplier()) {
@@ -487,9 +501,11 @@
     updateLive(bps = this.liveMultiplier()) {
       const round = this.activeRound(); if (!round) return;
       const multiplierLabel = document.getElementById('crash-multiplier');
-      if (multiplierLabel) multiplierLabel.textContent = multiplier(round.status === 'flying' ? bps : 100);
+      if (multiplierLabel) multiplierLabel.textContent = multiplier(round.status === 'flying' || round.status === 'crashed' ? bps : 100);
       const caption = document.getElementById('crash-multiplier-caption');
       if (caption && round.status === 'betting') caption.textContent = `NEXT FLIGHT · ${Math.max(0, Math.ceil((Date.parse(round.startsAt) - this.serverNow()) / 1000))}s`;
+      else if (caption && round.status === 'crashed') caption.textContent = 'FLEW AWAY';
+      else if (caption && round.status === 'flying') caption.textContent = 'IN FLIGHT';
       for (let slot = 1; slot <= 2; slot += 1) {
         const bet = this.betFor(slot, round); const button = document.getElementById(`crash-bet-button-${slot}`);
         if (!button || !bet || bet.status !== 'active' || round.status !== 'flying' || this.operation || this.pending) continue;
@@ -507,7 +523,7 @@
       if (!view || !byId('crash-bet-button-1')) return;
       const state = this.farm.state; const round = this.activeRound();
       if (!round && !this.currentResult && !this.pending && !this.operation) this.currentResult = this.crashState().recentRounds?.[0] || null;
-      const unlocked = this.started() || Boolean(round) || Boolean(this.pending);
+      const unlocked = this.started() || Boolean(round?.bets?.length) || Boolean(this.pending);
       byId('crash-coin-balance').textContent = formatCoins(state?.coins || 0);
       byId('crash-total-rounds').textContent = formatCoins(this.crashState().totalRounds || 0);
       byId('crash-locked').classList.toggle('hidden', unlocked); byId('crash-game').classList.toggle('locked', !unlocked);
@@ -515,7 +531,10 @@
       byId('crash-stage').dataset.state = stageState;
       const captions = { ready: 'PLACE YOUR BETS', preparing: 'PREPARING FLIGHT', betting: 'NEXT FLIGHT', flying: 'IN FLIGHT', won: 'AUTO CASHED OUT', lost: 'FLEW AWAY', crashed: 'FLEW AWAY' };
       byId('crash-multiplier-caption').textContent = captions[stageState] || 'IN FLIGHT';
-      byId('crash-stage-target-value').textContent = round ? `${round.bets.length} ${round.bets.length === 1 ? 'BET' : 'BETS'}` : this.secondBetEnabled ? '2 BET PANELS' : '1 BET PANEL';
+      const sharedRound = this.farm.aviator?.round;
+      byId('crash-stage-target-value').textContent = sharedRound && sharedRound.id === round?.id
+        ? `${sharedRound.playerCount || 0} ${sharedRound.playerCount === 1 ? 'PLAYER' : 'PLAYERS'}`
+        : round ? `${round.bets.length} ${round.bets.length === 1 ? 'BET' : 'BETS'}` : this.secondBetEnabled ? '2 BET PANELS' : '1 BET PANEL';
       byId('crash-stage-payout-value').textContent = `${formatCoins(round?.coins || 0)} coins`;
       byId('crash-add-bet').classList.toggle('hidden', this.secondBetEnabled || Boolean(this.betFor(2, round)));
       byId('crash-remove-bet').classList.toggle('hidden', !this.secondBetEnabled || Boolean(this.betFor(2, round)));
@@ -553,7 +572,7 @@
         button.querySelector('span').textContent = label; button.disabled = disabled;
       }
       this.scene?.setRound?.(round, this.currentResult);
-      this.renderResult(); this.renderHistory(); this.updateLive();
+      this.renderResult(); this.renderLivePlayers(); this.renderHistory(); this.updateLive();
       if (document.getElementById('modal-crash-info')?.classList.contains('active')) this.renderProbabilities();
     }
     renderResult() {
@@ -578,14 +597,50 @@
         document.getElementById('crash-result-detail').textContent = `Legacy auto ${multiplier(result.targetBps)} · Net ${net >= 0 ? '+' : ''}${formatCoins(net)} coins`;
       }
     }
+    renderLivePlayers() {
+      const list = document.getElementById('crash-live-bets-body');
+      if (!list) return;
+      const round = this.farm.aviator?.round || null;
+      const bets = Array.isArray(round?.bets) ? round.bets : [];
+      list.textContent = '';
+      document.getElementById('crash-live-bets-empty')?.classList.toggle('hidden', bets.length > 0);
+      document.getElementById('crash-live-bets-table')?.classList.toggle('hidden', bets.length === 0);
+      const count = document.getElementById('crash-live-player-count');
+      if (count) count.textContent = String(round?.playerCount || 0);
+      const betCount = document.getElementById('crash-live-bet-count');
+      if (betCount) betCount.textContent = String(bets.length);
+      const total = document.getElementById('crash-live-total-stake');
+      if (total) total.textContent = `${formatCoins(round?.stake || 0)} coins`;
+      const empty = document.getElementById('crash-live-bets-empty');
+      if (empty && !bets.length) empty.textContent = round ? 'No bets in this round yet.' : 'Connecting to the shared round…';
+      bets.forEach((bet) => {
+        const row = make('tr', `flight-history-row flight-live-row ${bet.mine ? 'mine' : ''} ${bet.status}`);
+        const player = make('td'); const identity = make('div', 'flight-player-name');
+        const avatar = make('span', 'flight-player-avatar', bet.mine ? 'YOU' : '•'); avatar.setAttribute('aria-hidden', 'true');
+        const name = make('div'); name.append(make('strong', '', bet.wallet), make('small', '', bet.mine ? 'Your wallet' : `Bet ${bet.slot}`));
+        identity.append(avatar, name); player.appendChild(identity);
+        const stake = make('td', '', `${formatCoins(bet.stake)} coins`);
+        const result = make('td', `flight-player-result ${bet.status === 'cashed' ? 'won' : bet.status === 'lost' ? 'lost' : ''}`);
+        if (bet.status === 'cashed') {
+          result.append(document.createTextNode(`${multiplier(bet.cashoutBps)} · +${formatCoins(bet.coins)}`), make('small', '', `${bet.cashoutKind} cashout`));
+        } else if (bet.status === 'lost') {
+          result.append(document.createTextNode(`−${formatCoins(bet.stake)}`), make('small', '', 'No cashout'));
+        } else {
+          result.append(document.createTextNode(round?.status === 'betting' ? 'BET PLACED' : 'IN FLIGHT'), make('small', '', 'Waiting for cashout'));
+        }
+        row.append(player, stake, result); list.appendChild(row);
+      });
+    }
     renderHistory() {
       const list = document.getElementById('crash-history-list'); const recent = document.getElementById('crash-recent-multipliers');
       if (!list || !recent) return;
-      const rounds = this.crashState().recentRounds || []; list.textContent = ''; recent.textContent = '';
+      const rounds = this.crashState().recentRounds || [];
+      const sharedRounds = this.farm.aviator ? (this.farm.aviator.history || []) : rounds;
+      list.textContent = ''; recent.textContent = '';
       document.getElementById('crash-history-empty').classList.toggle('hidden', rounds.length > 0);
       document.getElementById('flight-history-table').classList.toggle('hidden', rounds.length === 0);
-      document.getElementById('crash-history-strip').classList.toggle('hidden', rounds.length === 0);
-      for (const round of rounds.slice(0, 10)) {
+      document.getElementById('crash-history-strip').classList.toggle('hidden', sharedRounds.length === 0);
+      for (const round of sharedRounds.slice(0, 10)) {
         const chip = make('span', `crash-recent-chip ${round.crashBps >= 1000 ? 'high' : round.crashBps >= 200 ? 'medium' : 'low'}`, multiplier(round.crashBps));
         chip.setAttribute('role', 'listitem'); recent.appendChild(chip);
       }

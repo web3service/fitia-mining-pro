@@ -8,6 +8,7 @@ const WheelConfig = require('./wheel-config');
 const DiceConfig = require('./dice-config');
 const ArcadeConfig = require('./arcade-config');
 const ArcadeState = require('./arcade-state');
+const { createAviatorService } = require('./aviator-service');
 
 const DEFAULT_RPCS = [
   'https://polygon-bor-rpc.publicnode.com',
@@ -130,8 +131,27 @@ function fromWithdrawal(row) {
 }
 
 class MemoryFarmRepository {
-  constructor() { this.accounts = new Map(); this.actions = new Map(); this.transactions = new Map(); this.withdrawals = new Map(); }
+  constructor() { this.accounts = new Map(); this.actions = new Map(); this.transactions = new Map(); this.withdrawals = new Map(); this.aviator = null; }
   async get(wallet) { const value = this.accounts.get(wallet); return value ? clone(value) : null; }
+  async getAviator() { return this.aviator ? clone(this.aviator) : null; }
+  async applyAviator(expectedRevision, state, accounts, action) {
+    if (action && this.actions.has(action.id)) throw new FarmError(409, 'Action déjà traitée.', 'FARM_CONFLICT');
+    if ((expectedRevision === 0 && this.aviator) || (expectedRevision > 0 && (!this.aviator || this.aviator.revision !== expectedRevision))) {
+      throw new FarmError(409, 'La manche Aviator a changé.', 'AVIATOR_REVISION');
+    }
+    for (const account of accounts) {
+      const current = this.accounts.get(account.wallet);
+      if ((account.expectedRevision === 0 && current) || (account.expectedRevision > 0 && (!current || current.revision !== account.expectedRevision))) {
+        throw new FarmError(409, 'Le compte a changé. Rechargez la ferme.', 'FARM_REVISION');
+      }
+    }
+    this.aviator = { state: clone(state), revision: expectedRevision + 1 };
+    for (const account of accounts) {
+      this.accounts.set(account.wallet, { state: clone(account.state), revision: account.expectedRevision + 1 });
+    }
+    if (action) this.actions.set(action.id, { wallet: action.wallet, actionType: action.type });
+    return clone(this.aviator);
+  }
   async isActionProcessed(actionId, wallet) {
     const action = this.actions.get(actionId);
     return Boolean(action && (!wallet || action.wallet === wallet));
@@ -196,6 +216,17 @@ class SupabaseFarmRepository {
   async get(wallet) {
     const rows = await this.request('GET', `farm_accounts?wallet=eq.${encodeURIComponent(wallet)}&select=state,revision&limit=1`);
     return rows?.[0] ? { state: rows[0].state, revision: Number(rows[0].revision) } : null;
+  }
+  async getAviator() {
+    const rows = await this.request('GET', 'aviator_state?id=eq.1&select=state,revision&limit=1');
+    return rows?.[0] ? { state: rows[0].state, revision: Number(rows[0].revision) } : null;
+  }
+  async applyAviator(expectedRevision, state, accounts, action) {
+    await this.request('POST', 'rpc/aviator_apply', {
+      p_expected_revision: expectedRevision, p_state: state, p_accounts: accounts,
+      p_action_id: action?.id || null, p_wallet: action?.wallet || null, p_action_type: action?.type || null
+    });
+    return this.getAviator();
   }
   async isActionProcessed(actionId, wallet) {
     const owner = wallet ? `&wallet=eq.${encodeURIComponent(wallet)}` : '';
@@ -291,6 +322,9 @@ function createFarmService(options = {}) {
   const randomInt = options.randomInt || ((maximum) => crypto.randomInt(maximum));
   const randomBytes = options.randomBytes || ((size) => crypto.randomBytes(size));
   const verifier = options.paymentVerifier || ((expectation, hash) => verifyFtaTransfer(expectation, hash, options.rpc));
+  const aviator = options.aviatorService || (options.multiplayer ? createAviatorService({
+    repository, now, randomBytes, randomUuid: options.randomUuid, normalizeAccount: normalizeState
+  }) : null);
 
   function authenticate(action, body) {
     const timestamp = body.timestamp;
@@ -306,21 +340,30 @@ function createFarmService(options = {}) {
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
     const withdrawals = await repository.listWithdrawals(wallet);
+    const shared = aviator ? await aviator.view(wallet) : null;
     const publicState = clone(state);
     // Les positions Mines et le point de crash actif ne quittent jamais le stockage serveur.
     if (publicState.mines.active) delete publicState.mines.active.minePositions;
     if (publicState.crash.active) publicState.crash.active = publicAviatorRound(state.crash.active);
     const result = { state: publicState, revision: record?.revision || 0, withdrawals, serverTime: now().getTime() };
+    if (shared) {
+      // Un ancien vol reste visible jusqu’à son règlement ; tous les nouveaux vols sont mondiaux.
+      if (!publicState.crash.active) publicState.crash.active = shared.ownRound;
+      const rounds = [...shared.ownHistory, ...publicState.crash.recentRounds];
+      publicState.crash.recentRounds = Array.from(new Map(rounds.map((round) => [round.id, round])).values()).slice(0, ArcadeConfig.HISTORY_LIMIT);
+      result.aviator = { version: shared.version, round: shared.round, history: shared.history };
+    }
     if (spinId) result.spin = state.wheel.recentSpins.find((spin) => spin.id === spinId) || null;
     if (rollId) result.roll = state.dice.recentRolls.find((roll) => roll.id === rollId) || null;
     if (ids.minesActionId) result.minesAction = ArcadeState.findMinesAction(state, ids.minesActionId);
     if (ids.crashId) result.crashResult = state.crash.recentRounds.find((round) => round.id === ids.crashId) || null;
-    if (ids.crashActionId) result.crashAction = ArcadeState.findCrashAction(state, ids.crashActionId);
+    if (ids.crashActionId) result.crashAction = ArcadeState.findCrashAction(state, ids.crashActionId) || (shared ? await aviator.findAction(wallet, ids.crashActionId) : null);
     if (ids.flipId) result.flip = state.coinFlip.recentFlips.find((flip) => flip.id === ids.flipId) || null;
     return result;
   }
   async function getState(body) {
     const wallet = authenticate('state', body);
+    if (aviator) await aviator.advance();
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
     if (state.crash.active) {
@@ -767,6 +810,19 @@ function createFarmService(options = {}) {
     const record = await repository.get(wallet);
     const state = normalizeState(record?.state, wallet);
     const timestamp = now().getTime();
+    const legacyAviator = AVIATOR_ACTIONS.has(type) && type !== 'crash_start' && state.crash.active
+      && String(params.roundId || '').toLowerCase() === state.crash.active.id;
+    if (aviator && AVIATOR_ACTIONS.has(type) && !legacyAviator) {
+      try {
+        await aviator.action({ wallet, actionId, type, params });
+      } catch (error) {
+        if (await repository.isActionProcessed(actionId, wallet)) {
+          return view(wallet, null, null, { crashActionId: actionId });
+        }
+        throw error;
+      }
+      return view(wallet, null, null, { crashActionId: actionId });
+    }
     if (!AVIATOR_ACTIONS.has(type) && state.crash.active) advanceAviator(state, actionId, 'crash_sync', timestamp);
     if (AVIATOR_ACTIONS.has(type)) {
       let changed = false;
@@ -825,7 +881,7 @@ let defaultService = null;
 function getDefaultFarmService() {
   if (defaultService) return defaultService;
   const config = getSupabaseConfig();
-  defaultService = createFarmService({ repository: new SupabaseFarmRepository(config) });
+  defaultService = createFarmService({ repository: new SupabaseFarmRepository(config), multiplayer: true });
   return defaultService;
 }
 module.exports = {
