@@ -503,19 +503,14 @@
       const multiplierLabel = document.getElementById('crash-multiplier');
       if (multiplierLabel) multiplierLabel.textContent = multiplier(round.status === 'flying' || round.status === 'crashed' ? bps : 100);
       const caption = document.getElementById('crash-multiplier-caption');
-      if (caption && round.status === 'betting') caption.textContent = `NEXT FLIGHT · ${Math.max(0, Math.ceil((Date.parse(round.startsAt) - this.serverNow()) / 1000))}s`;
+      if (caption && round.status === 'betting') caption.textContent = `${Math.max(0, Math.ceil((Date.parse(round.startsAt) - this.serverNow()) / 1000))}s`;
       else if (caption && round.status === 'crashed') caption.textContent = 'FLEW AWAY';
-      else if (caption && round.status === 'flying') caption.textContent = 'IN FLIGHT';
+      else if (caption && round.status === 'flying') caption.textContent = '';
       for (let slot = 1; slot <= 2; slot += 1) {
         const bet = this.betFor(slot, round); const button = document.getElementById(`crash-bet-button-${slot}`);
         if (!button || !bet || bet.status !== 'active' || round.status !== 'flying' || this.operation || this.pending) continue;
         button.querySelector('span').textContent = `CASH OUT · ${formatCoins(Config.aviatorPayout(bet.stake, bps))} COINS`;
         button.disabled = bps <= 100;
-      }
-      const potential = document.getElementById('crash-stage-payout-value');
-      if (potential) {
-        const total = (round.bets || []).filter((bet) => bet.status === 'active').reduce((sum, bet) => sum + Config.aviatorPayout(bet.stake, bps), 0);
-        potential.textContent = `${formatCoins(total)} coins`;
       }
     }
     render() {
@@ -529,13 +524,8 @@
       byId('crash-locked').classList.toggle('hidden', unlocked); byId('crash-game').classList.toggle('locked', !unlocked);
       const stageState = round?.status || (this.currentResult ? this.currentResult.version === 2 ? 'crashed' : this.currentResult.won ? 'won' : 'lost' : this.operation ? 'preparing' : 'ready');
       byId('crash-stage').dataset.state = stageState;
-      const captions = { ready: 'PLACE YOUR BETS', preparing: 'PREPARING FLIGHT', betting: 'NEXT FLIGHT', flying: 'IN FLIGHT', won: 'AUTO CASHED OUT', lost: 'FLEW AWAY', crashed: 'FLEW AWAY' };
-      byId('crash-multiplier-caption').textContent = captions[stageState] || 'IN FLIGHT';
-      const sharedRound = this.farm.aviator?.round;
-      byId('crash-stage-target-value').textContent = sharedRound && sharedRound.id === round?.id
-        ? `${sharedRound.playerCount || 0} ${sharedRound.playerCount === 1 ? 'PLAYER' : 'PLAYERS'}`
-        : round ? `${round.bets.length} ${round.bets.length === 1 ? 'BET' : 'BETS'}` : this.secondBetEnabled ? '2 BET PANELS' : '1 BET PANEL';
-      byId('crash-stage-payout-value').textContent = `${formatCoins(round?.coins || 0)} coins`;
+      const captions = { ready: '', preparing: '', betting: '', flying: '', won: 'AUTO CASHED OUT', lost: 'FLEW AWAY', crashed: 'FLEW AWAY' };
+      byId('crash-multiplier-caption').textContent = captions[stageState] || '';
       byId('crash-add-bet').classList.toggle('hidden', this.secondBetEnabled || Boolean(this.betFor(2, round)));
       byId('crash-remove-bet').classList.toggle('hidden', !this.secondBetEnabled || Boolean(this.betFor(2, round)));
       for (let slot = 1; slot <= 2; slot += 1) {
@@ -558,7 +548,7 @@
           const selected = Number(button.dataset.crashStake) === displayedStake;
           button.classList.toggle('active', selected); button.setAttribute('aria-pressed', String(selected)); button.disabled = lockedBet;
         });
-        const status = bet ? bet.status === 'active' ? round.status === 'betting' ? 'BET PLACED' : 'IN FLIGHT' : bet.status === 'cashed' ? `CASHED ${multiplier(bet.cashoutBps)}` : 'LOST' : settings.autoBet ? 'AUTO BET ON' : 'READY';
+        const status = bet ? bet.status === 'active' ? 'BET PLACED' : bet.status === 'cashed' ? `CASHED ${multiplier(bet.cashoutBps)}` : 'LOST' : settings.autoBet ? 'AUTO BET ON' : 'READY';
         byId(`crash-bet-state-${slot}`).textContent = status;
         const button = byId(`crash-bet-button-${slot}`); button.dataset.state = bet?.status || (round ? round.status : 'ready');
         button.classList.toggle('cashout', Boolean(round?.status === 'flying' && bet?.status === 'active'));
@@ -568,7 +558,7 @@
         else if (round?.status === 'betting' && bet) { label = 'BET PLACED'; disabled = true; }
         else if (round?.status === 'flying' && bet?.status === 'active') { label = `CASH OUT · ${formatCoins(this.livePayout(slot))} COINS`; disabled = this.liveMultiplier() <= 100; }
         else if (bet?.status === 'cashed') { label = `CASHED OUT · ${multiplier(bet.cashoutBps)}`; disabled = true; }
-        else if (round?.status === 'flying') { label = 'WAIT FOR NEXT FLIGHT'; disabled = true; }
+        else if (round?.status === 'flying') { label = 'WAITING…'; disabled = true; }
         button.querySelector('span').textContent = label; button.disabled = disabled;
       }
       this.scene?.setRound?.(round, this.currentResult);
@@ -626,7 +616,7 @@
         } else if (bet.status === 'lost') {
           result.append(document.createTextNode(`−${formatCoins(bet.stake)}`), make('small', '', 'No cashout'));
         } else {
-          result.append(document.createTextNode(round?.status === 'betting' ? 'BET PLACED' : 'IN FLIGHT'), make('small', '', 'Waiting for cashout'));
+          result.append(document.createTextNode('—'));
         }
         row.append(player, stake, result); list.appendChild(row);
       });

@@ -18,7 +18,9 @@
   const CRASH_TARGETS_BPS = Object.freeze([150, 200, 300, 500, 1000]);
   const CRASH_RANDOM_RANGE = 1000000;
   const CRASH_MAX_BPS = 10000;
-  const CRASH_AVIATOR_BETTING_MS = 4500;
+  const CRASH_AVIATOR_BETTING_MS = 5000;
+  // Rounds committed by the previous release remain valid through settlement.
+  const CRASH_AVIATOR_PREVIOUS_BETTING_MS = 4500;
   const CRASH_AVIATOR_GROWTH_MS = 12000;
   const CRASH_AVIATOR_MIN_STAKE = 50;
   const CRASH_AVIATOR_MAX_STAKE = 500;
@@ -187,7 +189,7 @@
     VERSION, STAKES, HISTORY_LIMIT, RETURN_BPS,
     MINES_COUNTS, MINES_TILES, MINES_MAX_PAYOUT,
     CRASH_TARGETS_BPS, CRASH_RANDOM_RANGE, CRASH_MAX_BPS, FLIP_SIDES,
-    CRASH_AVIATOR_BETTING_MS, CRASH_AVIATOR_GROWTH_MS, CRASH_AVIATOR_MIN_STAKE, CRASH_AVIATOR_MAX_STAKE, CRASH_AVIATOR_MAX_BETS,
+    CRASH_AVIATOR_BETTING_MS, CRASH_AVIATOR_PREVIOUS_BETTING_MS, CRASH_AVIATOR_GROWTH_MS, CRASH_AVIATOR_MIN_STAKE, CRASH_AVIATOR_MAX_STAKE, CRASH_AVIATOR_MAX_BETS,
     normalizeStake, normalizeMineCount, normalizeTileIndex, normalizeSafeCount, normalizeCrashTarget, normalizeAviatorStake, normalizeAviatorTarget, normalizeAviatorSlot, normalizeFlipChoice,
     minesPayout, minesSurvivalRatio, minesExpectedReturnRatio, minesNextChance,
     selectCrashPoint, crashWinningOutcomes, crashPayout, crashReward, crashExpectedReturnRatio,
