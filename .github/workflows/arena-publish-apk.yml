@@ -26,4 +26,9 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/fitia-publish"
           echo 'e0d7b3a7f906940cbe0f1348ae328df727ddcc5b4baf0421b09cadb0ed00640c  FITIA-PRO-Miner.apk' | sha256sum -c -
-          gh release create v3.6.4 FITIA-PRO-Miner.apk --target 00c5b35 --title 'FITIA PRO 3.6.4' --notes 'Interface Mon compte améliorée, protections du wallet renforcées et améliorations de sécurité.' --latest
+          if output=$(gh release create v3.6.4 FITIA-PRO-Miner.apk --target 00c5b35 --title 'FITIA PRO 3.6.4' --notes 'Interface Mon compte améliorée, protections du wallet renforcées et améliorations de sécurité.' --latest 2>&1); then
+            echo "$output"
+          else
+            echo "::error title=Release publication failed::$output"
+            exit 1
+          fi
