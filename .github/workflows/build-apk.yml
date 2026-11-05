@@ -114,7 +114,6 @@ jobs:
         env:
           FITIA_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
           FITIA_ANDROID_KEY_PASSWORD: ${{ secrets.FITIA_ANDROID_KEYSTORE_PASSWORD }}
-        shell: bash
         run: |
           set -o pipefail
           python3 scripts/build_apk.py 2>&1 | tee /tmp/fitia-build-output.log || {
