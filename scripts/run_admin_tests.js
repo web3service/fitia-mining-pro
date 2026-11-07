@@ -78,7 +78,7 @@ function clone(value) {
   const storeAssetDirectory = path.join(temporaryDirectory, 'assets', 'store');
   fs.copyFileSync(path.join(ROOT, 'announcements.json'), dataFile);
   fs.copyFileSync(path.join(ROOT, 'promotions.json'), promotionsFile);
-  fs.copyFileSync(path.join(ROOT, 'game-visibility.json'), gameVisibilityFile);
+  fs.writeFileSync(gameVisibilityFile, JSON.stringify({ hiddenGames: ['dice', 'mines', 'coin-flip'] }));
   fs.copyFileSync(path.join(ROOT, 'store-products.json'), storeDataFile);
   const localServer = createAdminServer({ password: PASSWORD, localMode: true, dataFile, promotionsFile, gameVisibilityFile, assetDirectory, storeDataFile, storeAssetDirectory, accountService });
   const localPort = await listen(localServer);
