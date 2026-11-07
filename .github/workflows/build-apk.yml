@@ -1,4 +1,5 @@
 name: Build signed Android APK
+# Temporary branch-only trigger for the verified 3.6.6 build.
 
 on:
   push:
