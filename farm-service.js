@@ -857,6 +857,7 @@ function createFarmService(options = {}) {
     state.coins -= coins; state.updatedAt = now().getTime();
     const ftaUnits = ((BigInt(coins) / BigInt(Config.COINS_PER_FTA)) * Config.COIN_UNITS_PER_FTA).toString();
     const createdAt = now().toISOString();
+    if (options.withdrawalGuard) await options.withdrawalGuard({ wallet, actionId, coins, code: body.mfaCode });
     const withdrawal = { id: actionId, wallet, coins, ftaUnits, status: 'pending', createdAt, paidAt: null, payoutTxHash: null };
     return applyIdempotent(wallet, actionId, 'withdraw', state, record?.revision || 0, { withdrawal });
   }
@@ -881,7 +882,13 @@ let defaultService = null;
 function getDefaultFarmService() {
   if (defaultService) return defaultService;
   const config = getSupabaseConfig();
-  defaultService = createFarmService({ repository: new SupabaseFarmRepository(config), multiplayer: true });
+  const mfa = require('./mfa/default-service');
+  let withdrawalGuard;
+  if (mfa.enabled()) {
+    const { repository, service } = mfa.getDefaultMfa();
+    withdrawalGuard = require('./mfa/farm-guard').createFarmMfaGuard({ repository, mfaService: service });
+  }
+  defaultService = createFarmService({ repository: new SupabaseFarmRepository(config), multiplayer: true, withdrawalGuard });
   return defaultService;
 }
 module.exports = {

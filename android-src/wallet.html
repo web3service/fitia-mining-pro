@@ -196,6 +196,37 @@
           <p class="account-security-footnote"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-3.5 7-10V5l-7-3-7 3v7c0 6.5 7 10 7 10Z"></path><path d="m9 12 2 2 4-4"></path></svg><span data-i18n="accountWalletSeparation">Your app account and wallet are separate. Keep your PIN and recovery phrase safe.</span></p>
         </section>
 
+        <section id="mfa-settings" class="account-settings-section" hidden aria-labelledby="mfa-title">
+          <h4 id="mfa-title">Google Authenticator</h4>
+          <p id="mfa-description">Optional protection for transfers and withdrawals. Sign-in does not require a code.</p>
+          <div id="mfa-disabled" hidden>
+            <label id="mfa-password-label" for="mfa-password">Account password</label>
+            <input id="mfa-password" class="game-input" type="password" autocomplete="current-password" maxlength="128">
+            <button id="mfa-start" class="btn-secondary" type="button">Set up Authenticator</button>
+          </div>
+          <div id="mfa-enrollment" hidden>
+            <p id="mfa-setup-help">Scan this code with Google Authenticator, or enter the setup key manually.</p>
+            <div id="mfa-qr"></div><code id="mfa-secret"></code>
+            <label id="mfa-code-label" for="mfa-code">Six-digit code</label>
+            <input id="mfa-code" class="game-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+            <button id="mfa-confirm" class="btn-primary" type="button">Activate</button>
+          </div>
+          <div id="mfa-recovery" hidden>
+            <p id="mfa-recovery-help">Save these recovery codes in a safe place. Each code works once. They will not be shown again.</p>
+            <pre id="mfa-recovery-codes"></pre>
+            <button id="mfa-recovery-done" class="btn-primary" type="button">I have saved my codes</button>
+          </div>
+          <div id="mfa-enabled" hidden>
+            <p id="mfa-active-help">Protection is active.</p>
+            <label id="mfa-disable-password-label" for="mfa-disable-password">Account password</label>
+            <input id="mfa-disable-password" class="game-input" type="password" autocomplete="current-password" maxlength="128">
+            <label id="mfa-disable-code-label" for="mfa-disable-code">Authenticator or recovery code</label>
+            <input id="mfa-disable-code" class="game-input" type="text" autocomplete="one-time-code" maxlength="35">
+            <button id="mfa-disable" class="btn-secondary" type="button">Disable protection</button>
+          </div>
+          <p id="mfa-message" role="status" aria-live="polite"></p>
+        </section>
+
         <section class="account-settings-section" aria-labelledby="account-wallet-section-title">
           <div class="account-section-heading">
             <span class="account-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h14a2 2 0 0 1 2 2v9H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h11"></path><path d="M15 12h5v4h-5a2 2 0 0 1 0-4Z"></path></svg></span>
@@ -1588,6 +1619,17 @@
   </div>
 </div>
 
+<div id="modal-mfa-operation" class="modal modal-high-z" role="dialog" aria-modal="true" aria-labelledby="mfa-operation-title">
+  <div class="modal-content">
+    <div class="modal-header"><h3 id="mfa-operation-title">Confirm operation</h3><button id="mfa-operation-cancel" class="modal-close" type="button" aria-label="Cancel">✕</button></div>
+    <p id="mfa-operation-summary"></p>
+    <label id="mfa-operation-code-label" for="mfa-operation-code">Authenticator or recovery code</label>
+    <input id="mfa-operation-code" class="game-input" type="text" autocomplete="one-time-code" maxlength="35">
+    <p id="mfa-operation-error" role="alert"></p>
+    <button id="mfa-operation-submit" class="btn-primary" type="button">Confirm</button>
+  </div>
+</div>
+
 <!-- Modale de Confirmation par Code PIN (pour Envoi / Export Clés / Changement PIN) -->
 <div id="modal-pin-confirm" class="modal modal-high-z">
   <div class="modal-content">
@@ -1706,6 +1748,7 @@
   <script src="arcade.js"></script>
   <script src="assistant.js"></script>
 <script src="account.js"></script>
+<script src="mfa-client.js"></script>
 <script src="app.js"></script>
 <script src="game-experience-dice-3d.js"></script>
 <script src="game-experience-flip-3d.js"></script>

@@ -6,6 +6,7 @@ README.md
 .git/
 app.js
 /account.js
+/mfa-client.js
 activity.js
 wallet.js
 /farm.js

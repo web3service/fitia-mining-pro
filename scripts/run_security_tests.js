@@ -2646,7 +2646,7 @@ function httpRequest(port, method, reqPath) {
         requestPin: App.requestPinVerification,
         ensurePolGas: App.ensurePolGas,
         updateData: App.updateData,
-        showToast: App.showToast
+        showToast: App.showToast, mfaClient: App.mfaClient
       };
       const transfers = [];
       const messages = [];
@@ -2664,6 +2664,7 @@ function httpRequest(port, method, reqPath) {
         };
         App.ensurePolGas = async () => true;
         App.updateData = async () => {};
+        App.mfaClient = { operation: async () => ({ required: false }), cancelCode() {} };
         App.requestPinVerification = async () => ({ secret: pinSecret });
         App.showToast = (message, isError = false, tone = '') => messages.push({ message, isError, tone });
 
@@ -2702,8 +2703,21 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(messages.at(-1).isError, true);
         assert.strictEqual(sessionSecret.privateKey, '');
         assert.strictEqual(sessionSecret.mnemonic, '');
+
+        App.user = originals.user;
+        App.openSend(); App.selectSendToken('USDT');
+        document.getElementById('send-to-address').value = recipient;
+        document.getElementById('send-amount').value = '1';
+        App.requestPinVerification = async () => ({ secret: { privateKey: 'x', mnemonic: 'x' } });
+        App.mfaClient.operation = async () => {
+          document.getElementById('send-amount').value = '2';
+          return { required: true };
+        };
+        await App.executeSend();
+        assert.strictEqual(transfers.length, 1, 'Aucun transfert si le montant change pendant Authenticator');
       } finally {
         App.user = originals.user;
+        App.mfaClient = originals.mfaClient;
         App.usdtToken = originals.usdtToken;
         App.requestPinVerification = originals.requestPin;
         App.ensurePolGas = originals.ensurePolGas;
@@ -3202,6 +3216,7 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedFiles.includes('assets/www/activity.js'), 'Le module activité est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/assistant.js'), 'Le moteur local de l’assistant est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/account.js'), 'Le compte applicatif est embarqué dans l’APK');
+      assert.ok(packagedFiles.includes('assets/www/mfa-client.js'), 'Le client Authenticator est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/announcements.js'), 'Le module annonces est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/promotions.js'), 'Le module décorations est embarqué dans l’APK');
       assert.ok(packagedFiles.includes('assets/www/game-visibility-config.js'), 'La configuration de visibilité des jeux est embarquée dans l’APK');
@@ -3243,7 +3258,7 @@ function httpRequest(port, method, reqPath) {
       assert.ok(packagedWallet.equals(fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'))), 'L’APK embarque exactement le wallet durci audité');
       assert.ok(!packagedFiles.includes('assets/www/store-order-service.js'), 'Le service privé de chiffrement serveur n’est pas embarqué dans l’APK');
       assert.ok(!packagedFiles.includes('assets/www/farm-service.js'), 'Le registre privé FARM n’est pas embarqué dans l’APK');
-      for (const sourceFile of ['app.js', 'account.js', 'wallet.js', 'game-visibility-config.js', 'game-visibility.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js', 'arcade-config.js', 'arcade-3d.js', 'arcade.js', 'game-experience.js', 'game-experience-farm.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-crash.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
+      for (const sourceFile of ['app.js', 'account.js', 'mfa-client.js', 'wallet.js', 'game-visibility-config.js', 'game-visibility.js', 'store.js', 'store-order-protocol.js', 'farm-config.js', 'farm-protocol.js', 'farm-3d.js', 'farm.js', 'wheel-config.js', 'wheel.js', 'dice-config.js', 'dice-3d.js', 'dice.js', 'arcade-config.js', 'arcade-3d.js', 'arcade.js', 'game-experience.js', 'game-experience-farm.js', 'game-experience-hub.js', 'game-experience-wheel.js', 'game-experience-dice.js', 'game-experience-dice-3d.js', 'game-experience-mines.js', 'game-experience-crash.js', 'game-experience-flip.js', 'game-experience-flip-3d.js']) {
         const packagedSource = execFileSync('python3', ['-c', [
           'import zipfile, sys',
           'sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("assets/www/" + sys.argv[2]))'

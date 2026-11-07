@@ -1552,6 +1552,7 @@ class Application {
     this.gameVisibility = new FitiaGameVisibilityCenter(this);
     this.storeCenter = new FitiaStoreCenter(this);
     this.accountCenter = new FitiaAccountCenter(this);
+    this.mfaClient = typeof FitiaMfaClient === 'function' ? new FitiaMfaClient(this.accountCenter) : null;
     this.farmCenter = new FitiaFarmCenter(this);
     this.luckyWheel = new FitiaLuckyWheel(this, this.farmCenter);
     this.fitaDice = new FitiaDice(this, this.farmCenter);
@@ -1635,6 +1636,7 @@ class Application {
     this.gameVisibility.init();
     this.storeCenter.init();
     this.accountCenter.init();
+    this.mfaClient?.init();
     this.accountCenter.setBusy(true);
     this.farmCenter.init();
     this.luckyWheel.init();
@@ -1676,6 +1678,7 @@ class Application {
     document.getElementById('account-access-screen')?.classList.remove('hidden');
     document.getElementById('account-lang-menu-content')?.classList.remove('open');
     this.accountCenter.open({ refresh: !mandatory });
+    this.mfaClient?.refresh().catch(() => {});
   }
 
   openAccountAccess() {
@@ -1687,6 +1690,11 @@ class Application {
       this.showAccountAccess(true);
       return false;
     }
+    if (this.mfaClient && !this.mfaClient.canLeaveSetup()) {
+      this.showToast(this.currentLang === 'fr' ? 'Enregistrez vos codes de récupération avant de fermer.' : 'Save your recovery codes and confirm before closing.', true);
+      return false;
+    }
+    this.mfaClient?.close();
     this.accountCenter?.close();
     document.getElementById('account-access-screen')?.classList.add('hidden');
     document.getElementById('account-lang-menu-content')?.classList.remove('open');
@@ -2005,6 +2013,7 @@ class Application {
     });
     document.querySelectorAll('.lang-content.open').forEach((menu) => menu.classList.remove('open'));
     this.applyTranslations();
+    this.mfaClient?.translate(lang);
     const isDexSwap = this.swapMarket === 'POL_USDT';
     const swapImpactLabel = document.getElementById('swap-detail-impact-label');
     const swapFeeLabel = document.getElementById('swap-detail-fee-label');
@@ -3615,6 +3624,14 @@ class Application {
     const amount = parseFloat(document.getElementById('deposit-amount').value);
     if (!amount || amount <= 0) return this.showToast(this.t('invalidAmount'), true);
     if (!(await this.ensurePolGas())) return;
+    const wallet = this.user; const signer = this.signer;
+    try {
+      if (!this.mfaClient) throw new Error('Security verification unavailable.');
+      const approval = await this.mfaClient.operation(wallet, `${amount} ${tokenType} withdrawal`, 'wallet');
+      if (!approval) return;
+      if (this.user !== wallet || this.signer !== signer || document.getElementById('deposit-token-select').value !== tokenType
+        || parseFloat(document.getElementById('deposit-amount').value) !== amount) throw this.createTransactionError('WALLET_SESSION_CHANGED');
+    } catch (error) { this.showError(error); return; }
 
     this.setLoader(true, this.t('withdrawing'));
     try {
@@ -3756,6 +3773,7 @@ class Application {
   }
 
   closeModals() {
+    this.mfaClient?.cancelCode();
     this.closeSendTokenMenu();
     document.querySelectorAll('.modal:not(#modal-pin-confirm):not(#modal-secret-reveal):not(#modal-update)').forEach((m) => {
       m.classList.remove('active');
@@ -3825,6 +3843,12 @@ class Application {
         verified.secret.mnemonic = '';
       }
       if (!sessionIsCurrent()) throw this.createTransactionError('WALLET_SESSION_CHANGED');
+      if (!this.mfaClient) throw new Error('Security verification unavailable.');
+      const approval = await this.mfaClient.operation(normalizedAccount, `${amtClean} ${token} to ${to}`, 'wallet');
+      if (!approval) return;
+      if (!sessionIsCurrent() || document.getElementById('send-to-address').value.trim() !== toRaw
+        || document.getElementById('send-amount').value.trim().replace(',', '.') !== amtClean
+        || document.getElementById('send-token-select').value !== token) throw this.createTransactionError('WALLET_SESSION_CHANGED');
 
       this.setLoader(true, this.t('sending'));
       let tx;

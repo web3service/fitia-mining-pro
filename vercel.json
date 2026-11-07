@@ -99,6 +99,26 @@
     {
       "source": "/api/account/password",
       "destination": "/api/account?action=password"
+    },
+    {
+      "source": "/api/account/mfa-status",
+      "destination": "/api/account?action=mfa-status"
+    },
+    {
+      "source": "/api/account/mfa-begin",
+      "destination": "/api/account?action=mfa-begin"
+    },
+    {
+      "source": "/api/account/mfa-confirm",
+      "destination": "/api/account?action=mfa-confirm"
+    },
+    {
+      "source": "/api/account/mfa-disable",
+      "destination": "/api/account?action=mfa-disable"
+    },
+    {
+      "source": "/api/account/mfa-verify",
+      "destination": "/api/account?action=mfa-verify"
     }
   ],
   "headers": [
