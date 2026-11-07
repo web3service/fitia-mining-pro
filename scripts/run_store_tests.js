@@ -279,6 +279,9 @@ async function createHarness(token = 'USDT', options = {}) {
   await runTest('Interface : recherche, badges propres/dropshipping et panier sans injection DOM', async () => {
     const h = await createHarness();
     try {
+      assert.strictEqual(h.win.document.querySelector('#view-store [data-store-i18n="tagline"]'), null);
+      assert.ok(h.win.document.querySelector('#store-cart-button[onclick]'));
+      assert.ok(h.win.document.querySelector('#view-store .store-hero h2'));
       assert.strictEqual(h.win.document.querySelectorAll('#store-product-grid .store-product-card').length, 3);
       assert.ok(h.win.document.querySelector('.store-source-badge.dropshipping'));
       h.center.addToCart('product-phone');

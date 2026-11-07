@@ -1,6 +1,9 @@
 name: Build signed Android APK
 
 on:
+  push:
+    branches: [arena/c24401d8-fitia-mining-pro]
+    paths: [.github/workflows/build-apk.yml]
   workflow_dispatch:
     inputs:
       commit_build:
@@ -122,8 +125,15 @@ jobs:
           node server.js &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          npm test
-          npm run test:admin
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/fitia-test-output.log || {
+            grep -A 8 -E '❌|AssertionError|Error:' /tmp/fitia-test-output.log | head -n 40 | while IFS= read -r line; do printf '::error::%s\n' "$line"; done
+            exit 1
+          }
+          npm run test:admin 2>&1 | tee /tmp/fitia-admin-output.log || {
+            grep -A 8 -E '❌|AssertionError|Error:' /tmp/fitia-admin-output.log | head -n 40 | while IFS= read -r line; do printf '::error::%s\n' "$line"; done
+            exit 1
+          }
 
       - name: Remove restored private key
         if: always()
