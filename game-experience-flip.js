@@ -58,44 +58,16 @@ window.setupGameFlip = function setupGameFlip(app) {
   let timer = null, finishAnimation = null, active = false;
   const orient = (side) => { id('cf-coin').dataset.side = side; id('cf-coin').style.setProperty('--coin-rotation', side === 'heads' ? '0deg' : '180deg'); };
   const stop = () => { if (timer !== null) clearTimeout(timer); timer = null; id('cf-stage').classList.remove('rolling', 'settling'); const done = finishAnimation; finishAnimation = null; if (done) done(); };
-  let realistic = null, attempted3D = false;
-  // A WebGL context can fail after construction (common on mobile devices).
-  // The visual fallback must never block navigation or a server-settled result.
-  const useFallback = () => {
-    try { realistic?.cancelAnimation?.(); } catch (_) { /* GPU already lost */ }
-    realistic = null;
-    id('cf-coin-accessible').classList.remove('webgl-ready');
-    id('cf-render').textContent = '';
-  };
-  const call3D = (method, ...args) => {
-    if (!realistic?.available) return false;
-    try { realistic[method](...args); return true; }
-    catch (_) { useFallback(); return false; }
-  };
+  // CSS animation avoids GPU/WebGL initialization failures on Android WebViews.
+  // The server still decides and settles every result.
   game.scene = {
-    setActive(value) {
-      active = Boolean(value);
-      if (active && !attempted3D) {
-        attempted3D = true;
-        try { realistic = window.createGameRealisticCoin?.(id('cf-render')) || null; }
-        catch (_) { useFallback(); }
-        if (realistic?.available) id('cf-coin-accessible').classList.add('webgl-ready');
-        else useFallback();
-      }
-      call3D('setActive', active);
-      if (!active) stop();
-    },
-    resize() { call3D('resize'); },
-    reset() { stop(); orient('heads'); call3D('reset'); },
-    cancelAnimation() { call3D('cancelAnimation'); stop(); },
-    startWaiting() { id('cf-stage').classList.add('rolling'); call3D('startWaiting'); },
+    setActive(value) { active = Boolean(value); if (!active) stop(); },
+    resize() {},
+    reset() { stop(); orient('heads'); },
+    cancelAnimation() { stop(); },
+    startWaiting() { id('cf-stage').classList.add('rolling'); },
     animateResult(side) {
       orient(side); id('cf-stage').classList.remove('rolling'); id('cf-stage').classList.add('settling');
-      if (realistic?.available) {
-        try {
-          return Promise.resolve(realistic.animateResult(side)).catch(() => { useFallback(); }).finally(stop);
-        } catch (_) { useFallback(); }
-      }
       return new Promise((resolve) => { finishAnimation = resolve; const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches; timer = setTimeout(stop, !active || reduced ? 0 : 850); });
     }
   };

@@ -110,6 +110,7 @@ function setAccounts(account) {
 
     await test('Hub regroupé, logos locaux, cinq navigations et masquage uniquement visuel', async () => {
       assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 7);
+      assert.strictEqual(window.document.querySelector('#view-hub .hub-header'), null);
       assert.strictEqual(window.document.querySelectorAll('.bottom-nav .nav-item').length, 5);
       window.document.getElementById('ph-open-games').click();
       assert.strictEqual(window.document.getElementById('game-hub-games').hidden, false);
