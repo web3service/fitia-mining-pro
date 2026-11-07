@@ -1,0 +1,43 @@
+name: Publish verified FITIA PRO 3.6.7
+on:
+  push:
+    branches: [arena/0cdd4845-fitia-mining-pro]
+    paths: [.github/workflows/arena-publish-367.yml]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42332674761
+          name: FITIA-PRO-Miner-APK
+          path: ${{ runner.temp }}/fitia-release
+      - name: Verify tested build and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, zipfile
+          root = pathlib.Path.cwd()
+          build = pathlib.Path(os.environ['RUNNER_TEMP']) / 'fitia-release'
+          apk = build / 'FITIA-PRO-Miner.apk'
+          manifest = json.loads((build / 'update-current.json').read_text())
+          digest = hashlib.sha256(apk.read_bytes()).hexdigest()
+          assert manifest['enabled'] and manifest['versionCode'] == 367 and manifest['versionName'] == '3.6.7'
+          assert manifest['apkUrl'] == 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.6.7/FITIA-PRO-Miner.apk'
+          assert manifest['sha256'] == digest
+          assert json.loads((root / 'package.json').read_text())['version'] == '3.6.7'
+          with zipfile.ZipFile(apk) as archive:
+              for source, bundled in [('app.js','app.js'), ('wallet.js','wallet.js'), ('account.js','account.js'), ('style.css','style.css'), ('android-src/wallet.html','wallet.html'), ('game-experience-hub.js','game-experience-hub.js'), ('game-experience-flip.js','game-experience-flip.js')]:
+                  assert archive.read('assets/www/' + bundled) == (root / source).read_bytes(), source
+          print(f'::notice title=Verified APK SHA-256::{digest}')
+          PY
+          gh release create v3.6.7 "$RUNNER_TEMP/fitia-release/FITIA-PRO-Miner.apk" --target "$GITHUB_SHA" --title 'FITIA PRO 3.6.7' --notes 'Hub plus compact, ouverture de Coin Flip sans WebGL et amélioration du retour à l’écran PIN sur Android.' --latest
