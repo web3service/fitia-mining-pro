@@ -24,8 +24,8 @@ window.setupGameHub = function setupGameHub(app) {
     icon.appendChild(image);
   }
 
-  const descriptions = { farm: 'hubFarm', wheel: 'hubWheel', dice: 'hubDice', mines: 'hubMines', crash: 'hubCrash', 'coin-flip': 'hubFlip', swap: 'hubSwap' };
-  const defaults = { farm: 'Grow your FARM', wheel: 'Spin the wheel', dice: 'Choose your number', mines: 'Reveal safe tiles', crash: 'Watch the flight', 'coin-flip': 'Choose a side', swap: 'Exchange tokens' };
+  const descriptions = { farm: 'hubFarm', wheel: 'hubWheel', dice: 'hubDice', mines: 'hubMines', crash: 'hubCrash', 'coin-flip': 'hubFlip' };
+  const defaults = { farm: 'Grow your FARM', wheel: 'Spin the wheel', dice: 'Choose your number', mines: 'Reveal safe tiles', crash: 'Watch the flight', 'coin-flip': 'Choose a side' };
   for (const [name, key] of Object.entries(descriptions)) {
     const card = grid.querySelector(`.hub-card-${name}`);
     if (!card) continue;
@@ -45,11 +45,11 @@ window.setupGameHub = function setupGameHub(app) {
   const serviceSection = document.createElement('section');
   serviceSection.className = 'ph-section ph-services';
   serviceSection.setAttribute('aria-labelledby', 'ph-services-title');
-  serviceSection.innerHTML = `<div class="ph-heading"><div><span data-i18n="hubExplore">EXPLORE</span><h3 id="ph-services-title" data-i18n="hubServices">Services</h3><p data-i18n="hubServicesDescription">Additional tools.</p></div></div><div class="hub-grid ph-service-grid"></div>`;
+  serviceSection.innerHTML = `<div class="ph-heading"><div><span data-i18n="hubExplore">EXPLORE</span><h3 id="ph-services-title" data-i18n="hubServices">Services</h3></div></div><div class="hub-grid ph-service-grid"></div>`;
   serviceSection.querySelector('.hub-grid').appendChild(swap);
   const landing = document.createElement('div');
   landing.id = 'game-hub-landing';
-  landing.innerHTML = `<section class="ph-section ph-gateway" aria-labelledby="ph-gateway-title"><div class="ph-heading"><div><span data-i18n="hubDiscover">DISCOVER</span><h3 id="ph-gateway-title" data-i18n="hubUniverse">FITIA universe</h3><p data-i18n="hubChooseCategory">Choose a category.</p></div></div><button id="ph-open-games" class="ph-gateway-card" type="button" aria-controls="game-hub-games" aria-expanded="false"><img src="assets/games/hub-games.jpg" alt="" draggable="false"><span class="ph-gateway-copy"><small>FITIA GAMES</small><strong data-i18n="hubGames">Games</strong><span data-i18n="hubGamesSummary">FARM and arcade games</span><b data-i18n="hubExploreGames">Explore games</b></span></button></section>`;
+  landing.innerHTML = `<section class="ph-section ph-gateway" aria-labelledby="ph-gateway-title"><div class="ph-heading"><div><span data-i18n="hubDiscover">DISCOVER</span><h3 id="ph-gateway-title" data-i18n="hubUniverse">FITIA universe</h3></div></div><button id="ph-open-games" class="ph-gateway-card" type="button" aria-controls="game-hub-games" aria-expanded="false"><img src="assets/games/hub-games.jpg" alt="" draggable="false"><span class="ph-gateway-copy"><small>FITIA GAMES</small><strong data-i18n="hubGames">Games</strong><span data-i18n="hubGamesSummary">FARM and arcade games</span><b data-i18n="hubExploreGames">Explore games</b></span></button></section>`;
   landing.appendChild(serviceSection);
   grid.replaceWith(landing, gamesSection);
   const open = landing.querySelector('#ph-open-games');
