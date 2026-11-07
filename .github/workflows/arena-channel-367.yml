@@ -1,0 +1,46 @@
+name: Prepare verified Android 3.6.7 channel
+on:
+  push:
+    branches: [arena/0cdd4845-fitia-mining-pro]
+    paths: [.github/workflows/arena-channel-367.yml]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42332674761
+          name: FITIA-PRO-Miner-APK
+          path: ${{ runner.temp }}/fitia-build
+      - name: Verify published asset and prepare update channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/fitia-build"
+          expected=aae24d1a7c8f284e0bb9467e902d037dc475a3abf7d27e739e43127bd91d911f
+          echo "$expected  $artifact/FITIA-PRO-Miner.apk" | sha256sum -c -
+          gh api "repos/$GH_REPO/releases/assets/719436713" --jq .digest | grep -Fx "sha256:$expected"
+          python3 - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'fitia-build' / 'update-current.json'
+          m = json.loads(p.read_text())
+          assert m['enabled'] and m['versionCode'] == 367 and m['versionName'] == '3.6.7'
+          assert m['sha256'] == 'aae24d1a7c8f284e0bb9467e902d037dc475a3abf7d27e739e43127bd91d911f'
+          assert m['apkUrl'] == 'https://github.com/web3service/fitia-mining-pro/releases/download/v3.6.7/FITIA-PRO-Miner.apk'
+          PY
+          cp "$artifact/FITIA-PRO-Miner.apk" FITIA-PRO-Miner.apk
+          cp "$artifact/update-current.json" update-current.json
+          git rm .github/workflows/arena-channel-367.yml .github/workflows/arena-publish-367.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add FITIA-PRO-Miner.apk update-current.json
+          git commit -m 'Activate verified Android 3.6.7 update channel'
+          git push origin HEAD:arena/0cdd4845-fitia-mining-pro
