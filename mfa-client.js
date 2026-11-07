@@ -16,7 +16,6 @@
     el(id) { return this.document.getElementById(id); }
     translate(lang) {
       const fr = {
-        'mfa-description': 'Protection facultative pour les envois et retraits. Aucun code n’est demandé à la connexion.',
         'mfa-password-label': 'Mot de passe du compte', 'mfa-start': 'Configurer Authenticator',
         'mfa-setup-help': 'Scannez ce QR code avec Google Authenticator, ou saisissez la clé manuellement.',
         'mfa-code-label': 'Code à six chiffres', 'mfa-confirm': 'Activer',
@@ -27,7 +26,6 @@
         'mfa-operation-code-label': 'Code Authenticator ou de récupération', 'mfa-operation-submit': 'Confirmer'
       };
       const en = {
-        'mfa-description': 'Optional protection for transfers and withdrawals. Sign-in does not require a code.',
         'mfa-password-label': 'Account password', 'mfa-start': 'Set up Authenticator',
         'mfa-setup-help': 'Scan this code with Google Authenticator, or enter the setup key manually.',
         'mfa-code-label': 'Six-digit code', 'mfa-confirm': 'Activate',

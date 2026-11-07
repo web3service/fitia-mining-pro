@@ -1274,6 +1274,16 @@ main::-webkit-scrollbar { display: none; }
 .account-status-pending { border-color: rgba(251,191,36,0.19); background: rgba(251,191,36,0.06); color: #f4d88d; }
 .account-profile-hero .account-message { margin: 0; }
 .account-settings-section { min-width: 0; padding: 16px; border: 1px solid rgba(148,163,184,0.14); border-radius: 18px; background: linear-gradient(150deg, rgba(30,41,59,0.84), rgba(17,27,43,0.96)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.025); }
+/* Compact, readable security controls at narrow phone widths. */
+#mfa-settings h4 { margin: 0 0 14px; }
+#mfa-settings > div:not([hidden]) { display: grid; gap: 10px; }
+#mfa-settings label { font-size: 0.86rem; font-weight: 600; }
+#mfa-settings input, #mfa-settings button { width: 100%; min-width: 0; }
+#mfa-settings p:empty { display: none; }
+#mfa-qr img { display: block; max-width: 100%; height: auto; background: white; }
+#mfa-secret, #mfa-recovery-codes { display: block; max-width: 100%; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; }
+#mfa-recovery-codes { margin: 0; font-size: 0.8rem; line-height: 1.6; }
+
 .account-section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
 .account-section-icon { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border: 1px solid rgba(240,185,11,0.18); border-radius: 12px; background: rgba(240,185,11,0.08); color: #f3cc50; }
 .account-section-heading > div { min-width: 0; }
