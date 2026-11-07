@@ -477,6 +477,33 @@ async function test(name, fn) {
     assert.ok(!doc.querySelector('#account-profile-avatar img'));
   });
 
+  await test('Photo Android : échantillonnage initialisé et retour sûr en cas d’erreur ou d’annulation', async ({ center, win, doc }) => {
+    const native = fs.readFileSync(path.join(ROOT, 'android-src/java/com/fitia/miningpro/MainActivity.java'), 'utf8');
+    assert.match(native, /BitmapFactory\.Options options = new BitmapFactory\.Options\(\);[\s\S]*?options\.inSampleSize = 1;\s*while \(Math\.max\(bounds\.outWidth, bounds\.outHeight\) \/ options\.inSampleSize/);
+    let requestId;
+    win.FitiaNative = { chooseProfilePhoto(id) { requestId = id; } };
+    center.choosePhoto();
+    win.dispatchEvent(new win.CustomEvent('fitia-profile-photo', { detail: { id: requestId, data: 'error' } }));
+    assert.ok(!doc.getElementById('account-profile-message').classList.contains('hidden'));
+    assert.strictEqual(win.localStorage.getItem('fitia_profile_photo_v1:account-1'), null);
+    center.choosePhoto();
+    win.dispatchEvent(new win.CustomEvent('fitia-profile-photo', { detail: { id: requestId, data: '' } }));
+    center.choosePhoto();
+    win.dispatchEvent(new win.CustomEvent('fitia-profile-photo', { detail: { id: requestId, data: 'data:image/jpeg;base64,YWJj' } }));
+    assert.ok(doc.querySelector('#account-profile-avatar img'));
+  });
+
+  await test('Compte : texte de déconnexion simplifié et bouton Authenticator lisible', async ({ win, doc }) => {
+    assert.strictEqual(doc.querySelector('[data-i18n="accountPhotoLocal"]'), null);
+    assert.strictEqual(translations.fr.accountLogout, 'Déconnecter le compte');
+    const style = doc.createElement('style');
+    style.textContent = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
+    doc.head.appendChild(style);
+    const button = win.getComputedStyle(doc.getElementById('mfa-start'));
+    assert.strictEqual(button.minHeight, '48px');
+    assert.strictEqual(button.fontSize, '0.875rem');
+  });
+
   await test('Tous les nouveaux libellés du compte existent dans les cinq langues', async ({ doc }) => {
     const keys = new Set([...doc.querySelectorAll('#account-access-screen [data-i18n], #account-access-screen [data-i18n-aria-label], #account-access-screen [data-i18n-title]')]
       .flatMap((element) => ['data-i18n', 'data-i18n-aria-label', 'data-i18n-title'].map((name) => element.getAttribute(name)).filter(Boolean)));

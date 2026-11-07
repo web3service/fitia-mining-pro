@@ -430,6 +430,8 @@ public class MainActivity extends Activity {
                 if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || bounds.outWidth > 30000 || bounds.outHeight > 30000
                         || !("image/jpeg".equals(bounds.outMimeType) || "image/png".equals(bounds.outMimeType) || "image/webp".equals(bounds.outMimeType))) throw new IOException("Invalid image");
                 BitmapFactory.Options options = new BitmapFactory.Options();
+                // BitmapFactory.Options defaults to zero on Android; division requires a positive sample size.
+                options.inSampleSize = 1;
                 while (Math.max(bounds.outWidth, bounds.outHeight) / options.inSampleSize > 1024) options.inSampleSize *= 2;
                 Bitmap original = BitmapFactory.decodeByteArray(raw, 0, raw.length, options);
                 if (original == null) throw new IOException("Invalid image");
