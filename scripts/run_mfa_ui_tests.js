@@ -25,6 +25,10 @@ const qr = () => ({ addData(text) { assert.ok(text.startsWith('otpauth://')); },
 (async () => {
   const client = new FitiaMfaClient(account, { document: doc, qr }); client.init();
   await client.refresh(); assert.strictEqual(doc.getElementById('mfa-settings').hidden, false);
+  client.translate('fr');
+  assert.strictEqual(doc.getElementById('mfa-description'), null);
+  assert.ok(doc.getElementById('mfa-recovery-help').textContent.includes('une fois'));
+  assert.ok(doc.getElementById('mfa-setup-help').textContent.includes('QR code'));
   doc.getElementById('mfa-password').value = 'password'; await client.start();
   assert.strictEqual(doc.getElementById('mfa-password').value, '');
   assert.strictEqual(doc.getElementById('mfa-secret').textContent, 'JBSWY3DPEHPK3PXP');
