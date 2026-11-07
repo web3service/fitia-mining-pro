@@ -94,6 +94,7 @@
       this.byId('account-show-login')?.addEventListener('click', () => this.setMode('login'));
       this.byId('account-show-signup')?.addEventListener('click', () => this.setMode('signup'));
       this.byId('account-link-wallet')?.addEventListener('click', () => this.linkWallet().catch(() => {}));
+      this.byId('account-open-linked-wallet')?.addEventListener('click', () => this.app.openLinkedWalletFromAccount?.());
       this.byId('account-refresh-profile')?.addEventListener('click', () => this.refreshAccount().catch(() => {}));
       this.byId('account-logout')?.addEventListener('click', () => this.setLogoutConfirmation(!this.logoutConfirmationOpen));
       this.byId('account-logout-cancel')?.addEventListener('click', () => this.setLogoutConfirmation(false, true));
@@ -855,7 +856,7 @@
       const linkedAddress = String(this.user.walletAddress || '');
       const walletVerified = Boolean(this.user.walletVerified && /^0x[0-9a-fA-F]{40}$/.test(linkedAddress));
       this.renderBadge(badges, walletVerified
-        ? this.t('accountWalletVerified', 'Wallet verified')
+        ? this.t('accountWalletVerified', 'Wallet linked')
         : this.t('accountWalletPending', 'Wallet not linked'), walletVerified ? 'wallet' : 'pending');
       if (this.user.certified) this.renderBadge(badges, this.t('accountAdminCertified', 'Certified by admin'), 'admin');
 
@@ -876,11 +877,17 @@
               ? this.t('accountWalletSignatureHelp', 'A signature verifies your wallet without a transaction or network fee.')
               : this.t('accountUnlockWallet', 'Unlock your wallet to link it.');
       }
+      const mismatch = Boolean(walletVerified && hasUnlockedWallet && !sameWallet);
+      explanation?.classList.toggle('account-wallet-warning', mismatch);
+      this.byId('account-current-wallet-box')?.classList.toggle('hidden', !mismatch);
+      const currentWalletText = this.byId('account-current-wallet');
+      if (currentWalletText) currentWalletText.textContent = mismatch ? String(this.app.user) : '';
+      this.byId('account-open-linked-wallet')?.classList.toggle('hidden', !sameWallet || !hasUnlockedWallet);
       const linkButton = this.byId('account-link-wallet');
       this.byId('account-profile-actions')?.classList.toggle('hidden', walletVerified);
       if (linkButton) {
         linkButton.disabled = this.busy || !hasUnlockedWallet || walletVerified;
-        linkButton.textContent = this.t('accountLinkWallet', 'Verify this wallet by signature');
+        linkButton.textContent = this.t('accountLinkWallet', 'Link my wallet');
         linkButton.classList.toggle('hidden', walletVerified);
       }
     }

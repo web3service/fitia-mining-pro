@@ -88,7 +88,7 @@ async function test(name, fn) {
     const badges = doc.getElementById('account-profile-badges');
     assert.ok(badges.textContent.includes('Email unconfirmed'));
     assert.ok(badges.textContent.includes('Wallet not linked'));
-    assert.ok(!badges.textContent.includes('Wallet verified'));
+    assert.ok(!badges.textContent.includes('Wallet linked'));
     assert.ok(doc.getElementById('account-wallet-explanation').textContent.includes('without a transaction or network fee'));
     assert.strictEqual(doc.getElementById('account-link-wallet').disabled, false);
 
@@ -99,13 +99,26 @@ async function test(name, fn) {
     center.user = { ...center.user, emailVerified: true, walletVerified: true, walletAddress: address };
     app.user = address; app.signer = { signMessage: async () => '' }; center.render();
     assert.ok(badges.textContent.includes('Email confirmed'));
-    assert.ok(badges.textContent.includes('Wallet verified'));
+    assert.ok(badges.textContent.includes('Wallet linked'));
     assert.ok(!doc.getElementById('account-copy-wallet').classList.contains('hidden'));
     assert.ok(doc.getElementById('account-profile-actions').classList.contains('hidden'));
     assert.strictEqual(doc.getElementById('account-profile-wallet').textContent, address);
+    const openLinked = doc.getElementById('account-open-linked-wallet');
+    assert.ok(!openLinked.classList.contains('hidden'));
+    let opened = 0; app.openLinkedWalletFromAccount = () => { opened += 1; };
+    openLinked.click(); assert.strictEqual(opened, 1);
+    assert.ok(doc.getElementById('account-current-wallet-box').classList.contains('hidden'));
 
     app.user = `0x${'34'.repeat(20)}`; center.render();
     assert.ok(doc.getElementById('account-wallet-explanation').textContent.includes('differs'));
+    assert.ok(doc.getElementById('account-wallet-explanation').classList.contains('account-wallet-warning'));
+    assert.strictEqual(doc.getElementById('account-current-wallet').textContent, app.user);
+    assert.ok(!doc.getElementById('account-current-wallet-box').classList.contains('hidden'));
+    assert.ok(openLinked.classList.contains('hidden'));
+    app.user = address; center.render();
+    assert.ok(doc.getElementById('account-current-wallet-box').classList.contains('hidden'));
+    assert.ok(!openLinked.classList.contains('hidden'));
+    app.user = `0x${'34'.repeat(20)}`; center.render();
     assert.strictEqual(doc.getElementById('account-link-wallet').disabled, true);
     center.user.username = '<img src=x onerror=alert(1)>'; center.render();
     assert.strictEqual(doc.querySelector('#account-profile-name img'), null, 'Le nom affiché reste du texte');

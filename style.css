@@ -1315,6 +1315,10 @@ main::-webkit-scrollbar { display: none; }
 .account-copy-button { display: grid; width: 44px; height: 44px; flex: 0 0 44px; padding: 0; place-items: center; border: 1px solid rgba(148,163,184,0.19); border-radius: 10px; background: rgba(255,255,255,0.05); color: #dbeafe; cursor: pointer; }
 .account-copy-button:disabled { opacity: 0.45; cursor: default; }
 .account-wallet-explanation { margin: 9px 0 0; color: #a9bacb; font-size: 0.7rem; line-height: 1.5; }
+.account-wallet-explanation.account-wallet-warning { color: #fcd78a; font-weight: 700; }
+.account-current-wallet { display: grid; gap: 6px; margin-top: 10px; color: #cbd5e1; font-size: 0.7rem; }
+.account-current-wallet code { overflow-wrap: anywhere; color: #fcd78a; }
+.account-access-screen .account-linked-wallet-button { width: 100%; min-height: 48px; margin-top: 12px; padding: 10px 12px; }
 .account-profile-actions { display: grid; gap: 9px; margin-top: 12px; }
 .account-profile-actions .btn-primary { width: 100%; min-height: 48px; margin: 0; font-family: inherit; font-size: 0.74rem; }
 .account-profile-utilities { display: grid; gap: 7px; }

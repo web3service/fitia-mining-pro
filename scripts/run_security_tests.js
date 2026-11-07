@@ -3056,9 +3056,24 @@ function httpRequest(port, method, reqPath) {
         const linkCall = calls.find((call) => call.action === 'link');
         assert.ok(!JSON.stringify(linkCall).includes('privateKey'));
         assert.ok(!JSON.stringify(linkCall).includes('A-correct-passphrase-2026'));
-        assert.ok(document.getElementById('account-profile-badges').textContent.includes('Wallet verified'));
+        assert.ok(document.getElementById('account-profile-badges').textContent.includes('Wallet linked'));
         assert.strictEqual(document.getElementById('account-profile-wallet').textContent, wallet.address.toLowerCase());
         assert.ok(!document.getElementById('account-copy-wallet').classList.contains('hidden'));
+        // Navigation never opens balances for a different or locked wallet, even if state changes after rendering.
+        const originalClose = accountApp.closeAccountAccess, originalNav = accountApp.nav;
+        const destinations = [];
+        try {
+          accountApp.closeAccountAccess = () => true;
+          accountApp.nav = (view) => { destinations.push(view); };
+          accountApp.user = `0x${'34'.repeat(20)}`;
+          accountApp.openLinkedWalletFromAccount();
+          accountApp.user = wallet.address; accountApp.signer = null;
+          accountApp.openLinkedWalletFromAccount();
+          assert.deepStrictEqual(destinations, []);
+          accountApp.signer = wallet;
+          accountApp.openLinkedWalletFromAccount();
+          assert.deepStrictEqual(destinations, ['my-rigs']);
+        } finally { accountApp.closeAccountAccess = originalClose; accountApp.nav = originalNav; accountApp.user = wallet.address; accountApp.signer = wallet; }
 
         let authenticationNotifications = 0;
         accountApp.onAccountAuthenticated = async () => { authenticationNotifications += 1; };
