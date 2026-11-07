@@ -2,7 +2,7 @@
 'use strict';
 const assert = require('assert');
 const fs = require('fs');
-const { JSDOM } = require('jsdom');
+const { JSDOM } = require(fs.existsSync('/tmp/test-deps/node_modules/jsdom') ? '/tmp/test-deps/node_modules/jsdom' : 'jsdom');
 const FitiaMfaClient = require('../mfa-client');
 const html = fs.readFileSync('android-src/wallet.html', 'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
 const dom = new JSDOM(html, { url: 'https://app.fitia.pro', pretendToBeVisual: true });
