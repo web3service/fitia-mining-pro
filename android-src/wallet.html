@@ -237,10 +237,15 @@
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg>
             </button>
           </div>
-          <p id="account-wallet-explanation" class="account-wallet-explanation"></p>
-          <div id="account-profile-actions" class="account-profile-actions">
-            <button id="account-link-wallet" class="btn-primary" type="button" data-i18n="accountLinkWallet">Verify this wallet by signature</button>
+          <p id="account-wallet-explanation" class="account-wallet-explanation" role="status"></p>
+          <div id="account-current-wallet-box" class="account-current-wallet hidden">
+            <span data-i18n="accountCurrentWallet">Open wallet</span>
+            <code id="account-current-wallet"></code>
           </div>
+          <div id="account-profile-actions" class="account-profile-actions">
+            <button id="account-link-wallet" class="btn-primary" type="button" data-i18n="accountLinkWallet">Link my wallet</button>
+          </div>
+          <button id="account-open-linked-wallet" class="btn-secondary account-linked-wallet-button hidden" type="button" data-i18n="accountOpenWallet">View my wallet and balances</button>
           <p id="account-wallet-message" class="account-message hidden" role="status" aria-live="polite"></p>
         </section>
 
