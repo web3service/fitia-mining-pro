@@ -1905,7 +1905,9 @@ class Application {
       } else if (this.user && this.backgroundedAt > 0) {
         const settings = FitiaSecurity.Vault.getSettings();
         const mins = Number(settings.autoLockMinutes);
-        if (mins > 0 && (Date.now() - this.backgroundedAt) >= mins * 60 * 1000) {
+        // On Android a return from another app must always require the PIN,
+        // even if the configured idle timeout has not elapsed yet.
+        if (FitiaSecurity.Native.isNativeApk() || (mins > 0 && (Date.now() - this.backgroundedAt) >= mins * 60 * 1000)) {
           this.lockWallet(true);
         } else {
           const accountScreen = document.getElementById('account-access-screen');
@@ -5154,6 +5156,9 @@ class Application {
       el.classList.remove('active');
       el.style.display = 'none';
     });
+    // Each screen starts at its own header, even when the Hub was scrolled.
+    const scroller = document.getElementById('main-view');
+    if (scroller) scroller.scrollTop = 0;
     const activeView = document.getElementById('view-' + viewId);
     if (activeView) {
       activeView.classList.add('active');

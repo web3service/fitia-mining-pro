@@ -23,6 +23,7 @@ Aucune connexion à un wallet externe (MetaMask, Trust Wallet ou WalletConnect) 
 - La liaison du wallet reste une signature de propriété **sans transaction ni frais réseau**. Un wallet déjà lié ne peut pas être remplacé depuis cet écran.
 - Les mots de passe peuvent être affichés temporairement ; la capture d’écran est bloquée dans l’APK pendant l’ouverture du compte, ils sont masqués en arrière-plan et effacés à la fermeture des réglages.
 - La déconnexion demande confirmation et verrouille le wallet sans supprimer son coffre chiffré. Le compte applicatif reste distinct du PIN et de la phrase de récupération du wallet.
+- Sur Android, la session du compte est scellée par AndroidKeyStore et persistée localement ; les anciennes sessions WebCrypto restent lisibles. Le coffre et sa protection PIN restent distincts et inchangés. Une session révoquée ou une reconnexion impossible peut encore nécessiter une authentification ou une nouvelle tentative réseau. Le retour de l’application depuis l’arrière-plan reverrouille le wallet et redemande le PIN.
 
 ---
 

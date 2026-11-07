@@ -440,8 +440,11 @@ async function bootAppEnvironment(mockRpcUrl, options = {}) {
     }
     return global.fetch(url, cleanOpts);
   };
-  win.indexedDB = createMockIndexedDB();
-  win.FitiaNative = createMockAndroidBridge();
+  win.indexedDB = options.indexedDB || createMockIndexedDB();
+  win.FitiaNative = options.bridge || createMockAndroidBridge();
+  if (options.localStorageSnapshot) {
+    for (const [key, value] of Object.entries(options.localStorageSnapshot)) win.localStorage.setItem(key, value);
+  }
   win.confirm = () => true;
   win.HTMLCanvasElement.prototype.getContext = function () {
     const gradient = { addColorStop() {} };
@@ -492,7 +495,7 @@ async function bootAppEnvironment(mockRpcUrl, options = {}) {
     };
   }
 
-  if (options.authenticate !== false) {
+  if (options.authenticate !== false && !options.localStorageSnapshot) {
     await win.FitiaSecurity.Vault.sealAccountSession(accountSession);
   }
 
@@ -528,17 +531,40 @@ function httpRequest(port, method, reqPath) {
 
   try {
     const { dom, win } = await bootAppEnvironment(mockRpc.url);
+    await runTest('ANDROID-RETURN-PIN', 'Le retour depuis l’arrière-plan Android reverrouille même avant le délai d’inactivité', async () => {
+      const app = win.App;
+      const originalLock = app.lockWallet;
+      const originalUser = app.user;
+      let locks = 0;
+      try {
+        app.user = '0x' + 'a'.repeat(40);
+        app.lockWallet = () => { locks++; app.user = null; };
+        Object.defineProperty(win.document, 'hidden', { configurable: true, value: true });
+        win.document.dispatchEvent(new win.Event('visibilitychange'));
+        Object.defineProperty(win.document, 'hidden', { configurable: true, value: false });
+        win.document.dispatchEvent(new win.Event('visibilitychange'));
+        assert.strictEqual(locks, 1);
+      } finally {
+        delete win.document.hidden;
+        app.lockWallet = originalLock;
+        app.user = originalUser;
+      }
+    });
     await runTest('COIN-FLIP-NAV', 'Navigation Hub vers Coin Flip même si WebGL échoue', async () => {
       win.eval(fs.readFileSync(path.join(ROOT, 'game-experience-hub.js'), 'utf8'));
       win.eval(fs.readFileSync(path.join(ROOT, 'game-experience-flip.js'), 'utf8'));
       win.setupGameHub(win.App);
-      win.createGameRealisticCoin = () => ({ available: true, setActive() { throw new Error('WebGL context lost'); }, cancelAnimation() {} });
+      let gpuCalls = 0;
+      win.createGameRealisticCoin = () => { gpuCalls++; throw new Error('WebGL unavailable'); };
       win.setupGameFlip(win.App);
       win.App.gameVisibility.hiddenGames = new Set();
       win.App.nav('hub');
       win.document.getElementById('ph-open-games').click();
       assert.strictEqual(win.document.getElementById('game-hub-games').hidden, false);
+      win.document.getElementById('main-view').scrollTop = 400;
       win.document.querySelector('.hub-card-coin-flip').click();
+      assert.strictEqual(gpuCalls, 0, 'Coin Flip ne dépend pas du GPU');
+      assert.strictEqual(win.document.getElementById('main-view').scrollTop, 0, 'Le jeu revient en haut de page');
       assert.ok(win.document.getElementById('view-coin-flip').classList.contains('active'));
       assert.ok(!win.document.getElementById('cf-coin-accessible').classList.contains('webgl-ready'));
       assert.ok(win.document.querySelector('#view-coin-flip [data-flip-choice="heads"]'));
@@ -602,6 +628,9 @@ function httpRequest(port, method, reqPath) {
         password.value = 'secret- temporaire';
         document.querySelector('[data-account-password-toggle="account-password-current"]').click();
         assert.strictEqual(password.type, 'text');
+        // Exercise password masking on the browser path; Android locks on return.
+        const nativeCheck = accessWin.FitiaNative.isNativeApk;
+        accessWin.FitiaNative.isNativeApk = () => false;
         Object.defineProperty(document, 'hidden', { value: true, configurable: true });
         document.dispatchEvent(new accessWin.Event('visibilitychange'));
         assert.strictEqual(password.type, 'password', 'Un mot de passe visible est masqué en arrière-plan');
@@ -609,6 +638,7 @@ function httpRequest(port, method, reqPath) {
         document.dispatchEvent(new accessWin.Event('visibilitychange'));
         assert.strictEqual(accessWin.FitiaNative._state.screenSecure, true, 'Le compte reste protégé au retour au premier plan');
         delete document.hidden;
+        accessWin.FitiaNative.isNativeApk = nativeCheck;
         accessApp.closeAccountAccess();
         assert.strictEqual(password.value, '', 'La fermeture du compte efface les mots de passe saisis');
         assert.strictEqual(accessWin.FitiaNative._state.screenSecure, false, 'La protection est retirée après fermeture sur le wallet déverrouillé');
@@ -678,6 +708,40 @@ function httpRequest(port, method, reqPath) {
     } finally {
       accessEnv.dom.window.close();
     }
+
+    const restartSource = await bootAppEnvironment(mockRpc.url);
+    try {
+      await runTest('ACCOUNT-RESTART-PIN', 'Après redémarrage, la session scellée et le wallet ouvrent le PIN', async () => {
+        const oldWin = restartSource.win;
+        const wallet = ethersLib.Wallet.createRandom();
+        await oldWin.FitiaSecurity.Vault.saveVault({ address: wallet.address, privateKey: wallet.privateKey }, '918273');
+        const raw = oldWin.localStorage.getItem('fitia_account_session_v1');
+        assert.ok(raw.startsWith('AKS1:'));
+        assert.strictEqual(JSON.parse(oldWin.FitiaNative.unsealVault(raw)).v, 2);
+        assert.ok(!raw.includes('security-access'));
+        const snapshot = Object.fromEntries(Object.keys(oldWin.localStorage).map((key) => [key, oldWin.localStorage.getItem(key)]));
+        let refreshed = false;
+        const profile = { userId: '7b0f7399-ca7a-4b6f-a4f1-9f4266f0f21c', username: 'Security_Test', email: 'security@example.com' };
+        const renewed = { accessToken: 'renewed-access', refreshToken: 'renewed-refresh', expiresAt: new Date(Date.now() + 3600000).toISOString() };
+        const restarted = await bootAppEnvironment(mockRpc.url, {
+          indexedDB: oldWin.indexedDB, bridge: oldWin.FitiaNative, localStorageSnapshot: snapshot,
+          accountReply: async (action) => {
+            if (action === 'refresh') { refreshed = true; return { body: { user: profile, session: renewed } }; }
+            return refreshed ? { body: { user: profile } } : { status: 401, body: { error: 'expired' } };
+          }
+        });
+        try {
+          const doc = restarted.win.document;
+          assert.ok(refreshed, 'Une session expirée est renouvelée');
+          assert.strictEqual((await restarted.win.FitiaSecurity.Vault.readAccountSession()).refreshToken, renewed.refreshToken);
+          assert.ok(restarted.win.App.accountCenter.isAuthenticated());
+          assert.ok(doc.getElementById('account-access-screen').classList.contains('hidden'));
+          assert.ok(!doc.getElementById('auth-step-unlock').classList.contains('hidden'), 'Le code PIN est demandé');
+          assert.ok(doc.getElementById('app-shell').classList.contains('hidden'), 'Le wallet reste verrouillé');
+          assert.strictEqual(restarted.win.App.signer, null);
+        } finally { restarted.dom.window.close(); }
+      });
+    } finally { restartSource.dom.window.close(); }
 
     const restoreEnv = await bootAppEnvironment(mockRpc.url);
     try {
@@ -2877,7 +2941,21 @@ function httpRequest(port, method, reqPath) {
     // ─── Comptes applicatifs : sessions protégées et wallet non-custodial ───
     const accountEnv = await bootAppEnvironment(mockRpc.url);
     try {
-      await runTest('ACCOUNT-STORAGE', 'Jetons du compte chiffrés par WebCrypto et scellés par AndroidKeyStore', async () => {
+      await runTest('ACCOUNT-LEGACY', 'Les sessions chiffrées des versions précédentes restent lisibles', async () => {
+        const vault = accountEnv.win.FitiaSecurity.Vault;
+        const bridge = accountEnv.win.FitiaNative;
+        const nativeCheck = bridge.isNativeApk;
+        const session = { accessToken: 'legacy-access', refreshToken: 'legacy-refresh', expiresAt: '' };
+        try {
+          bridge.isNativeApk = () => false;
+          await vault.sealAccountSession(session);
+          assert.strictEqual(JSON.parse(bridge.unsealVault(accountEnv.win.localStorage.getItem('fitia_account_session_v1'))).v, 1);
+          bridge.isNativeApk = nativeCheck;
+          assert.strictEqual((await vault.readAccountSession()).refreshToken, 'legacy-refresh');
+        } finally { bridge.isNativeApk = nativeCheck; await vault.clearAccountSession(); }
+      });
+
+      await runTest('ACCOUNT-STORAGE', 'Jetons du compte scellés par AndroidKeyStore, même sans IndexedDB', async () => {
         const vault = accountEnv.win.FitiaSecurity.Vault;
         const session = {
           accessToken: `access-secret-${'a'.repeat(40)}`,
@@ -2889,6 +2967,10 @@ function httpRequest(port, method, reqPath) {
         assert.ok(raw && raw.startsWith('AKS1:'), 'La session persistée est scellée matériellement');
         assert.ok(!raw.includes(session.accessToken) && !raw.includes(session.refreshToken), 'Aucun jeton en clair dans le stockage');
         const restored = await vault.readAccountSession();
+        const oldIndexedDB = accountEnv.win.indexedDB;
+        accountEnv.win.indexedDB = null;
+        assert.strictEqual((await vault.readAccountSession()).accessToken, session.accessToken, 'La session native résiste à une panne IndexedDB');
+        accountEnv.win.indexedDB = oldIndexedDB;
         assert.strictEqual(restored.accessToken, session.accessToken);
         assert.strictEqual(restored.refreshToken, session.refreshToken);
         accountEnv.win.localStorage.setItem('fitia_account_session_v1', `${raw.slice(0, -8)}AAAAAA==`);

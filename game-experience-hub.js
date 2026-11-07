@@ -71,7 +71,6 @@ window.setupGameHub = function setupGameHub(app) {
   const style = document.createElement('style');
   style.textContent = `
     #view-hub.hub-view{max-width:520px;margin:0 auto}
-    #view-hub .hub-header{margin-bottom:18px}
     .ph-section{margin:0 0 22px}
     #game-hub-landing[hidden],#game-hub-games[hidden]{display:none!important}
     .ph-gateway-card{display:flex;align-items:center;gap:20px;position:relative;width:100%;max-width:620px;padding:16px;text-align:left;border:1px solid #8d713b;border-radius:20px;background:radial-gradient(circle at 20% 20%,#6b4f292e,transparent 48%),linear-gradient(135deg,#252a3a,#111a29);color:#fff;cursor:pointer;box-shadow:0 12px 28px #0004;transition:border-color .2s,transform .2s}
@@ -96,20 +95,16 @@ window.setupGameHub = function setupGameHub(app) {
     .ph-services .ph-heading{padding-top:14px}
     .ph-services .ph-heading>div>span{color:#8ebdec}
     /* Hub refresh: clear hierarchy, larger tap targets and consistent cards. */
-    #view-hub .hub-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px;padding:20px;border:1px solid #e8be6730;border-radius:20px;background:radial-gradient(circle at 100% 0,#d4a64624,transparent 50%),linear-gradient(135deg,#1b283c,#101927);box-shadow:0 16px 32px #0003}
-    #view-hub .hub-header h2{margin:4px 0;font-size:27px;letter-spacing:-.04em}
-    #view-hub .hub-header p{margin:0;color:#aebed0;font-size:11px;line-height:1.45}
-    .hub-header-mark{display:grid;place-items:center;width:46px;height:46px;flex:none;border:1px solid #d5ac5a5c;border-radius:15px;background:#d9ad4c15;color:#efce83;font-size:21px}
     .ph-heading{margin-bottom:14px}.ph-heading h3{font-size:19px}.ph-heading p{font-size:12px}
-    .ph-gateway-card{min-height:168px;border-color:#e2bf7450;background:radial-gradient(circle at 20% 30%,#e9bc6d1c,transparent 44%),linear-gradient(135deg,#202b3e,#0e1828)}
-    .ph-gateway-card>img{width:124px;height:124px;border-radius:14px}.ph-gateway-copy strong{font-size:24px}.ph-gateway-copy b{padding:9px 12px}
-    .ph-games-grid .hub-card,.ph-services .hub-card{min-height:152px;padding:16px;border:1px solid #ffffff1c;border-radius:17px;background:linear-gradient(145deg,#202d40,#111b2b);box-shadow:0 10px 24px #0003}
-    .ph-games-grid .hub-card strong,.ph-services .hub-card strong{margin:12px 0 3px;color:#f5f7fb;font-size:13px;line-height:1.25}
-    .ph-games-grid .hub-card .hub-card-icon{width:52px;height:52px;flex-basis:52px;border-radius:14px}
+    .ph-gateway-card{min-height:116px;border-color:#e2bf7450;background:radial-gradient(circle at 20% 30%,#e9bc6d1c,transparent 44%),linear-gradient(135deg,#202b3e,#0e1828)}
+    .ph-gateway-card>img{width:84px;height:84px;border-radius:12px}.ph-gateway-copy strong{font-size:20px}.ph-gateway-copy b{margin-top:8px;padding:7px 10px}
+    .ph-games-grid .hub-card,.ph-services .hub-card{min-height:122px;padding:13px;border:1px solid #ffffff1c;border-radius:17px;background:linear-gradient(145deg,#202d40,#111b2b);box-shadow:0 10px 24px #0003}
+    .ph-games-grid .hub-card strong,.ph-services .hub-card strong{margin:8px 0 3px;color:#f5f7fb;font-size:13px;line-height:1.25}
+    .ph-games-grid .hub-card .hub-card-icon{width:44px;height:44px;flex-basis:44px;border-radius:12px}
     .ph-card-description{color:#a7b5c8;font-size:10px;line-height:1.35;text-align:left}
     .ph-services .hub-card{min-height:100px;flex-direction:row;align-items:center;gap:12px}.ph-services .hub-card strong{margin:0}.ph-services .hub-card .ph-card-description{margin-left:auto;margin-right:18px;text-align:right}
     .ph-games-grid .hub-card:focus-visible,.ph-services .hub-card:focus-visible{outline:2px solid #eac775;outline-offset:3px}
-    @media(max-width:360px){#view-hub .hub-header{padding:16px}.ph-gateway-card>img{width:88px;height:88px}.ph-gateway-card{min-height:135px}.ph-games-grid .hub-card{min-height:142px;padding:12px}}
+    @media(max-width:360px){.ph-gateway-card>img{width:72px;height:72px}.ph-gateway-card{min-height:102px}.ph-games-grid .hub-card{min-height:118px;padding:11px}}
 
   `;
   document.head.appendChild(style);

@@ -421,14 +421,24 @@
       if (!session || typeof session.accessToken !== 'string' || typeof session.refreshToken !== 'string') {
         throw new Error('Invalid account session');
       }
-      const key = await getOrCreateDeviceWrapKey(ACCOUNT_DEVICE_KEY_ID);
-      if (!key) throw new Error('Secure account storage is unavailable');
       const payload = JSON.stringify({
         accessToken: session.accessToken.slice(0, 4096),
         refreshToken: session.refreshToken.slice(0, 4096),
         tokenType: 'bearer',
         expiresAt: String(session.expiresAt || '')
       });
+      // AndroidKeyStore encrypts the complete session. Unlike a CryptoKey
+      // stored in WebView IndexedDB this survives devices that cannot persist
+      // non-exportable WebCrypto keys reliably across process restarts.
+      if (NativeHelper.isNativeApk()) {
+        const sealed = NativeHelper.hardwareSeal(JSON.stringify({ v: 2, kind: 'account-session', session: JSON.parse(payload) }));
+        if (!sealed || !sealed.startsWith('AKS1:')) throw new Error('Secure hardware account storage is unavailable');
+        localStorage.setItem(ACCOUNT_SESSION_KEY, sealed);
+        await VaultIDB.set(ACCOUNT_SESSION_KEY, sealed); // redundant when IndexedDB is available
+        return true;
+      }
+      const key = await getOrCreateDeviceWrapKey(ACCOUNT_DEVICE_KEY_ID);
+      if (!key) throw new Error('Secure account storage is unavailable');
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const additionalData = new TextEncoder().encode('FITIA_ACCOUNT_SESSION_V1');
       const encrypted = new Uint8Array(await crypto.subtle.encrypt(
@@ -453,15 +463,22 @@
         const unsealed = NativeHelper.hardwareUnseal(raw);
         if (!unsealed) throw new Error('unseal');
         const envelope = JSON.parse(unsealed);
-        if (envelope.v !== 1 || !envelope.iv || !envelope.ct) throw new Error('envelope');
-        const key = await getOrCreateDeviceWrapKey(ACCOUNT_DEVICE_KEY_ID);
-        if (!key) throw new Error('key');
-        const decrypted = await crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: b64ToBytes(envelope.iv), additionalData: new TextEncoder().encode('FITIA_ACCOUNT_SESSION_V1') },
-          key,
-          b64ToBytes(envelope.ct)
-        );
-        const session = JSON.parse(new TextDecoder().decode(decrypted));
+        let session;
+        if (envelope.v === 2 && envelope.kind === 'account-session') {
+          // Never accept a plaintext v2 envelope or one outside the native app.
+          if (!NativeHelper.isNativeApk() || !raw.startsWith('AKS1:')) throw new Error('envelope');
+          session = envelope.session;
+        } else {
+          if (envelope.v !== 1 || !envelope.iv || !envelope.ct) throw new Error('envelope');
+          const key = await getOrCreateDeviceWrapKey(ACCOUNT_DEVICE_KEY_ID);
+          if (!key) throw new Error('key');
+          const decrypted = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: b64ToBytes(envelope.iv), additionalData: new TextEncoder().encode('FITIA_ACCOUNT_SESSION_V1') },
+            key,
+            b64ToBytes(envelope.ct)
+          );
+          session = JSON.parse(new TextDecoder().decode(decrypted));
+        }
         if (!session || typeof session.accessToken !== 'string' || typeof session.refreshToken !== 'string'
           || !session.accessToken || !session.refreshToken || session.accessToken.length > 4096 || session.refreshToken.length > 4096) {
           throw new Error('session');
