@@ -313,6 +313,20 @@ async function test(name, fn) {
     assert.strictEqual(center.user.walletVerified, false);
   });
 
+  await test('Une signature wallet ne peut pas être transmise après changement de compte', async ({ center, app }) => {
+    let resolveSignature; const actions = [];
+    app.signer = { signMessage: async () => new Promise((resolve) => { resolveSignature = resolve; }) };
+    center.fetch = async (url) => { actions.push(url.split('/').pop()); return result(200, { challengeId: 'challenge', message: 'Verify wallet ownership' }); };
+    const pending = center.linkWallet();
+    await tick();
+    await center.acceptSession({ user: { userId: 'account-2', username: 'Other_User', email: 'other@example.com' },
+      session: { ...session, accessToken: 'new-access', refreshToken: 'new-refresh' } }, { notifyApp: false });
+    resolveSignature('signature');
+    await pending;
+    assert.deepStrictEqual(actions, ['challenge']);
+    assert.strictEqual(center.user.userId, 'account-2');
+  });
+
   await test('Une réponse tardive ne restaure pas une session déjà déconnectée', async ({ center, app, win, storage }) => {
     let resolveEmail;
     center.fetch = async () => new Promise((resolve) => { resolveEmail = resolve; });
@@ -327,6 +341,60 @@ async function test(name, fn) {
     assert.strictEqual(center.user, null);
     assert.strictEqual(app.signedOut, 1);
     assert.strictEqual(storage.saved.length, 0, 'Aucune session tardive ne doit être persistée');
+  });
+
+  await test('Une réponse 401 tardive ne rejoue pas une action sur un autre compte', async ({ center }) => {
+    let resolveOld; const calls = [];
+    center.fetch = async (url, options) => {
+      calls.push({ url, authorization: options.headers.Authorization });
+      return new Promise((resolve) => { resolveOld = resolve; });
+    };
+    const pending = center.request('profile', { body: { username: 'Sensitive_Change' } });
+    await center.clearLocalSession();
+    await center.acceptSession({ user: { userId: 'account-2', username: 'Other_User', email: 'other@example.com' },
+      session: { ...session, accessToken: 'new-access', refreshToken: 'new-refresh' } }, { notifyApp: false });
+    resolveOld(result(401, { error: 'expired' }));
+    await assert.rejects(pending, (error) => error.code === 'ACCOUNT_SESSION_CHANGED');
+    assert.strictEqual(calls.length, 1, 'Aucune opération rejouée sur le nouveau compte');
+    assert.strictEqual(center.user.userId, 'account-2');
+  });
+
+  await test('Une ancienne réponse de modification ne remplace pas une nouvelle session', async ({ center }) => {
+    let resolveOld;
+    center.fetch = async () => new Promise((resolve) => { resolveOld = resolve; });
+    const pending = center.request('email', { body: { email: 'old-change@example.com' } });
+    await center.clearLocalSession();
+    await center.acceptSession({ user: { userId: 'account-2', username: 'Other_User', email: 'other@example.com' },
+      session: { ...session, accessToken: 'new-access', refreshToken: 'new-refresh' } }, { notifyApp: false });
+    resolveOld(result(200, { user: { userId: 'account-1' }, session }));
+    await assert.rejects(pending, (error) => error.code === 'ACCOUNT_SESSION_CHANGED');
+    assert.strictEqual(center.user.userId, 'account-2');
+  });
+
+  await test('Un ancien renouvellement refusé ne déconnecte pas une nouvelle session', async ({ center }) => {
+    let resolveRefresh;
+    center.fetch = async () => new Promise((resolve) => { resolveRefresh = resolve; });
+    const pending = center.refreshSession();
+    await center.clearLocalSession();
+    await center.acceptSession({ user: { userId: 'account-2', username: 'Other_User', email: 'other@example.com' },
+      session: { ...session, accessToken: 'new-access', refreshToken: 'new-refresh' } }, { notifyApp: false });
+    resolveRefresh(result(401, { error: 'expired' }));
+    await assert.rejects(pending, (error) => error.status === 401);
+    assert.strictEqual(center.user.userId, 'account-2');
+    assert.strictEqual(center.session.accessToken, 'new-access');
+  });
+
+  await test('Une rotation de jeton du même compte permet la reprise', async ({ center }) => {
+    const calls = [];
+    center.fetch = async (url, options) => {
+      calls.push({ action: url.split('/').pop(), auth: options.headers.Authorization });
+      if (url.endsWith('/profile') && calls.length === 1) return result(401, { error: 'expired' });
+      if (url.endsWith('/refresh')) return result(200, { user: center.user, session: { ...session, accessToken: 'rotated', refreshToken: 'rotated-refresh' } });
+      return result(200, { user: center.user });
+    };
+    await center.request('profile', { body: { username: 'Miner_One' } });
+    assert.deepStrictEqual(calls.map((call) => call.action), ['profile', 'refresh', 'profile']);
+    assert.strictEqual(calls[2].auth, 'Bearer rotated');
   });
 
   await test('Copie de l’adresse : succès uniquement après copie réelle', async ({ center, win, doc }) => {

@@ -94,7 +94,9 @@ function getAccessToken(req) {
 function createAccountHandler(options = {}) {
   let service = options.accountService || null;
   const failures = options.failures || new Map();
-  const trustProxy = options.trustProxy !== false;
+  const inFlight = new Map();
+  // Hors Vercel, un proxy ne doit être approuvé que par configuration explicite.
+  const trustProxy = options.trustProxy === true || (options.trustProxy !== false && process.env.VERCEL === '1');
   const account = () => {
     if (!service) service = getDefaultAccountService();
     return service;
@@ -111,9 +113,15 @@ function createAccountHandler(options = {}) {
 
   async function withAuthRateLimit(req, operation) {
     const key = checkRateLimit(req);
+    const active = inFlight.get(key) || 0;
+    if (active >= MAX_AUTH_FAILURES || (!active && inFlight.size >= RequestSecurity.MAX_LOGIN_TRACKERS)) {
+      throw new AccountError(429, 'Trop de tentatives simultanées. Réessayez plus tard.', 'ACCOUNT_RATE_LIMIT');
+    }
+    inFlight.set(key, active + 1);
     try {
       const result = await operation();
-      failures.delete(key);
+      // Une connexion réussie à un autre compte ne remet pas à zéro les
+      // échecs de cette adresse pendant la fenêtre anti-force-brute.
       return result;
     } catch (error) {
       if (error.code === 'ACCOUNT_LOGIN' || error.code === 'ACCOUNT_REAUTH') {
@@ -121,6 +129,9 @@ function createAccountHandler(options = {}) {
         if (record.count >= MAX_AUTH_FAILURES) throw new AccountError(429, 'Trop de tentatives. Réessayez dans quelques minutes.', 'ACCOUNT_RATE_LIMIT');
       }
       throw error;
+    } finally {
+      const remaining = (inFlight.get(key) || 1) - 1;
+      if (remaining > 0) inFlight.set(key, remaining); else inFlight.delete(key);
     }
   }
 

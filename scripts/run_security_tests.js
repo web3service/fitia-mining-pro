@@ -528,6 +528,27 @@ function httpRequest(port, method, reqPath) {
 
   try {
     const { dom, win } = await bootAppEnvironment(mockRpc.url);
+    await runTest('COIN-FLIP-NAV', 'Navigation Hub vers Coin Flip même si WebGL échoue', async () => {
+      win.eval(fs.readFileSync(path.join(ROOT, 'game-experience-hub.js'), 'utf8'));
+      win.eval(fs.readFileSync(path.join(ROOT, 'game-experience-flip.js'), 'utf8'));
+      win.setupGameHub(win.App);
+      win.createGameRealisticCoin = () => ({ available: true, setActive() { throw new Error('WebGL context lost'); }, cancelAnimation() {} });
+      win.setupGameFlip(win.App);
+      win.App.gameVisibility.hiddenGames = new Set();
+      win.App.nav('hub');
+      win.document.getElementById('ph-open-games').click();
+      assert.strictEqual(win.document.getElementById('game-hub-games').hidden, false);
+      win.document.querySelector('.hub-card-coin-flip').click();
+      assert.ok(win.document.getElementById('view-coin-flip').classList.contains('active'));
+      assert.ok(!win.document.getElementById('cf-coin-accessible').classList.contains('webgl-ready'));
+      assert.ok(win.document.querySelector('#view-coin-flip [data-flip-choice="heads"]'));
+      win.App.nav('hub');
+      win.document.getElementById('ph-open-games').click();
+      win.document.querySelector('.hub-card-coin-flip').click();
+      assert.ok(win.document.getElementById('view-coin-flip').classList.contains('active'));
+      win.App.nav('hub');
+    });
+
     const { FitiaSecurity } = win;
 
     const accessEnv = await bootAppEnvironment(mockRpc.url, { authenticate: false });
@@ -2239,7 +2260,7 @@ function httpRequest(port, method, reqPath) {
       }
       const hub = fs.readFileSync(path.join(ROOT, 'game-experience-hub.js'), 'utf8');
       const wheel = fs.readFileSync(path.join(ROOT, 'game-experience-wheel.js'), 'utf8');
-      assert.ok(hub.includes('<b>Explore games</b>'));
+      assert.ok(hub.includes('hubExploreGames'));
       assert.ok(wheel.includes('id="wheel-settings-link" class="pw-settings-link">Settings</button>'));
       assert.ok(wheel.includes('id="wheel-board-link" class="pw-board-link">Back to wheel</button>'));
       for (const [file, cleanLabel] of [

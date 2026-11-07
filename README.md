@@ -134,3 +134,9 @@ Avant toute publication d’une mise à jour Android, incrémentez `versionCode`
 À l’inscription, le pays est choisi dans une liste de codes ISO avec drapeaux. Il est conservé dans les métadonnées Supabase Auth du compte et retrouvé après connexion ; les anciens comptes sans pays restent utilisables. Le pays est une donnée déclarative, pas une preuve d’identité. L’API de compte doit être déployée avant le nouveau client.
 
 La photo est facultative : le sélecteur Android ou le navigateur accepte JPEG, PNG et WebP jusqu’à 10 Mo, puis crée une miniature JPEG de 256 px. Elle reste dans le stockage local non chiffré de l’appareil, séparée par identifiant de compte ; elle n’est ni envoyée au serveur ni synchronisée sur d’autres appareils, et peut être supprimée depuis Mon compte. Effacer les données de l’application ou changer d’appareil la supprime. Elle ne touche ni aux clés ni au coffre wallet.
+
+### Limites de sécurité des comptes
+
+La limitation des tentatives de connexion et de réauthentification est conservée en mémoire par instance : elle ne constitue pas une protection distribuée entre les instances Vercel et ne remplace pas les limites Supabase Auth ou une protection réseau partagée. Une réussite sur un autre compte n’efface pas les échecs de la fenêtre courante ; des tentatives parallèles sont également bornées. Hors Vercel, l’API n’utilise les en-têtes de proxy que si `trustProxy` est explicitement activé derrière un proxy de confiance qui les réécrit.
+
+La modification d’email actuelle exige le mot de passe mais confirme immédiatement la nouvelle adresse côté administrateur Supabase, sans vérifier que l’utilisateur possède cette boîte. Le badge d’email confirmé ne prouve donc pas la possession après une modification ; une confirmation par lien sur la nouvelle adresse est nécessaire pour lever cette limite.
