@@ -444,6 +444,49 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     } finally { await close(server); }
   });
 
+  await test('API: limite aussi les tentatives parallèles avant la réponse Auth', async () => {
+    let release;
+    let arrived = 0;
+    const waiting = new Promise((resolve) => { release = resolve; });
+    const service = { async signIn() { arrived++; await waiting; throw new AccountError(401, 'Invalid', 'ACCOUNT_LOGIN'); } };
+    const server = http.createServer(createAccountHandler({ accountService: service, trustProxy: false }));
+    const base = await listen(server);
+    try {
+      const login = () => fetch(`${base}/api/account/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'a@example.com', password: 'wrong' })
+      });
+      const pending = Array.from({ length: 5 }, login);
+      for (let i = 0; i < 100 && arrived < 5; i++) await new Promise((resolve) => setTimeout(resolve, 5));
+      assert.strictEqual(arrived, 5);
+      const overflow = await login();
+      assert.strictEqual(overflow.status, 429);
+      assert.strictEqual(arrived, 5);
+      release();
+      const responses = await Promise.all(pending);
+      assert.strictEqual(responses.filter((response) => response.status === 429).length, 1);
+    } finally { release(); await close(server); }
+  });
+
+  await test('API: un succès sur un autre compte ne remet pas à zéro les échecs de connexion', async () => {
+    const { service } = createService();
+    await service.signUp({ email: 'target@example.com', password: 'A-correct-passphrase-2026', username: 'Target_User' });
+    await service.signUp({ email: 'attacker@example.com', password: 'A-correct-passphrase-2026', username: 'Other_User' });
+    const server = http.createServer(createAccountHandler({ accountService: service, trustProxy: false }));
+    const base = await listen(server);
+    try {
+      const login = (email, password, spoofed) => fetch(`${base}/api/account/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': spoofed },
+        body: JSON.stringify({ email, password })
+      });
+      for (let i = 0; i < 4; i++) {
+        assert.strictEqual((await login('target@example.com', 'Wrong-password-2026', `198.51.100.${i + 1}`)).status, 401);
+        assert.strictEqual((await login('attacker@example.com', 'A-correct-passphrase-2026', '198.51.100.50')).status, 200);
+      }
+      assert.strictEqual((await login('target@example.com', 'Wrong-password-2026', '198.51.100.100')).status, 429);
+      assert.strictEqual((await login('attacker@example.com', 'A-correct-passphrase-2026', '198.51.100.101')).status, 429);
+    } finally { await close(server); }
+  });
+
   await test('API: limitation des échecs de connexion par client', async () => {
     const { service, auth } = createService();
     const signed = await service.signUp({ email: 'rate@example.com', password: 'A-correct-passphrase-2026', username: 'Rate_User' });

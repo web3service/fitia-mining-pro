@@ -52,6 +52,7 @@
       this.refreshPromise = null;
       this.profilePromise = null;
       this.profileRevision = 0;
+      this.sessionGeneration = 0;
       this.profileInputKey = '';
       this.initialized = false;
       this.canRetry = false;
@@ -249,12 +250,19 @@
 
     async request(action, options = {}) {
       const auth = options.auth !== false;
+      const generation = this.sessionGeneration;
+      const accessToken = auth ? this.session?.accessToken : null;
+      const sessionChanged = () => {
+        const error = new Error(this.t('accountServiceError', 'Account session changed.'));
+        error.code = 'ACCOUNT_SESSION_CHANGED'; error.status = 409;
+        return error;
+      };
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
       try {
         const headers = { Accept: 'application/json' };
         if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-        if (auth && this.session?.accessToken) headers.Authorization = `Bearer ${this.session.accessToken}`;
+        if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
         const response = await this.fetch(`${this.apiUrl}/${action}`, {
           method: options.method || (options.body === undefined ? 'GET' : 'POST'),
           headers,
@@ -264,8 +272,12 @@
         });
         let data = {};
         try { data = await response.json(); } catch (_) { /* Réponse vide ou invalide. */ }
+        if (auth && (this.sessionGeneration !== generation || (accessToken && !this.session))) throw sessionChanged();
         if (response.status === 401 && auth && options.retry !== false && this.session?.refreshToken) {
-          await this.refreshSession();
+          // A concurrent rotation may already have replaced this token. Never
+          // retry an operation after logout or under a different account.
+          if (this.session.accessToken === accessToken) await this.refreshSession();
+          if (this.sessionGeneration !== generation || !this.session) throw sessionChanged();
           return this.request(action, { ...options, retry: false });
         }
         if (!response.ok) {
@@ -289,6 +301,7 @@
       if (typeof accessToken !== 'string' || !accessToken || typeof refreshToken !== 'string' || !refreshToken
         || typeof userId !== 'string' || !userId) throw new Error('Invalid account session response');
       this.profileRevision += 1;
+      if (!options.preserveSessionGeneration) this.sessionGeneration += 1;
       this.session = {
         accessToken,
         refreshToken,
@@ -325,19 +338,22 @@
     async refreshSession() {
       if (this.refreshPromise) return this.refreshPromise;
       const refreshToken = this.session?.refreshToken;
+      const generation = this.sessionGeneration;
+      const userId = this.user?.userId || this.user?.id;
       if (!refreshToken) throw new Error('No account session');
       this.refreshPromise = (async () => {
         try {
           const result = await this.request('refresh', { auth: false, body: { refreshToken }, retry: false });
-          if (this.session?.refreshToken !== refreshToken) {
+          if (this.sessionGeneration !== generation || this.session?.refreshToken !== refreshToken
+            || (userId && (result?.user?.userId || result?.user?.id) !== userId)) {
             const changed = new Error(this.t('accountServiceError', 'Account session changed.'));
             changed.code = 'ACCOUNT_SESSION_CHANGED'; changed.status = 409;
             throw changed;
           }
-          await this.acceptSession(result, { notifyApp: false });
+          await this.acceptSession(result, { notifyApp: false, preserveSessionGeneration: true });
           return result;
         } catch (error) {
-          if (error.status === 401) await this.clearLocalSession();
+          if (error.status === 401 && this.sessionGeneration === generation && this.session?.refreshToken === refreshToken) await this.clearLocalSession();
           throw error;
         } finally { this.refreshPromise = null; }
       })();
@@ -698,7 +714,8 @@
         return;
       }
       const signer = this.app.signer;
-      const walletUnchanged = () => Boolean(this.session && this.app.signer === signer
+      const generation = this.sessionGeneration;
+      const walletUnchanged = () => Boolean(this.session && this.sessionGeneration === generation && this.app.signer === signer
         && String(this.app.user || '').toLowerCase() === walletAddress.toLowerCase());
       const changedError = () => new Error(this.t('accountWalletChanged', 'The wallet changed or was locked. Unlock it and try again.'));
       this.clearMessage();
@@ -727,6 +744,7 @@
       this.refreshTimer = null;
       const hadSession = Boolean(this.session || this.user);
       this.profileRevision += 1;
+      this.sessionGeneration += 1;
       this.session = null; this.user = null; this.confirmation = '';
       this.canRetry = false;
       ['account-login-email', 'account-signup-username', 'account-signup-email'].forEach((id) => {
@@ -742,10 +760,12 @@
     async logout() {
       if (this.busy) return;
       this.setBusy(true, 'account-logout-confirm');
+      const generation = this.sessionGeneration;
       try {
         if (this.session?.accessToken) {
           try { await this.request('logout', { body: {}, retry: false }); } catch (_) { /* Le jeton local est effacé dans tous les cas. */ }
         }
+        if (this.sessionGeneration !== generation) return;
         await this.clearLocalSession();
         this.mode = 'login'; this.clearMessage();
         this.render();

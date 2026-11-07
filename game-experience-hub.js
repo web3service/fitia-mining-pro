@@ -2,7 +2,7 @@
 
 // Production Hub presentation. Existing cards keep their real controllers and
 // the administrator visibility settings.
-window.setupGameHub = function setupGameHub() {
+window.setupGameHub = function setupGameHub(app) {
   const view = document.getElementById('view-hub');
   if (!view || view.querySelector('#game-hub-games')) return;
   const grid = view.querySelector('.hub-grid');
@@ -24,23 +24,32 @@ window.setupGameHub = function setupGameHub() {
     icon.appendChild(image);
   }
 
+  const descriptions = { farm: 'hubFarm', wheel: 'hubWheel', dice: 'hubDice', mines: 'hubMines', crash: 'hubCrash', 'coin-flip': 'hubFlip', swap: 'hubSwap' };
+  const defaults = { farm: 'Grow your FARM', wheel: 'Spin the wheel', dice: 'Choose your number', mines: 'Reveal safe tiles', crash: 'Watch the flight', 'coin-flip': 'Choose a side', swap: 'Exchange tokens' };
+  for (const [name, key] of Object.entries(descriptions)) {
+    const card = grid.querySelector(`.hub-card-${name}`);
+    if (!card) continue;
+    const description = document.createElement('span'); description.className = 'ph-card-description';
+    description.dataset.i18n = key; description.textContent = defaults[name]; card.appendChild(description);
+  }
+
   const gamesSection = document.createElement('section');
   gamesSection.id = 'game-hub-games';
   gamesSection.className = 'ph-section ph-games';
   gamesSection.setAttribute('aria-labelledby', 'ph-games-title');
   gamesSection.hidden = true;
-  gamesSection.innerHTML = `<div class="ph-game-header"><button id="ph-back-hub" class="ph-back" type="button" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7M8 12h11"/></svg></button><div class="ph-heading"><div><span>FITIA GAMES</span><h3 id="ph-games-title">Games</h3><p>Choose your game.</p></div></div></div><div class="hub-grid ph-games-grid"></div>`;
+  gamesSection.innerHTML = `<div class="ph-game-header"><button id="ph-back-hub" class="ph-back" type="button" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7M8 12h11"/></svg></button><div class="ph-heading"><div><span>FITIA GAMES</span><h3 id="ph-games-title" data-i18n="hubGames">Games</h3><p data-i18n="hubGamesDescription">Choose your game.</p></div></div></div><div class="hub-grid ph-games-grid"></div>`;
   const gameGrid = gamesSection.querySelector('.hub-grid');
   games.forEach(card => gameGrid.appendChild(card));
 
   const serviceSection = document.createElement('section');
   serviceSection.className = 'ph-section ph-services';
   serviceSection.setAttribute('aria-labelledby', 'ph-services-title');
-  serviceSection.innerHTML = `<div class="ph-heading"><div><span>EXPLORE</span><h3 id="ph-services-title">Services</h3><p>Additional tools.</p></div></div><div class="hub-grid ph-service-grid"></div>`;
+  serviceSection.innerHTML = `<div class="ph-heading"><div><span data-i18n="hubExplore">EXPLORE</span><h3 id="ph-services-title" data-i18n="hubServices">Services</h3><p data-i18n="hubServicesDescription">Additional tools.</p></div></div><div class="hub-grid ph-service-grid"></div>`;
   serviceSection.querySelector('.hub-grid').appendChild(swap);
   const landing = document.createElement('div');
   landing.id = 'game-hub-landing';
-  landing.innerHTML = `<section class="ph-section ph-gateway" aria-labelledby="ph-gateway-title"><div class="ph-heading"><div><span>DISCOVER</span><h3 id="ph-gateway-title">FITIA universe</h3><p>Choose a category.</p></div></div><button id="ph-open-games" class="ph-gateway-card" type="button" aria-controls="game-hub-games" aria-expanded="false"><img src="assets/games/hub-games.jpg" alt="" draggable="false"><span class="ph-gateway-copy"><small>FITIA GAMES</small><strong>Games</strong><span>FARM and arcade games</span><b>Explore games</b></span></button></section>`;
+  landing.innerHTML = `<section class="ph-section ph-gateway" aria-labelledby="ph-gateway-title"><div class="ph-heading"><div><span data-i18n="hubDiscover">DISCOVER</span><h3 id="ph-gateway-title" data-i18n="hubUniverse">FITIA universe</h3><p data-i18n="hubChooseCategory">Choose a category.</p></div></div><button id="ph-open-games" class="ph-gateway-card" type="button" aria-controls="game-hub-games" aria-expanded="false"><img src="assets/games/hub-games.jpg" alt="" draggable="false"><span class="ph-gateway-copy"><small>FITIA GAMES</small><strong data-i18n="hubGames">Games</strong><span data-i18n="hubGamesSummary">FARM and arcade games</span><b data-i18n="hubExploreGames">Explore games</b></span></button></section>`;
   landing.appendChild(serviceSection);
   grid.replaceWith(landing, gamesSection);
   const open = landing.querySelector('#ph-open-games');
@@ -86,6 +95,23 @@ window.setupGameHub = function setupGameHub() {
     .ph-services{padding-top:3px;border-top:1px solid #ffffff13}
     .ph-services .ph-heading{padding-top:14px}
     .ph-services .ph-heading>div>span{color:#8ebdec}
+    /* Hub refresh: clear hierarchy, larger tap targets and consistent cards. */
+    #view-hub .hub-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px;padding:20px;border:1px solid #e8be6730;border-radius:20px;background:radial-gradient(circle at 100% 0,#d4a64624,transparent 50%),linear-gradient(135deg,#1b283c,#101927);box-shadow:0 16px 32px #0003}
+    #view-hub .hub-header h2{margin:4px 0;font-size:27px;letter-spacing:-.04em}
+    #view-hub .hub-header p{margin:0;color:#aebed0;font-size:11px;line-height:1.45}
+    .hub-header-mark{display:grid;place-items:center;width:46px;height:46px;flex:none;border:1px solid #d5ac5a5c;border-radius:15px;background:#d9ad4c15;color:#efce83;font-size:21px}
+    .ph-heading{margin-bottom:14px}.ph-heading h3{font-size:19px}.ph-heading p{font-size:12px}
+    .ph-gateway-card{min-height:168px;border-color:#e2bf7450;background:radial-gradient(circle at 20% 30%,#e9bc6d1c,transparent 44%),linear-gradient(135deg,#202b3e,#0e1828)}
+    .ph-gateway-card>img{width:124px;height:124px;border-radius:14px}.ph-gateway-copy strong{font-size:24px}.ph-gateway-copy b{padding:9px 12px}
+    .ph-games-grid .hub-card,.ph-services .hub-card{min-height:152px;padding:16px;border:1px solid #ffffff1c;border-radius:17px;background:linear-gradient(145deg,#202d40,#111b2b);box-shadow:0 10px 24px #0003}
+    .ph-games-grid .hub-card strong,.ph-services .hub-card strong{margin:12px 0 3px;color:#f5f7fb;font-size:13px;line-height:1.25}
+    .ph-games-grid .hub-card .hub-card-icon{width:52px;height:52px;flex-basis:52px;border-radius:14px}
+    .ph-card-description{color:#a7b5c8;font-size:10px;line-height:1.35;text-align:left}
+    .ph-services .hub-card{min-height:100px;flex-direction:row;align-items:center;gap:12px}.ph-services .hub-card strong{margin:0}.ph-services .hub-card .ph-card-description{margin-left:auto;margin-right:18px;text-align:right}
+    .ph-games-grid .hub-card:focus-visible,.ph-services .hub-card:focus-visible{outline:2px solid #eac775;outline-offset:3px}
+    @media(max-width:360px){#view-hub .hub-header{padding:16px}.ph-gateway-card>img{width:88px;height:88px}.ph-gateway-card{min-height:135px}.ph-games-grid .hub-card{min-height:142px;padding:12px}}
+
   `;
   document.head.appendChild(style);
+  app?.applyTranslations?.();
 };

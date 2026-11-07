@@ -23,6 +23,7 @@ const CONFIG = {
 // ─── Traductions i18n (5 langues) ──────────────────────────────────
 const i18n = {
   fr: {
+    hubIntro: 'Vos jeux et outils réunis au même endroit.', hubGames: 'Jeux', hubGamesDescription: 'Choisissez votre jeu.', hubExplore: 'EXPLORER', hubServices: 'Services', hubServicesDescription: 'Outils complémentaires.', hubDiscover: 'DÉCOUVRIR', hubUniverse: 'Univers FITIA', hubChooseCategory: 'Choisissez une catégorie.', hubGamesSummary: 'FARM et jeux d’arcade', hubExploreGames: 'Explorer les jeux', hubFarm: 'Développez votre FARM', hubWheel: 'Tournez la roue', hubDice: 'Choisissez votre numéro', hubMines: 'Révélez les cases sûres', hubCrash: 'Suivez le vol', hubFlip: 'Choisissez une face', hubSwap: 'Échangez des jetons',
     createNewWallet: "CRÉER UN PORTEFEUILLE",
     importExistingWallet: "J'ai déjà un portefeuille (12 mots / Clé)",
     downloadApkTitle: "Télécharger l'application Android (.APK)",
@@ -430,6 +431,7 @@ const i18n = {
     activityClaimDescription: "Récompenses de minage FITIA"
   },
   en: {
+    hubIntro: 'Your games and tools, in one place.', hubGames: 'Games', hubGamesDescription: 'Choose your game.', hubExplore: 'EXPLORE', hubServices: 'Services', hubServicesDescription: 'Additional tools.', hubDiscover: 'DISCOVER', hubUniverse: 'FITIA universe', hubChooseCategory: 'Choose a category.', hubGamesSummary: 'FARM and arcade games', hubExploreGames: 'Explore games', hubFarm: 'Grow your FARM', hubWheel: 'Spin the wheel', hubDice: 'Choose your number', hubMines: 'Reveal safe tiles', hubCrash: 'Watch the flight', hubFlip: 'Choose a side', hubSwap: 'Exchange tokens',
     createNewWallet: "CREATE NEW WALLET",
     importExistingWallet: "I already have a wallet (12 words / Key)",
     downloadApkTitle: "Download Android App (.APK)",
