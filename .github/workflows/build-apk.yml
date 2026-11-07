@@ -1,6 +1,9 @@
 name: Build signed Android APK
 
 on:
+  push:
+    branches:
+      - arena/08f09349-fitia-mining-pro
   workflow_dispatch:
     inputs:
       commit_build:

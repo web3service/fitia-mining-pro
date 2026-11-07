@@ -38,6 +38,7 @@ const toasts = []; const transfers = []; let transferHook = null;
 const pinSecret = { privateKey: 'temporary-test-secret', mnemonic: 'temporary-test-phrase' };
 const app = {
   user: wallet.address, signer: wallet,
+  mfaClient: { operation: async () => ({ required: false }) },
   ftaToken: {
     balanceOf: async () => ethers.parseUnits('10000', 8),
     transfer: async (to, units) => {

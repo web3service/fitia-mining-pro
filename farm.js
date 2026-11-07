@@ -520,7 +520,12 @@
       if (!Number.isSafeInteger(coins) || coins < Config.MIN_WITHDRAW_COINS || coins > Config.MAX_WITHDRAW_COINS || coins % Config.COINS_PER_FTA !== 0) { this.showError({ code: 'FARM_AMOUNT' }); return; }
       this.operation = true;
       try {
-        const data = await this.request('withdraw', { actionId: uuid(), coins }); this.applyView(data); this.closeDialog();
+        const session = this.session; const wallet = this.account; const actionId = uuid();
+        if (!this.app.mfaClient) throw new Error('Security verification unavailable.');
+        const approval = await this.app.mfaClient.operation(wallet, `${coins} coins · FARM withdrawal`, 'farm');
+        if (!approval) return;
+        this.assertSession(session);
+        const data = await this.request('withdraw', { actionId, coins, ...(approval.required ? { mfaCode: approval.code } : {}) }); this.applyView(data); this.closeDialog();
         this.app.showToast('Withdrawal requested. Follow its status here in FITIA FARM.'); this.setTab('overview');
       } catch (error) { this.showError(error); }
       finally { this.operation = false; this.render(); }

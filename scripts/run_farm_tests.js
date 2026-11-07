@@ -282,6 +282,12 @@ async function expectCode(promise, code) {
     const before = (await service.view(buyer)).state.coins;
     await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 100 })), 'FARM_AMOUNT');
     await expectCode(service.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 900 })), 'FARM_AMOUNT');
+    const guarded = createFarmService({ repository, now: () => new Date(nowMs), withdrawalGuard: async ({ wallet: actual, coins, code }) => {
+      assert.strictEqual(actual, buyer); assert.strictEqual(coins, 1000); assert.strictEqual(code, undefined);
+      throw new FarmError(403, 'Code requis', 'FARM_MFA_REQUIRED');
+    } });
+    await expectCode(guarded.withdraw(await signed('withdraw', wallet, { actionId: actionId(), coins: 1000 })), 'FARM_MFA_REQUIRED');
+    assert.strictEqual((await service.view(buyer)).state.coins, before);
     const id = actionId();
     const result = await service.withdraw(await signed('withdraw', wallet, { actionId: id, coins: 1000 }));
     assert.strictEqual(result.state.coins, before - 1000);

@@ -740,6 +740,7 @@
     }
 
     async clearLocalSession() {
+      this.app.mfaClient?.close();
       if (this.refreshTimer) clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
       const hadSession = Boolean(this.session || this.user);
@@ -759,6 +760,10 @@
 
     async logout() {
       if (this.busy) return;
+      if (this.app.mfaClient && !this.app.mfaClient.canLeaveSetup()) {
+        this.showMessage(this.t('mfaSaveBeforeExit', 'Save your recovery codes and confirm before leaving.'), true, 'profile');
+        return;
+      }
       this.setBusy(true, 'account-logout-confirm');
       const generation = this.sessionGeneration;
       try {

@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://app.fitia.pro',
   'https://fitia-mining-pro.vercel.app'
 ]);
-const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password']);
+const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password', 'mfa-status', 'mfa-begin', 'mfa-confirm', 'mfa-disable', 'mfa-verify']);
 
 function setHeaders(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -93,6 +93,11 @@ function getAccessToken(req) {
 
 function createAccountHandler(options = {}) {
   let service = options.accountService || null;
+  const mfa = () => {
+    if (options.mfaController) return options.mfaController;
+    const configured = require('../mfa/default-service');
+    return configured.enabled() ? configured.getDefaultMfa().controller : null;
+  };
   const failures = options.failures || new Map();
   const inFlight = new Map();
   // Hors Vercel, un proxy ne doit être approuvé que par configuration explicite.
@@ -143,6 +148,14 @@ function createAccountHandler(options = {}) {
       if (origin && !ALLOWED_ORIGINS.has(origin)) throw new AccountError(403, 'Origine non autorisée.', 'ACCOUNT_ORIGIN');
       const action = getAction(req);
       if (!ACTIONS.has(action)) throw new AccountError(404, 'Action de compte introuvable.', 'ACCOUNT_NOT_FOUND');
+      // MFA remains inaccessible in production until operation enforcement is
+      // complete and the feature flag is explicitly enabled; tests may inject one.
+      if (action.startsWith('mfa-') && !mfa()) throw new AccountError(404, 'Action de compte introuvable.', 'ACCOUNT_NOT_FOUND');
+      if (action === 'mfa-status') {
+        if (req.method !== 'GET') throw new AccountError(405, 'Méthode non autorisée.', 'ACCOUNT_METHOD');
+        send(res, 200, await mfa().status(getAccessToken(req)));
+        return;
+      }
       if (action === 'session') {
         if (req.method !== 'GET') throw new AccountError(405, 'Méthode non autorisée.', 'ACCOUNT_METHOD');
         send(res, 200, await account().session(getAccessToken(req)));
@@ -150,6 +163,14 @@ function createAccountHandler(options = {}) {
       }
       if (req.method !== 'POST') throw new AccountError(405, 'Méthode non autorisée.', 'ACCOUNT_METHOD');
       const body = await readJson(req);
+      if (action === 'mfa-begin') {
+        send(res, 200, await withAuthRateLimit(req, () => mfa().begin(getAccessToken(req), body.currentPassword))); return;
+      }
+      if (action === 'mfa-verify') { send(res, 200, await mfa().verifyOperation(getAccessToken(req), body.wallet, body.code)); return; }
+      if (action === 'mfa-confirm') { send(res, 200, await mfa().confirm(getAccessToken(req), body.code)); return; }
+      if (action === 'mfa-disable') {
+        send(res, 200, await withAuthRateLimit(req, () => mfa().disable(getAccessToken(req), body.currentPassword, body.code))); return;
+      }
       if (action === 'signup') {
         send(res, 201, await account().signUp(body));
         return;
