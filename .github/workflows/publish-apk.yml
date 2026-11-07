@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - main
-      - arena/08f09349-fitia-mining-pro
     paths:
       - FITIA-PRO-Miner.apk
       - update-current.json
@@ -55,4 +54,6 @@ jobs:
             gh release create "$tag" --title "FITIA PRO ${tag#v}" --notes "Security and feature improvements."
           fi
           gh release upload "$tag" FITIA-PRO-Miner.apk --clobber
-          echo 'Release remains a draft until production verification.'
+          if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == "true" ]]; then
+            gh release edit "$tag" --draft=false
+          fi
