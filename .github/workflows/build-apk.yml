@@ -1,6 +1,9 @@
 name: Build signed Android APK
 
 on:
+  push:
+    branches: [arena/b3b7c938-fitia-mining-pro]
+    paths: [.github/workflows/build-apk.yml]
   workflow_dispatch:
     inputs:
       commit_build:
