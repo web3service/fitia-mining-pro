@@ -9,7 +9,7 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x91cdec);
     scene.fog = new THREE.FogExp2(0xc2dce0, 0.011);
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 180);
+    const camera = new THREE.OrthographicCamera(-12, 12, 12, -12, 0.1, 180);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 1.7));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -18,7 +18,7 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.className = 'farm-webgl-canvas';
-    renderer.domElement.setAttribute('aria-label', 'Interactive 3D farm. Drag to orbit, pinch or scroll to zoom, tap an animal or crop to select it.');
+    renderer.domElement.setAttribute('aria-label', 'Ferme 3D isométrique. Glisser pour tourner, pincer pour zoomer, toucher un élément pour le sélectionner.');
     renderer.domElement.setAttribute('role', 'img');
     renderer.domElement.tabIndex = 0;
     container.appendChild(renderer.domElement);
@@ -107,11 +107,12 @@
     box(world, lawnMaterial, [0, 0.19, 0], [18.2, 0.12, 13.2]);
 
     // Six vraies parcelles labourées avec rangées et bordures en bois.
-    const plotPositions = [];
+    const plotPositions = []; const plotMeshes = [];
     for (let i = 0; i < 6; i += 1) {
       const x = -5.4 + (i % 2) * 3.25; const z = -2.4 + Math.floor(i / 2) * 2.55;
       plotPositions.push([x, 0.32, z]);
-      box(world, fieldMaterial, [x, 0.3, z], [2.75, 0.18, 1.95]);
+      const plotMesh = box(world, fieldMaterial, [x, 0.3, z], [2.75, 0.18, 1.95]);
+      plotMesh.userData = { kind: 'plot', id: i }; plotMeshes.push(plotMesh);
       for (let row = -1; row <= 1; row += 1) box(world, M.darkSoil, [x + row * 0.7, 0.405, z], [0.14, 0.05, 1.65]);
       box(world, M.wood, [x - 1.44, 0.42, z], [0.12, 0.25, 2.15]);
       box(world, M.wood, [x + 1.44, 0.42, z], [0.12, 0.25, 2.15]);
@@ -134,7 +135,7 @@
     fenceLine([7.8, 0, -1.8], 5, 1.76, false);
 
     // Grange avec toit à deux pans, portes, croisillons et bottes de paille.
-    const barn = new THREE.Group(); barn.position.set(3.8, 0.25, -4.45); world.add(barn);
+    const barn = new THREE.Group(); barn.position.set(3.8, 0.25, -4.45); barn.userData = { kind: 'building', id: 'barn' }; world.add(barn);
     box(barn, M.barn, [0, 1.45, 0], [4.3, 2.9, 2.8]);
     const gableShape = new THREE.Shape(); gableShape.moveTo(-2.15, 0); gableShape.lineTo(0, 1.55); gableShape.lineTo(2.15, 0); gableShape.closePath();
     geometries.gable = new THREE.ShapeGeometry(gableShape);
@@ -159,7 +160,7 @@
 
     // Maison de ferme, cheminées et fumée douce.
     const smokePuffs = [];
-    const house = new THREE.Group(); house.position.set(-0.35, 0.25, -4.6); world.add(house);
+    const house = new THREE.Group(); house.position.set(-0.35, 0.25, -4.6); house.userData = { kind: 'building', id: 'care' }; world.add(house);
     box(house, M.plaster, [0, 1.05, 0], [2.55, 2.1, 2.1]);
     mesh(geometries.gable, M.plaster, house, [0, 2.05, 1.055], [0.58, 0.67, 1]);
     box(house, M.blueRoof, [-0.66, 2.45, 0], [1.6, 0.14, 2.55], [0, 0, 0.58]);
@@ -181,7 +182,7 @@
     }
 
     // Petit tracteur utilitaire près de la grange.
-    const tractor = new THREE.Group(); tractor.position.set(5.3, 0.48, -2.25); tractor.rotation.y = -0.35; world.add(tractor);
+    const tractor = new THREE.Group(); tractor.position.set(5.3, 0.48, -2.25); tractor.rotation.y = -0.35; tractor.userData = { kind: 'building', id: 'tractor' }; world.add(tractor);
     box(tractor, M.tractor, [0, 0.62, 0.2], [1.25, 0.62, 1.55]);
     box(tractor, M.tractor, [0, 1.25, -0.32], [1.05, 1.05, 0.85]);
     box(tractor, M.blueRoof, [0, 1.85, -0.32], [1.3, 0.12, 1.05]);
@@ -193,8 +194,16 @@
     }
     const tractorBeacon = ball(tractor, M.yellow, [0, 2.02, -0.35], [0.1, 0.12, 0.1]);
 
+    // Puits d'entretien, sélectionnable depuis la scène.
+    const well = new THREE.Group(); well.position.set(-8.35, 0.25, 0.4); well.userData = { kind: 'building', id: 'well' }; world.add(well);
+    cylinder(well, M.stone, [0, 0.43, 0], [0.78, 0.85, 0.78]);
+    cylinder(well, M.water, [0, 0.88, 0], [0.6, 0.04, 0.6]);
+    for (const x of [-0.72, 0.72]) box(well, M.woodDark, [x, 1.32, 0], [0.13, 2.2, 0.13]);
+    box(well, M.roof, [0, 2.4, 0], [1.75, 0.16, 1.55]);
+    box(well, M.wood, [0, 1.75, 0], [1.4, 0.12, 0.12]);
+
     // Moulin animé et silo métallique.
-    const windmill = new THREE.Group(); windmill.position.set(-6.7, 0.25, -4.65); world.add(windmill);
+    const windmill = new THREE.Group(); windmill.position.set(-6.7, 0.25, -4.65); windmill.userData = { kind: 'building', id: 'mill' }; world.add(windmill);
     mesh(new THREE.CylinderGeometry(0.42, 0.78, 4.4, 10), M.stone, windmill, [0, 2.2, 0]);
     cone(windmill, M.roof, [0, 4.7, 0], [0.82, 1.05, 0.82]);
     const rotor = new THREE.Group(); rotor.position.set(0, 3.65, 0.62); windmill.add(rotor);
@@ -204,9 +213,10 @@
       box(blade, M.woodDark, [0, 1.25, 0], [0.12, 2.5, 0.1]);
       box(blade, M.white, [0.28, 1.55, 0], [0.48, 1.45, 0.07], [0, 0, -0.12]);
     }
-    cylinder(world, M.metal, [7.1, 1.65, -4.6], [0.9, 2.9, 0.9]);
-    cone(world, M.roof, [7.1, 3.55, -4.6], [1.02, 0.85, 1.02]);
-    for (const y of [0.75, 1.55, 2.35]) mesh(geometries.torus, M.white, world, [7.1, y, -4.6], [0.91, 0.91, 0.91], [Math.PI / 2, 0, 0]);
+    const silo = new THREE.Group(); silo.position.set(7.1, 0, -4.6); silo.userData = { kind: 'building', id: 'silo' }; world.add(silo);
+    cylinder(silo, M.metal, [0, 1.65, 0], [0.9, 2.9, 0.9]);
+    cone(silo, M.roof, [0, 3.55, 0], [1.02, 0.85, 1.02]);
+    for (const y of [0.75, 1.55, 2.35]) mesh(geometries.torus, M.white, silo, [0, y, 0], [0.91, 0.91, 0.91], [Math.PI / 2, 0, 0]);
 
     function tree(x, z, scale = 1) {
       const group = new THREE.Group(); group.position.set(x, 0, z); group.scale.setScalar(scale); world.add(group);
@@ -320,6 +330,40 @@
       root.scale.setScalar(0.83); return root;
     }
 
+    function createGoat(id, position, phase) {
+      const root = animalRoot('animal', id, 'goat', position, phase);
+      root.userData.body = ball(root, M.tan, [0, 1.02, 0], [0.58, 0.53, 0.85]);
+      const head = new THREE.Group(); head.position.set(0, 1.35, 0.8); root.add(head); root.userData.head = head;
+      ball(head, M.tan, [0, 0, 0.1], [0.32, 0.42, 0.42]);
+      ball(head, M.white, [0, -0.2, 0.4], [0.25, 0.2, 0.25]);
+      cone(head, M.white, [0, -0.5, 0.3], [0.12, 0.4, 0.12], [0, 0, Math.PI]);
+      for (const x of [-0.28, 0.28]) {
+        ball(head, M.eye, [x, 0.1, 0.38], [0.04, 0.05, 0.04]);
+        cone(head, M.woodDark, [x, 0.48, -0.03], [0.09, 0.45, 0.09], [0, 0, x > 0 ? -0.25 : 0.25]);
+        ball(head, M.tan, [x * 1.5, 0.05, 0], [0.25, 0.08, 0.13]);
+      }
+      for (const x of [-0.38, 0.38]) for (const z of [-0.55, 0.55]) {
+        const leg = cylinder(root, M.tan, [x, 0.43, z], [0.085, 0.78, 0.085]); root.userData.legs.push(leg);
+        cylinder(root, M.hoof, [x, 0.08, z], [0.1, 0.17, 0.12]);
+      }
+      root.scale.setScalar(0.82); return root;
+    }
+    function createDuck(id, position, phase) {
+      const root = animalRoot('animal', id, 'duck', position, phase);
+      root.userData.body = ball(root, M.white, [0, 0.68, 0], [0.47, 0.4, 0.7]);
+      ball(root, M.tan, [-0.4, 0.73, -0.12], [0.12, 0.25, 0.4]);
+      ball(root, M.tan, [0.4, 0.73, -0.12], [0.12, 0.25, 0.4]);
+      const head = new THREE.Group(); head.position.set(0, 1.05, 0.42); root.add(head); root.userData.head = head;
+      ball(head, M.white, [0, 0.1, 0], [0.27, 0.29, 0.28]);
+      box(head, M.orange, [0, 0.02, 0.34], [0.25, 0.08, 0.35]);
+      for (const x of [-0.18, 0.18]) ball(head, M.eye, [x, 0.18, 0.18], [0.04, 0.05, 0.04]);
+      for (const x of [-0.2, 0.2]) {
+        const leg = cylinder(root, M.orange, [x, 0.25, 0], [0.04, 0.35, 0.04]); root.userData.legs.push(leg);
+        box(root, M.orange, [x, 0.07, 0.1], [0.22, 0.05, 0.25]);
+      }
+      root.scale.setScalar(0.82); return root;
+    }
+
     function createCrop(crop, position) {
       const root = new THREE.Group(); root.position.set(...position); root.userData = { kind: 'crop', id: crop.id, species: crop.species, data: crop, phase: Math.random() * 6 };
       const halo = mesh(geometries.torus, readyMaterial, root, [0, 0.12, 0], [1.05, 1.05, 1.05], [Math.PI / 2, 0, 0]);
@@ -332,6 +376,16 @@
           cylinder(plants, M.leafLight, [x, height / 2, z], [0.026, height, 0.026]);
           cone(plants, M.yellow, [x, height + 0.13, z], [0.085, 0.34, 0.085]);
           for (const side of [-1, 1]) box(plants, M.leaf, [x + side * 0.09, height * 0.55, z], [0.18, 0.025, 0.07], [0, 0, side * 0.5]);
+        } else if (crop.species === 'maize') {
+          cylinder(plants, M.leaf, [x, 0.55, z], [0.045, 1.1, 0.045]);
+          ball(plants, M.yellow, [x + 0.1, 0.62, z], [0.12, 0.24, 0.11]);
+          for (const side of [-1, 1]) box(plants, M.leafLight, [x + side * 0.16, 0.53, z], [0.32, 0.035, 0.09], [0, 0, side * 0.38]);
+        } else if (crop.species === 'tomato') {
+          cylinder(plants, M.leaf, [x, 0.42, z], [0.045, 0.84, 0.045]);
+          for (const side of [-1, 1]) {
+            box(plants, M.leafLight, [x + side * 0.13, 0.57, z], [0.24, 0.035, 0.12], [0, 0, side * 0.25]);
+            ball(plants, M.red, [x + side * 0.12, 0.34, z + 0.05], [0.13, 0.12, 0.13]);
+          }
         } else {
           cone(plants, M.orange, [x, 0.16, z], [0.11, 0.36, 0.11], [0, 0, Math.PI]);
           for (let leaf = 0; leaf < 4; leaf += 1) {
@@ -344,13 +398,29 @@
       cropsGroup.add(root); return root;
     }
 
+    // Purely visual level rewards. They are never selectable or tradable.
+    const rewardFlowers = new THREE.Group(); rewardFlowers.name = 'farm-reward-flowers'; world.add(rewardFlowers);
+    for (let i = 0; i < 9; i += 1) {
+      const x = -2.5 + i * 0.42;
+      cylinder(rewardFlowers, M.leaf, [x, 0.48, 6.1], [0.035, 0.35, 0.035]);
+      ball(rewardFlowers, i % 2 ? M.flowerPink : M.flowerWhite, [x, 0.69, 6.1], [0.13, 0.12, 0.13]);
+    }
+    const rewardLanterns = new THREE.Group(); rewardLanterns.name = 'farm-reward-lanterns'; world.add(rewardLanterns);
+    for (const x of [-1.6, 1.6]) {
+      cylinder(rewardLanterns, M.woodDark, [x, 0.9, 6.25], [0.08, 1.2, 0.08]);
+      box(rewardLanterns, M.water, [x, 1.55, 6.25], [0.32, 0.42, 0.32]);
+      box(rewardLanterns, M.roof, [x, 1.8, 6.25], [0.42, 0.08, 0.42]);
+    }
+    rewardFlowers.visible = false; rewardLanterns.visible = false;
     let currentState = null; let stateSignature = ''; let selected = null;
     const selectionRing = mesh(geometries.torus, selectMaterial, world, [0, 0.48, 0], [1.25, 1.25, 1.25], [Math.PI / 2, 0, 0]);
     selectionRing.visible = false; selectionRing.castShadow = false;
     function clearGroup(group) { while (group.children.length) group.remove(group.children[group.children.length - 1]); }
     function setState(state) {
       currentState = state;
-      const signature = JSON.stringify({ animals: (state?.animals || []).map((a) => [a.id, a.species]), crops: (state?.crops || []).map((c) => [c.id, c.species]) });
+      const level = globalThis.FitiaFarmConfig.progressLevel(state?.farmProgress);
+      rewardFlowers.visible = level >= 2; rewardLanterns.visible = level >= 3;
+      const signature = JSON.stringify({ animals: (state?.animals || []).map((a) => [a.id, a.species]), crops: (state?.crops || []).map((c) => [c.id, c.species, c.plot]) });
       if (signature === stateSignature) {
         animalsGroup.children.forEach((root) => { root.userData.data = state.animals.find((a) => a.id === root.userData.id); });
         cropsGroup.children.forEach((root) => { root.userData.data = state.crops.find((c) => c.id === root.userData.id); });
@@ -360,31 +430,41 @@
       (state?.animals || []).forEach((animal, index) => {
         const col = index % 3; const row = Math.floor(index / 3);
         const position = [2.35 + col * 1.85, -0.65 + row * 1.55];
-        if (animal.species === 'cow') createCow(animal.id, position, index + 1);
+        if (animal.species === 'goat') createGoat(animal.id, position, index + 1);
+        else if (animal.species === 'duck') createDuck(animal.id, position, index + 1);
+        else if (animal.species === 'cow') createCow(animal.id, position, index + 1);
         else if (animal.species === 'sheep') createSheep(animal.id, position, index + 1);
         else createChicken(animal.id, position, index + 1);
       });
       animalsGroup.children.forEach((root) => { root.userData.data = state.animals.find((a) => a.id === root.userData.id); });
-      (state?.crops || []).slice(0, 6).forEach((crop, index) => createCrop(crop, plotPositions[index]));
+      (state?.crops || []).slice(0, 6).forEach((crop, index) => createCrop(crop, plotPositions[Number.isInteger(crop.plot) && crop.plot >= 0 && crop.plot < plotPositions.length ? crop.plot : index]));
       if (typeof options.onStateRendered === 'function') options.onStateRendered();
     }
 
-    // Orbite tactile et souris, avec inertie douce et zoom par pincement.
-    const orbit = { theta: 0.72, phi: 0.76, radius: 30, target: new THREE.Vector3(0, 0.7, 0) };
+    // Orthographic isometric projection: 45° azimuth and 35.264° elevation.
+    // The user may rotate between quarter-turns; pitch stays isometric.
+    const ISO_THETA = Math.PI / 4; const ISO_PHI = Math.acos(1 / Math.sqrt(3));
+    let width = 1; let height = 1;
+    const orbit = { theta: ISO_THETA, phi: ISO_PHI, radius: 30, target: new THREE.Vector3(0, 0.7, 0) };
     const goal = { theta: orbit.theta, phi: orbit.phi, radius: orbit.radius, target: orbit.target.clone() };
-    const pointers = new Map(); let pinchDistance = 0; let moved = 0; let downAt = 0;
+    const pointers = new Map(); let pinchDistance = 0; let moved = 0; let downAt = 0; let wasMultiTouch = false;
     const raycaster = new THREE.Raycaster(); const pointerNdc = new THREE.Vector2();
-    function clampOrbit() { goal.phi = Math.max(0.32, Math.min(1.35, goal.phi)); goal.radius = Math.max(7, Math.min(34, goal.radius)); }
+    function clampOrbit() { goal.phi = ISO_PHI; goal.radius = Math.max(7, Math.min(34, goal.radius)); }
     function updateCamera() {
       orbit.theta += (goal.theta - orbit.theta) * 0.095; orbit.phi += (goal.phi - orbit.phi) * 0.095;
       orbit.radius += (goal.radius - orbit.radius) * 0.095; orbit.target.lerp(goal.target, 0.095);
-      const sinPhi = Math.sin(orbit.phi);
+      const sinPhi = Math.sin(orbit.phi); const distance = 40;
       camera.position.set(
-        orbit.target.x + orbit.radius * sinPhi * Math.sin(orbit.theta),
-        orbit.target.y + orbit.radius * Math.cos(orbit.phi),
-        orbit.target.z + orbit.radius * sinPhi * Math.cos(orbit.theta)
+        orbit.target.x + distance * sinPhi * Math.sin(orbit.theta),
+        orbit.target.y + distance * Math.cos(orbit.phi),
+        orbit.target.z + distance * sinPhi * Math.cos(orbit.theta)
       );
       camera.lookAt(orbit.target);
+      const aspect = Math.max(0.01, width / height);
+      // Keep the same minimum horizontal coverage on narrow phone screens.
+      const halfHeight = orbit.radius * Math.tan(21 * Math.PI / 180) * Math.max(1, 1 / aspect);
+      camera.left = -halfHeight * aspect; camera.right = halfHeight * aspect;
+      camera.top = halfHeight; camera.bottom = -halfHeight; camera.updateProjectionMatrix();
     }
     function pointerDistance() {
       const values = Array.from(pointers.values()); if (values.length < 2) return 0;
@@ -393,13 +473,14 @@
     function onPointerDown(event) {
       renderer.domElement.setPointerCapture?.(event.pointerId);
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY });
-      moved = 0; downAt = performance.now(); if (pointers.size === 2) pinchDistance = pointerDistance();
+      if (pointers.size === 1) { moved = 0; downAt = performance.now(); wasMultiTouch = false; }
+      if (pointers.size >= 2) { wasMultiTouch = true; pinchDistance = pointerDistance(); }
     }
     function onPointerMove(event) {
       const previous = pointers.get(event.pointerId); if (!previous) return;
       const dx = event.clientX - previous.x; const dy = event.clientY - previous.y;
       pointers.set(event.pointerId, { ...previous, x: event.clientX, y: event.clientY }); moved += Math.abs(dx) + Math.abs(dy);
-      if (pointers.size === 1) { goal.theta -= dx * 0.006; goal.phi += dy * 0.0045; }
+      if (pointers.size === 1) { goal.theta -= dx * 0.006; }
       else if (pointers.size >= 2) { const distance = pointerDistance(); if (pinchDistance && distance) goal.radius *= pinchDistance / distance; pinchDistance = distance; }
       clampOrbit();
     }
@@ -407,23 +488,30 @@
       const rect = renderer.domElement.getBoundingClientRect();
       pointerNdc.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
       raycaster.setFromCamera(pointerNdc, camera);
-      const hits = raycaster.intersectObjects([animalsGroup, cropsGroup], true);
+      const hits = raycaster.intersectObjects([animalsGroup, cropsGroup, ...plotMeshes, barn, windmill, tractor, silo, well, house], true);
       let root = null;
       for (const hit of hits) { let candidate = hit.object; while (candidate && !candidate.userData.kind) candidate = candidate.parent; if (candidate?.userData.kind) { root = candidate; break; } }
       selected = root;
       if (root) {
+        if (root.userData.kind === 'plot') {
+          const crop = (currentState?.crops || []).find((item, index) => (Number.isInteger(item.plot) ? item.plot : index) === root.userData.id);
+          if (crop) root = cropsGroup.children.find((item) => item.userData.id === crop.id) || root;
+        }
+        selected = root;
         selectionRing.visible = true; selectionRing.position.set(root.position.x, 0.52, root.position.z);
         if (typeof options.onSelect === 'function') options.onSelect({ kind: root.userData.kind, id: root.userData.id, species: root.userData.species });
       } else selectionRing.visible = false;
     }
     function onPointerUp(event) {
       const point = pointers.get(event.pointerId); pointers.delete(event.pointerId); pinchDistance = pointerDistance();
-      if (point && pointers.size === 0 && moved < 9 && performance.now() - downAt < 500) selectAt(event);
+      if (point && pointers.size === 0 && !wasMultiTouch && moved < 9 && performance.now() - downAt < 500) selectAt(event);
+      else if (pointers.size === 0) goal.theta = ISO_THETA + Math.round((goal.theta - ISO_THETA) / (Math.PI / 2)) * (Math.PI / 2);
     }
+    function onPointerCancel(event) { pointers.delete(event.pointerId); pinchDistance = pointerDistance(); wasMultiTouch = true; }
     function onWheel(event) { event.preventDefault(); goal.radius *= Math.exp(event.deltaY * 0.001); clampOrbit(); }
     function onKey(event) {
-      if (event.key === 'ArrowLeft') goal.theta += 0.12; else if (event.key === 'ArrowRight') goal.theta -= 0.12;
-      else if (event.key === 'ArrowUp') goal.phi -= 0.08; else if (event.key === 'ArrowDown') goal.phi += 0.08;
+      if (event.key === 'ArrowLeft') goal.theta += Math.PI / 2; else if (event.key === 'ArrowRight') goal.theta -= Math.PI / 2;
+      else if (event.key === 'ArrowUp') goal.radius *= 0.88; else if (event.key === 'ArrowDown') goal.radius *= 1.12;
       else if (event.key === '+' || event.key === '=') goal.radius *= 0.88; else if (event.key === '-') goal.radius *= 1.12;
       else if (event.key === 'Home') focus('overview'); else return;
       event.preventDefault(); clampOrbit();
@@ -431,24 +519,24 @@
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     renderer.domElement.addEventListener('pointermove', onPointerMove);
     renderer.domElement.addEventListener('pointerup', onPointerUp);
-    renderer.domElement.addEventListener('pointercancel', onPointerUp);
+    renderer.domElement.addEventListener('pointercancel', onPointerCancel);
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
     renderer.domElement.addEventListener('keydown', onKey);
 
     function focus(view = 'overview') {
-      if (view === 'crops') { goal.target.set(-3.6, 0.4, 0.25); goal.radius = 12; goal.theta = 0.5; goal.phi = 0.78; }
-      else if (view === 'animals') { goal.target.set(4.3, 0.6, 1.25); goal.radius = 11.5; goal.theta = 0.75; goal.phi = 0.82; }
-      else if (view === 'barn') { goal.target.set(3.8, 1.4, -4.2); goal.radius = 10; goal.theta = 0.25; goal.phi = 0.88; }
-      else { goal.target.set(0, 0.7, 0); goal.radius = 30; goal.theta = 0.72; goal.phi = 0.76; }
+      if (view === 'crops') { goal.target.set(-3.6, 0.4, 0.25); goal.radius = 12; goal.theta = ISO_THETA; goal.phi = ISO_PHI; }
+      else if (view === 'animals') { goal.target.set(4.3, 0.6, 1.25); goal.radius = 11.5; goal.theta = ISO_THETA; goal.phi = ISO_PHI; }
+      else if (view === 'barn') { goal.target.set(3.8, 1.4, -4.2); goal.radius = 10; goal.theta = ISO_THETA; goal.phi = ISO_PHI; }
+      else { goal.target.set(0, 0.7, 0); goal.radius = 30; goal.theta = ISO_THETA; goal.phi = ISO_PHI; }
       clampOrbit();
     }
     function zoom(factor) { goal.radius *= factor; clampOrbit(); }
-    function rotate(direction) { goal.theta += direction * 0.28; }
+    function rotate(direction) { goal.theta += direction * Math.PI / 2; }
 
-    let width = 0; let height = 0; let active = true; let requestedActive = true; let frame = 0; let lastTime = performance.now();
+    let active = true; let requestedActive = true; let frame = 0; let lastTime = performance.now();
     function resize() {
       width = Math.max(1, container.clientWidth); height = Math.max(1, container.clientHeight);
-      renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix();
+      renderer.setSize(width, height, false); updateCamera();
     }
     const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
     if (resizeObserver) resizeObserver.observe(container); else globalThis.addEventListener('resize', resize);
@@ -516,7 +604,7 @@
       requestedActive = false; active = false; cancelAnimationFrame(frame); document.removeEventListener('visibilitychange', onVisibility);
       if (resizeObserver) resizeObserver.disconnect(); else globalThis.removeEventListener('resize', resize);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown); renderer.domElement.removeEventListener('pointermove', onPointerMove);
-      renderer.domElement.removeEventListener('pointerup', onPointerUp); renderer.domElement.removeEventListener('pointercancel', onPointerUp);
+      renderer.domElement.removeEventListener('pointerup', onPointerUp); renderer.domElement.removeEventListener('pointercancel', onPointerCancel);
       renderer.domElement.removeEventListener('wheel', onWheel); renderer.domElement.removeEventListener('keydown', onKey);
       Object.values(geometries).forEach((geometry) => geometry.dispose()); Object.values(materials).forEach((mat) => mat.dispose());
       selectMaterial.dispose(); readyMaterial.dispose(); workingMaterial.dispose(); grassTexture.dispose(); soilTexture.dispose(); pathTexture.dispose();

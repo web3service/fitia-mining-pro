@@ -35,8 +35,10 @@ function requireStarted(state) {
 }
 function defaultState(wallet, now = Date.now()) {
   return {
-    version: 1, wallet, coins: 0, land: null, animals: [], crops: [], feed: 0,
+    version: 2, wallet, coins: 0, land: null, animals: [], crops: [], feed: 0,
     inventory: Object.fromEntries(PRODUCT_KEYS.map((key) => [key, 0])),
+    marketSales: [],
+    farmProgress: { planted: 0, watered: 0, cared: 0, harvested: 0, collected: 0, sales: 0 },
     wheel: { version: WheelConfig.VERSION, lastFreeAt: 0, bonusSpins: 0, totalSpins: 0, totalStaked: 0, totalWonCoins: 0, recentSpins: [] },
     dice: { version: DiceConfig.VERSION, totalRolls: 0, totalStaked: 0, totalWonCoins: 0, recentRolls: [] },
     ...ArcadeState.defaultArcadeState(),
@@ -98,25 +100,62 @@ function normalizeState(raw, wallet) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return base;
   base.coins = safeInteger(raw.coins);
   if (raw.land?.owned === true) base.land = { owned: true, level: 1, purchasedAt: safeTime(raw.land.purchasedAt) };
-  base.feed = safeInteger(raw.feed, 0, 100000);
+  base.feed = safeInteger(raw.feed, 0, Config.MAX_FEED);
   PRODUCT_KEYS.forEach((key) => { base.inventory[key] = safeInteger(raw.inventory?.[key], 0, 1000000); });
+  if (Array.isArray(raw.marketSales)) {
+    base.marketSales = raw.marketSales.slice(0, 25).map((sale) => {
+      if (!sale || !Array.isArray(sale.items) || !sale.items.length || sale.items.length > PRODUCT_KEYS.length) return null;
+      try { Protocol.requireUuid(sale.id); } catch (_) { return null; }
+      const time = safeTime(sale.at);
+      if (!time) return null;
+      const seen = new Set(); let total = 0;
+      const items = [];
+      for (const item of sale.items) {
+        if (!item || !PRODUCT_KEYS.includes(item.product) || seen.has(item.product)
+            || !Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000000
+            || !Number.isSafeInteger(item.unitPrice) || item.unitPrice < 1 || item.unitPrice > Config.MAX_COINS) return null;
+        seen.add(item.product);
+        total += item.quantity * item.unitPrice;
+        if (!Number.isSafeInteger(total) || total > Config.MAX_COINS) return null;
+        items.push({ product: item.product, quantity: item.quantity, unitPrice: item.unitPrice });
+      }
+      if (sale.total !== total) return null;
+      return { id: String(sale.id).toLowerCase(), at: time, items, total };
+    }).filter(Boolean);
+  }
+  Config.MISSIONS.forEach(({ key }) => { base.farmProgress[key] = safeInteger(raw.farmProgress?.[key]); });
   base.wheel = normalizeWheel(raw.wheel);
   base.dice = normalizeDice(raw.dice);
   const arcade = ArcadeState.normalizeArcadeState(raw);
   base.mines = arcade.mines; base.crash = arcade.crash; base.coinFlip = arcade.coinFlip;
   if (Array.isArray(raw.animals)) {
     base.animals = raw.animals.slice(0, Config.MAX_ANIMALS).map((animal) => {
-      if (!animal || !Config.ANIMALS[animal.species]) return null;
+      if (!animal || !Object.prototype.hasOwnProperty.call(Config.ANIMALS, animal.species)) return null;
       try { Protocol.requireUuid(animal.id); } catch (_) { return null; }
-      return { id: String(animal.id).toLowerCase(), species: animal.species, acquiredAt: safeTime(animal.acquiredAt), produceAt: safeTime(animal.produceAt) };
+      return { id: String(animal.id).toLowerCase(), species: animal.species, acquiredAt: safeTime(animal.acquiredAt), produceAt: safeTime(animal.produceAt), caredAt: safeTime(animal.caredAt), maturesAt: safeTime(animal.maturesAt) };
     }).filter(Boolean);
   }
   if (Array.isArray(raw.crops)) {
     base.crops = raw.crops.slice(0, Config.MAX_CROPS).map((crop) => {
-      if (!crop || !Config.CROPS[crop.species]) return null;
+      if (!crop || !Object.prototype.hasOwnProperty.call(Config.CROPS, crop.species)) return null;
       try { Protocol.requireUuid(crop.id); } catch (_) { return null; }
-      return { id: String(crop.id).toLowerCase(), species: crop.species, plantedAt: safeTime(crop.plantedAt), readyAt: safeTime(crop.readyAt) };
+      return { id: String(crop.id).toLowerCase(), species: crop.species, plantedAt: safeTime(crop.plantedAt), readyAt: safeTime(crop.readyAt), wateredAt: safeTime(crop.wateredAt), fertilizedAt: safeTime(crop.fertilizedAt) };
     }).filter(Boolean);
+    // Keep explicitly occupied plots; legacy crops without a plot get the
+    // lowest free positions. Never discard a valid legacy crop.
+    const occupied = new Set();
+    for (const crop of base.crops) {
+      const source = raw.crops.find((entry) => entry && String(entry.id).toLowerCase() === crop.id);
+      if (Number.isInteger(source?.plot) && source.plot >= 0 && source.plot < Config.MAX_CROPS && !occupied.has(source.plot)) {
+        crop.plot = source.plot; occupied.add(crop.plot);
+      }
+    }
+    for (const crop of base.crops) {
+      if (crop.plot === undefined) {
+        crop.plot = Array.from({ length: Config.MAX_CROPS }, (_, index) => index).find((index) => !occupied.has(index));
+        occupied.add(crop.plot);
+      }
+    }
   }
   base.updatedAt = safeTime(raw.updatedAt) || base.createdAt;
   return base;
@@ -154,7 +193,14 @@ class MemoryFarmRepository {
   }
   async isActionProcessed(actionId, wallet) {
     const action = this.actions.get(actionId);
+    if (action && (!wallet || action.wallet === wallet) && action.actionType === 'cancelled') throw new FarmError(409, 'Action annulée.', 'FARM_CANCELLED');
     return Boolean(action && (!wallet || action.wallet === wallet));
+  }
+  async resolvePending(wallet, actionId) {
+    const action = this.actions.get(actionId);
+    if (action && action.wallet !== wallet) throw new FarmError(409, 'Action indisponible.', 'FARM_CONFLICT');
+    if (!action) { this.actions.set(actionId, { wallet, actionType: 'cancelled' }); return 'cancelled'; }
+    return action.actionType === 'cancelled' ? 'cancelled' : 'committed';
   }
   async apply(wallet, expectedRevision, state, actionId, actionType, options = {}) {
     if (this.actions.has(actionId)) throw new FarmError(409, 'Action déjà traitée.', 'FARM_CONFLICT');
@@ -230,8 +276,14 @@ class SupabaseFarmRepository {
   }
   async isActionProcessed(actionId, wallet) {
     const owner = wallet ? `&wallet=eq.${encodeURIComponent(wallet)}` : '';
-    const rows = await this.request('GET', `farm_actions?action_id=eq.${encodeURIComponent(actionId)}${owner}&select=action_id&limit=1`);
+    const rows = await this.request('GET', `farm_actions?action_id=eq.${encodeURIComponent(actionId)}${owner}&select=action_id,action_type&limit=1`);
+    if (rows?.[0]?.action_type === 'cancelled') throw new FarmError(409, 'Action annulée.', 'FARM_CANCELLED');
     return Boolean(rows?.[0]);
+  }
+  async resolvePending(wallet, actionId) {
+    const result = await this.request('POST', 'rpc/farm_resolve_pending', { p_wallet: wallet, p_action_id: actionId });
+    if (!['cancelled', 'committed'].includes(result)) throw new FarmError(503, 'Réponse de résolution invalide.', 'FARM_STORAGE');
+    return result;
   }
   async apply(wallet, expectedRevision, state, actionId, actionType, options = {}) {
     const withdrawal = options.withdrawal;
@@ -390,6 +442,12 @@ function createFarmService(options = {}) {
       throw error;
     }
     return view(wallet, spinId, rollId, ids);
+  }
+  async function resolvePending(body) {
+    const wallet = authenticate('resolve', body);
+    const actionId = Protocol.requireUuid(body.actionId);
+    const status = await repository.resolvePending(wallet, actionId);
+    return { status, ...(await view(wallet)) };
   }
   async function deposit(body) {
     const wallet = authenticate('deposit', body);
@@ -748,49 +806,179 @@ function createFarmService(options = {}) {
       if (!state.land?.owned) throw new FarmError(409, 'Achetez d’abord le terrain.', 'FARM_LAND_REQUIRED');
       if (state.animals.length >= Config.MAX_ANIMALS) throw new FarmError(409, 'La ferme est complète.', 'FARM_LIMIT');
       const species = String(params.species || '');
+      if (!Object.prototype.hasOwnProperty.call(Config.ANIMALS, species)) throw new FarmError(400, 'Animal invalide.', 'FARM_PARAMS');
       const definition = Config.ANIMALS[species];
-      if (!definition) throw new FarmError(400, 'Animal invalide.', 'FARM_PARAMS');
       deduct(definition.price);
       state.animals.push({ id: actionId, species, acquiredAt: timestamp, produceAt: 0 });
     } else {
       requireStarted(state);
       if (type === 'buy_feed') {
+        if (state.feed > Config.MAX_FEED - Config.FEED_PACK_QUANTITY) throw new FarmError(409, 'Stock de nourriture plein.', 'FARM_FEED_FULL');
         deduct(Config.FEED_PACK_PRICE); state.feed += Config.FEED_PACK_QUANTITY;
-      } else if (type === 'plant') {
+      } else if (type === 'plant' || type === 'plant_plot') {
         if (state.crops.length >= Config.MAX_CROPS) throw new FarmError(409, 'Toutes les parcelles sont occupées.', 'FARM_LIMIT');
         const species = String(params.species || '');
+        if (!Object.prototype.hasOwnProperty.call(Config.CROPS, species)) throw new FarmError(400, 'Culture invalide.', 'FARM_PARAMS');
         const definition = Config.CROPS[species];
-        if (!definition) throw new FarmError(400, 'Culture invalide.', 'FARM_PARAMS');
+        const occupied = new Set(state.crops.map((crop) => crop.plot));
+        const plot = type === 'plant_plot' ? params.plot : Array.from({ length: Config.MAX_CROPS }, (_, index) => index).find((index) => !occupied.has(index));
+        if (!Number.isInteger(plot) || plot < 0 || plot >= Config.MAX_CROPS) throw new FarmError(400, 'Parcelle invalide.', 'FARM_PARAMS');
+        if (occupied.has(plot)) throw new FarmError(409, 'Cette parcelle est déjà occupée.', 'FARM_PLOT_OCCUPIED');
         deduct(definition.price);
-        state.crops.push({ id: actionId, species, plantedAt: timestamp, readyAt: timestamp + definition.durationMs });
+        state.crops.push({ id: actionId, species, plot, plantedAt: timestamp, readyAt: timestamp + definition.durationMs });
+      } else if (type === 'water_crop') {
+        const crop = state.crops.find((item) => item.id === params.cropId);
+        if (!crop) throw new FarmError(404, 'Culture introuvable.', 'FARM_NOT_FOUND');
+        if (crop.readyAt <= timestamp) throw new FarmError(409, 'La culture est déjà mûre.', 'FARM_NOT_READY');
+        if (crop.wateredAt) throw new FarmError(409, 'Cette culture a déjà été arrosée.', 'FARM_ALREADY_WATERED');
+        // Decorative care and mission progress only: do not change yield, cost or timing.
+        crop.wateredAt = timestamp;
+      } else if (type === 'fertilize_crop') {
+        const crop = state.crops.find((item) => item.id === params.cropId);
+        if (!crop) throw new FarmError(404, 'Culture introuvable.', 'FARM_NOT_FOUND');
+        if (crop.readyAt <= timestamp) throw new FarmError(409, 'La culture est déjà mûre.', 'FARM_NOT_READY');
+        if (crop.fertilizedAt) throw new FarmError(409, 'Engrais déjà appliqué.', 'FARM_ALREADY_FERTILIZED');
+        deduct(Config.FERTILIZER_PRICE);
+        const reduction = Math.floor(Config.CROPS[crop.species].durationMs * Config.FERTILIZER_PERCENT / 100);
+        crop.readyAt = Math.max(timestamp, crop.readyAt - reduction);
+        crop.fertilizedAt = timestamp;
       } else if (type === 'harvest') {
         const index = state.crops.findIndex((crop) => crop.id === params.cropId);
         if (index < 0) throw new FarmError(404, 'Culture introuvable.', 'FARM_NOT_FOUND');
         const crop = state.crops[index];
         if (crop.readyAt > timestamp) throw new FarmError(409, 'La culture pousse encore.', 'FARM_NOT_READY');
+        if (state.inventory[crop.species] > 1000000 - Config.CROPS[crop.species].yield) throw new FarmError(409, 'Stock de produit plein.', 'FARM_LIMIT');
         state.inventory[crop.species] += Config.CROPS[crop.species].yield;
         state.crops.splice(index, 1);
+      } else if (type === 'harvest_ready') {
+        const ready = state.crops.filter((crop) => crop.readyAt <= timestamp);
+        if (!ready.length) throw new FarmError(409, 'Aucune récolte prête.', 'FARM_NOT_READY');
+        const amounts = {};
+        for (const crop of ready) amounts[crop.species] = (amounts[crop.species] || 0) + Config.CROPS[crop.species].yield;
+        for (const [species, amount] of Object.entries(amounts)) {
+          if (state.inventory[species] > 1000000 - amount) throw new FarmError(409, 'Stock de produit plein.', 'FARM_LIMIT');
+        }
+        for (const [species, amount] of Object.entries(amounts)) state.inventory[species] += amount;
+        state.crops = state.crops.filter((crop) => crop.readyAt > timestamp);
+        // Count each successfully harvested crop, not just the button press.
+        state.farmProgress.harvested = Math.min(Config.MAX_COINS, state.farmProgress.harvested + ready.length);
       } else if (type === 'feed') {
         const animal = state.animals.find((item) => item.id === params.animalId);
         if (!animal) throw new FarmError(404, 'Animal introuvable.', 'FARM_NOT_FOUND');
+        if (animal.maturesAt > timestamp) throw new FarmError(409, 'Cet animal est trop jeune.', 'FARM_YOUNG_ANIMAL');
         if (state.feed < 1) throw new FarmError(409, 'Achetez de la nourriture.', 'FARM_FEED_REQUIRED');
         if (animal.produceAt > 0) throw new FarmError(409, 'Récoltez la production avant de nourrir à nouveau.', 'FARM_NOT_READY');
         state.feed -= 1;
         animal.produceAt = timestamp + Config.ANIMALS[animal.species].durationMs;
+      } else if (type === 'feed_group') {
+        const ids = params.animalIds;
+        if (!Array.isArray(ids) || !ids.length || ids.length > Config.MAX_ANIMALS) throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS');
+        let normalizedIds;
+        try { normalizedIds = ids.map((id) => Protocol.requireUuid(id)); }
+        catch (_) { throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS'); }
+        if (new Set(normalizedIds).size !== normalizedIds.length) throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS');
+        const animals = normalizedIds.map((id) => state.animals.find((item) => item.id === id));
+        if (animals.some((animal) => !animal)) throw new FarmError(404, 'Animal introuvable.', 'FARM_NOT_FOUND');
+        if (animals.some((animal) => animal.maturesAt > timestamp)) throw new FarmError(409, 'Un animal est trop jeune.', 'FARM_YOUNG_ANIMAL');
+        if (animals.some((animal) => animal.produceAt > 0)) throw new FarmError(409, 'Un animal est déjà en production.', 'FARM_NOT_READY');
+        if (state.feed < animals.length) throw new FarmError(409, 'Nourriture insuffisante.', 'FARM_FEED_REQUIRED');
+        state.feed -= animals.length;
+        animals.forEach((animal) => { animal.produceAt = timestamp + Config.ANIMALS[animal.species].durationMs; });
+      } else if (type === 'breed_animal') {
+        if (state.animals.length >= Config.MAX_ANIMALS) throw new FarmError(409, 'La ferme est complète.', 'FARM_LIMIT');
+        const ids = params.parentIds;
+        if (!Array.isArray(ids) || ids.length !== 2) throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS');
+        let normalized;
+        try { normalized = ids.map((id) => Protocol.requireUuid(id)); }
+        catch (_) { throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS'); }
+        if (normalized[0] === normalized[1]) throw new FarmError(400, 'Deux animaux différents sont nécessaires.', 'FARM_PARAMS');
+        const parents = normalized.map((id) => state.animals.find((animal) => animal.id === id));
+        if (parents.some((animal) => !animal)) throw new FarmError(404, 'Animal introuvable.', 'FARM_NOT_FOUND');
+        if (parents[0].species !== parents[1].species) throw new FarmError(400, 'Les animaux doivent être de la même espèce.', 'FARM_PARAMS');
+        if (parents.some((animal) => animal.maturesAt > timestamp)) throw new FarmError(409, 'Un animal est trop jeune.', 'FARM_YOUNG_ANIMAL');
+        if (parents.some((animal) => animal.produceAt > 0)) throw new FarmError(409, 'Les parents doivent être disponibles.', 'FARM_NOT_READY');
+        if (state.feed < Config.BREED_FEED_COST) throw new FarmError(409, 'Nourriture insuffisante.', 'FARM_FEED_REQUIRED');
+        const definition = Config.ANIMALS[parents[0].species];
+        deduct(Math.ceil(definition.price * Config.BREED_PRICE_PERCENT / 100)); state.feed -= Config.BREED_FEED_COST;
+        state.animals.push({ id: actionId, species: parents[0].species, acquiredAt: timestamp, produceAt: 0, maturesAt: timestamp + definition.durationMs });
+      } else if (type === 'care_animal') {
+        const animal = state.animals.find((item) => item.id === params.animalId);
+        if (!animal) throw new FarmError(404, 'Animal introuvable.', 'FARM_NOT_FOUND');
+        if (animal.caredAt) throw new FarmError(409, 'Cet animal a déjà reçu des soins pour ce cycle.', 'FARM_ALREADY_CARED');
+        // Care adds no tradable item and never speeds up production.
+        animal.caredAt = timestamp;
       } else if (type === 'collect') {
         const animal = state.animals.find((item) => item.id === params.animalId);
         if (!animal) throw new FarmError(404, 'Animal introuvable.', 'FARM_NOT_FOUND');
         if (!animal.produceAt || animal.produceAt > timestamp) throw new FarmError(409, 'La production n’est pas prête.', 'FARM_NOT_READY');
+        if (state.inventory[Config.ANIMALS[animal.species].product] >= 1000000) throw new FarmError(409, 'Stock de produit plein.', 'FARM_LIMIT');
         state.inventory[Config.ANIMALS[animal.species].product] += 1;
-        animal.produceAt = 0;
+        animal.produceAt = 0; animal.caredAt = 0;
+      } else if (type === 'collect_group') {
+        const ids = params.animalIds;
+        if (!Array.isArray(ids) || !ids.length || ids.length > Config.MAX_ANIMALS) throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS');
+        let normalizedIds;
+        try { normalizedIds = ids.map((id) => Protocol.requireUuid(id)); }
+        catch (_) { throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS'); }
+        if (new Set(normalizedIds).size !== normalizedIds.length) throw new FarmError(400, 'Sélection invalide.', 'FARM_PARAMS');
+        const animals = normalizedIds.map((id) => state.animals.find((item) => item.id === id));
+        if (animals.some((animal) => !animal)) throw new FarmError(404, 'Animal introuvable.', 'FARM_NOT_FOUND');
+        if (animals.some((animal) => !animal.produceAt || animal.produceAt > timestamp)) throw new FarmError(409, 'Une production n’est pas prête.', 'FARM_NOT_READY');
+        const amounts = {};
+        for (const animal of animals) {
+          const product = Config.ANIMALS[animal.species].product;
+          amounts[product] = (amounts[product] || 0) + 1;
+        }
+        for (const [product, amount] of Object.entries(amounts)) {
+          if (state.inventory[product] > 1000000 - amount) throw new FarmError(409, 'Stock de produit plein.', 'FARM_LIMIT');
+        }
+        for (const [product, amount] of Object.entries(amounts)) state.inventory[product] += amount;
+        animals.forEach((animal) => { animal.produceAt = 0; animal.caredAt = 0; });
+        state.farmProgress.collected = Math.min(Config.MAX_COINS, state.farmProgress.collected + animals.length);
+      } else if (type === 'mill_feed') {
+        // Fixed recipe; client-supplied rates and quantities are never trusted.
+        if (state.inventory.wheat < Config.MILL_WHEAT_INPUT) throw new FarmError(409, 'Blé insuffisant.', 'FARM_WHEAT_REQUIRED');
+        if (state.feed > Config.MAX_FEED - Config.MILL_FEED_OUTPUT) throw new FarmError(409, 'Stock de nourriture plein.', 'FARM_FEED_FULL');
+        state.inventory.wheat -= Config.MILL_WHEAT_INPUT;
+        state.feed += Config.MILL_FEED_OUTPUT;
+      } else if (type === 'sell_item') {
+        const product = params.product;
+        const quantity = params.quantity;
+        if (typeof product !== 'string' || !PRODUCT_KEYS.includes(product)
+            || !Number.isSafeInteger(quantity) || quantity <= 0 || quantity > 1000000) {
+          throw new FarmError(400, 'Produit ou quantité invalide.', 'FARM_PARAMS');
+        }
+        if (state.inventory[product] < quantity) throw new FarmError(409, 'Stock insuffisant.', 'FARM_INVENTORY_EMPTY');
+        // Prices are always taken from the server configuration, never the signed request.
+        const unitPrice = Config.PRODUCTS[product].price;
+        const total = quantity * unitPrice;
+        addCoins(total);
+        state.inventory[product] -= quantity;
+        state.marketSales.unshift({ id: actionId, at: timestamp, items: [{ product, quantity, unitPrice }], total });
+        state.marketSales = state.marketSales.slice(0, 25);
       } else if (type === 'sell') {
         let total = 0;
-        PRODUCT_KEYS.forEach((key) => { total += state.inventory[key] * Config.PRODUCTS[key].price; });
+        const items = [];
+        PRODUCT_KEYS.forEach((key) => {
+          const quantity = state.inventory[key];
+          if (quantity > 0) items.push({ product: key, quantity, unitPrice: Config.PRODUCTS[key].price });
+          total += quantity * Config.PRODUCTS[key].price;
+        });
         if (!total) throw new FarmError(409, 'La grange est vide.', 'FARM_INVENTORY_EMPTY');
         addCoins(total);
         PRODUCT_KEYS.forEach((key) => { state.inventory[key] = 0; });
+        state.marketSales.unshift({ id: actionId, at: timestamp, items, total });
+        state.marketSales = state.marketSales.slice(0, 25);
       } else throw new FarmError(400, 'Action invalide.', 'FARM_PARAMS');
     }
+    // Counters change in the same atomic state write as the economic action.
+    // Idempotent replays and rejected actions never increment them.
+    const progressKey = type === 'plant' || type === 'plant_plot' ? 'planted'
+      : type === 'water_crop' ? 'watered'
+      : type === 'care_animal' ? 'cared'
+      : type === 'harvest' ? 'harvested' : type === 'collect' ? 'collected'
+        : type === 'sell' || type === 'sell_item' ? 'sales' : null;
+    if (progressKey) state.farmProgress[progressKey] = Math.min(Config.MAX_COINS, state.farmProgress[progressKey] + 1);
     state.updatedAt = timestamp;
     return state;
   }
@@ -834,7 +1022,9 @@ function createFarmService(options = {}) {
       return applyIdempotent(wallet, actionId, type, state, record?.revision || 0);
     }
     transition(state, type, params, actionId, timestamp);
-    return applyIdempotent(wallet, actionId, type, state, record?.revision || 0);
+    // Persist under existing SQL action types. Distinct signed types make old
+    // servers reject these requests rather than perform a different action.
+    return applyIdempotent(wallet, actionId, type === 'sell_item' ? 'sell' : type === 'plant_plot' ? 'plant' : type, state, record?.revision || 0);
   }
   async function withdraw(body) {
     const wallet = authenticate('withdraw', body);
@@ -875,7 +1065,7 @@ function createFarmService(options = {}) {
     if (!verification.confirmed) return { pending: true, withdrawal };
     return { pending: false, withdrawal: await repository.completeWithdrawal(id, txHash, now().toISOString()) };
   }
-  return Object.freeze({ getState, deposit, action, withdraw, listWithdrawals, completeWithdrawal, view });
+  return Object.freeze({ getState, deposit, action, resolvePending, withdraw, listWithdrawals, completeWithdrawal, view });
 }
 
 let defaultService = null;

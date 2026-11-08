@@ -2776,6 +2776,12 @@ main::-webkit-scrollbar { display: none; }
 .farm-dialog-price { display: block; margin: 8px 0; color: #edce82; font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; text-align: center; }
 .farm-dialog-copy { color: #a0b0a3; font-size: .7rem; line-height: 1.55; text-align: center; }
 .farm-dialog-hint { display: block; margin-top: 10px; color: #7f9284; font-size: .59rem; line-height: 1.5; }
+.farm-market-list { display: grid; gap: 8px; margin: 12px 0; }
+.farm-market-row { display: grid; grid-template-columns: minmax(0,1fr) 72px auto; gap: 8px; align-items: center; padding: 10px; border: 1px solid #527354; border-radius: 12px; background: #254330; }
+.farm-market-info { min-width: 0; display: grid; gap: 3px; color: #f1f7eb; font-size: 13px; }
+.farm-market-info small { color: #c2d6be; font-size: 11px; }
+.farm-market-row .farm-market-quantity { width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 6px; }
+.farm-market-row .farm-small-button { min-height: 44px; padding: 8px 12px; }
 .farm-dialog-actions { display: grid; gap: 8px; }
 .farm-dialog-actions button { width: 100%; min-height: 45px; }
 .farm-dialog-error { margin: 0 0 8px; color: #f19a8e; font-size: .65rem; line-height: 1.45; }
@@ -3447,3 +3453,7 @@ main::-webkit-scrollbar { display: none; }
 #view-store button:focus-visible, #view-store input:focus-visible, #view-store select:focus-visible { outline: 2px solid #ffb25f; outline-offset: 2px; }
 @media (max-width: 360px) { #view-store .store-hero { padding: 10px 14px; } #view-store .store-product-body { padding: 10px; } }
 @media (min-width: 760px) { #view-store .store-product-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+
+/* Récompenses décoratives, sans impact sur les F-Coins. */
+.pf-unlocks { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.pf-unlock { padding: 5px 9px; border: 1px solid rgba(91,140,89,.35); border-radius: 999px; font-size: 12px; color: #386b42; background: rgba(220,239,217,.7); }

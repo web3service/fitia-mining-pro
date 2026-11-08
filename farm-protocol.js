@@ -7,8 +7,8 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (ethers) {
   'use strict';
   if (!ethers) throw new Error('ethers est requis pour FITIA FARM.');
-  const ACTIONS = new Set(['state', 'deposit', 'action', 'withdraw']);
-  const ACTION_TYPES = new Set(['buy_land', 'buy_animal', 'buy_feed', 'plant', 'harvest', 'feed', 'collect', 'sell', 'wheel_spin', 'dice_roll', 'mines_start', 'mines_reveal', 'mines_cashout', 'crash_play', 'crash_start', 'crash_bet', 'crash_cashout', 'crash_sync', 'coin_flip']);
+  const ACTIONS = new Set(['state', 'deposit', 'action', 'withdraw', 'resolve']);
+  const ACTION_TYPES = new Set(['buy_land', 'buy_animal', 'buy_feed', 'plant', 'plant_plot', 'water_crop', 'fertilize_crop', 'harvest', 'harvest_ready', 'feed', 'feed_group', 'care_animal', 'breed_animal', 'collect', 'collect_group', 'mill_feed', 'sell', 'sell_item', 'wheel_spin', 'dice_roll', 'mines_start', 'mines_reveal', 'mines_cashout', 'crash_play', 'crash_start', 'crash_bet', 'crash_cashout', 'crash_sync', 'coin_flip']);
 
   class FarmProtocolError extends Error {
     constructor(message, code = 'FARM_INVALID') { super(message); this.code = code; }
@@ -58,6 +58,8 @@
       lines.push(`Action ID: ${requireUuid(params.actionId)}`, `Transaction: ${requireTxHash(params.txHash)}`, `FTA units: ${requireUnits(params.amountUnits)}`);
     } else if (action === 'action') {
       lines.push(`Action ID: ${requireUuid(params.actionId)}`, `Type: ${requireType(params.type)}`, `Parameters SHA-256: ${hashJson(normalizeParams(params.params))}`);
+    } else if (action === 'resolve') {
+      lines.push(`Action ID: ${requireUuid(params.actionId)}`);
     } else if (action === 'withdraw') {
       lines.push(`Action ID: ${requireUuid(params.actionId)}`, `Coins: ${requireCoins(params.coins)}`);
     }

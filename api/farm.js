@@ -65,6 +65,7 @@ function createFarmHandler(options = {}) {
         send(res, result.pending ? 202 : 200, result); return;
       }
       if (action === 'action') { send(res, 200, await farm().action(body)); return; }
+      if (action === 'resolve') { send(res, 200, await farm().resolvePending(body)); return; }
       if (action === 'withdraw') { send(res, 200, await farm().withdraw(body)); return; }
       throw new FarmError(404, 'Action FARM introuvable.', 'FARM_NOT_FOUND');
     } catch (error) {
