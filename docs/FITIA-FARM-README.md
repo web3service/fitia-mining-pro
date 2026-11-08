@@ -1,6 +1,6 @@
 # FITIA FARM — aperçu et code en développement
 
-**Statut : travail en cours, non publié.** Cette archive ne contient pas un nouvel APK. Ne pas installer l'ancien APK du dépôt en pensant qu'il contient ces modifications. Le mode démonstration est isolé, utilise un portefeuille de test généré dans le navigateur et des données en mémoire : les F-Coins, transferts et retraits y sont fictifs, sans connexion à Polygon ou au compte réel. Les données sont effacées à l'arrêt du serveur ; « Réinitialiser » et « Nouvelle ferme » les réinitialisent aussi.
+**Statut : travail en cours, non publié.** Cette archive ne contient pas de nouvel APK ; une construction de contrôle a réussi sur GitHub Actions mais n'est pas publiée et n'est pas destinée à être installée. Ne pas installer l'ancien APK du dépôt en pensant qu'il contient ces modifications. Le mode démonstration est isolé, utilise un portefeuille de test généré dans le navigateur et des données en mémoire : les F-Coins, transferts et retraits y sont fictifs, sans connexion à Polygon ou au compte réel. Les données sont effacées à l'arrêt du serveur ; « Réinitialiser » et « Nouvelle ferme » les réinitialisent aussi.
 
 ## Démarrer sous Windows
 
@@ -45,7 +45,7 @@ node scripts/run_arcade_tests.js
 node scripts/run_multiplayer_aviator_tests.js
 ```
 
-La dernière exécution complète de `npm test` échoue encore sur la comparaison avec l’ancien APK, qui ne contient pas les nouvelles sources ; aucun nouvel APK signé n’a été construit. Les tests utilisent des dépôts mémoire et une interface simulée : ils ne remplacent ni les tests d'une vraie base, ni ceux d'un téléphone physique ou d'un transfert réel. Certains messages restent à traduire.
+La dernière exécution locale de `npm test` échoue sur la comparaison avec l’ancien APK, qui ne contient pas les nouvelles sources ; une construction de contrôle signée a depuis réussi sur GitHub Actions ; elle n'est pas incluse ici et ne doit pas être installée. Les tests utilisent des dépôts mémoire et une interface simulée : ils ne remplacent ni les tests d'une vraie base, ni ceux d'un téléphone physique ou d'un transfert réel. Certains messages restent à traduire.
 
 ## Android et publication
 

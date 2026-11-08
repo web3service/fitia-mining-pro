@@ -27,5 +27,5 @@ Cette liste prépare la publication, elle ne l'autorise pas. La version en déve
 ## 4. APK et décision
 
 - Construire l'APK avec la clé officielle dans l'environnement autorisé ; vérifier son empreinte, les assets, les tests de sécurité, le manifeste et l'installation en mise à jour. Ne jamais générer une nouvelle clé de signature officielle pour contourner l'absence de l'originale.
-- Dans cet environnement, la clé officielle et la chaîne Android ne sont pas disponibles localement. Le déclenchement manuel GitHub Actions a renvoyé HTTP 403. Aucun nouvel APK signé n'a été construit ici.
+- Une construction de contrôle a réussi sur GitHub Actions (run `42514683483`, sources `8c5e480`) avec vérification du certificat officiel et suites de tests. L’artefact est conservé par GitHub 30 jours ; il n’a pas été publié en release. Le téléchargement dans cet environnement a échoué (accès au stockage d’artefacts). Le numéro de version reste celui de la version publique existante et le client cible toujours le serveur réel : **ne pas installer ni distribuer cet APK de contrôle** avant préparation d’un environnement de test isolé, des migrations et d’une version distincte. Aucun test sur téléphone réel n'a été effectué.
 - Ne pas activer les migrations ou publier le serveur et l'APK avant la décision de publication, la sauvegarde et la validation financière et technique.
