@@ -122,17 +122,29 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          node server.js &
+          node server.js > /tmp/server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          npm test 2>&1 | tee /tmp/npm-test.log
-          npm_exit=${PIPESTATUS[0]}
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8080/; then break; fi
+            sleep 1
+          done
+          npm test > /tmp/npm-test.log 2>&1
+          npm_exit=$?
+          echo "npm test exit=${npm_exit} log_bytes=$(wc -c < /tmp/npm-test.log) server_bytes=$(wc -c < /tmp/server.log)"
           if [ "$npm_exit" -ne 0 ]; then
-            grep -E "❌|RÉSULTAT|Error|error" /tmp/npm-test.log | tail -40 | while IFS= read -r line; do
-              line="${line//'%'/'%25'}"
-              line="${line//$'\r'/''}"
-              echo "::error::${line}"
-            done
+            fails="$(grep -E "❌|✗" /tmp/npm-test.log | head -10)"
+            if [ -n "$fails" ]; then
+              printf '%s\n' "$fails" | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            else
+              tail -15 /tmp/npm-test.log | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            fi
             exit "$npm_exit"
           fi
 
@@ -140,14 +152,22 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          npm run test:admin 2>&1 | tee /tmp/npm-admin.log
-          admin_exit=${PIPESTATUS[0]}
+          npm run test:admin > /tmp/npm-admin.log 2>&1
+          admin_exit=$?
+          echo "test:admin exit=${admin_exit} log_bytes=$(wc -c < /tmp/npm-admin.log)"
           if [ "$admin_exit" -ne 0 ]; then
-            grep -E "❌|✗|RÉSULTAT|Error|error" /tmp/npm-admin.log | tail -40 | while IFS= read -r line; do
-              line="${line//'%'/'%25'}"
-              line="${line//$'\r'/''}"
-              echo "::error::${line}"
-            done
+            fails="$(grep -E "❌|✗" /tmp/npm-admin.log | head -10)"
+            if [ -n "$fails" ]; then
+              printf '%s\n' "$fails" | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            else
+              tail -15 /tmp/npm-admin.log | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            fi
             exit "$admin_exit"
           fi
 
