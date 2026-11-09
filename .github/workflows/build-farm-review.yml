@@ -117,12 +117,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export NODE_PATH=/tmp/test-deps/node_modules
           node server.js &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           npm test
           npm run test:admin
-          NODE_PATH=/tmp/test-deps/node_modules npm run test:farm-exchange-db
+          npm run test:farm-exchange-db
 
       - name: Remove restored private key
         if: always()

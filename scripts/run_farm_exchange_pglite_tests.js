@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// Local in-memory PostgreSQL-compatible integration test. No network or real funds.
+// Local in-memory PostgreSQL-compatible integration test. No network, publication or real funds.
 const assert = require('assert');
 const fs = require('fs');
 const ethers = require('../vendor/ethers.umd.min.js');
