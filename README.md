@@ -128,7 +128,7 @@ npm run build:apk
 npm test
 ```
 
-La version Android 3.6.5 est publiée avec sa signature officielle ; le canal `update-current.json` référence son APK et son SHA-256.
+La version Android 3.7.0 est publiée avec sa signature officielle ; le canal `update-current.json` référence son APK et son SHA-256. Elle apporte FITIA FARM repensé (scène 3D isométrique, six parcelles ciblées, maïs et tomate, canard et chèvre, moulin, tracteur, silo, grange, vente partielle avec historique, protection contre la perte de réponse). L’économie nouvelle non validée — missions et leurs récompenses, reproduction, engrais, arrosage et soins accélérateurs — est développée mais volontairement désactivée côté serveur tant que l’analyse économique n’est pas validée (voir `docs/FITIA-FARM-ECONOMIE.md`).
 
 Avant toute publication d’une mise à jour Android, incrémentez `versionCode` et `versionName` dans `android-src/AndroidManifest.xml` ainsi que la version dans `package.json`. Générez et publiez ensuite l’APK avec la signature officielle, puis actualisez le manifeste de diffusion avec son URL et son SHA-256 réels. Ne modifiez pas le canal public pour une version dont l’APK n’est pas encore disponible.
 

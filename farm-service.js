@@ -18,6 +18,11 @@ const DEFAULT_RPCS = [
 ];
 const TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const PRODUCT_KEYS = Object.keys(Config.PRODUCTS);
+// Économie nouvelle non validée (missions, reproduction, engrais, arrosage,
+// soins, moulin) : désactivée par défaut côté serveur. Ne l’activer qu’après
+// analyse et validation économiques (voir docs/FITIA-FARM-ECONOMIE.md).
+const UNVALIDATED_ECONOMY = typeof process !== 'undefined' && Boolean(process.env) && process.env.FITIA_FARM_UNVALIDATED_ECONOMY === 'true';
+const UNVALIDATED_ECONOMY_TYPES = new Set(['water_crop', 'care_animal', 'fertilize_crop', 'breed_animal', 'claim_mission', 'mill_feed']);
 
 class FarmError extends Error {
   constructor(status, message, code = 'FARM_ERROR') { super(message); this.status = status; this.code = code; }
@@ -405,7 +410,8 @@ function createFarmService(options = {}) {
     // Les positions Mines et le point de crash actif ne quittent jamais le stockage serveur.
     if (publicState.mines.active) delete publicState.mines.active.minePositions;
     if (publicState.crash.active) publicState.crash.active = publicAviatorRound(state.crash.active);
-    const result = { state: publicState, revision: record?.revision || 0, withdrawals, serverTime: now().getTime() };
+    const result = { state: publicState, revision: record?.revision || 0, withdrawals, serverTime: now().getTime(),
+      features: { unvalidatedEconomy: UNVALIDATED_ECONOMY } };
     if (shared) {
       // Un ancien vol reste visible jusqu’à son règlement ; tous les nouveaux vols sont mondiaux.
       if (!publicState.crash.active) publicState.crash.active = shared.ownRound;
@@ -791,6 +797,12 @@ function createFarmService(options = {}) {
     return state;
   }
   function transition(state, type, params, actionId, timestamp) {
+    // Économie non validée : rejet serveur tant que le drapeau n’est pas activé,
+    // quel que soit le client. Les reprises d’actions antérieures passent par
+    // le même rejet explicite plutôt que par une exécution partielle.
+    if (!UNVALIDATED_ECONOMY && UNVALIDATED_ECONOMY_TYPES.has(type)) {
+      throw new FarmError(409, 'Cette fonctionnalité sera bientôt disponible.', 'FARM_FEATURE_DISABLED');
+    }
     if (type === 'wheel_spin') return spinWheel(state, params, actionId, timestamp);
     if (type === 'dice_roll') return rollDice(state, params, actionId, timestamp);
     if (type === 'mines_start') return startMines(state, params, actionId, timestamp);

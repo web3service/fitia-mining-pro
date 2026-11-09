@@ -53,6 +53,7 @@
     FARM_ALREADY_WATERED: 'This crop has already been watered.',
     FARM_WHEAT_REQUIRED: 'Not enough wheat for the mill.', FARM_FEED_FULL: 'The feed storage is full.',
     FARM_PLOT_OCCUPIED: 'This plot is already occupied. Refresh your farm.',
+    FARM_FEATURE_DISABLED: 'This feature is coming soon.',
     FARM_INVENTORY_EMPTY: 'Your barn is empty. Harvest or collect a product first.', FARM_LIMIT: 'Your farm has reached its capacity limit.',
     FARM_AMOUNT: 'Enter a valid amount. Withdrawals start at 10 FTA (1,000 F-Coins) in multiples of 100 F-Coins.',
     FARM_WITHDRAWAL_PENDING: 'You already have a withdrawal in progress. Wait for its FTA payment before creating another.',
@@ -127,6 +128,7 @@
   class FitiaFarmCenter {
     constructor(app) {
       this.app = app; this.account = null; this.state = null; this.revision = 0; this.withdrawals = []; this.aviator = null;
+      this.features = { unvalidatedEconomy: false };
       this.scene = null; this.active = false; this.initialized = false; this.operation = false;
       this.refreshPromise = null; this.pendingCheck = null; this.pendingDeposit = null;
       this.pollTimer = null; this.clockTimer = null; this.retryTimer = null; this.backgroundPollTimer = null; this.session = 0; this.tab = 'overview';
@@ -217,12 +219,12 @@
         this.scene = globalThis.FitiaFarm3D.create(container, {
           onSelect: (selection) => {
             if (selection.kind === 'plot') this.openPlant(selection.id);
-            else if (selection.kind === 'building' && selection.id === 'mill') this.openMill();
+            else if (selection.kind === 'building' && selection.id === 'mill') { if (this.economyGate('mill')) this.openMill(); }
             else if (selection.kind === 'building' && selection.id === 'barn') this.setTab('barn');
             else if (selection.kind === 'building' && selection.id === 'tractor') this.openTractor();
             else if (selection.kind === 'building' && selection.id === 'silo') this.openSilo();
-            else if (selection.kind === 'building' && selection.id === 'well') this.openWell();
-            else if (selection.kind === 'building' && selection.id === 'care') this.openCare();
+            else if (selection.kind === 'building' && selection.id === 'well') { if (this.economyGate('water')) this.openWell(); }
+            else if (selection.kind === 'building' && selection.id === 'care') { if (this.economyGate('care')) this.openCare(); }
             else this.openEntity(selection.kind, selection.id);
           },
           reducedMotion: () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
@@ -267,9 +269,27 @@
       if (data.aviator && typeof data.aviator === 'object') this.aviator = data.aviator;
       if (revision < this.revision) { this.app.fitaCrash?.render(); return; }
       this.revision = revision; this.state = data.state; this.withdrawals = Array.isArray(data.withdrawals) ? data.withdrawals : [];
+      this.features = data.features && typeof data.features === 'object' ? data.features : { unvalidatedEconomy: false };
       if (Number.isSafeInteger(data.serverTime) && Math.abs(data.serverTime - Date.now()) < 8640000000000000) this.serverOffset = data.serverTime - Date.now();
       this.synchronizeWithdrawals(this.withdrawals);
       this.scene?.setState(this.state); this.render();
+    }
+    unvalidatedEconomyEnabled() { return this.features?.unvalidatedEconomy === true; }
+    // Économie non validée : chaque point d’entrée vérifie le drapeau serveur ;
+    // un dialogue « bientôt » reste possible s’il existe une action en attente
+    // à résoudre. Le serveur rejette de toute façon ces actions tant que le
+    // drapeau FITIA_FARM_UNVALIDATED_ECONOMY n’est pas activé.
+    economyGate(kind) {
+      if (this.unvalidatedEconomyEnabled()) return true;
+      const pending = kind === 'mission' ? this.readPendingMission()
+        : kind === 'care' ? this.readPendingCare()
+        : kind === 'water' ? this.readPendingWater()
+        : kind === 'mill' ? this.readPendingMill()
+        : this.readPendingSpecial(kind);
+      if (pending) return true;
+      const fr = this.app.currentLang === 'fr';
+      this.app.showToast(fr ? 'Cette fonctionnalité sera bientôt disponible.' : 'This feature is coming soon.', false);
+      return false;
     }
     async refresh(options = {}) {
       if (!this.account || this.refreshPromise) return this.refreshPromise;
@@ -396,6 +416,14 @@
           unlocks.append(make('span', 'pf-unlock', `${name} · ${status}`));
         }
       }
+      if (!this.unvalidatedEconomyEnabled()) {
+        // Économie non validée : missions masquées tant que le serveur ne les
+        // active pas (les compteurs restent suivis, sans réclamation).
+        container.textContent = '';
+        container.classList.add('hidden');
+        return;
+      }
+      container.classList.remove('hidden');
       const labels = fr ? { planted: 'Planter', watered: 'Arroser', cared: 'Soigner', harvested: 'Récolter', collected: 'Collecter', sales: 'Vendre', fertilized: 'Fertiliser', bred: 'Reproduire', fed: 'Nourrir', milled: 'Moudre' }
         : { planted: 'Plant', watered: 'Water', cared: 'Care', harvested: 'Harvest', collected: 'Collect', sales: 'Sell', fertilized: 'Fertilize', bred: 'Breed', fed: 'Feed', milled: 'Mill' };
       container.textContent = '';
@@ -723,6 +751,7 @@
     }
     openMission(key) {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      if (!this.economyGate('mission')) return;
       const pending = this.readPendingMission(); const fr = this.app.currentLang === 'fr';
       this.openDialog(fr ? 'Récompense de mission' : 'Mission reward');
       const content = document.getElementById('farm-dialog-content');
@@ -791,6 +820,7 @@
     }
     openBreeding() {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      if (!this.economyGate('breed')) return;
       const fr = this.app.currentLang === 'fr'; const pending = this.readPendingSpecial('breed'); this.openDialog(fr ? 'Reproduction' : 'Breeding');
       const content = document.getElementById('farm-dialog-content');
       if (pending) {
@@ -810,6 +840,7 @@
     }
     openFertilizer() {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      if (!this.economyGate('fertilize')) return;
       const fr = this.app.currentLang === 'fr'; const pending = this.readPendingSpecial('fertilize'); this.openDialog(fr ? 'Engrais' : 'Fertilizer');
       const content = document.getElementById('farm-dialog-content');
       if (pending) {
@@ -852,6 +883,7 @@
     }
     openCare() {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      if (!this.economyGate('care')) return;
       const fr = this.app.currentLang === 'fr'; const pending = this.readPendingCare();
       this.openDialog(fr ? 'Soins des animaux' : 'Animal care');
       const content = document.getElementById('farm-dialog-content');
@@ -898,6 +930,7 @@
     }
     openWell() {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      if (!this.economyGate('water')) return;
       const fr = this.app.currentLang === 'fr'; const pending = this.readPendingWater();
       this.openDialog(fr ? 'Puits' : 'Well');
       const content = document.getElementById('farm-dialog-content');
@@ -1040,6 +1073,7 @@
     }
     openMill() {
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      if (!this.economyGate('mill')) return;
       const fr = this.app.currentLang === 'fr'; const pending = this.readPendingMill();
       this.openDialog(fr ? 'Moulin' : 'Mill');
       const content = document.getElementById('farm-dialog-content');
@@ -1177,7 +1211,7 @@
         const content = document.getElementById('farm-dialog-content'); content.append(farmVisual(animal.species));
         content.append(make('strong', 'farm-dialog-price', `${farmName(definition.product, this.app.currentLang)} · ${durationLabel(definition.durationMs)}`));
         content.append(make('p', 'farm-dialog-copy', animal.caredAt ? this.text('Cared for', 'Soigné') : this.text('Care available', 'Soin disponible')));
-        if (!animal.caredAt && !ready) this.addDialogButton(this.text('CARE', 'SOIGNER'), () => this.openCare(), true, this.operation);
+        if (!animal.caredAt && !ready && this.unvalidatedEconomyEnabled()) this.addDialogButton(this.text('CARE', 'SOIGNER'), () => this.openCare(), true, this.operation);
         if (animal.maturesAt > this.serverNow()) content.append(make('p', 'farm-dialog-copy', `${this.text('Growing', 'En croissance')} · ${countdown(animal.maturesAt - this.serverOffset)}`));
         if (ready) this.addDialogButton(`${this.text('COLLECT', 'COLLECTER')} ${farmName(definition.product, this.app.currentLang).toUpperCase()}`, () => this.perform('collect', { animalId: id }));
         else this.addDialogButton(animal.produceAt ? `${this.text('PRODUCING', 'EN PRODUCTION')} · ${countdown(animal.produceAt - this.serverOffset)}` : this.text('FEED · 1 UNIT', 'NOURRIR · 1 UNITÉ'), () => this.perform('feed', { animalId: id }), false, Boolean(animal.produceAt) || animal.maturesAt > this.serverNow() || this.state.feed < 1);
@@ -1188,9 +1222,9 @@
         this.openDialog(farmName(crop.species, this.app.currentLang)); const content = document.getElementById('farm-dialog-content');
         content.append(farmVisual(crop.species), make('strong', 'farm-dialog-price', `${definition.yield} ${this.text('units', 'unités')}`));
         content.append(make('p', 'farm-dialog-copy', crop.fertilizedAt ? this.text('Fertilized', 'Engrais appliqué') : this.text('No fertilizer', 'Sans engrais')));
-        if (!ready && !crop.fertilizedAt) this.addDialogButton(this.text('FERTILIZE', 'ENGRAIS'), () => this.openFertilizer(), true, this.operation);
+        if (!ready && !crop.fertilizedAt && this.unvalidatedEconomyEnabled()) this.addDialogButton(this.text('FERTILIZE', 'ENGRAIS'), () => this.openFertilizer(), true, this.operation);
         content.append(make('p', 'farm-dialog-copy', crop.wateredAt ? this.text('Watered', 'Arrosée') : this.text('Not watered', 'Non arrosée')));
-        if (!ready && !crop.wateredAt) this.addDialogButton(this.text('WATER', 'ARROSER'), () => this.openWell(), true, this.operation);
+        if (!ready && !crop.wateredAt && this.unvalidatedEconomyEnabled()) this.addDialogButton(this.text('WATER', 'ARROSER'), () => this.openWell(), true, this.operation);
         this.addDialogButton(ready ? this.text('HARVEST CROP', 'RÉCOLTER') : `${this.text('GROWING', 'EN POUSSE')} · ${countdown(crop.readyAt - this.serverOffset)}`, () => this.perform('harvest', { cropId: id }), false, !ready);
         this.setTab('crops');
       }
