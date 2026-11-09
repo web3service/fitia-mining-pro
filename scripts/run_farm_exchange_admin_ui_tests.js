@@ -2,7 +2,7 @@
 'use strict';
 const assert = require('assert');
 const fs = require('fs');
-const { JSDOM } = require('jsdom');
+const { JSDOM } = require(fs.existsSync('/tmp/test-deps/node_modules/jsdom') ? '/tmp/test-deps/node_modules/jsdom' : 'jsdom');
 const html = fs.readFileSync('admin/index.html', 'utf8');
 const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://admin.test/' });
 const w = dom.window; w.setInterval = () => 0; w.confirm = () => true;

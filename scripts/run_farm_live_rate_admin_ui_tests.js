@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('assert');const fs=require('fs');const {JSDOM}=require('jsdom');
+const assert=require('assert');const fs=require('fs');const {JSDOM}=require(fs.existsSync('/tmp/test-deps/node_modules/jsdom')?'/tmp/test-deps/node_modules/jsdom':'jsdom');
 const dom=new JSDOM(fs.readFileSync('admin/index.html','utf8'),{runScripts:'outside-only',url:'https://admin.test/'});const w=dom.window; w.setInterval=()=>0;w.confirm=()=>true;w.eval(fs.readFileSync('admin/farm-admin.js','utf8'));
 let current={rateUnits:'100000000',version:1,enabled:false},saved=[];
 const api=async(url,options={})=>{if(url.endsWith('/farm-withdrawals'))return{withdrawals:[]}; if(url.endsWith('/farm-exchange-draft')){const e=new Error('Not found');e.code='NOT_FOUND';throw e;} if(url.endsWith('/farm-live-rate')){if(options.method==='PATCH'){saved.push(options.body);current={rateUnits:options.body.rateUnits,version:current.version+1,enabled:current.enabled};}return{rate:{...current}};}throw Error('Unexpected');};
