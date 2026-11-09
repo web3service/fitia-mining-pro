@@ -369,9 +369,9 @@ async function waitFor(condition, label) {
   window.document.querySelector('[data-section="games"]').click();
   assert.strictEqual(window.document.getElementById('page-title').textContent, 'Visibilité des jeux');
   assert.strictEqual(window.document.getElementById('section-games').classList.contains('hidden'), false);
-  assert.strictEqual(window.document.querySelectorAll('[data-game-visibility-toggle]').length, 5);
-  assert.strictEqual(window.document.querySelectorAll('#game-visibility-list .game-visibility-logo img').length, 5);
-  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '5 / 5 visibles');
+  assert.strictEqual(window.document.querySelectorAll('[data-game-visibility-toggle]').length, 6);
+  assert.strictEqual(window.document.querySelectorAll('#game-visibility-list .game-visibility-logo img').length, 6);
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '6 / 6 visibles');
   let gameToggle = window.document.querySelector('[data-game-visibility-toggle="dice"]');
   gameToggle.checked = false;
   gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
@@ -379,7 +379,7 @@ async function waitFor(condition, label) {
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin masquage Dice');
   assert.deepStrictEqual(gameManifest.hiddenGames, ['dice']);
   assert.ok(window.document.querySelector('[data-game-visibility="dice"]').classList.contains('is-hidden'));
-  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '4 / 5 visibles');
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '5 / 6 visibles');
   gameToggle = window.document.querySelector('[data-game-visibility-toggle="crash"]');
   gameToggle.checked = false;
   gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
@@ -398,7 +398,7 @@ async function waitFor(condition, label) {
   await waitFor(() => gameWrites.length === 4, 'réaffichage Crash');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réaffichage Crash');
   assert.deepStrictEqual(gameManifest.hiddenGames, []);
-  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '5 / 5 visibles');
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '6 / 6 visibles');
 
   window.document.querySelector('[data-section="store"]').click();
   assert.strictEqual(window.document.getElementById('page-title').textContent, 'FITIA STORE');

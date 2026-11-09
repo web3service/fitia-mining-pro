@@ -12,7 +12,8 @@
     Object.freeze({ id: 'dice', name: 'FITA Dice 3D', logo: 'assets/dice.svg' }),
     Object.freeze({ id: 'mines', name: 'FITA Mines 3D', logo: 'assets/mines.svg' }),
     Object.freeze({ id: 'crash', name: 'FITA Crash', logo: 'assets/crash.svg' }),
-    Object.freeze({ id: 'coin-flip', name: 'Coin Flip 3D', logo: 'assets/coin-flip.svg' })
+    Object.freeze({ id: 'coin-flip', name: 'Coin Flip 3D', logo: 'assets/coin-flip.svg' }),
+    Object.freeze({ id: 'farm', name: 'FITIA FARM', logo: 'assets/farm/barn.svg' })
   ]);
   const GAME_IDS = Object.freeze(GAMES.map((game) => game.id));
   const GAME_ID_SET = new Set(GAME_IDS);

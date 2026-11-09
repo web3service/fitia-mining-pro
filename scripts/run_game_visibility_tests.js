@@ -39,6 +39,7 @@ function resetCenter(hiddenGames = []) {
   center.apply();
 }
 
+const DOM_ORDER = ['farm', 'wheel', 'dice', 'mines', 'crash', 'coin-flip'];
 function visibleGameCards() {
   return Array.from(window.document.querySelectorAll('#view-hub [data-game-id]:not(.hidden)'), (card) => card.dataset.gameId);
 }
@@ -46,22 +47,22 @@ function visibleGameCards() {
 (async () => {
   console.log('\n🎛️  TESTS DE VISIBILITÉ DES JEUX\n' + '═'.repeat(68));
   try {
-    await test('Manifeste public : cinq jeux connus, configuration publiée valide et ordre canonique', async () => {
+    await test('Manifeste public : six jeux connus, configuration publiée valide et ordre canonique', async () => {
       const published = JSON.parse(fs.readFileSync(path.join(ROOT, 'game-visibility.json'), 'utf8'));
       assert.deepStrictEqual(normalize(published), { hiddenGames: gameIds.filter((id) => published.hiddenGames.includes(id)) });
       assert.deepStrictEqual(normalize({ hiddenGames: [] }), { hiddenGames: [] });
-      assert.deepStrictEqual(gameIds, ['wheel', 'dice', 'mines', 'crash', 'coin-flip']);
+      assert.deepStrictEqual(gameIds, ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'farm']);
       assert.deepStrictEqual(normalize({ hiddenGames: ['crash', 'wheel'] }), { hiddenGames: ['wheel', 'crash'] });
-      for (const invalid of [null, [], {}, { hiddenGames: null }, { hiddenGames: ['unknown'] }, { hiddenGames: ['wheel', 'wheel'] }, { hiddenGames: [1] }, { hiddenGames: ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'wheel'] }]) {
+      for (const invalid of [null, [], {}, { hiddenGames: null }, { hiddenGames: ['unknown'] }, { hiddenGames: ['wheel', 'wheel'] }, { hiddenGames: [1] }, { hiddenGames: ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'farm', 'wheel'] }]) {
         assert.strictEqual(config.normalizeManifest(invalid), null);
       }
     });
 
-    await test('Hub : sept cartes et cinq navigations conservées, seuls les cinq jeux sont configurables', async () => {
+    await test('Hub : sept cartes et cinq navigations conservées, six jeux configurables', async () => {
       assert.strictEqual(window.document.querySelectorAll('#view-hub .hub-card').length, 7);
-      assert.strictEqual(window.document.querySelectorAll('#view-hub [data-game-id]').length, 5);
+      assert.strictEqual(window.document.querySelectorAll('#view-hub [data-game-id]').length, 6);
       assert.strictEqual(window.document.querySelectorAll('.bottom-nav .nav-item').length, 5);
-      assert.strictEqual(window.document.querySelector('#view-hub .hub-card-farm').dataset.gameId, undefined);
+      assert.strictEqual(window.document.querySelector('#view-hub .hub-card-farm').dataset.gameId, 'farm');
       assert.strictEqual(window.document.querySelector('#view-hub .hub-card-swap').dataset.gameId, undefined);
       for (const game of config.GAMES) {
         const card = window.document.querySelector(`#view-hub [data-game-id="${game.id}"]`);
@@ -70,9 +71,9 @@ function visibleGameCards() {
       }
     });
 
-    await test('Masquage visuel indépendant : FARM, Swap, vues et autres jeux restent intacts', async () => {
+    await test('Masquage visuel indépendant : Swap, vues et autres jeux restent intacts', async () => {
       resetCenter(['dice', 'crash']);
-      assert.deepStrictEqual(visibleGameCards(), ['wheel', 'mines', 'coin-flip']);
+      assert.deepStrictEqual(visibleGameCards(), ['farm', 'wheel', 'mines', 'coin-flip']);
       for (const id of ['dice', 'crash']) {
         const card = window.document.querySelector(`[data-game-id="${id}"]`);
         assert.ok(card.classList.contains('hidden'));
@@ -81,10 +82,15 @@ function visibleGameCards() {
       }
       assert.strictEqual(window.document.querySelector('#view-hub .hub-card-farm').classList.contains('hidden'), false);
       assert.strictEqual(window.document.querySelector('#view-hub .hub-card-swap').classList.contains('hidden'), false);
+      resetCenter(['farm']);
+      assert.deepStrictEqual(visibleGameCards(), ['wheel', 'dice', 'mines', 'crash', 'coin-flip']);
+      assert.strictEqual(window.document.querySelector('#view-hub .hub-card-farm').classList.contains('hidden'), true);
+      assert.strictEqual(window.document.getElementById('view-farm').classList.contains('hidden'), false);
+      assert.strictEqual(window.document.querySelector('#view-hub .hub-card-swap').classList.contains('hidden'), false);
       resetCenter(['coin-flip']);
-      assert.deepStrictEqual(visibleGameCards(), ['wheel', 'dice', 'mines', 'crash']);
+      assert.deepStrictEqual(visibleGameCards(), ['farm', 'wheel', 'dice', 'mines', 'crash']);
       resetCenter();
-      assert.deepStrictEqual(visibleGameCards(), gameIds);
+      assert.deepStrictEqual(visibleGameCards(), DOM_ORDER);
     });
 
     await test('Synchronisation : le manifeste valide masque puis réaffiche les cartes sans toucher aux services', async () => {
@@ -98,10 +104,10 @@ function visibleGameCards() {
       assert.strictEqual(requests.length, 1);
       assert.strictEqual(requests[0].url, 'https://raw.githubusercontent.com/web3service/fitia-mining-pro/main/game-visibility.json');
       assert.strictEqual(requests[0].options.cache, 'no-store');
-      assert.deepStrictEqual(visibleGameCards(), ['wheel', 'dice', 'crash']);
+      assert.deepStrictEqual(visibleGameCards(), ['farm', 'wheel', 'dice', 'crash']);
       window.fetch = async () => ({ ok: true, json: async () => ({ hiddenGames: [] }) });
       await center.refresh({ force: true });
-      assert.deepStrictEqual(visibleGameCards(), gameIds);
+      assert.deepStrictEqual(visibleGameCards(), DOM_ORDER);
       assert.strictEqual(window.document.querySelectorAll('.bottom-nav .nav-item').length, 5);
     });
 
@@ -109,16 +115,16 @@ function visibleGameCards() {
       resetCenter();
       window.fetch = async () => ({ ok: true, json: async () => ({ hiddenGames: ['unknown'] }) });
       await center.refresh({ force: true });
-      assert.deepStrictEqual(visibleGameCards(), gameIds);
+      assert.deepStrictEqual(visibleGameCards(), DOM_ORDER);
       assert.strictEqual(center.lastFetchAt, 0);
       window.fetch = async () => { throw new Error('offline'); };
       await center.refresh({ force: true });
-      assert.deepStrictEqual(visibleGameCards(), gameIds);
+      assert.deepStrictEqual(visibleGameCards(), DOM_ORDER);
 
       resetCenter(['wheel']);
       window.fetch = async () => ({ ok: false, json: async () => ({}) });
       await center.refresh({ force: true });
-      assert.deepStrictEqual(visibleGameCards(), ['dice', 'mines', 'crash', 'coin-flip'], 'La dernière configuration valide est conservée après une panne');
+      assert.deepStrictEqual(visibleGameCards(), ['farm', 'dice', 'mines', 'crash', 'coin-flip'], 'La dernière configuration valide est conservée après une panne');
       resetCenter();
     });
 
