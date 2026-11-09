@@ -118,15 +118,38 @@ jobs:
         shell: bash
         run: python3 scripts/update_release_manifest.py
 
-      - name: Run security and APK tests
+      - name: Run npm test suite
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           node server.js &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          npm test
-          npm run test:admin
+          npm test 2>&1 | tee /tmp/npm-test.log
+          npm_exit=${PIPESTATUS[0]}
+          if [ "$npm_exit" -ne 0 ]; then
+            grep -E "❌|RÉSULTAT|Error|error" /tmp/npm-test.log | tail -40 | while IFS= read -r line; do
+              line="${line//'%'/'%25'}"
+              line="${line//$'\r'/''}"
+              echo "::error::${line}"
+            done
+            exit "$npm_exit"
+          fi
+
+      - name: Run admin test suite
+        shell: bash
+        run: |
+          set -uo pipefail
+          npm run test:admin 2>&1 | tee /tmp/npm-admin.log
+          admin_exit=${PIPESTATUS[0]}
+          if [ "$admin_exit" -ne 0 ]; then
+            grep -E "❌|✗|RÉSULTAT|Error|error" /tmp/npm-admin.log | tail -40 | while IFS= read -r line; do
+              line="${line//'%'/'%25'}"
+              line="${line//$'\r'/''}"
+              echo "::error::${line}"
+            done
+            exit "$admin_exit"
+          fi
 
       - name: Remove restored private key
         if: always()
