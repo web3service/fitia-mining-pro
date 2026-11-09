@@ -335,6 +335,16 @@
             <strong>Aucun retrait automatique sans preuve on-chain</strong>
             <p>Les coins sont débités lors de la demande. Ne clôturez jamais un retrait avec une capture d’écran : seul le transfert FTA vérifié depuis la trésorerie est accepté.</p>
           </div>
+          <div id="farm-rate-draft" class="promotion-notice store-privacy-notice hidden">
+            <strong>Taux de conversion — brouillon non actif</strong>
+            <p>Cette préparation ne modifie aucun dépôt, retrait ou solde. Taux exprimé en FTA pour 100 F-Coins.</p>
+            <form id="farm-rate-draft-form">
+              <label for="farm-rate-draft-input">FTA pour 100 F-Coins</label>
+              <input id="farm-rate-draft-input" type="text" inputmode="decimal" autocomplete="off" required>
+              <button id="farm-rate-draft-save" class="button button-secondary" type="submit">Enregistrer le brouillon</button>
+            </form>
+            <p id="farm-rate-draft-status" aria-live="polite"></p>
+          </div>
           <div class="stats-grid store-stats-grid farm-stats-grid" aria-label="Statistiques des retraits FARM">
             <article class="stat-card stat-scheduled"><span>À payer</span><strong id="farm-stat-pending">0</strong><small>Demandes en attente</small></article>
             <article class="stat-card stat-active"><span>Payés</span><strong id="farm-stat-paid">0</strong><small>Retraits vérifiés</small></article>

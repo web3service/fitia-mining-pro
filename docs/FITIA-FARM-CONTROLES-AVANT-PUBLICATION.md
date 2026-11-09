@@ -14,8 +14,8 @@ Cette liste prépare la publication, elle ne l'autorise pas. La version en déve
 ## 2. Base de test et migration
 
 - Sauvegarder et vérifier la restauration avant toute migration. Comparer la fonction `farm_apply` installée au fichier de migration ; éviter d'écraser une évolution plus récente.
-- Appliquer et tester les migrations locales **sur une base de test isolée** avec l'outil de migration, puis tester le serveur complet et les versions anciennes. Vérifier soldes, stocks, retraits existants, permissions et remise en route après échec.
-- Tester en vraies connexions concurrentes les nouvelles actions et leur résolution, les réponses perdues et les reprises. Les expériences réalisées jusqu'ici ne couvrent pas toutes les courses. Prévoir une stratégie de retour arrière compatible avec les états version 2 ; ne pas supprimer le garde-fou pour débloquer un ancien serveur.
+- Les trois migrations sont appliquées et contrôlées sur une base de test isolée ; tester encore le serveur complet et les versions anciennes. Vérifier soldes, stocks, retraits existants, permissions et remise en route après échec.
+- Tester en vraies connexions concurrentes les nouvelles actions et leur résolution, les réponses perdues et les reprises. Les expériences réalisées jusqu'ici ne couvrent pas toutes les courses. Prévoir une stratégie de retour arrière compatible avec les états version 3 ; ne pas supprimer le garde-fou pour débloquer un ancien serveur.
 - Rien de ceci ne modifie la production tant qu'une publication n'a pas été décidée.
 
 ## 3. Téléphone
@@ -29,3 +29,9 @@ Cette liste prépare la publication, elle ne l'autorise pas. La version en déve
 - Construire l'APK avec la clé officielle dans l'environnement autorisé ; vérifier son empreinte, les assets, les tests de sécurité, le manifeste et l'installation en mise à jour. Ne jamais générer une nouvelle clé de signature officielle pour contourner l'absence de l'originale.
 - Une construction de contrôle a réussi sur GitHub Actions (run `42514683483`, sources `8c5e480`) avec vérification du certificat officiel et suites de tests. L’artefact est conservé par GitHub 30 jours ; il n’a pas été publié en release. Le téléchargement dans cet environnement a échoué (accès au stockage d’artefacts). Le numéro de version reste celui de la version publique existante et le client cible toujours le serveur réel : **ne pas installer ni distribuer cet APK de contrôle** avant préparation d’un environnement de test isolé, des migrations et d’une version distincte. Aucun test sur téléphone réel n'a été effectué.
 - Ne pas activer les migrations ou publier le serveur et l'APK avant la décision de publication, la sauvegarde et la validation financière et technique.
+
+## État de préparation du taux variable
+
+Le propriétaire demande maintenant la publication réelle, mais elle reste bloquée techniquement : le taux variable, les dépôts avec devis, les retraits atomiques et les remboursements ne sont pas intégrés à l'économie de production. Les simulations ne suffisent pas à garantir les fonds. Les migrations FARM de production et une sauvegarde restaurable restent à préparer et valider ; aucun changement de taux réel ne doit être activé en attendant. Voir `FITIA-FARM-TAUX-VARIABLE.md` pour les incompatibilités et le nettoyage de la base de test bloqué par le connecteur.
+
+Dernière vérification locale : suites FARM 48/48, interface FARM 34/34, simulation d'échange et navigateur mobile simulé réussis. Après correction des libellés de déplacement, les tests de sécurité exécutés avec le serveur local donnent 52/53 : le seul échec est la comparaison entre les sources actuelles et l'APK ancien, qui doit être reconstruit avec la clé officielle puis retesté. Ce résultat ne prouve ni installation sur téléphone physique, ni fonctionnement financier réel, ni solvabilité.

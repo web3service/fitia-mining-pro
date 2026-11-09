@@ -1,0 +1,16 @@
+'use strict';
+const assert = require('assert');
+const { calculate } = require('./farm-variable-liability');
+const input = { balanceCoins: '530', stockCoins: '126', pendingFtaUnits: '200000000', rateUnits: '100000000' };
+const current = calculate(input);
+assert.strictEqual(current.liquidAndStockUnitsCeiling, '656000000');
+assert.strictEqual(current.partialFtaUnitsCeiling, '856000000');
+const halved = calculate({ ...input, rateUnits: '50000000' });
+assert.strictEqual(halved.liquidAndStockUnitsCeiling, '328000000');
+assert.strictEqual(halved.pendingFtaUnits, '200000000');
+assert.strictEqual(halved.partialFtaUnitsCeiling, '528000000');
+assert.strictEqual(calculate({ balanceCoins: '1', stockCoins: '0', pendingFtaUnits: '0', rateUnits: '1' }).partialFtaUnitsCeiling, '1');
+assert.strictEqual(calculate({ ...input, balanceCoins: '10000000000000000' }).liquidAndStockUnitsCeiling, '10000000000000126000000');
+for (const bad of ['-1', '01', '1.2', '1e3', 1, '9'.repeat(31)]) assert.throws(() => calculate({ ...input, pendingFtaUnits: bad }));
+assert.throws(() => calculate({ ...input, rateUnits: '0' }));
+console.log('Passif partiel : taux variable, arrondi prudent et retraits enregistrés préservés (simulation)');

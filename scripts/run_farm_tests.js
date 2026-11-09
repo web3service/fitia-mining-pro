@@ -198,7 +198,7 @@ async function expectCode(promise, code) {
     repo.accounts.set(buyer, { state, revision: 1 });
     const send = async (type, params, id = actionId()) => isolate.action(await signed('action', wallet, { actionId: id, type, params }));
     let view = await isolate.view(buyer);
-    assert.deepStrictEqual(view.state.farmProgress, { planted: 0, watered: 0, cared: 0, harvested: 0, collected: 0, sales: 0 });
+    assert.deepStrictEqual(view.state.farmProgress, { planted: 0, watered: 0, cared: 0, harvested: 0, collected: 0, sales: 0, fertilized: 0, bred: 0, fed: 0, milled: 0 });
     await expectCode(send('plant_plot', { species: 'wheat', plot: -1 }), 'FARM_PARAMS');
     assert.strictEqual((await isolate.view(buyer)).state.farmProgress.planted, 0);
     const plantId = actionId(); view = await send('plant_plot', { species: 'wheat', plot: 4 }, plantId);
@@ -216,10 +216,10 @@ async function expectCode(promise, code) {
     nowMs += Config.CROPS.wheat.durationMs;
     view = await send('harvest', { cropId: plantId });
     assert.strictEqual(view.state.coins, 102);
-    assert.deepStrictEqual(view.state.farmProgress, { planted: 1, watered: 0, cared: 0, harvested: 1, collected: 1, sales: 1 });
+    assert.deepStrictEqual(view.state.farmProgress, { planted: 1, watered: 0, cared: 0, harvested: 1, collected: 1, sales: 1, fertilized: 0, bred: 0, fed: 0, milled: 0 });
     assert.deepStrictEqual((await isolate.view(buyer)).state.farmProgress, view.state.farmProgress);
     const normalized = normalizeState({ farmProgress: { planted: -3, harvested: 1.5, collected: '5', sales: 1000000001 } }, buyer);
-    assert.deepStrictEqual(normalized.farmProgress, { planted: 0, watered: 0, cared: 0, harvested: 0, collected: 0, sales: 0 });
+    assert.deepStrictEqual(normalized.farmProgress, { planted: 0, watered: 0, cared: 0, harvested: 0, collected: 0, sales: 0, fertilized: 0, bred: 0, fed: 0, milled: 0 });
   });
 
   await test('Moulin : recette serveur, protections de stock, rejeu et concurrence', async () => {
@@ -270,7 +270,7 @@ async function expectCode(promise, code) {
       assert.strictEqual(Config.PRODUCTS[species].price, Config.PRODUCTS[baseline].price);
       let before = await isolate.view(buyer); const id = actionId();
       let planted = await send('plant_plot', { species, plot, price: 0 }, id);
-      assert.strictEqual(planted.state.version, 2);
+      assert.strictEqual(planted.state.version, 3);
       assert.strictEqual(planted.state.coins, before.state.coins - Config.CROPS[species].price);
       assert.strictEqual(planted.state.crops.find(crop => crop.id === id).species, species);
       await expectCode(send('harvest', { cropId: id }), 'FARM_NOT_READY');
@@ -422,19 +422,44 @@ async function expectCode(promise, code) {
     assert.ok(migration.includes('from public, anon, authenticated'));
   });
 
+  await test('Marché groupé : prix serveur, validation atomique et reprise idempotente', async () => {
+    const repo = new MemoryFarmRepository(), isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs); state.land = { owned: true, purchasedAt: nowMs };
+    state.animals = [{ id: actionId(), species: 'chicken', produceAt: 0 }]; state.inventory.wheat = 3; state.inventory.carrot = 2; state.coins = 100;
+    repo.accounts.set(buyer, { state, revision: 1 });
+    const act = async items => isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'sell_batch', params: { items } }));
+    await expectCode(act([{ product: 'wheat', quantity: 1 }, { product: 'wheat', quantity: 1 }]), 'FARM_PARAMS');
+    await expectCode(act([{ product: 'wheat', quantity: 1 }, { product: 'carrot', quantity: 3 }]), 'FARM_INVENTORY_EMPTY');
+    await expectCode(act([{ product: 'wheat', quantity: -1 }]), 'FARM_PARAMS');
+    assert.strictEqual((await isolate.view(buyer)).state.inventory.wheat, 3); assert.strictEqual((await isolate.view(buyer)).state.coins, 100);
+    const msg = await signed('action', wallet, { actionId: actionId(), type: 'sell_batch', params: { items: [{ product: 'wheat', quantity: 2, unitPrice: 9999 }, { product: 'carrot', quantity: 1 }] } });
+    let view = await isolate.action(msg); const expected = 100 + 2 * Config.PRODUCTS.wheat.price + Config.PRODUCTS.carrot.price;
+    assert.strictEqual(view.state.coins, expected); assert.strictEqual(view.state.inventory.wheat, 1); assert.strictEqual(view.state.inventory.carrot, 1);
+    assert.strictEqual(view.state.marketSales[0].items.length, 2); assert.strictEqual(view.state.farmProgress.sales, 1);
+    view = await isolate.action(msg); assert.strictEqual(view.state.coins, expected); assert.strictEqual(view.state.farmProgress.sales, 1);
+  });
+
   await test('Analyse économique et niveaux : hypothèses, gains et déblocages décoratifs', async () => {
     const audit = require('./farm-economy-audit').audit();
     assert.strictEqual(audit.crops.wheat.net, 14); assert.strictEqual(audit.crops.wheat.maxDailyCoins, 4032);
-    assert.strictEqual(audit.crops.wheat.fertilizer.durationMs, 1620000); assert.strictEqual(audit.crops.wheat.fertilizer.maxMixedDailyCoins, 4032);
+    assert.strictEqual(audit.crops.wheat.fertilizer.durationMs, 1530000); assert.strictEqual(audit.crops.wheat.fertilizer.maxMixedDailyCoins, 4200);
     assert.strictEqual(audit.animals.sheep.net, 61); assert.strictEqual(audit.animals.sheep.maxDailyCoins, 2196);
-    assert.strictEqual(audit.dailyTheoreticalFta, 62.28); assert.strictEqual(audit.mill.wheatSaleValue, 12);
+    assert.strictEqual(audit.dailyTheoreticalFta, 63.96); assert.strictEqual(audit.mill.wheatSaleValue, 12);
     assert.strictEqual(audit.mill.feedRetailValue, 8); assert.strictEqual(audit.coinsPerFta, 100);
     assert.strictEqual(Config.progressLevel({ planted: 9 }), 1); assert.strictEqual(Config.progressLevel({ planted: 10 }), 2);
     assert.strictEqual(Config.progressLevel({ harvested: 10 }), 3); assert.strictEqual(Config.progressLevel({ planted: -1, sales: '100' }), 1);
     assert.deepStrictEqual(Config.COSMETIC_UNLOCKS.map(x => x.level), [2, 3]);
   });
 
-  await test('Puits : arrosage signé, une fois par culture, sans effet économique', async () => {
+  await test('Scénarios économiques : comptes, durée, missions uniques et limites', async () => {
+    const { project } = require('./farm-economy-audit');
+    const first = project(1, 1); assert.strictEqual(first.productionCoins, 6396); assert.strictEqual(first.missionCoinsOnce, 80); assert.strictEqual(first.totalFta, 64.76);
+    const multiple = project(10, 30); assert.strictEqual(multiple.productionCoins, 1918800); assert.strictEqual(multiple.missionCoinsOnce, 800); assert.strictEqual(multiple.totalFta, 19196);
+    assert.throws(() => project(0, 1), RangeError); assert.throws(() => project(1, 0), RangeError);
+    assert.throws(() => project(1.2, 1), RangeError); assert.throws(() => project(100001, 1), RangeError);
+  });
+
+  await test('Puits : arrosage signé, accélération limitée et sans changement de rendement', async () => {
     const repo = new MemoryFarmRepository(); const isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
     const state = defaultState(buyer, nowMs); state.coins = 100;
     state.land = { owned: true, purchasedAt: nowMs };
@@ -445,7 +470,7 @@ async function expectCode(promise, code) {
     const send = async (crop, id = actionId(), extra = {}) => isolate.action(await signed('action', wallet, { actionId: id, type: 'water_crop', params: { cropId: crop, ...extra } }));
     await expectCode(send(actionId()), 'FARM_NOT_FOUND');
     const id = actionId(); let v = await send(cropId, id, { coins: 5000, speed: 999999 });
-    assert.strictEqual(v.state.crops[0].wateredAt, nowMs); assert.strictEqual(v.state.crops[0].readyAt, readyAt);
+    assert.strictEqual(v.state.crops[0].wateredAt, nowMs); assert.strictEqual(v.state.crops[0].readyAt, readyAt - Config.CROPS.maize.durationMs * Config.WATER_SPEED_PERCENT / 100);
     assert.strictEqual(v.state.coins, 100); assert.strictEqual(v.state.inventory.maize, 0); assert.strictEqual(v.state.farmProgress.watered, 1);
     v = await send(cropId, id); assert.strictEqual(v.state.farmProgress.watered, 1);
     await expectCode(send(cropId), 'FARM_ALREADY_WATERED');
@@ -462,7 +487,7 @@ async function expectCode(promise, code) {
     assert.ok(fs.readFileSync('supabase/migrations/20261108010000_farm_mill.sql', 'utf8').includes("'water_crop'"));
   });
 
-  await test('Soins : signature, cycle, concurrence et production inchangée', async () => {
+  await test('Soins : signature, cycle, concurrence et durée réduite', async () => {
     const repo = new MemoryFarmRepository(); const isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
     const animalId = actionId(); const state = defaultState(buyer, nowMs); state.coins = 50; state.feed = 2;
     state.land = { owned: true, purchasedAt: nowMs }; state.animals = [{ id: animalId, species: 'chicken', acquiredAt: nowMs, produceAt: 0 }];
@@ -477,7 +502,7 @@ async function expectCode(promise, code) {
     v = await action('care_animal', { animalId }, id); assert.strictEqual(v.state.farmProgress.cared, 1);
     await expectCode(action('care_animal', { animalId }), 'FARM_ALREADY_CARED');
     v = await action('feed', { animalId }); const deadline = v.state.animals[0].produceAt;
-    assert.strictEqual(deadline, nowMs + Config.ANIMALS.chicken.durationMs);
+    assert.strictEqual(deadline, nowMs + Config.ANIMALS.chicken.durationMs * (1 - Config.CARE_SPEED_PERCENT / 100));
     nowMs = deadline; v = await action('collect', { animalId });
     assert.strictEqual(v.state.animals[0].caredAt, 0); assert.strictEqual(v.state.inventory.eggs, 1); assert.strictEqual(v.state.coins, 50);
     const race = await Promise.allSettled([action('care_animal', { animalId }), action('care_animal', { animalId })]);
@@ -570,6 +595,152 @@ async function expectCode(promise, code) {
     const v = await act('fertilize_crop', { cropId: crop });
     assert.strictEqual(v.state.crops[0].readyAt, nowMs); // never backdates a nearly mature crop
     assert.strictEqual(v.state.coins, 296); assert.strictEqual(v.state.animals.length, Config.MAX_ANIMALS);
+  });
+
+  await test('Missions : F-Coins serveur, plafonds, signature et une seule récompense', async () => {
+    const repo = new MemoryFarmRepository(); const isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs); state.coins = 100; state.land = { owned: true, purchasedAt: nowMs };
+    state.animals = [{ id: actionId(), species: 'chicken', produceAt: 0 }]; delete state.missionClaims; state.version = 2;
+    state.farmProgress.planted = 2; repo.accounts.set(buyer, { state, revision: 1 });
+    const claim = async (key, id = actionId(), extra = {}) => isolate.action(await signed('action', wallet, { actionId: id, type: 'claim_mission', params: { missionKey: key, ...extra } }));
+    const initial = await isolate.view(buyer); assert.strictEqual(initial.state.version, 3); assert.deepStrictEqual(initial.state.missionClaims, {});
+    await expectCode(claim('planted'), 'FARM_MISSION_INCOMPLETE'); await expectCode(claim('unknown'), 'FARM_PARAMS');
+    const forged = await signed('action', wallet, { actionId: actionId(), type: 'claim_mission', params: { missionKey: 'planted' } }); forged.params.missionKey = 'sales';
+    await expectCode(isolate.action(forged), 'FARM_AUTH');
+    const record = repo.accounts.get(buyer); record.state.farmProgress.planted = 3;
+    const id = actionId(); let result = await claim('planted', id, { reward: 999999 });
+    assert.strictEqual(result.state.coins, 110); assert.strictEqual(result.state.missionClaims.planted, true);
+    result = await claim('planted', id); assert.strictEqual(result.state.coins, 110);
+    await expectCode(claim('planted'), 'FARM_MISSION_CLAIMED');
+    const cancelId = actionId(); const pending = await signed('action', wallet, { actionId: cancelId, type: 'claim_mission', params: { missionKey: 'planted' } });
+    await isolate.resolvePending(await signed('resolve', wallet, { actionId: cancelId })); await expectCode(isolate.action(pending), 'FARM_CANCELLED');
+    const current = repo.accounts.get(buyer); current.state.farmProgress.watered = 3;
+    const race = await Promise.allSettled([claim('watered'), claim('watered')]); assert.strictEqual(race.filter(x => x.status === 'fulfilled').length, 1);
+    result = await isolate.view(buyer); assert.strictEqual(result.state.coins, 120); assert.strictEqual(result.state.missionClaims.watered, true);
+    const nearMax = repo.accounts.get(buyer); nearMax.state.coins = Config.MAX_COINS - 9; nearMax.state.farmProgress.cared = 3;
+    await expectCode(claim('cared'), 'FARM_LIMIT'); result = await isolate.view(buyer);
+    assert.strictEqual(result.state.coins, Config.MAX_COINS - 9); assert.strictEqual(result.state.missionClaims.cared, undefined);
+    const malicious = normalizeState({ missionClaims: { planted: false, watered: true, cared: 'true', injected: true } }, buyer);
+    assert.deepStrictEqual(malicious.missionClaims, { watered: true });
+    assert.strictEqual(Config.MISSIONS.reduce((sum, m) => sum + m.reward, 0), 80);
+    assert.ok(fs.readFileSync('supabase/migrations/20261108010000_farm_mill.sql', 'utf8').includes("'claim_mission'"));
+  });
+
+  await test('Missions supplémentaires : progression atomique et récompenses uniques', async () => {
+    const repo = new MemoryFarmRepository(), isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs), a = actionId(), b = actionId(), c = actionId();
+    state.land = { owned: true, purchasedAt: nowMs }; state.coins = 2000; state.feed = 5; state.inventory.wheat = 3;
+    state.animals = [a, b, c].map(id => ({ id, species: 'chicken', produceAt: 0 }));
+    state.crops = [0, 1, 2].map(plot => ({ id: actionId(), species: 'wheat', plot, plantedAt: nowMs, readyAt: nowMs + Config.CROPS.wheat.durationMs }));
+    repo.accounts.set(buyer, { state, revision: 1 });
+    const act = async (type, params, id = actionId()) => isolate.action(await signed('action', wallet, { actionId: id, type, params }));
+    await expectCode(act('claim_mission', { missionKey: 'fertilized' }), 'FARM_MISSION_INCOMPLETE');
+    for (const crop of state.crops) await act('fertilize_crop', { cropId: crop.id });
+    await act('breed_animal', { parentIds: [a, b] });
+    const feedId = actionId(); let v = await act('feed_group', { animalIds: [a, b, c] }, feedId);
+    assert.strictEqual(v.state.farmProgress.fed, 3); v = await act('feed_group', { animalIds: [a, b, c] }, feedId);
+    assert.strictEqual(v.state.farmProgress.fed, 3);
+    for (let i = 0; i < 3; i++) await act('mill_feed', {});
+    v = await isolate.view(buyer);
+    for (const key of ['fertilized', 'bred', 'fed', 'milled']) assert.strictEqual(v.state.farmProgress[key], key === 'bred' ? 1 : 3);
+    const before = v.state.coins;
+    for (const key of ['fertilized', 'bred', 'fed', 'milled']) {
+      const id = actionId(); v = await act('claim_mission', { missionKey: key, reward: 99999 }, id);
+      const after = v.state.coins; v = await act('claim_mission', { missionKey: key }, id); assert.strictEqual(v.state.coins, after);
+      await expectCode(act('claim_mission', { missionKey: key }), 'FARM_MISSION_CLAIMED');
+    }
+    assert.strictEqual(v.state.coins, before + 20); assert.strictEqual(require('./farm-economy-audit').audit().oneTimeMissionCoinsPerAccount, 80);
+  });
+
+  await test('Placement : limites, collisions, signature, persistance et reprise', async () => {
+    const repo = new MemoryFarmRepository(), isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs); state.land = { owned: true, purchasedAt: nowMs };
+    state.animals = [{ id: actionId(), species: 'chicken', produceAt: 0 }]; state.coins = 123;
+    repo.accounts.set(buyer, { state, revision: 1 });
+    const act = async (params, id = actionId()) => isolate.action(await signed('action', wallet, { actionId: id, type: 'move_building', params }));
+    await expectCode(act({ building: 'barn', x: 100, z: -5 }), 'FARM_POSITION');
+    await expectCode(act({ building: 'barn', x: 3.76, z: -5 }), 'FARM_POSITION');
+    await expectCode(act({ building: 'barn', x: -0.25, z: -5 }), 'FARM_POSITION');
+    await expectCode(act({ building: 'other', x: 3.75, z: -5.5 }), 'FARM_PARAMS');
+    const id = actionId(); let v = await act({ building: 'barn', x: 3.75, z: -5.5 }, id);
+    assert.strictEqual(v.state.buildingPositions.barn.z, -5.5); assert.strictEqual(v.state.coins, 123);
+    v = await act({ building: 'barn', x: 3.75, z: -5.5 }, id); assert.strictEqual(repo.accounts.get(buyer).revision, 2);
+    v = await isolate.view(buyer); assert.strictEqual(v.state.buildingPositions.barn.z, -5.5);
+    v = await isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'change_layout', params: { layout: 1 } }));
+    assert.deepStrictEqual(v.state.buildingPositions, Config.layoutPositions(1));
+    repo.accounts.get(buyer).state.buildingPositions = { barn: { x: 100, z: 0 }, care: { x: 0, z: 0 } };
+    v = await isolate.view(buyer); assert.deepStrictEqual(v.state.buildingPositions, Config.layoutPositions(1));
+  });
+
+  await test('Placement des six bâtiments : compte existant, plans et conservation des positions', async () => {
+    const repo = new MemoryFarmRepository(), isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs); state.land = { owned: true, purchasedAt: nowMs };
+    state.animals = [{ id: actionId(), species: 'chicken', produceAt: 0 }]; state.coins = 500;
+    // An earlier v3 state contained only the two original building positions.
+    state.buildingPositions = { barn: { x: 3.75, z: -5.5 }, care: { x: -0.25, z: -5 } };
+    repo.accounts.set(buyer, { state, revision: 1 });
+    let v = await isolate.view(buyer); assert.strictEqual(v.state.buildingPositions.barn.z, -5.5);
+    for (const [building, next] of Object.entries({ mill: { x: -6.75, z: -5 }, well: { x: -8.25, z: 0.75 }, silo: { x: 7.5, z: -4.5 }, tractor: { x: 9.25, z: -1.25 } })) {
+      v = await isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'move_building', params: { building, ...next } }));
+      assert.deepStrictEqual(v.state.buildingPositions[building], next);
+    }
+    const saved = v.state.buildingPositions;
+    v = await isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'change_layout', params: { layout: 1 } }));
+    for (const key of ['mill', 'well', 'silo', 'tractor']) assert.deepStrictEqual(v.state.buildingPositions[key], saved[key]);
+    assert.strictEqual(v.state.coins, 500);
+    assert.deepStrictEqual((await isolate.view(buyer)).state.buildingPositions, v.state.buildingPositions);
+    await expectCode(isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'move_building', params: { building: 'tractor', x: 0, z: 0 } })), 'FARM_POSITION');
+  });
+
+  await test('Couleurs des bâtiments : validation, état persistant et aucune incidence financière', async () => {
+    const repo = new MemoryFarmRepository(), isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs); state.land = { owned: true, purchasedAt: nowMs };
+    state.animals = [{ id: actionId(), species: 'chicken', produceAt: 0 }]; state.coins = 123; state.inventory.eggs = 2;
+    repo.accounts.set(buyer, { state, revision: 1 });
+    const act = async (building, style) => isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'customize_building', params: { building, style } }));
+    await expectCode(act('__proto__', 1), 'FARM_PARAMS'); await expectCode(act('barn', -1), 'FARM_PARAMS');
+    await expectCode(act('care', 3), 'FARM_PARAMS'); await expectCode(act('barn', '1'), 'FARM_PARAMS');
+    const msg = await signed('action', wallet, { actionId: actionId(), type: 'customize_building', params: { building: 'barn', style: 2 } });
+    let view = await isolate.action(msg); assert.strictEqual(view.state.buildingStyle.barn, 2);
+    view = await isolate.action(msg); assert.strictEqual(repo.accounts.get(buyer).revision, 2);
+    view = await act('care', 1); assert.strictEqual(view.state.buildingStyle.care, 1);
+    for (const key of ['well', 'mill', 'silo', 'tractor']) { view = await act(key, 2); assert.strictEqual(view.state.buildingStyle[key], 2); }
+    assert.strictEqual(view.state.coins, 123); assert.strictEqual(view.state.inventory.eggs, 2);
+    view = await isolate.view(buyer); assert.strictEqual(view.state.buildingStyle.barn, 2); assert.strictEqual(view.state.buildingStyle.care, 1);
+    repo.accounts.get(buyer).state.buildingStyle = { barn: 100, care: -5, extra: 1 };
+    view = await isolate.view(buyer); assert.strictEqual(view.state.buildingStyle.barn, 0); assert.strictEqual(view.state.buildingStyle.care, 0);
+  });
+
+  await test('Aménagement : plans validés, sauvegarde et rejeu sans effet financier', async () => {
+    const repo = new MemoryFarmRepository(); const isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs); state.land = { owned: true, purchasedAt: nowMs }; state.animals = [{ id: actionId(), species: 'chicken', produceAt: 0 }]; state.coins = 123;
+    repo.accounts.set(buyer, { state, revision: 1 }); const id = actionId();
+    const message = await signed('action', wallet, { actionId: id, type: 'change_layout', params: { layout: 1 } });
+    let view = await isolate.action(message); assert.strictEqual(view.state.farmLayout, 1); assert.strictEqual(view.state.coins, 123);
+    view = await isolate.action(message); assert.strictEqual(view.state.farmLayout, 1); assert.strictEqual(repo.accounts.get(buyer).revision, 2);
+    await expectCode(isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'change_layout', params: { layout: 2 } })), 'FARM_PARAMS');
+    view = await isolate.action(await signed('action', wallet, { actionId: actionId(), type: 'change_layout', params: { layout: 0 } }));
+    assert.strictEqual(view.state.farmLayout, 0); assert.strictEqual(view.state.coins, 123);
+  });
+
+  await test('Entretien : cumuls bornés, soins avant ou pendant production et cas proches de maturité', async () => {
+    const repo = new MemoryFarmRepository(); const isolate = createFarmService({ repository: repo, now: () => new Date(nowMs) });
+    const state = defaultState(buyer, nowMs), a = actionId(), b = actionId(), crop = actionId(); state.coins = 100; state.feed = 2;
+    state.land = { owned: true, purchasedAt: nowMs }; state.animals = [{ id: a, species: 'chicken', produceAt: 0 }, { id: b, species: 'chicken', produceAt: 0 }];
+    state.crops = [{ id: crop, species: 'wheat', plot: 0, plantedAt: nowMs, readyAt: nowMs + Config.CROPS.wheat.durationMs }]; repo.accounts.set(buyer, { state, revision: 1 });
+    const act = async (type, params) => isolate.action(await signed('action', wallet, { actionId: actionId(), type, params }));
+    await act('water_crop', { cropId: crop }); let v = await act('fertilize_crop', { cropId: crop });
+    assert.strictEqual(v.state.crops[0].readyAt, nowMs + Config.CROPS.wheat.durationMs * 0.85); assert.strictEqual(v.state.coins, 96);
+    await act('care_animal', { animalId: a }); v = await act('feed_group', { animalIds: [a, b] });
+    const normal = nowMs + Config.ANIMALS.chicken.durationMs; const cared = nowMs + Config.ANIMALS.chicken.durationMs * 0.95;
+    assert.strictEqual(v.state.animals.find(x => x.id === a).produceAt, cared); assert.strictEqual(v.state.animals.find(x => x.id === b).produceAt, normal);
+    v = await act('care_animal', { animalId: b }); assert.strictEqual(v.state.animals.find(x => x.id === b).produceAt, cared);
+    assert.strictEqual(v.state.feed, 0); assert.strictEqual(v.state.inventory.eggs, 0);
+    nowMs = cared - 100; const record = repo.accounts.get(buyer); record.state.animals.find(x => x.id === b).caredAt = 0;
+    v = await act('care_animal', { animalId: b }); assert.strictEqual(v.state.animals.find(x => x.id === b).produceAt, nowMs);
+    await expectCode(act('care_animal', { animalId: actionId() }), 'FARM_NOT_FOUND');
+    const c = actionId(); repo.accounts.get(buyer).state.animals.push({ id: c, species: 'chicken', produceAt: nowMs - 1 });
+    await expectCode(act('care_animal', { animalId: c }), 'FARM_NOT_READY');
   });
 
   await test('Historique marché : anciens comptes, plafond et entrées corrompues', async () => {

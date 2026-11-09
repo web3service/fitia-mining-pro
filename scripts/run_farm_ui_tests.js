@@ -330,7 +330,7 @@ async function waitFor(condition, label) {
       const document = window.document; const progress = center.state.farmProgress;
       assert.strictEqual(progress.planted, 2);
       assert.strictEqual(progress.sales, 2);
-      assert.strictEqual(document.querySelectorAll('#farm-missions .pf-mission').length, 6);
+      assert.strictEqual(document.querySelectorAll('#farm-missions .pf-mission').length, 10);
       assert.ok(document.querySelectorAll('#farm-missions .pf-mission')[0].textContent.includes('2 / 3'));
       const coins = center.state.coins;
       document.querySelectorAll('#farm-missions .pf-mission')[2].click();
@@ -560,7 +560,175 @@ async function waitFor(condition, label) {
       } finally { window.fetch = originalFetch; center.closeDialog(); }
     });
 
-    await test('Puits : arrosage, réponse perdue et reprise sans changement des gains', async () => {
+    await test('Placement : flèches mobiles et reprise de la position après réponse perdue', async () => {
+      const document = window.document, originalFetch = window.fetch, ids = []; let lose = true;
+      const record = repository.accounts.get(wallet.address.toLowerCase()); record.state.farmLayout = 0;
+      record.state.buildingPositions = window.FitiaFarmConfig.layoutPositions(0); await center.refresh({ quiet: true });
+      const before = center.state.coins;
+      window.fetch = async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.action === 'action' && body.type === 'move_building') {
+          ids.push(body.actionId); const response = await originalFetch(url, options);
+          if (lose) { lose = false; throw new Error('Lost response'); } return response;
+        }
+        return originalFetch(url, options);
+      };
+      try {
+        center.openLayout(); [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'MOVE A BUILDING').click();
+        const back = document.querySelector('.farm-move-button[aria-label="Move back"]'); assert.ok(back && !back.disabled); back.click();
+        await waitFor(() => ids.length === 1 && !center.operation, 'déplacement sans réponse');
+        center.setAccount(wallet.address); await center.refresh({ quiet: true });
+        assert.strictEqual(center.state.buildingPositions.barn.z, -5.5); assert.strictEqual(center.state.coins, before);
+        center.openPendingGameAction(); document.querySelector('#farm-dialog-actions button').click();
+        await waitFor(() => ids.length === 2 && !center.operation, 'reprise déplacement');
+        assert.strictEqual(ids[0], ids[1]); assert.strictEqual(center.state.buildingPositions.barn.z, -5.5);
+        const next = document.querySelector('.farm-move-button[aria-label="Move back"]'); assert.ok(next && !next.disabled); next.click();
+        await waitFor(() => ids.length === 3 && !center.operation, 'déplacement suivant');
+        assert.strictEqual(center.state.buildingPositions.barn.z, -5.75); assert.strictEqual(center.state.coins, before);
+        center.openLayout(); const plan1 = [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'LAYOUT 1');
+        assert.ok(plan1 && !plan1.disabled); plan1.click();
+        await waitFor(() => !center.operation && center.state.buildingPositions.barn.z === -5.25, 'restauration du plan');
+      } finally { window.fetch = originalFetch; center.closeDialog(); }
+    });
+
+    await test('Placement : chaque bâtiment est accessible et conservé', async () => {
+      const document = window.document;
+      center.openBuildingPositions('barn');
+      for (const [label, key] of [['Mill', 'mill'], ['Well', 'well'], ['Silo', 'silo'], ['Tractor', 'tractor']]) {
+        const button = [...document.querySelectorAll('.farm-move-selector button')].find(b => b.textContent === label); assert.ok(button); button.click();
+        const move = [...document.querySelectorAll('.farm-move-button')].find(b => !b.disabled); assert.ok(move, `${label} doit pouvoir bouger`);
+        const original = JSON.stringify(center.state.buildingPositions[key]); move.click();
+        await waitFor(() => !center.operation && JSON.stringify(center.state.buildingPositions[key]) !== original, `déplacer ${label}`);
+      }
+      center.closeDialog(); await center.refresh({ quiet: true });
+      assert.ok(center.state.buildingPositions.mill && center.state.buildingPositions.tractor);
+    });
+
+    await test('Nouvelles missions : accès rapide et récompense serveur', async () => {
+      const document = window.document, record = repository.accounts.get(wallet.address.toLowerCase());
+      record.state.farmProgress.fertilized = 3; delete record.state.missionClaims.fertilized;
+      await center.refresh({ quiet: true }); const before = center.state.coins;
+      const mission = [...document.querySelectorAll('#farm-missions .pf-mission')].find(b => b.textContent.includes('Fertilize'));
+      assert.ok(mission); mission.click();
+      assert.ok(document.getElementById('farm-dialog-content').textContent.includes('5 F-Coins'));
+      [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'CLAIM').click();
+      await waitFor(() => !center.operation && center.state.missionClaims.fertilized, 'récompense engrais');
+      assert.strictEqual(center.state.coins, before + 5);
+      const breed = [...document.querySelectorAll('#farm-missions .pf-mission')].find(b => b.textContent.includes('Breed'));
+      assert.ok(breed); breed.click(); assert.ok(document.getElementById('modal-farm-dialog').classList.contains('active'));
+      center.closeDialog();
+    });
+
+    await test('Couleurs : personnalisation et reprise après réponse perdue', async () => {
+      const document = window.document, originalFetch = window.fetch, ids = []; let lose = true;
+      const before = center.state.coins;
+      window.fetch = async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.action === 'action' && body.type === 'customize_building') {
+          ids.push(body.actionId); const response = await originalFetch(url, options);
+          if (lose) { lose = false; throw new Error('Lost response'); } return response;
+        }
+        return originalFetch(url, options);
+      };
+      try {
+        center.openLayout(); [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'BUILDING COLORS').click();
+        const button = [...document.querySelectorAll('.farm-style-choice')].find(b => b.textContent === 'Green'); assert.ok(button); button.click();
+        await waitFor(() => ids.length === 1 && !center.operation, 'personnalisation sans réponse');
+        center.setAccount(wallet.address); await center.refresh({ quiet: true });
+        assert.strictEqual(center.state.buildingStyle.barn, 1); assert.strictEqual(center.state.coins, before);
+        center.openPendingGameAction(); document.querySelector('#farm-dialog-actions button').click();
+        await waitFor(() => ids.length === 2 && !center.operation, 'reprise personnalisation');
+        assert.strictEqual(ids[0], ids[1]); assert.strictEqual(center.state.buildingStyle.barn, 1); assert.strictEqual(center.readPendingGameAction(), null);
+      } finally { window.fetch = originalFetch; center.closeDialog(); }
+    });
+
+    await test('Marché : vente de plusieurs produits et reprise après réponse perdue', async () => {
+      const document = window.document, originalFetch = window.fetch, ids = []; let lose = true;
+      const record = repository.accounts.get(wallet.address.toLowerCase()); record.state.inventory.wheat = 3; record.state.inventory.carrot = 2;
+      await center.refresh({ quiet: true }); const coins = center.state.coins;
+      window.fetch = async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.action === 'action' && body.type === 'sell_batch') {
+          ids.push(body.actionId); const response = await originalFetch(url, options);
+          if (lose) { lose = false; throw new Error('Lost response after commit'); } return response;
+        }
+        return originalFetch(url, options);
+      };
+      try {
+        center.openSell(); const rows = [...document.querySelectorAll('.farm-market-row')];
+        const wheat = rows.find(row => row.textContent.includes('Wheat')), carrot = rows.find(row => row.textContent.includes('Carrot'));
+        wheat.querySelector('.farm-market-select').checked = true; wheat.querySelector('.farm-market-quantity').value = '2';
+        carrot.querySelector('.farm-market-select').checked = true; carrot.querySelector('.farm-market-quantity').value = '1';
+        [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'SELL SELECTED').click();
+        await waitFor(() => ids.length === 1 && !center.operation, 'vente groupée sans réponse');
+        center.setAccount(wallet.address); await center.refresh({ quiet: true });
+        const expected = coins + 2 * window.FitiaFarmConfig.PRODUCTS.wheat.price + window.FitiaFarmConfig.PRODUCTS.carrot.price;
+        assert.strictEqual(center.state.coins, expected); assert.strictEqual(center.state.inventory.wheat, 1); assert.strictEqual(center.state.inventory.carrot, 1);
+        center.openSell(); [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'CHECK SALE').click();
+        await waitFor(() => ids.length === 2 && !center.operation, 'reprise vente groupée');
+        assert.strictEqual(ids[0], ids[1]); assert.strictEqual(center.state.coins, expected); assert.strictEqual(center.readPendingMarketSale(), null);
+      } finally { window.fetch = originalFetch; center.closeDialog(); }
+    });
+
+    await test('Achats et vente globale : réponse perdue, reprise sûre et annulation', async () => {
+      const document = window.document, originalFetch = window.fetch, ids = []; let lost = true;
+      const record = repository.accounts.get(wallet.address.toLowerCase()); record.state.coins = 3000; record.state.feed = 0; record.state.inventory.wheat = 2;
+      await center.refresh({ quiet: true });
+      window.fetch = async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.action === 'action' && body.type === 'buy_feed') {
+          ids.push(body.actionId); const response = await originalFetch(url, options);
+          if (lost) { lost = false; throw new Error('Lost response after commit'); } return response;
+        }
+        return originalFetch(url, options);
+      };
+      try {
+        center.openBuyFeed(); document.querySelector('#farm-dialog-actions button').click();
+        await waitFor(() => ids.length === 1 && !center.operation, 'achat sans réponse');
+        center.setAccount(wallet.address); await center.refresh({ quiet: true });
+        assert.strictEqual(center.state.feed, 5); assert.strictEqual(center.state.coins, 2980);
+        assert.ok(!document.getElementById('farm-game-pending').classList.contains('hidden'));
+        center.openPendingGameAction(); document.querySelector('#farm-dialog-actions button').click();
+        await waitFor(() => ids.length === 2 && !center.operation, 'reprise achat');
+        assert.strictEqual(ids[0], ids[1]); assert.strictEqual(center.state.feed, 5); assert.strictEqual(center.state.coins, 2980);
+        assert.strictEqual(center.readPendingGameAction(), null);
+        let intercepted = false;
+        window.fetch = async (url, options) => {
+          const body = JSON.parse(options.body);
+          if (body.action === 'action' && body.type === 'sell' && !intercepted) { intercepted = true; throw new Error('Lost before commit'); }
+          return originalFetch(url, options);
+        };
+        center.openSell(); [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'SELL ALL PRODUCTS').click();
+        await waitFor(() => intercepted && !center.operation, 'vente non envoyée');
+        center.openPendingGameAction(); [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'CANCEL IF NOT COMPLETED').click();
+        await waitFor(() => !center.operation && !center.readPendingGameAction(), 'annulation vente');
+        assert.strictEqual(center.state.inventory.wheat, 2); assert.strictEqual(center.state.coins, 2980);
+      } finally { window.fetch = originalFetch; center.closeDialog(); }
+    });
+
+    await test('Aménagement : réponse perdue et reprise du même plan', async () => {
+      const document = window.document, originalFetch = window.fetch, ids = []; let lose = true;
+      const coins = center.state.coins;
+      window.fetch = async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.action === 'action' && body.type === 'change_layout') {
+          ids.push(body.actionId); const response = await originalFetch(url, options);
+          if (lose) { lose = false; throw new Error('Lost response after commit'); } return response;
+        }
+        return originalFetch(url, options);
+      };
+      try {
+        center.openLayout(); [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent.includes('LAYOUT 2')).click();
+        await waitFor(() => ids.length === 1 && !center.operation, 'aménagement sans réponse');
+        await center.refresh({ quiet: true }); assert.strictEqual(center.state.farmLayout, 1); assert.strictEqual(center.state.coins, coins);
+        center.openLayout(); [...document.querySelectorAll('#farm-dialog-actions button')].find(b => b.textContent === 'CHECK').click();
+        await waitFor(() => ids.length === 2 && !center.operation, 'reprise aménagement');
+        assert.strictEqual(ids[0], ids[1]); assert.strictEqual(center.state.farmLayout, 1);
+        assert.strictEqual(window.localStorage.getItem(`fitia_farm_layout_pending_v1:${wallet.address.toLowerCase()}`), null);
+      } finally { window.fetch = originalFetch; center.closeDialog(); }
+    });
+
+    await test('Puits : arrosage, réponse perdue et reprise sans double accélération', async () => {
       const document = window.document; const record = repository.accounts.get(wallet.address.toLowerCase());
       const cropId = crypto.randomUUID(); const readyAt = Date.now() + 1800000;
       record.state.crops.push({ id: cropId, species: 'maize', plot: 4, plantedAt: Date.now(), readyAt });
@@ -580,7 +748,7 @@ async function waitFor(condition, label) {
         assert.ok(water); water.click(); await waitFor(() => ids.length === 1 && !center.operation, 'arrosage sans réponse');
         center.setAccount(wallet.address); await center.refresh({ quiet: true });
         assert.ok(center.state.crops.find(c => c.id === cropId).wateredAt);
-        assert.strictEqual(center.state.crops.find(c => c.id === cropId).readyAt, readyAt);
+        assert.strictEqual(center.state.crops.find(c => c.id === cropId).readyAt, readyAt - window.FitiaFarmConfig.CROPS.maize.durationMs * window.FitiaFarmConfig.WATER_SPEED_PERCENT / 100);
         assert.strictEqual(center.state.coins, beforeCoins); assert.strictEqual(center.state.farmProgress.watered, before + 1);
         center.openWell(); assert.strictEqual(document.querySelector('#farm-dialog-actions button').textContent, 'CHECK WATERING');
         document.querySelector('#farm-dialog-actions button').click();
@@ -683,6 +851,31 @@ async function waitFor(condition, label) {
         assert.ok(window.document.getElementById('farm-unlocks').textContent.includes('Flower garden · Unlocked'));
         assert.strictEqual(center.state.coins, coins);
       } finally { center.state.farmProgress = original; center.renderProgress(); }
+    });
+
+    await test('Mission : F-Coins crédités une fois après perte de réponse', async () => {
+      const document = window.document; const record = repository.accounts.get(wallet.address.toLowerCase());
+      record.state.farmProgress.planted = 3; record.state.missionClaims = {}; await center.refresh({ quiet: true });
+      const before = center.state.coins; const originalFetch = window.fetch; const ids = []; let lose = true;
+      window.fetch = async (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.action === 'action' && body.type === 'claim_mission') {
+          ids.push(body.actionId); const response = await originalFetch(url, options);
+          if (lose) { lose = false; throw new Error('Lost response after commit'); } return response;
+        } return originalFetch(url, options);
+      };
+      try {
+        app.currentLang = 'fr'; center.renderProgress(); document.querySelectorAll('#farm-missions .pf-mission')[0].click();
+        assert.strictEqual(document.getElementById('farm-dialog-title').textContent, 'Récompense de mission');
+        assert.ok(document.getElementById('farm-dialog-content').textContent.includes('10 F-Coins'));
+        document.querySelector('#farm-dialog-actions button').click(); await waitFor(() => ids.length === 1 && !center.operation, 'récompense sans réponse');
+        center.setAccount(wallet.address); await center.refresh({ quiet: true });
+        assert.strictEqual(center.state.coins, before + 10); assert.strictEqual(center.state.missionClaims.planted, true);
+        center.openMission('planted'); document.querySelector('#farm-dialog-actions button').click();
+        await waitFor(() => ids.length === 2 && !center.operation, 'reprise récompense');
+        assert.strictEqual(ids[0], ids[1]); assert.strictEqual(center.state.coins, before + 10);
+        assert.strictEqual(window.localStorage.getItem(`fitia_farm_mission_pending_v1:${wallet.address.toLowerCase()}`), null);
+      } finally { window.fetch = originalFetch; center.closeDialog(); app.currentLang = 'en'; }
     });
 
     await test('Verrouillage : compte, état et boucle 3D désactivés sans fuite de secret local', async () => {

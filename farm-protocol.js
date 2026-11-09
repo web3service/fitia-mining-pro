@@ -8,7 +8,7 @@
   'use strict';
   if (!ethers) throw new Error('ethers est requis pour FITIA FARM.');
   const ACTIONS = new Set(['state', 'deposit', 'action', 'withdraw', 'resolve']);
-  const ACTION_TYPES = new Set(['buy_land', 'buy_animal', 'buy_feed', 'plant', 'plant_plot', 'water_crop', 'fertilize_crop', 'harvest', 'harvest_ready', 'feed', 'feed_group', 'care_animal', 'breed_animal', 'collect', 'collect_group', 'mill_feed', 'sell', 'sell_item', 'wheel_spin', 'dice_roll', 'mines_start', 'mines_reveal', 'mines_cashout', 'crash_play', 'crash_start', 'crash_bet', 'crash_cashout', 'crash_sync', 'coin_flip']);
+  const ACTION_TYPES = new Set(['buy_land', 'buy_animal', 'buy_feed', 'plant', 'plant_plot', 'water_crop', 'fertilize_crop', 'claim_mission', 'change_layout', 'customize_building', 'move_building', 'harvest', 'harvest_ready', 'feed', 'feed_group', 'care_animal', 'breed_animal', 'collect', 'collect_group', 'mill_feed', 'sell', 'sell_item', 'sell_batch', 'wheel_spin', 'dice_roll', 'mines_start', 'mines_reveal', 'mines_cashout', 'crash_play', 'crash_start', 'crash_bet', 'crash_cashout', 'crash_sync', 'coin_flip']);
 
   class FarmProtocolError extends Error {
     constructor(message, code = 'FARM_INVALID') { super(message); this.code = code; }

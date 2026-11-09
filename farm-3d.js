@@ -103,8 +103,8 @@
     const pathMaterial = new THREE.MeshStandardMaterial({ map: pathTexture, color: 0xe4c992, roughness: 1 });
     materials.lawn = lawnMaterial; materials.field = fieldMaterial; materials.pathTextured = pathMaterial;
     box(world, lawnMaterial, [0, -0.46, 0], [80, 0.7, 80]);
-    box(world, M.soil, [0, -0.1, 0], [18.5, 0.55, 13.5]);
-    box(world, lawnMaterial, [0, 0.19, 0], [18.2, 0.12, 13.2]);
+    box(world, M.soil, [0, -0.1, -1.65], [22.5, 0.55, 16.8]);
+    box(world, lawnMaterial, [0, 0.19, -1.65], [22.2, 0.12, 16.5]);
 
     // Six vraies parcelles labourées avec rangées et bordures en bois.
     const plotPositions = []; const plotMeshes = [];
@@ -135,7 +135,7 @@
     fenceLine([7.8, 0, -1.8], 5, 1.76, false);
 
     // Grange avec toit à deux pans, portes, croisillons et bottes de paille.
-    const barn = new THREE.Group(); barn.position.set(3.8, 0.25, -4.45); barn.userData = { kind: 'building', id: 'barn' }; world.add(barn);
+    const barn = new THREE.Group(); barn.position.set(3.8, 0.25, -5.2); barn.userData = { kind: 'building', id: 'barn' }; world.add(barn);
     box(barn, M.barn, [0, 1.45, 0], [4.3, 2.9, 2.8]);
     const gableShape = new THREE.Shape(); gableShape.moveTo(-2.15, 0); gableShape.lineTo(0, 1.55); gableShape.lineTo(2.15, 0); gableShape.closePath();
     geometries.gable = new THREE.ShapeGeometry(gableShape);
@@ -153,14 +153,15 @@
     box(barn, M.white, [0, 1.22, 1.57], [1.45, 0.1, 0.08], [0, 0, 0.9]);
     box(barn, M.white, [0, 1.22, 1.57], [1.45, 0.1, 0.08], [0, 0, -0.9]);
     for (const x of [-2.05, 2.05]) box(barn, M.white, [x, 1.5, 1.44], [0.13, 2.95, 0.12]);
-    for (const x of [-2.8, -2.25]) {
-      cylinder(world, M.yellow, [x, 0.65, -4.2], [0.58, 1.05, 0.58], [Math.PI / 2, 0, 0]);
-      for (const dz of [-0.33, 0.33]) mesh(geometries.torus, M.woodDark, world, [x, 0.65, -4.2 + dz], [0.58, 0.58, 0.58], [0, 0, 0]);
+    const hayGroup = new THREE.Group(); hayGroup.name = 'farm-hay'; world.add(hayGroup);
+    for (const x of [-5.25, -4.65]) {
+      cylinder(hayGroup, M.yellow, [x, 0.65, -7.5], [0.58, 1.05, 0.58], [Math.PI / 2, 0, 0]);
+      for (const dz of [-0.33, 0.33]) mesh(geometries.torus, M.woodDark, hayGroup, [x, 0.65, -7.5 + dz], [0.58, 0.58, 0.58], [0, 0, 0]);
     }
 
     // Maison de ferme, cheminées et fumée douce.
     const smokePuffs = [];
-    const house = new THREE.Group(); house.position.set(-0.35, 0.25, -4.6); house.userData = { kind: 'building', id: 'care' }; world.add(house);
+    const house = new THREE.Group(); house.position.set(-0.35, 0.25, -4.85); house.userData = { kind: 'building', id: 'care' }; world.add(house);
     box(house, M.plaster, [0, 1.05, 0], [2.55, 2.1, 2.1]);
     mesh(geometries.gable, M.plaster, house, [0, 2.05, 1.055], [0.58, 0.67, 1]);
     box(house, M.blueRoof, [-0.66, 2.45, 0], [1.6, 0.14, 2.55], [0, 0, 0.58]);
@@ -182,7 +183,7 @@
     }
 
     // Petit tracteur utilitaire près de la grange.
-    const tractor = new THREE.Group(); tractor.position.set(5.3, 0.48, -2.25); tractor.rotation.y = -0.35; tractor.userData = { kind: 'building', id: 'tractor' }; world.add(tractor);
+    const tractor = new THREE.Group(); tractor.position.set(9.25, 0.48, -1.5); tractor.rotation.y = -0.35; tractor.userData = { kind: 'building', id: 'tractor' }; world.add(tractor);
     box(tractor, M.tractor, [0, 0.62, 0.2], [1.25, 0.62, 1.55]);
     box(tractor, M.tractor, [0, 1.25, -0.32], [1.05, 1.05, 0.85]);
     box(tractor, M.blueRoof, [0, 1.85, -0.32], [1.3, 0.12, 1.05]);
@@ -195,7 +196,7 @@
     const tractorBeacon = ball(tractor, M.yellow, [0, 2.02, -0.35], [0.1, 0.12, 0.1]);
 
     // Puits d'entretien, sélectionnable depuis la scène.
-    const well = new THREE.Group(); well.position.set(-8.35, 0.25, 0.4); well.userData = { kind: 'building', id: 'well' }; world.add(well);
+    const well = new THREE.Group(); well.position.set(-8.25, 0.25, 0.5); well.userData = { kind: 'building', id: 'well' }; world.add(well);
     cylinder(well, M.stone, [0, 0.43, 0], [0.78, 0.85, 0.78]);
     cylinder(well, M.water, [0, 0.88, 0], [0.6, 0.04, 0.6]);
     for (const x of [-0.72, 0.72]) box(well, M.woodDark, [x, 1.32, 0], [0.13, 2.2, 0.13]);
@@ -203,7 +204,7 @@
     box(well, M.wood, [0, 1.75, 0], [1.4, 0.12, 0.12]);
 
     // Moulin animé et silo métallique.
-    const windmill = new THREE.Group(); windmill.position.set(-6.7, 0.25, -4.65); windmill.userData = { kind: 'building', id: 'mill' }; world.add(windmill);
+    const windmill = new THREE.Group(); windmill.position.set(-6.75, 0.25, -4.75); windmill.userData = { kind: 'building', id: 'mill' }; world.add(windmill);
     mesh(new THREE.CylinderGeometry(0.42, 0.78, 4.4, 10), M.stone, windmill, [0, 2.2, 0]);
     cone(windmill, M.roof, [0, 4.7, 0], [0.82, 1.05, 0.82]);
     const rotor = new THREE.Group(); rotor.position.set(0, 3.65, 0.62); windmill.add(rotor);
@@ -213,10 +214,17 @@
       box(blade, M.woodDark, [0, 1.25, 0], [0.12, 2.5, 0.1]);
       box(blade, M.white, [0.28, 1.55, 0], [0.48, 1.45, 0.07], [0, 0, -0.12]);
     }
-    const silo = new THREE.Group(); silo.position.set(7.1, 0, -4.6); silo.userData = { kind: 'building', id: 'silo' }; world.add(silo);
+    const silo = new THREE.Group(); silo.position.set(7.25, 0, -4.5); silo.userData = { kind: 'building', id: 'silo' }; world.add(silo);
     cylinder(silo, M.metal, [0, 1.65, 0], [0.9, 2.9, 0.9]);
     cone(silo, M.roof, [0, 3.55, 0], [1.02, 0.85, 1.02]);
     for (const y of [0.75, 1.55, 2.35]) mesh(geometries.torus, M.white, silo, [0, y, 0], [0.91, 0.91, 0.91], [Math.PI / 2, 0, 0]);
+
+    // Separate paints prevent one building's customization from changing the rest of the scene.
+    const buildingPaint = {};
+    for (const [key, group, source] of [['barn', barn, M.barn], ['care', house, M.plaster], ['mill', windmill, M.stone], ['well', well, M.stone], ['silo', silo, M.metal], ['tractor', tractor, M.tractor]]) {
+      const paint = source.clone(); buildingPaint[key] = paint; materials[`paint_${key}`] = paint;
+      group.traverse(item => { if (item.isMesh && item.material === source) item.material = paint; });
+    }
 
     function tree(x, z, scale = 1) {
       const group = new THREE.Group(); group.position.set(x, 0, z); group.scale.setScalar(scale); world.add(group);
@@ -229,7 +237,7 @@
       ball(group, M.leafLight, [0.15, 3.8, 0], [0.85, 0.9, 0.8]);
       if (scale > 0.95) for (const p of [[-0.65, 2.75, 0.75], [0.65, 3.1, 0.7], [0.1, 3.65, 0.65]]) ball(group, M.red, p, [0.11, 0.11, 0.11]);
     }
-    [[-10, -5, 1.1], [-10.5, 3, 0.9], [10, -3, 1], [10.5, 4.5, 1.2], [-1, -8, 0.85], [7, 8, 0.9]].forEach((v) => tree(...v));
+    [[-10, -5, 1.1], [-10.5, 3, 0.9], [13, -3, 1], [13, 4.5, 1.2], [-10, -9.5, 0.85], [7, 8, 0.9]].forEach((v) => tree(...v));
     // Chemin de terre, mare, fleurs et relief au fond de la scène.
     for (let i = 0; i < 17; i += 1) {
       const z = 6.5 - i * 0.58; const x = -0.25 + Math.sin(i * 0.38) * 0.28;
@@ -418,6 +426,19 @@
     function clearGroup(group) { while (group.children.length) group.remove(group.children[group.children.length - 1]); }
     function setState(state) {
       currentState = state;
+      const config = globalThis.FitiaFarmConfig;
+      const positions = config.normalizedBuildingPositions(state?.buildingPositions, state?.farmLayout);
+      barn.position.set(positions.barn.x, 0.25, positions.barn.z);
+      house.position.set(positions.care.x, 0.25, positions.care.z);
+      windmill.position.set(positions.mill.x, 0.25, positions.mill.z);
+      well.position.set(positions.well.x, 0.25, positions.well.z);
+      silo.position.set(positions.silo.x, 0, positions.silo.z);
+      tractor.position.set(positions.tractor.x, 0.48, positions.tractor.z);
+      const styles = globalThis.FitiaFarmConfig.BUILDING_STYLES;
+      for (const [key, paint] of Object.entries(buildingPaint)) {
+        const index = state?.buildingStyle?.[key];
+        paint.color.setHex(styles[key][Number.isInteger(index) && index >= 0 && index < styles[key].length ? index : 0]);
+      }
       const level = globalThis.FitiaFarmConfig.progressLevel(state?.farmProgress);
       rewardFlowers.visible = level >= 2; rewardLanterns.visible = level >= 3;
       const signature = JSON.stringify({ animals: (state?.animals || []).map((a) => [a.id, a.species]), crops: (state?.crops || []).map((c) => [c.id, c.species, c.plot]) });

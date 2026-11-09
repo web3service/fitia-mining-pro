@@ -23,9 +23,9 @@ L'aperçu est adapté aux écrans de téléphone. Un aperçu HTTPS peut aussi ê
 - Scène 3D isométrique orthographique tactile, rotation par quarts de tour, six parcelles, blé, carotte, maïs et tomate ; plantation, temps de pousse, récolte et vente.
 - Poules, canards, moutons, chèvres et vaches ; nourriture, délais, collecte et soins une fois par cycle.
 - Reproduction : deux adultes disponibles de même espèce, à 90 % du prix de l’animal et un aliment ; le jeune grandit un cycle avant de produire. Engrais : 4 F-Coins, réduit de 10 % la durée initiale, une fois par culture.
-- Puits : arrosage une fois par culture avant maturité ; les soins et l’arrosage ne changent ni les gains ni les délais.
+- Puits : arrosage une fois par culture avant maturité ; l’arrosage et les soins réduisent de 5 % la durée initiale, sans modifier le rendement par cycle ; ces règles restent à valider avant activation.
 - Moulin : transformation de blé en nourriture ; tracteur : récolte groupée ; silo : nourrissage et collecte groupés ; grange : inventaire et marché.
-- Vente partielle et historique récent ; objectifs et niveau avec jardin fleuri et lanternes décoratives aux niveaux 2 et 3, sans récompense financière.
+- Vente partielle et historique récent ; dix missions à récompense unique : six de 10 et quatre de 5 F-Coins, et niveau avec jardin fleuri et lanternes décoratives aux niveaux 2 et 3. Les récompenses sont en développement et ne sont pas actives sur les comptes réels.
 - Simulation isolée des dépôts et demandes de retrait. En production, le système existant conserve 100 coins = 1 FTA et le retrait reste une demande en attente jusqu'à confirmation de paiement.
 
 Les fonctionnalités sont encore en développement ; les bâtiments et machines représentés ne sont pas tous fonctionnels. Les prix et la recette du moulin restent à examiner ; les autres fonctionnalités et limites sont détaillées dans `docs/FITIA-FARM-ROADMAP.md`. Le multijoueur de la ferme n'est pas opérationnel.
@@ -54,3 +54,13 @@ Le code Android et `scripts/build_apk.py` sont inclus, mais l'APK doit être con
 L’analyse préliminaire des gains et les points à valider avant publication figurent dans `docs/FITIA-FARM-ECONOMIE.md`. Le test 3D utilise la géométrie et le raycasting Three.js réels mais un rendu simulé ; il ne remplace pas un test sur téléphone.
 
 La vue isométrique conserve la même taille apparente pour les objets proches et éloignés. Sur téléphone, pincer pour zoomer et glisser horizontalement pour tourner ; les boutons de caméra permettent aussi de changer de vue. La sélection, le cadrage en portrait et la projection ont été testés automatiquement avec Three.js et un rendu simulé. Un essai sur téléphone physique reste nécessaire.
+
+Les F-Coins prévus pour la version finale sont ceux du compte serveur existant, convertibles suivant les règles en vigueur ; l’aperçu isolé ne touche jamais aux vrais comptes. Les nouvelles récompenses n’ont pas été déployées et leur financement doit être validé.
+
+L'aménagement propose deux plans enregistrés côté serveur pour la grange et la maison, sans incidence financière, et trois couleurs au choix pour la grange, la maison, le moulin, le puits, le silo et le tracteur. Un déplacement par flèches est disponible pour les six bâtiments et machines sur des grilles limitées, avec contrôle des collisions. Le placement n’est pas libre sur toute la carte. Aucun de ces changements locaux n'est publié.
+
+Le marché permet aussi la vente de plusieurs produits sélectionnés en une seule opération aux prix du serveur. Les actions individuelles principales conservent leur identifiant en cas de réponse perdue ; le bouton « Vérifier l'action en attente » permet de reprendre ou résoudre cette opération. Effacer les données locales peut empêcher cette reprise.
+
+### Test navigateur sur aperçu isolé
+
+Le test optionnel `npm run test:farm-browser` utilise Playwright et un navigateur Chromium déjà installé. Démarrer au préalable `node scripts/preview-farm.js`, puis renseigner `FARM_CHROMIUM_PATH` avec le chemin du navigateur. Le script refuse les adresses non locales et vérifie la bannière d'argent fictif avant de lancer des actions. Le rendu logiciel et l'écran tactile simulé ne remplacent pas un téléphone physique.

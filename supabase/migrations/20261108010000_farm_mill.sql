@@ -23,7 +23,7 @@ begin
   if p_expected_revision < 0 then raise exception 'FARM_REVISION'; end if;
   if jsonb_typeof(p_state) <> 'object' or p_state->>'wallet' <> p_wallet then raise exception 'FARM_STATE'; end if;
   if (p_state->>'coins')::bigint < 0 or (p_state->>'coins')::bigint > 1000000000 then raise exception 'FARM_COINS'; end if;
-  if p_action_type not in ('deposit', 'withdraw', 'buy_land', 'buy_animal', 'buy_feed', 'mill_feed', 'plant', 'water_crop', 'fertilize_crop', 'harvest', 'harvest_ready', 'feed', 'feed_group', 'care_animal', 'breed_animal', 'collect', 'collect_group', 'sell', 'wheel_spin', 'dice_roll', 'mines_start', 'mines_reveal', 'mines_cashout', 'crash_play', 'crash_start', 'crash_bet', 'crash_cashout', 'crash_sync', 'coin_flip') then
+  if p_action_type not in ('deposit', 'withdraw', 'buy_land', 'buy_animal', 'buy_feed', 'mill_feed', 'plant', 'water_crop', 'fertilize_crop', 'claim_mission', 'change_layout', 'customize_building', 'move_building', 'harvest', 'harvest_ready', 'feed', 'feed_group', 'care_animal', 'breed_animal', 'collect', 'collect_group', 'sell', 'wheel_spin', 'dice_roll', 'mines_start', 'mines_reveal', 'mines_cashout', 'crash_play', 'crash_start', 'crash_bet', 'crash_cashout', 'crash_sync', 'coin_flip') then
     raise exception 'FARM_ACTION';
   end if;
   if p_action_type = 'wheel_spin' and (

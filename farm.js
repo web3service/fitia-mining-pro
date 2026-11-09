@@ -12,12 +12,12 @@
   const farmName = (key, lang) => (lang === 'fr' ? FRENCH_NAMES[key] : NAMES[key]) || key;
   const ACTION_SUCCESS = {
     buy_land: 'Terrain purchased.', buy_animal: 'Animal added.', buy_feed: 'Feed added.',
-    plant: 'Crop planted.', plant_plot: 'Crop planted.', water_crop: 'Crop watered.', fertilize_crop: 'Fertilizer applied.', breed_animal: 'Young animal added.', care_animal: 'Animal cared for.', harvest: 'Crop harvested.', harvest_ready: 'Ready crops harvested.', feed: 'Production started.', feed_group: 'Animals fed.', collect_group: 'Products collected.',
+    move_building: 'Building moved.', customize_building: 'Building style saved.', change_layout: 'Farm layout saved.', claim_mission: 'Mission reward credited.', plant: 'Crop planted.', plant_plot: 'Crop planted.', water_crop: 'Crop watered.', fertilize_crop: 'Fertilizer applied.', breed_animal: 'Young animal added.', care_animal: 'Animal cared for.', harvest: 'Crop harvested.', harvest_ready: 'Ready crops harvested.', feed: 'Production started.', feed_group: 'Animals fed.', collect_group: 'Products collected.',
     collect: 'Product collected.', mill_feed: 'Feed prepared.', sell: 'Products sold.', sell_item: 'Product sold.'
   };
   const ACTION_SUCCESS_FR = {
     buy_land: 'Terrain acheté.', buy_animal: 'Animal ajouté.', buy_feed: 'Nourriture ajoutée.',
-    plant: 'Culture plantée.', plant_plot: 'Culture plantée.', water_crop: 'Culture arrosée.', fertilize_crop: 'Engrais appliqué.', breed_animal: 'Jeune animal ajouté.', care_animal: 'Animal soigné.', harvest: 'Culture récoltée.', harvest_ready: 'Cultures prêtes récoltées.',
+    move_building: 'Bâtiment déplacé.', customize_building: 'Style du bâtiment enregistré.', change_layout: 'Aménagement enregistré.', claim_mission: 'Récompense de mission créditée.', plant: 'Culture plantée.', plant_plot: 'Culture plantée.', water_crop: 'Culture arrosée.', fertilize_crop: 'Engrais appliqué.', breed_animal: 'Jeune animal ajouté.', care_animal: 'Animal soigné.', harvest: 'Culture récoltée.', harvest_ready: 'Cultures prêtes récoltées.',
     feed: 'Production démarrée.', feed_group: 'Animaux nourris.', collect: 'Production collectée.', collect_group: 'Productions collectées.',
     mill_feed: 'Nourriture préparée.', sell: 'Produits vendus.', sell_item: 'Produit vendu.'
   };
@@ -26,6 +26,7 @@
     FARM_LAND_REQUIRED: 'Achetez d’abord le terrain.', FARM_LAND_OWNED: 'Vous possédez déjà ce terrain.',
     FARM_INSUFFICIENT_COINS: 'F-Coins insuffisants.', FARM_FEED_REQUIRED: 'Nourriture insuffisante.',
     FARM_NOT_READY: 'La production n’est pas encore prête.', FARM_NOT_FOUND: 'Cet élément n’existe plus. Actualisez la ferme.',
+    FARM_MISSION_CLAIMED: 'Récompense déjà reçue.', FARM_MISSION_INCOMPLETE: 'Mission non terminée.',
     FARM_YOUNG_ANIMAL: 'Cet animal est trop jeune.', FARM_ALREADY_FERTILIZED: 'Cette culture a déjà reçu de l’engrais.',
     FARM_ALREADY_CARED: 'Cet animal a déjà été soigné pour ce cycle.',
     FARM_ALREADY_WATERED: 'Cette culture a déjà été arrosée.',
@@ -46,6 +47,7 @@
     FARM_LAND_REQUIRED: 'Buy the terrain before adding an animal.', FARM_LAND_OWNED: 'You already own the terrain.',
     FARM_INSUFFICIENT_COINS: 'Not enough F-Coins for this action.', FARM_FEED_REQUIRED: 'Buy feed before feeding this animal.',
     FARM_NOT_READY: 'Production is not ready yet.', FARM_NOT_FOUND: 'This farm item no longer exists. Refresh and try again.',
+    FARM_MISSION_CLAIMED: 'Reward already claimed.', FARM_MISSION_INCOMPLETE: 'Mission not completed.',
     FARM_YOUNG_ANIMAL: 'This animal is too young.', FARM_ALREADY_FERTILIZED: 'This crop is already fertilized.',
     FARM_ALREADY_CARED: 'This animal has already been cared for this cycle.',
     FARM_ALREADY_WATERED: 'This crop has already been watered.',
@@ -320,6 +322,7 @@
       document.querySelectorAll('[data-farm-requires-start]').forEach((button) => { button.disabled = !this.started() || this.operation; });
       document.querySelectorAll('[data-farm-requires-land]').forEach((button) => { button.disabled = !state.land?.owned || this.operation; });
       byId('farm-deposit-pending').classList.toggle('hidden', !this.pendingDeposit);
+      const pendingGame = byId('farm-game-pending'); if (pendingGame) { pendingGame.classList.toggle('hidden', !this.readPendingGameAction()); pendingGame.disabled = this.operation; }
       this.renderAnimals(); this.renderCrops(); this.renderPlotGrid(); this.renderInventory(); this.renderWithdrawals(); this.renderMarketSales(); this.renderProgress(); this.tick();
       this.app.luckyWheel?.render();
       this.app.fitaDice?.render();
@@ -393,15 +396,22 @@
           unlocks.append(make('span', 'pf-unlock', `${name} · ${status}`));
         }
       }
-      const labels = fr ? { planted: 'Planter', watered: 'Arroser', cared: 'Soigner', harvested: 'Récolter', collected: 'Collecter', sales: 'Vendre' }
-        : { planted: 'Plant', watered: 'Water', cared: 'Care', harvested: 'Harvest', collected: 'Collect', sales: 'Sell' };
+      const labels = fr ? { planted: 'Planter', watered: 'Arroser', cared: 'Soigner', harvested: 'Récolter', collected: 'Collecter', sales: 'Vendre', fertilized: 'Fertiliser', bred: 'Reproduire', fed: 'Nourrir', milled: 'Moudre' }
+        : { planted: 'Plant', watered: 'Water', cared: 'Care', harvested: 'Harvest', collected: 'Collect', sales: 'Sell', fertilized: 'Fertilize', bred: 'Breed', fed: 'Feed', milled: 'Mill' };
       container.textContent = '';
       Config.MISSIONS.forEach((mission) => {
         const count = countFor(mission.key); const current = Math.min(count, mission.target);
         const button = make('button', `pf-mission${count >= mission.target ? ' complete' : ''}`); button.type = 'button';
-        button.append(make('strong', '', labels[mission.key]), make('span', '', `${current} / ${mission.target}`));
+        const claimed = this.state?.missionClaims?.[mission.key] === true;
+        const rewardStatus = claimed ? (fr ? 'Reçue' : 'Claimed') : count >= mission.target ? (fr ? 'À récupérer' : 'Ready to claim') : `+${mission.reward} F-Coins`;
+        button.append(make('strong', '', labels[mission.key]), make('span', '', `${current} / ${mission.target} · ${rewardStatus}`));
         const bar = make('progress'); bar.max = mission.target; bar.value = current; bar.setAttribute('aria-label', `${labels[mission.key]} ${current} / ${mission.target}`); button.appendChild(bar);
         button.addEventListener('click', () => {
+          if (this.readPendingMission() || (count >= mission.target && !claimed)) { this.openMission(mission.key); return; }
+          if (mission.key === 'fertilized') { this.openFertilizer(); return; }
+          if (mission.key === 'bred') { this.openBreeding(); return; }
+          if (mission.key === 'milled') { this.openMill(); return; }
+          if (mission.key === 'fed') { this.setTab('animals'); return; }
           if (mission.key === 'planted' || mission.key === 'watered') this.setTab('crops');
           else if (mission.key === 'harvested') this.setTab('crops');
           else if (mission.key === 'collected' || mission.key === 'cared') this.setTab('animals');
@@ -462,14 +472,47 @@
       const button = make('button', secondary ? 'btn-secondary-outline' : 'btn-primary', label); button.type = 'button'; button.disabled = disabled;
       button.addEventListener('click', handler); document.getElementById('farm-dialog-actions').appendChild(button); return button;
     }
-    async perform(type, params = {}) {
-      if (this.operation) return; this.operation = true; this.render();
+    gamePendingKey() { return this.account ? `fitia_farm_game_pending_v1:${this.account}` : null; }
+    readPendingGameAction() {
+      const key = this.gamePendingKey(); if (!key) return null;
       try {
-        const data = await this.request('action', { actionId: uuid(), type, params });
-        this.applyView(data); this.closeDialog(); this.app.showToast(this.success(type));
+        const pending = JSON.parse(localStorage.getItem(key) || 'null'); if (!pending) return null;
+        Protocol.requireUuid(pending.actionId);
+        if (!['buy_land', 'buy_animal', 'buy_feed', 'plant', 'feed', 'collect', 'harvest', 'sell', 'customize_building', 'move_building'].includes(pending.type)) throw new Error('Invalid action');
+        if (!pending.params || typeof pending.params !== 'object' || Array.isArray(pending.params)) throw new Error('Invalid params');
+        Protocol.normalizeParams(pending.params); return pending;
+      } catch (_) { return { invalid: true }; }
+    }
+    openPendingGameAction() {
+      const pending = this.readPendingGameAction(); if (!pending) return;
+      this.openDialog(this.text('Pending farm action', 'Action de ferme en attente'));
+      const content = document.getElementById('farm-dialog-content');
+      content.append(make('p', 'farm-dialog-copy', pending.invalid
+        ? this.text('The saved action cannot be read. Do not repeat it; technical assistance is required.', 'L’action enregistrée est illisible. Ne la répétez pas ; une vérification technique est nécessaire.')
+        : this.text('Check the saved action or cancel it if it was not completed.', 'Vérifiez l’action enregistrée ou annulez-la si elle n’a pas été effectuée.')));
+      if (!pending.invalid) {
+        this.addDialogButton(this.text('CHECK ACTION', 'VÉRIFIER L’ACTION'), () => this.perform(pending.type, pending.params), false, this.operation);
+        this.addPendingResolution(this.gamePendingKey(), pending);
+      }
+    }
+    async perform(type, params = {}) {
+      if (this.operation || !this.account) return;
+      const key = this.gamePendingKey(), existing = this.readPendingGameAction();
+      if (existing && (existing.invalid || existing.type !== type || JSON.stringify(existing.params) !== JSON.stringify(params))) {
+        this.openPendingGameAction(); return;
+      }
+      const pending = existing || { actionId: uuid(), type, params: Protocol.normalizeParams(params) };
+      try {
+        if (!existing) { localStorage.setItem(key, JSON.stringify(pending)); if (localStorage.getItem(key) !== JSON.stringify(pending)) throw new Error('Storage unavailable'); }
+      } catch (_) { this.showError(new Error(this.text('Cannot save the action safely.', 'Impossible de sauvegarder l’action en sécurité.'))); return; }
+      const session = this.session; let reopenMove = false; this.operation = true; this.render();
+      try {
+        const data = await this.request('action', { actionId: pending.actionId, type: pending.type, params: pending.params });
+        this.assertSession(session); this.applyView(data); localStorage.removeItem(key); this.closeDialog(); this.app.showToast(this.success(type));
         if (type === 'buy_animal') this.setTab('animals'); if (type === 'plant') this.setTab('crops');
+        reopenMove = type === 'move_building';
       } catch (error) { this.showError(error); }
-      finally { this.operation = false; this.render(); }
+      finally { this.operation = false; this.render(); if (reopenMove && this.session === session) this.openBuildingPositions(params.building); }
     }
     openBuyLand() {
       this.openDialog('Terrain');
@@ -569,6 +612,148 @@
       this.openDialog(this.text('Animal feed', 'Nourriture pour animaux'));
       const content = document.getElementById('farm-dialog-content'); content.append(farmVisual('feed'), make('strong', 'farm-dialog-price', `${Config.FEED_PACK_QUANTITY} ${this.text('feed', 'nourritures')} · ${Config.FEED_PACK_PRICE} F-Coins`));
       this.addDialogButton(this.text('BUY FEED PACK', 'ACHETER LA NOURRITURE'), () => this.perform('buy_feed'), false, this.operation);
+    }
+    layoutPendingKey() { return this.account ? `fitia_farm_layout_pending_v1:${this.account}` : null; }
+    readPendingLayout() {
+      const key = this.layoutPendingKey(); if (!key) return null;
+      try {
+        const pending = JSON.parse(localStorage.getItem(key) || 'null'); if (!pending) return null;
+        if (pending.layout !== 0 && pending.layout !== 1) throw new Error('Invalid layout');
+        return { actionId: Protocol.requireUuid(pending.actionId), layout: pending.layout };
+      } catch (_) { return { invalid: true }; }
+    }
+    openLayout() {
+      if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      const fr = this.app.currentLang === 'fr', pending = this.readPendingLayout();
+      this.openDialog(fr ? 'Aménagement' : 'Farm layout'); const content = document.getElementById('farm-dialog-content');
+      if (pending) {
+        content.append(make('p', 'farm-dialog-copy', fr ? 'Un changement attend sa confirmation.' : 'A change awaits confirmation.'));
+        if (!pending.invalid) this.addDialogButton(fr ? 'VÉRIFIER' : 'CHECK', () => this.performLayout(pending.layout), false, this.operation);
+        this.addPendingResolution(this.layoutPendingKey(), pending); return;
+      }
+      content.append(make('p', 'farm-dialog-copy', fr ? 'Déplacez et personnalisez les bâtiments. Gratuit, sans effet sur la production. Les plans réorganisent la grange et la maison.' : 'Move and customize buildings for free without changing production. The presets rearrange the barn and house.'));
+      this.addDialogButton(fr ? 'DÉPLACER UN BÂTIMENT' : 'MOVE A BUILDING', () => this.openBuildingPositions('barn'), false, this.operation);
+      this.addDialogButton(fr ? 'COULEURS DES BÂTIMENTS' : 'BUILDING COLORS', () => this.openBuildingStyles(), true, this.operation);
+      for (const layout of [0, 1]) {
+        const active = Config.validBuildingPositions(this.state.buildingPositions) ? this.state.buildingPositions : Config.layoutPositions(this.state.farmLayout);
+        const preset = Config.layoutPositions(layout);
+        const current = ['barn', 'care'].every(key => active[key].x === preset[key].x && active[key].z === preset[key].z);
+        const possible = Config.validBuildingPositions({ ...active, barn: preset.barn, care: preset.care });
+        this.addDialogButton(`${fr ? 'PLAN' : 'LAYOUT'} ${layout + 1}${current ? (fr ? ' · ACTUEL' : ' · CURRENT') : !possible ? (fr ? ' · BLOQUÉ' : ' · BLOCKED') : ''}`, () => this.performLayout(layout), layout === 1, this.operation || current || !possible);
+      }
+    }
+    openBuildingPositions(building = 'barn') {
+      if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      if (!Object.prototype.hasOwnProperty.call(Config.BUILDING_ZONES, building)) return;
+      const fr = this.app.currentLang === 'fr';
+      this.openDialog(fr ? 'Déplacer un bâtiment' : 'Move a building');
+      const content = document.getElementById('farm-dialog-content');
+      content.append(make('p', 'farm-dialog-copy', fr
+        ? 'Choisissez un bâtiment puis déplacez-le dans sa zone. Les cases occupées sont bloquées.'
+        : 'Choose a building, then move it within its area. Occupied spaces are blocked.'));
+      const positions = Config.validBuildingPositions(this.state.buildingPositions) ? this.state.buildingPositions : Config.layoutPositions(this.state.farmLayout);
+      const selector = make('div', 'farm-move-selector');
+      const names = fr ? { barn: 'Grange', care: 'Maison', mill: 'Moulin', well: 'Puits', silo: 'Silo', tractor: 'Tracteur' } : { barn: 'Barn', care: 'House', mill: 'Mill', well: 'Well', silo: 'Silo', tractor: 'Tractor' };
+      for (const id of Object.keys(Config.BUILDING_ZONES)) {
+        const label = names[id];
+        const button = make('button', 'farm-style-choice', label); button.type = 'button';
+        button.setAttribute('aria-pressed', String(id === building)); button.disabled = this.operation;
+        button.addEventListener('click', () => this.openBuildingPositions(id)); selector.appendChild(button);
+      }
+      content.appendChild(selector);
+      const current = positions[building];
+      content.append(make('p', 'farm-dialog-copy', `${fr ? 'Position' : 'Position'} : ${current.x}, ${current.z}`));
+      const grid = make('div', 'farm-move-controls');
+      for (const [label, dx, dz, description] of [[fr ? 'Haut' : 'Up', 0, -0.25, fr ? 'Reculer' : 'Move back'], [fr ? 'Gauche' : 'Left', -0.25, 0, fr ? 'À gauche' : 'Move left'], [fr ? 'Droite' : 'Right', 0.25, 0, fr ? 'À droite' : 'Move right'], [fr ? 'Bas' : 'Down', 0, 0.25, fr ? 'Avancer' : 'Move forward']]) {
+        const next = { x: current.x + dx, z: current.z + dz };
+        const candidate = { ...positions, [building]: next };
+        const button = make('button', 'farm-move-button', label); button.type = 'button'; button.setAttribute('aria-label', description);
+        button.disabled = this.operation || !Config.validBuildingPositions(candidate);
+        button.addEventListener('click', () => this.perform('move_building', { building, ...next })); grid.appendChild(button);
+      }
+      content.appendChild(grid);
+      this.addDialogButton(fr ? 'VOIR LA FERME' : 'VIEW FARM', () => { this.closeDialog(); this.focusCamera('overview'); }, false, this.operation);
+      this.addDialogButton(fr ? 'RETOUR' : 'BACK', () => this.openLayout(), true, this.operation);
+    }
+    openBuildingStyles() {
+      if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      const fr = this.app.currentLang === 'fr';
+      this.openDialog(fr ? 'Personnaliser les bâtiments' : 'Customize buildings');
+      const content = document.getElementById('farm-dialog-content');
+      content.append(make('p', 'farm-dialog-copy', fr ? 'Choisissez une couleur gratuite pour chaque bâtiment. La production ne change pas.' : 'Choose a free color for each building. Production does not change.'));
+      const colors = fr ? { barn: ['Rouge', 'Vert', 'Bois'], care: ['Crème', 'Vert pâle', 'Bleu pâle'], mill: ['Pierre', 'Vert', 'Sable'], well: ['Pierre', 'Vert', 'Sable'], silo: ['Métal', 'Vert', 'Bleu'], tractor: ['Vert', 'Rouge', 'Bleu'] }
+        : { barn: ['Red', 'Green', 'Wood'], care: ['Cream', 'Pale green', 'Pale blue'], mill: ['Stone', 'Green', 'Sand'], well: ['Stone', 'Green', 'Sand'], silo: ['Metal', 'Green', 'Blue'], tractor: ['Green', 'Red', 'Blue'] };
+      const names = fr ? { barn: 'Grange', care: 'Maison', mill: 'Moulin', well: 'Puits', silo: 'Silo', tractor: 'Tracteur' } : { barn: 'Barn', care: 'House', mill: 'Mill', well: 'Well', silo: 'Silo', tractor: 'Tractor' };
+      for (const building of Object.keys(Config.BUILDING_STYLES)) {
+        const title = names[building];
+        const group = make('section', 'farm-style-group'); group.append(make('strong', '', title));
+        Config.BUILDING_STYLES[building].forEach((hex, style) => {
+          const button = make('button', 'farm-style-choice', colors[building][style]); button.type = 'button';
+          button.style.setProperty('--farm-style-color', `#${hex.toString(16).padStart(6, '0')}`);
+          const active = (this.state.buildingStyle?.[building] || 0) === style;
+          button.setAttribute('aria-pressed', String(active)); button.disabled = this.operation || active;
+          button.addEventListener('click', () => this.perform('customize_building', { building, style })); group.appendChild(button);
+        });
+        content.appendChild(group);
+      }
+    }
+    async performLayout(layout) {
+      if (this.operation || !this.account || (layout !== 0 && layout !== 1)) return;
+      const key = this.layoutPendingKey(), existing = this.readPendingLayout();
+      if (existing?.invalid) { this.showError(new Error(this.text('Pending layout cannot be read.', 'Impossible de lire l’aménagement en attente.'))); return; }
+      if (existing && existing.layout !== layout) { this.showError(new Error(this.text('Resolve the pending layout first.', 'Résolvez d’abord l’aménagement en attente.'))); return; }
+      const pending = existing || { actionId: uuid(), layout };
+      try { if (!existing) { localStorage.setItem(key, JSON.stringify(pending)); if (localStorage.getItem(key) !== JSON.stringify(pending)) throw new Error('Storage unavailable'); } }
+      catch (_) { this.showError(new Error(this.text('Cannot save the pending layout.', 'Impossible de sauvegarder l’aménagement en attente.'))); return; }
+      const session = this.session; this.operation = true; this.render();
+      try {
+        const data = await this.request('action', { actionId: pending.actionId, type: 'change_layout', params: { layout: pending.layout } });
+        this.assertSession(session); this.applyView(data); localStorage.removeItem(key); this.closeDialog(); this.app.showToast(this.success('change_layout'));
+      } catch (error) { this.showError(error); }
+      finally { this.operation = false; this.render(); }
+    }
+    missionPendingKey() { return this.account ? `fitia_farm_mission_pending_v1:${this.account}` : null; }
+    readPendingMission() {
+      const key = this.missionPendingKey(); if (!key) return null;
+      try {
+        const pending = JSON.parse(localStorage.getItem(key) || 'null'); if (!pending) return null;
+        if (!Config.MISSIONS.some(item => item.key === pending.missionKey)) throw new Error('Invalid mission');
+        return { actionId: Protocol.requireUuid(pending.actionId), missionKey: pending.missionKey };
+      } catch (_) { return { invalid: true }; }
+    }
+    openMission(key) {
+      if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
+      const pending = this.readPendingMission(); const fr = this.app.currentLang === 'fr';
+      this.openDialog(fr ? 'Récompense de mission' : 'Mission reward');
+      const content = document.getElementById('farm-dialog-content');
+      if (pending) {
+        content.append(make('p', 'farm-dialog-copy', fr ? 'Une récompense attend sa confirmation.' : 'A reward is awaiting confirmation.'));
+        if (!pending.invalid) this.addDialogButton(fr ? 'VÉRIFIER' : 'CHECK', () => this.performMission(pending.missionKey), false, this.operation);
+        this.addPendingResolution(this.missionPendingKey(), pending); return;
+      }
+      const mission = Config.MISSIONS.find(item => item.key === key); if (!mission) return;
+      const claimed = this.state.missionClaims?.[key] === true;
+      const ready = (this.state.farmProgress?.[key] || 0) >= mission.target;
+      content.append(make('strong', 'farm-dialog-price', `${mission.reward} F-Coins`));
+      content.append(make('p', 'farm-dialog-copy', claimed ? (fr ? 'Récompense déjà reçue.' : 'Reward already claimed.') : (fr ? 'Récompense unique par mission.' : 'One reward per mission.')));
+      if (!claimed) this.addDialogButton(fr ? 'RÉCUPÉRER' : 'CLAIM', () => this.performMission(key), false, this.operation || !ready);
+    }
+    async performMission(missionKey) {
+      if (this.operation || !this.account) return;
+      const key = this.missionPendingKey(); const existing = this.readPendingMission();
+      if (existing?.invalid) { this.showError(new Error(this.text('Pending reward cannot be read.', 'Impossible de lire la récompense en attente.'))); return; }
+      if (existing && existing.missionKey !== missionKey) { this.showError(new Error(this.text('Resolve the pending reward first.', 'Résolvez d’abord la récompense en attente.'))); return; }
+      if (!Config.MISSIONS.some(item => item.key === missionKey)) return;
+      const pending = existing || { actionId: uuid(), missionKey };
+      try {
+        if (!existing) { localStorage.setItem(key, JSON.stringify(pending)); if (localStorage.getItem(key) !== JSON.stringify(pending)) throw new Error('Storage unavailable'); }
+      } catch (_) { this.showError(new Error(this.text('Cannot safely save the pending reward.', 'Impossible de sauvegarder la récompense en attente.'))); return; }
+      const session = this.session; this.operation = true; this.render();
+      try {
+        const data = await this.request('action', { actionId: pending.actionId, type: 'claim_mission', params: { missionKey: pending.missionKey } });
+        this.assertSession(session); this.applyView(data); localStorage.removeItem(key); this.closeDialog(); this.app.showToast(this.success('claim_mission'));
+      } catch (error) { this.showError(error); }
+      finally { this.operation = false; this.render(); }
     }
     specialPendingKey(kind) { return this.account ? `fitia_farm_${kind}_pending_v1:${this.account}` : null; }
     readPendingSpecial(kind) {
@@ -675,8 +860,8 @@
         if (!pending.invalid) this.addDialogButton(fr ? 'VÉRIFIER LE SOIN' : 'CHECK CARE', () => this.performCare(pending.animalId), false, this.operation);
         this.addPendingResolution(this.carePendingKey(), pending); return;
       }
-      content.append(make('p', 'farm-dialog-copy', fr ? 'Un soin par cycle ; le rendement et la durée restent identiques.' : 'One care action per cycle; yield and duration stay the same.'));
-      const eligible = this.state.animals.filter(animal => !animal.caredAt);
+      content.append(make('p', 'farm-dialog-copy', fr ? `Un soin par cycle : réduit le temps de production de ${Config.CARE_SPEED_PERCENT} %, sans changer le rendement.` : `One care action per cycle: reduces production time by ${Config.CARE_SPEED_PERCENT}% without changing yield.`));
+      const eligible = this.state.animals.filter(animal => !animal.caredAt && (!animal.produceAt || animal.produceAt > this.serverNow()));
       if (!eligible.length) content.append(make('p', 'farm-dialog-copy', fr ? 'Tous les animaux ont reçu leurs soins.' : 'All animals have been cared for.'));
       for (const animal of eligible) {
         const number = this.state.animals.findIndex(item => item.id === animal.id) + 1;
@@ -721,7 +906,7 @@
         if (!pending.invalid) this.addDialogButton(fr ? 'VÉRIFIER L’ARROSAGE' : 'CHECK WATERING', () => this.performWater(pending.cropId), false, this.operation);
         this.addPendingResolution(this.waterPendingKey(), pending); return;
       }
-      content.append(make('p', 'farm-dialog-copy', fr ? 'Arroser une fois par culture. L’arrosage ne modifie ni le rendement ni le temps de pousse.' : 'Water each crop once. Watering does not change yield or growth time.'));
+      content.append(make('p', 'farm-dialog-copy', fr ? `Un arrosage par culture : réduit le temps initial de ${Config.WATER_SPEED_PERCENT} %, sans changer le rendement.` : `Water once per crop: reduces initial growth time by ${Config.WATER_SPEED_PERCENT}% without changing yield.`));
       const eligible = this.state.crops.filter(crop => crop.readyAt > this.serverNow() && !crop.wateredAt);
       if (!eligible.length) content.append(make('p', 'farm-dialog-copy', fr ? 'Aucune culture à arroser.' : 'No crops need watering.'));
       for (const crop of eligible) {
@@ -877,7 +1062,17 @@
       try {
         const pending = JSON.parse(localStorage.getItem(key) || 'null');
         if (!pending) return null;
-        if (!Protocol.requireUuid(pending.actionId) || !Object.keys(Config.PRODUCTS).includes(pending.product)
+        Protocol.requireUuid(pending.actionId);
+        if (pending.items) {
+          if (!Array.isArray(pending.items) || !pending.items.length || pending.items.length > Object.keys(Config.PRODUCTS).length) throw new Error('Invalid pending sale');
+          const seen = new Set();
+          for (const item of pending.items) {
+            if (!item || !Object.prototype.hasOwnProperty.call(Config.PRODUCTS, item.product) || seen.has(item.product) || !Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000000) throw new Error('Invalid pending sale');
+            seen.add(item.product);
+          }
+          return pending;
+        }
+        if (!Object.keys(Config.PRODUCTS).includes(pending.product)
             || !Number.isSafeInteger(pending.quantity) || pending.quantity < 1 || pending.quantity > 1000000) throw new Error('Invalid pending sale');
         return pending;
       } catch (_) { return { invalid: true }; }
@@ -909,6 +1104,22 @@
         this.showError(error);
       } finally { this.operation = false; this.render(); }
     }
+    async performBatchSale(items) {
+      if (this.operation || !this.account) return;
+      const key = this.marketPendingKey(), existing = this.readPendingMarketSale();
+      if (existing?.invalid || (existing && JSON.stringify(existing.items) !== JSON.stringify(items))) {
+        this.showError(new Error(this.text('Resolve the pending sale first.', 'Résolvez d’abord la vente en attente.'))); return;
+      }
+      const pending = existing || { actionId: uuid(), items };
+      try { if (!existing) { localStorage.setItem(key, JSON.stringify(pending)); if (localStorage.getItem(key) !== JSON.stringify(pending)) throw new Error('Storage unavailable'); } }
+      catch (_) { this.showError(new Error(this.text('Cannot safely save the pending sale.', 'Impossible de sauvegarder la vente en attente.'))); return; }
+      const session = this.session; this.operation = true; this.render();
+      try {
+        const data = await this.request('action', { actionId: pending.actionId, type: 'sell_batch', params: { items: pending.items } });
+        this.assertSession(session); this.applyView(data); localStorage.removeItem(key); this.closeDialog(); this.app.showToast(this.success('sell'));
+      } catch (error) { this.showError(error); }
+      finally { this.operation = false; this.render(); }
+    }
     openSell() {
       if (!this.started()) return;
       const total = Object.keys(Config.PRODUCTS).reduce((sum, key) => sum + (this.state.inventory[key] || 0) * Config.PRODUCTS[key].price, 0);
@@ -918,11 +1129,11 @@
       const pending = this.readPendingMarketSale();
       if (pending) {
         content.append(make('p', 'farm-dialog-copy', fr ? 'Une vente attend sa confirmation. Réessayez pour retrouver son résultat sans la répéter.' : 'A sale is awaiting confirmation. Retry to recover its result without repeating it.'));
-        if (!pending.invalid) this.addDialogButton(fr ? 'VÉRIFIER LA VENTE' : 'CHECK SALE', () => this.performItemSale(pending.product, pending.quantity), false, this.operation);
+        if (!pending.invalid) this.addDialogButton(fr ? 'VÉRIFIER LA VENTE' : 'CHECK SALE', () => pending.items ? this.performBatchSale(pending.items) : this.performItemSale(pending.product, pending.quantity), false, this.operation);
         this.addPendingResolution(this.marketPendingKey(), pending);
         return;
       }
-      const grid = make('div', 'farm-market-list');
+      const grid = make('div', 'farm-market-list'); const selections = [];
       Object.entries(Config.PRODUCTS).forEach(([key, product]) => {
         const available = this.state.inventory[key] || 0;
         if (!available) return;
@@ -941,9 +1152,20 @@
           }
           this.performItemSale(key, quantity);
         });
-        row.append(info, input, button); grid.appendChild(row);
+        const checkbox = make('input', 'farm-market-select'); checkbox.type = 'checkbox';
+        checkbox.setAttribute('aria-label', `${fr ? 'Sélectionner' : 'Select'} · ${farmName(key, this.app.currentLang)}`);
+        selections.push({ key, available, input, checkbox });
+        row.append(info, input, button, checkbox); grid.appendChild(row);
       });
       content.appendChild(grid);
+      this.addDialogButton(fr ? 'VENDRE LA SÉLECTION' : 'SELL SELECTED', () => {
+        const selected = selections.filter(row => row.checkbox.checked);
+        const items = selected.map(row => ({ product: row.key, quantity: Number(row.input.value) }));
+        if (!items.length || selected.some((row, i) => !Number.isSafeInteger(items[i].quantity) || items[i].quantity < 1 || items[i].quantity > row.available)) {
+          document.getElementById('farm-dialog-error').textContent = fr ? 'Sélectionnez des produits et des quantités disponibles.' : 'Select products and available quantities.'; return;
+        }
+        this.performBatchSale(items);
+      }, true, !total || this.operation);
       this.addDialogButton(fr ? 'TOUT VENDRE' : 'SELL ALL PRODUCTS', () => this.perform('sell'), false, !total || this.operation);
     }
     openEntity(kind, id) {
@@ -955,7 +1177,7 @@
         const content = document.getElementById('farm-dialog-content'); content.append(farmVisual(animal.species));
         content.append(make('strong', 'farm-dialog-price', `${farmName(definition.product, this.app.currentLang)} · ${durationLabel(definition.durationMs)}`));
         content.append(make('p', 'farm-dialog-copy', animal.caredAt ? this.text('Cared for', 'Soigné') : this.text('Care available', 'Soin disponible')));
-        if (!animal.caredAt) this.addDialogButton(this.text('CARE', 'SOIGNER'), () => this.openCare(), true, this.operation);
+        if (!animal.caredAt && !ready) this.addDialogButton(this.text('CARE', 'SOIGNER'), () => this.openCare(), true, this.operation);
         if (animal.maturesAt > this.serverNow()) content.append(make('p', 'farm-dialog-copy', `${this.text('Growing', 'En croissance')} · ${countdown(animal.maturesAt - this.serverOffset)}`));
         if (ready) this.addDialogButton(`${this.text('COLLECT', 'COLLECTER')} ${farmName(definition.product, this.app.currentLang).toUpperCase()}`, () => this.perform('collect', { animalId: id }));
         else this.addDialogButton(animal.produceAt ? `${this.text('PRODUCING', 'EN PRODUCTION')} · ${countdown(animal.produceAt - this.serverOffset)}` : this.text('FEED · 1 UNIT', 'NOURRIR · 1 UNITÉ'), () => this.perform('feed', { animalId: id }), false, Boolean(animal.produceAt) || animal.maturesAt > this.serverNow() || this.state.feed < 1);

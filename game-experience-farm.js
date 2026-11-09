@@ -34,6 +34,7 @@ window.setupGameFarm = function setupGameFarm(app) {
           <button type="button" class="farm-secondary-button" data-farm-requires-start onclick="App.farmCenter.openWithdraw()" data-farm-i18n="withdrawFta">WITHDRAW FTA</button>
           <button type="button" class="pf-tool-button" onclick="App.farmCenter.manualRefresh()" aria-label="Refresh farm">${refreshIcon}</button>
         </div>
+        <button type="button" id="farm-game-pending" class="farm-secondary-button hidden" onclick="App.farmCenter.openPendingGameAction()" data-farm-i18n="gamePending">CHECK PENDING ACTION</button>
         <p id="farm-deposit-pending" class="farm-pending-note hidden"><span data-farm-i18n="depositPending">FTA deposit pending confirmation.</span></p>
         <p id="farm-sync-status" class="pf-sync-status" role="status"></p>
       </section>
@@ -87,7 +88,7 @@ window.setupGameFarm = function setupGameFarm(app) {
 
         <section class="pf-progress" aria-labelledby="pf-progress-title">
           <div class="pf-progress-heading"><h3 id="pf-progress-title" data-farm-i18n="progressTitle">Farm progress</h3><strong id="farm-level"></strong></div>
-          <p class="pf-progress-note" data-farm-i18n="progressNote">Tracked from this update · no financial rewards</p>
+          <p class="pf-progress-note" data-farm-i18n="progressNote">One reward per mission</p>
           <div id="farm-unlocks" class="pf-unlocks" aria-live="polite"></div><div id="farm-missions" class="pf-missions"></div>
         </section>
 
@@ -109,9 +110,10 @@ window.setupGameFarm = function setupGameFarm(app) {
           </nav>
 
           <section data-farm-panel="overview" class="farm-panel pf-panel">
+            <div class="pf-mill"><div><strong data-farm-i18n="layoutTitle">Farm layout</strong><small data-farm-i18n="layoutDescription">Arrange the barn and house</small></div><button type="button" class="farm-small-button" data-farm-requires-start onclick="App.farmCenter.openLayout()" data-farm-i18n="millOpen">OPEN</button></div>
             <div class="farm-section-heading pf-subhead"><div><span>FTA</span><h3 data-farm-i18n="withdrawals">Withdrawals</h3></div><button type="button" class="farm-text-button" data-farm-requires-start onclick="App.farmCenter.openWithdraw()" data-farm-i18n="request">New request</button></div>
             <div id="farm-withdrawal-list" class="farm-withdrawal-list"></div>
-            <p id="farm-withdrawals-empty" class="farm-empty-copy">No withdrawals.</p>
+            <p id="farm-withdrawals-empty" class="farm-empty-copy" data-farm-i18n="noWithdrawals">No withdrawals.</p>
           </section>
 
           <section data-farm-panel="animals" class="farm-panel pf-panel hidden">
@@ -218,6 +220,8 @@ window.setupGameFarm = function setupGameFarm(app) {
   };
   const labels = {
     convertFta: ['CONVERT FTA', 'CONVERTIR FTA'], withdrawFta: ['WITHDRAW FTA', 'RETIRER FTA'], depositPending: ['FTA deposit pending confirmation.', 'Dépôt FTA en attente de confirmation.'],
+    gamePending: ['CHECK PENDING ACTION', 'VÉRIFIER L’ACTION EN ATTENTE'],
+    layoutTitle: ['Farm layout', 'Aménagement'], layoutDescription: ['Move and customize buildings', 'Déplacer et personnaliser les bâtiments'],
     breedTitle: ['Breeding', 'Reproduction'], breedDescription: ['Raise young animals', 'Élever de jeunes animaux'],
     fertilizerTitle: ['Fertilizer', 'Engrais'], fertilizerDescription: ['Speed up growing crops', 'Accélérer les cultures'],
     careTitle: ['Animal care', 'Soins des animaux'], careDescription: ['Care for your animals', 'Soigner vos animaux'],
@@ -226,7 +230,7 @@ window.setupGameFarm = function setupGameFarm(app) {
     tractorTitle: ['Tractor', 'Tracteur'], tractorDescription: ['Harvest ready plots', 'Récolter les parcelles prêtes'],
     millTitle: ['Mill', 'Moulin'], millRecipe: ['1 wheat = 2 feed', '1 blé = 2 nourritures'], millOpen: ['OPEN', 'OUVRIR'],
     progressTitle: ['Farm progress', 'Progression de la ferme'],
-    progressNote: ['Tracked from this update · no financial rewards', 'Suivi depuis cette mise à jour · sans récompense financière'],
+    progressNote: ['One reward per mission', 'Une récompense par mission'],
     salesHistory: ['Recent sales', 'Ventes récentes'],
     noSales: ['No recorded sales yet.', 'Aucune vente enregistrée.'],
     animals: ['ANIMALS', 'Animaux'],

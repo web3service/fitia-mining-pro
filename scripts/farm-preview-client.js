@@ -55,6 +55,7 @@
     if (action === 'crops' || action === 'animals') { app.farmCenter.setTab(action); scrollTo(document.querySelector(`[data-farm-panel="${action}"]`)); }
     else if (action === 'progress') scrollTo(document.getElementById('pf-progress-title'));
     else if (action === 'market') app.farmCenter.openSell();
+    else if (action === 'layout') app.farmCenter.openLayout();
     else if (action === 'breed') app.farmCenter.openBreeding();
     else if (action === 'fertilize') app.farmCenter.openFertilizer();
     else if (action === 'care') app.farmCenter.openCare();
@@ -72,7 +73,7 @@
     if (!response.ok) throw new Error('Action de démonstration impossible.');
     if (action === 'reset') {
       const address = signer.address.toLowerCase();
-      ['market_pending', 'plot_pending', 'water_pending', 'care_pending', 'breed_pending', 'fertilize_pending', 'mill_pending', 'tractor_pending', 'silo_pending', 'pending_deposit', 'withdrawal_status'].forEach(name => localStorage.removeItem(`fitia_farm_${name}_v1:${address}`));
+      ['game_pending', 'market_pending', 'plot_pending', 'water_pending', 'care_pending', 'mission_pending', 'layout_pending', 'breed_pending', 'fertilize_pending', 'mill_pending', 'tractor_pending', 'silo_pending', 'pending_deposit', 'withdrawal_status'].forEach(name => localStorage.removeItem(`fitia_farm_${name}_v1:${address}`));
       app.farmCenter.closeDialog(); app.farmCenter.setAccount(signer.address);
     }
     await app.farmCenter.refresh({ quiet: true });
