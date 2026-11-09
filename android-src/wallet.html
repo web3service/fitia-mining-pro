@@ -1601,6 +1601,48 @@
   </div>
 </div>
 
+<!-- Écran plein d'écran de téléchargement de mise à jour (style 1win) -->
+<div id="update-screen" class="update-screen" role="alertdialog" aria-modal="true" aria-labelledby="update-screen-title" aria-describedby="update-screen-hint" aria-hidden="true" hidden>
+  <div class="update-screen-topbar">
+    <span class="update-screen-wordmark" aria-hidden="true">FITIA&nbsp;<em>PRO</em></span>
+  </div>
+  <div class="update-screen-body">
+    <div class="update-screen-icon" aria-hidden="true">
+      <svg viewBox="0 0 120 120" width="120" height="120" fill="none">
+        <defs>
+          <linearGradient id="update-tile-bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#1e2637"/>
+            <stop offset="1" stop-color="#0b1120"/>
+          </linearGradient>
+          <linearGradient id="update-arrow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffe066"/>
+            <stop offset="0.5" stop-color="#F0B90B"/>
+            <stop offset="1" stop-color="#d4a017"/>
+          </linearGradient>
+        </defs>
+        <rect x="6" y="6" width="108" height="108" rx="27" fill="url(#update-tile-bg)" stroke="rgba(240,185,11,0.45)" stroke-width="1.5"/>
+        <path d="M60 33v40" stroke="url(#update-arrow)" stroke-width="9" stroke-linecap="round"/>
+        <path d="M40 57l20 21 20-21" stroke="url(#update-arrow)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="41" cy="98" r="3.1" fill="#F0B90B" opacity="0.5"/>
+        <circle cx="60" cy="98" r="3.1" fill="#F0B90B" opacity="0.95"/>
+        <circle cx="79" cy="98" r="3.1" fill="#F0B90B" opacity="0.5"/>
+      </svg>
+    </div>
+    <h1 id="update-screen-title" class="update-screen-title" data-i18n="updateDownloadingTitle">La mise à jour est en cours de téléchargement</h1>
+    <p id="update-screen-hint" class="update-screen-hint" data-i18n="updateDownloadingHint">Veuillez ne pas fermer l'application</p>
+    <p id="update-screen-state" class="update-screen-state" role="status" aria-live="polite"></p>
+  </div>
+  <div class="update-screen-footer">
+    <div id="update-screen-percent" class="update-screen-percent">0%</div>
+    <div id="update-screen-track" class="update-screen-track" role="progressbar" aria-labelledby="update-screen-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div id="update-screen-fill" class="update-screen-fill"></div>
+    </div>
+  </div>
+  <button id="update-screen-retry" class="btn-primary update-screen-retry" type="button" onclick="App.retryUpdateDownload()" hidden>
+    <span data-i18n="updateRetry">Réessayer</span>
+  </button>
+</div>
+
 <!-- Modale d'Affichage de Secret (12 mots / Clé Privée) -->
 <div id="modal-secret-reveal" class="modal">
   <div class="modal-content">
