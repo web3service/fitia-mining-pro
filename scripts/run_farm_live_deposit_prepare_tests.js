@@ -1,0 +1,62 @@
+'use strict';
+const assert = require('assert');
+const fs = require('fs');
+const crypto = require('crypto');
+const ethers = require('../vendor/ethers.umd.min.js');
+const Config = require('../farm-config');
+const QuoteProtocol = require('../farm-exchange-protocol');
+const DepositProtocol = require('../farm-live-deposit-protocol');
+const { createLiveDepositService, SupabaseLiveDepositRepository } = require('../farm-live-deposit');
+const { PGlite } = require('@electric-sql/pglite');
+const { defaultState } = require('../farm-service');
+(async () => {
+  const db = new PGlite();
+  try {
+    await db.exec(`create role anon; create role authenticated; create role service_role;
+      create table public.farm_accounts(wallet text primary key,state jsonb not null,revision bigint not null default 0,updated_at timestamptz not null default now());
+      create table public.farm_actions(action_id uuid primary key,wallet text not null,action_type text not null,tx_hash text unique,created_at timestamptz not null default now());
+      create table public.farm_withdrawals(id uuid primary key,wallet text not null,coins bigint not null,fta_units text not null,status text not null,created_at timestamptz not null,paid_at timestamptz,payout_tx_hash text unique);`);
+    await db.exec(fs.readFileSync('supabase/migrations/20261108100000_farm_live_withdraw_prepare.sql','utf8'));
+    await db.exec(fs.readFileSync('supabase/migrations/20261108110000_farm_live_deposit_prepare.sql','utf8'));
+    const wallet='0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', other='0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', hash=c=>`0x${c.repeat(64)}`, call=async (name,args)=>(await db.query(`select public.${name}(${args.map((_,i)=>`$${i+1}`).join(',')}) as result`,args)).rows[0].result;
+    await assert.rejects(call('farm_live_create_deposit_quote',[crypto.randomUUID(),wallet,100]), /FARM_LIVE_DISABLED/);
+    // Only in this isolated DB, temporarily remove the activation lock.
+    await db.exec('alter table public.farm_live_exchange_rate drop constraint farm_live_exchange_disabled; update public.farm_live_exchange_rate set enabled=true,rate_units=50000000,version=2');
+    const state=defaultState(wallet); state.coins=1000;
+    await db.query('insert into public.farm_accounts(wallet,state,revision) values($1,$2::jsonb,1)',[wallet,JSON.stringify(state)]);
+    const q=await call('farm_live_create_deposit_quote',[crypto.randomUUID(),wallet,100]); assert.strictEqual(q.amountUnits,'50000000');
+    const e=crypto.randomUUID(), params=[q.quoteId,e,wallet,hash('1'),1,100,hash('a'),q.issuedAt+1000];
+    await db.exec('update public.farm_live_exchange_rate set rate_units=25000000,version=3');
+    const credited=await call('farm_live_record_deposit',params); assert.strictEqual(credited.status,'credited');
+    assert.strictEqual((await call('farm_live_record_deposit',params)).status,'credited');
+    assert.strictEqual((await db.query('select state from public.farm_accounts where wallet=$1',[wallet])).rows[0].state.coins,1100);
+    await assert.rejects(call('farm_live_record_deposit',[...params.slice(0,4),2,...params.slice(5)]),/FARM_LIVE_DEPOSIT_CONFLICT/);
+    const duplicate=await call('farm_live_record_deposit',[q.quoteId,crypto.randomUUID(),wallet,hash('2'),2,101,hash('b'),q.issuedAt+1000]); assert.strictEqual(duplicate.reason,'duplicate_payment');
+    const lateQ=await call('farm_live_create_deposit_quote',[crypto.randomUUID(),wallet,100]);
+    const late=await call('farm_live_record_deposit',[lateQ.quoteId,crypto.randomUUID(),wallet,hash('3'),3,102,hash('c'),lateQ.expiresAt]); assert.strictEqual(late.reason,'late');
+    const noAccount=await call('farm_live_create_deposit_quote',[crypto.randomUUID(),other,100]);
+    const rejected=await call('farm_live_record_deposit',[noAccount.quoteId,crypto.randomUUID(),other,hash('4'),4,103,hash('d'),noAccount.issuedAt+1000]); assert.strictEqual(rejected.reason,'account_unavailable');
+    const oldTx=hash('5'); await db.query("insert into public.farm_actions(action_id,wallet,action_type,tx_hash) values($1,$2,'deposit',$3)",[crypto.randomUUID(),wallet,oldTx]);
+    const oldQuote=await call('farm_live_create_deposit_quote',[crypto.randomUUID(),wallet,100]);
+    await assert.rejects(call('farm_live_record_deposit',[oldQuote.quoteId,crypto.randomUUID(),wallet,oldTx,5,104,hash('e'),oldQuote.issuedAt+1000]),/duplicate key/);
+    assert.strictEqual(Number((await db.query('select count(*) as n from public.farm_live_deposit_events')).rows[0].n),4);
+    assert.strictEqual((await db.query('select state from public.farm_accounts where wallet=$1',[wallet])).rows[0].state.coins,1100);
+    assert.strictEqual((await db.query("select has_function_privilege('anon','public.farm_live_record_deposit(uuid,uuid,text,text,integer,bigint,text,bigint)','execute') as allowed")).rows[0].allowed,false);
+    // End-to-end service -> actual SQL with a simulated Polygon provider.
+    const signer=ethers.Wallet.createRandom(), address=signer.address.toLowerCase(), initial=defaultState(address);
+    await db.query('insert into public.farm_accounts(wallet,state,revision) values($1,$2::jsonb,1)',[address,JSON.stringify(initial)]);
+    const fnArgs={farm_live_create_deposit_quote:['p_id','p_wallet','p_coins'],farm_live_get_deposit_quote:['p_id'],farm_live_record_deposit:['p_quote_id','p_event_id','p_wallet','p_tx_hash','p_log_index','p_block_number','p_block_hash','p_block_time_ms']};
+    const storage={request:async (method,path,body)=>{const name=path.replace('rpc/',''),fields=fnArgs[name]; if(method!=='POST'||!fields) throw Error('Unexpected RPC'); return call(name,fields.map(k=>body[k]));}};
+    const tx=hash('6'), bh=hash('f'); let blockSec;
+    const provider={getNetwork:async()=>({chainId:137n}),getTransactionReceipt:async()=>({hash:tx,blockNumber:100,blockHash:bh,status:1,logs:[{index:7,address:Config.FTA_CONTRACT,topics:[ethers.id('Transfer(address,address,uint256)'),ethers.zeroPadValue(address,32),ethers.zeroPadValue(Config.TREASURY_ADDRESS,32)],data:ethers.toBeHex(25000000,32)}]}),getBlock:async()=>({number:100,hash:bh,timestamp:blockSec}),getBlockNumber:async()=>227};
+    const service=createLiveDepositService(new SupabaseLiveDepositRepository(storage),provider), now=Date.now();
+    const request={wallet:address,quoteId:crypto.randomUUID(),coins:100,timestamp:now}; request.signature=await signer.signMessage(DepositProtocol.quoteRequest(request));
+    const actualQuote=await service.issue(request); assert.strictEqual(actualQuote.amountUnits,'25000000'); blockSec=Math.ceil((actualQuote.issuedAt+1000)/1000);
+    const submission={wallet:address,quoteId:actualQuote.quoteId,eventId:crypto.randomUUID(),txHash:tx,logIndex:7,quoteSignature:await signer.signMessage(QuoteProtocol.message(actualQuote))};
+    submission.submissionSignature=await signer.signMessage(DepositProtocol.submitRequest(submission));
+    assert.strictEqual((await service.submit(submission)).status,'credited');
+    assert.strictEqual((await service.submit(submission)).status,'credited');
+    assert.strictEqual((await db.query('select state from public.farm_accounts where wallet=$1',[address])).rows[0].state.coins,100);
+    console.log('Dépôt réel préparé : crédit atomique, ancien taux de devis, rejeu, ancien journal et rapprochement (base isolée)');
+  } finally { await db.close(); }
+})().catch(e=>{console.error(e);process.exitCode=1;});

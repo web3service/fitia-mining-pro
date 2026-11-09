@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 'use strict';
+// La suite couvre l’économie complète (moulin, puits, soins, engrais, reproduction, missions) : activation explicite.
+// Le défaut de production reste désactivé ; voir scripts/run_farm_economy_gate_tests.js.
+process.env.FITIA_FARM_UNVALIDATED_ECONOMY = 'true';
 
 const assert = require('assert');
 const fs = require('fs');

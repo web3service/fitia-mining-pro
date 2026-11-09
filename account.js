@@ -122,7 +122,7 @@
       ].forEach(([id, fields]) => {
         const disclosure = this.byId(id);
         disclosure?.addEventListener('toggle', () => {
-          if (!disclosure.open) this.clearPasswords(fields);
+          if (globalThis.document && !disclosure.open) this.clearPasswords(fields);
         });
       });
       this.render();

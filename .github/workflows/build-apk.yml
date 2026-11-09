@@ -115,15 +115,59 @@ jobs:
         shell: bash
         run: python3 scripts/update_release_manifest.py
 
-      - name: Run security and APK tests
+      - name: Run npm test suite
         shell: bash
         run: |
-          set -euo pipefail
-          node server.js &
+          set -uo pipefail
+          node server.js > /tmp/server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          npm test
-          npm run test:admin
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8080/; then break; fi
+            sleep 1
+          done
+          export NODE_PATH=/tmp/test-deps/node_modules
+          npm test > /tmp/npm-test.log 2>&1
+          npm_exit=$?
+          echo "npm test exit=${npm_exit} log_bytes=$(wc -c < /tmp/npm-test.log) server_bytes=$(wc -c < /tmp/server.log)"
+          if [ "$npm_exit" -ne 0 ]; then
+            fails="$(grep -E "❌|✗" /tmp/npm-test.log | head -10)"
+            if [ -n "$fails" ]; then
+              printf '%s\n' "$fails" | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            else
+              tail -15 /tmp/npm-test.log | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            fi
+            exit "$npm_exit"
+          fi
+
+      - name: Run admin test suite
+        shell: bash
+        run: |
+          set -uo pipefail
+          npm run test:admin > /tmp/npm-admin.log 2>&1
+          admin_exit=$?
+          echo "test:admin exit=${admin_exit} log_bytes=$(wc -c < /tmp/npm-admin.log)"
+          if [ "$admin_exit" -ne 0 ]; then
+            fails="$(grep -E "❌|✗" /tmp/npm-admin.log | head -10)"
+            if [ -n "$fails" ]; then
+              printf '%s\n' "$fails" | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            else
+              tail -15 /tmp/npm-admin.log | while IFS= read -r line; do
+                line="${line//'%'/'%25'}"; line="${line//$'\r'/''}"
+                echo "::error::${line}"
+              done
+            fi
+            exit "$admin_exit"
+          fi
 
       - name: Remove restored private key
         if: always()
