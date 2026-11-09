@@ -12,11 +12,12 @@
   }
 
   function createFarmAdmin(deps) {
-    const state = { withdrawals: [], loading: null, saving: '', loaded: false, rateDraft: null, rateSaving: false };
+    const state = { withdrawals: [], loading: null, saving: '', loaded: false, rateDraft: null, rateSaving: false, liveRate: null, liveSaving: false };
     const { byId, api } = deps;
 
     function reset() {
       state.withdrawals = []; state.loaded = false; state.saving = ''; state.rateDraft = null; state.rateSaving = false;
+      state.liveRate = null; state.liveSaving = false; byId('farm-live-rate')?.classList.add('hidden');
       byId('farm-rate-draft')?.classList.add('hidden');
       const list = byId('farm-withdrawals-list'); if (list) list.textContent = '';
       const error = byId('farm-withdrawals-error');
@@ -36,7 +37,7 @@
           state.withdrawals = Array.isArray(data.withdrawals) ? data.withdrawals : [];
           state.loaded = true;
           byId('farm-withdrawals-error').classList.add('hidden');
-          render(); await loadRateDraft(); deps.setConnection('online');
+          render(); await Promise.all([loadRateDraft(), loadLiveRate()]); deps.setConnection('online');
           return data;
         } catch (error) {
           showError(error);
@@ -83,6 +84,41 @@
         deps.showToast('Brouillon enregistré. Le taux réel reste inchangé.');
       } catch (error) { byId('farm-rate-draft-status').textContent = error.message; }
       finally { state.rateSaving = false; byId('farm-rate-draft-save').disabled = false; }
+    }
+    function validLiveRate(rate) {
+      return rate && typeof rate.enabled === 'boolean' && typeof rate.rateUnits === 'string' && /^[1-9][0-9]{0,15}$/.test(rate.rateUnits)
+        && BigInt(rate.rateUnits) <= 1000000000000000n && Number.isSafeInteger(rate.version) && rate.version >= 1;
+    }
+    async function loadLiveRate() {
+      const panel = byId('farm-live-rate'); if (!panel || state.liveSaving) return;
+      try {
+        const result = await api('/api/admin/farm-live-rate');
+        if (!validLiveRate(result.rate)) throw new Error('Taux indisponible.');
+        state.liveRate = result.rate; panel.classList.remove('hidden');
+        byId('farm-live-rate-mode').textContent = result.rate.enabled ? 'Taux actif : les nouvelles conversions utilisent ce taux.' : 'Taux préparé mais désactivé : les conversions réelles ne l’utilisent pas.';
+        if (document.activeElement !== byId('farm-live-rate-input')) byId('farm-live-rate-input').value = formatFta(result.rate.rateUnits);
+        byId('farm-live-rate-status').textContent = `Version ${result.rate.version}`;
+      } catch (error) {
+        state.liveRate = null; panel.classList.add('hidden');
+        if (error.code !== 'NOT_FOUND' && error.code !== 'AUTH_REQUIRED') deps.showToast(error.message, 'error');
+      }
+    }
+    async function saveLiveRate(event) {
+      event.preventDefault(); if (state.liveSaving || !state.liveRate) return;
+      let rateUnits;
+      try { rateUnits = parseRate(byId('farm-live-rate-input').value); }
+      catch (error) { byId('farm-live-rate-status').textContent = error.message; return; }
+      const warning = state.liveRate.enabled ? 'Ce changement affectera les nouvelles conversions de tous les comptes. Les retraits déjà enregistrés gardent leur montant. Confirmer ?' : 'Ce taux reste désactivé et ne change pas les conversions actuelles. Confirmer ?';
+      if (!window.confirm(warning)) return;
+      state.liveSaving = true; byId('farm-live-rate-save').disabled = true;
+      try {
+        const result = await api('/api/admin/farm-live-rate', { method: 'PATCH', body: { rateUnits, expectedVersion: state.liveRate.version } });
+        if (!validLiveRate(result.rate)) throw new Error('Réponse de taux invalide.');
+        state.liveRate = result.rate; byId('farm-live-rate-input').value = formatFta(result.rate.rateUnits);
+        byId('farm-live-rate-mode').textContent = result.rate.enabled ? 'Taux actif : les nouvelles conversions utilisent ce taux.' : 'Taux préparé mais désactivé : les conversions réelles ne l’utilisent pas.';
+        byId('farm-live-rate-status').textContent = `Version ${result.rate.version} enregistrée`;
+      } catch (error) { byId('farm-live-rate-status').textContent = error.message; }
+      finally { state.liveSaving = false; byId('farm-live-rate-save').disabled = false; }
     }
     function detail(label, value, mono = false) {
       const row = document.createElement('div'); row.className = 'order-detail-row';
@@ -167,6 +203,7 @@
       });
     }
     function bindEvents() {
+      byId('farm-live-rate-form')?.addEventListener('submit', saveLiveRate);
       byId('farm-rate-draft-form')?.addEventListener('submit', saveRateDraft);
       byId('farm-withdrawals-filter').addEventListener('change', render);
       byId('farm-withdrawals-refresh').addEventListener('click', () => load().catch(() => {}));

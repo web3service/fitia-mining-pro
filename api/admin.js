@@ -8,6 +8,8 @@ const { validateManifest: validateStoreCatalog } = require('../store-catalog');
 const { getDefaultOrderService } = require('../store-order-service');
 const { getDefaultFarmService } = require('../farm-service');
 const { getDefaultExchangeDraftService } = require('../farm-exchange-draft');
+const { createLiveRateService, SupabaseLiveRateRepository } = require('../farm-live-rate');
+const { SupabaseFarmRepository } = require('../farm-service');
 const { getDefaultAccountService } = require('../account-service');
 const { getClientKey, getLoginFailure, recordLoginFailure } = require('../request-security');
 const GameVisibility = require('../game-visibility-config');
@@ -425,6 +427,9 @@ async function saveAnnouncementAsset(config, payload, kind = 'announcement') {
 function createAdminHandler(options = {}) {
   let orderService = options.orderService || null;
   let farmService = options.farmService || null;
+  let liveRate = options.liveRateService || null;
+  const liveRateEnabled = () => options.liveRateEnabled === true || process.env.FITIA_FARM_LIVE_RATE_ADMIN === 'true';
+  const liveExchange = () => { if (!liveRate) liveRate = createLiveRateService(new SupabaseLiveRateRepository(new SupabaseFarmRepository())); return liveRate; };
   let exchangeDraft = options.exchangeDraftService || null;
   const draftEnabled = () => options.exchangeDraftEnabled === true || process.env.FITIA_FARM_EXCHANGE_DRAFT === 'true';
   const exchange = () => { if (!exchangeDraft) exchangeDraft = getDefaultExchangeDraftService(); return exchangeDraft; };
@@ -541,6 +546,18 @@ function createAdminHandler(options = {}) {
       const body = await readJson(req, MAX_BODY_BYTES);
       sendJson(res, 200, await accounts().setCertified(body.userId, body.certified, 'admin'));
       return;
+    }
+
+    if (action === 'farm-live-rate' && ['GET', 'PATCH'].includes(req.method)) {
+      const session = requireSession(req, res, config);
+      if (!session) return;
+      if (!liveRateEnabled()) { sendJson(res, 404, { error: 'Fonction indisponible.', code: 'NOT_FOUND' }); return; }
+      if (req.method === 'PATCH') {
+        if (!requireCsrf(req, res, session)) return;
+        const body = await readJson(req, MAX_BODY_BYTES);
+        sendJson(res, 200, { rate: await liveExchange().set(body) }); return;
+      }
+      sendJson(res, 200, { rate: await liveExchange().get() }); return;
     }
 
     if (action === 'farm-exchange-draft' && ['GET', 'PATCH'].includes(req.method)) {

@@ -53,6 +53,10 @@
       "destination": "/api/admin?action=store-orders"
     },
     {
+      "source": "/api/admin/farm-live-rate",
+      "destination": "/api/admin?action=farm-live-rate"
+    },
+    {
       "source": "/api/admin/farm-exchange-draft",
       "destination": "/api/admin?action=farm-exchange-draft"
     },

@@ -335,6 +335,17 @@
             <strong>Aucun retrait automatique sans preuve on-chain</strong>
             <p>Les coins sont débités lors de la demande. Ne clôturez jamais un retrait avec une capture d’écran : seul le transfert FTA vérifié depuis la trésorerie est accepté.</p>
           </div>
+          <div id="farm-live-rate" class="promotion-notice store-privacy-notice hidden">
+            <strong>Réglage du taux F-Coin / FTA</strong>
+            <p>Le taux est exprimé en FTA pour 100 F-Coins. Les retraits déjà enregistrés gardent leur montant.</p>
+            <p id="farm-live-rate-mode"></p>
+            <form id="farm-live-rate-form">
+              <label for="farm-live-rate-input">FTA pour 100 F-Coins</label>
+              <input id="farm-live-rate-input" type="text" inputmode="decimal" autocomplete="off" required>
+              <button id="farm-live-rate-save" class="button button-secondary" type="submit">Modifier le taux</button>
+            </form>
+            <p id="farm-live-rate-status" aria-live="polite"></p>
+          </div>
           <div id="farm-rate-draft" class="promotion-notice store-privacy-notice hidden">
             <strong>Taux de conversion — brouillon non actif</strong>
             <p>Cette préparation ne modifie aucun dépôt, retrait ou solde. Taux exprimé en FTA pour 100 F-Coins.</p>
