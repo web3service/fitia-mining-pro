@@ -1,0 +1,26 @@
+'use strict';
+const assert = require('assert');
+const crypto = require('crypto');
+const Config = require('../farm-config');
+const { MemoryFarmRepository, createFarmService } = require('../farm-service');
+const { MemoryExchangeDraftRepository, createExchangeDraftService } = require('../farm-exchange-draft');
+(async () => {
+  const wallet = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  const id = crypto.randomUUID(); const tx = `0x${'ab'.repeat(32)}`;
+  const repo = new MemoryFarmRepository();
+  repo.withdrawals.set(id, { id, wallet, coins: 1000, ftaUnits: '1000000000', status: 'pending', createdAt: '2026-01-01T00:00:00.000Z', paidAt: null, payoutTxHash: null });
+  const draft = createExchangeDraftService(new MemoryExchangeDraftRepository());
+  const seen = []; let confirmed = false;
+  const service = createFarmService({ repository: repo, paymentVerifier: async (expectation, hash) => { seen.push({ expectation, hash }); return { confirmed }; } });
+  await draft.stage({ rateUnits: '50000000', expectedVersion: 1 });
+  const pending = await service.completeWithdrawal({ id, txHash: tx });
+  assert.strictEqual(pending.pending, true); assert.strictEqual(pending.withdrawal.ftaUnits, '1000000000');
+  assert.deepStrictEqual(seen[0], { expectation: { from: Config.TREASURY_ADDRESS, to: wallet, amountUnits: '1000000000' }, hash: tx });
+  await draft.stage({ rateUnits: '25000000', expectedVersion: 2 }); confirmed = true;
+  const paid = await service.completeWithdrawal({ id, txHash: tx });
+  assert.strictEqual(paid.withdrawal.ftaUnits, '1000000000'); assert.strictEqual(paid.withdrawal.status, 'paid');
+  assert.strictEqual(seen[1].expectation.amountUnits, '1000000000');
+  const repeat = await service.completeWithdrawal({ id, txHash: tx }); assert.strictEqual(repeat.withdrawal.ftaUnits, '1000000000');
+  assert.strictEqual(seen.length, 2);
+  console.log('Ancien retrait : montant enregistré conservé malgré les changements de brouillon (test mémoire)');
+})().catch(e => { console.error(e); process.exitCode = 1; });

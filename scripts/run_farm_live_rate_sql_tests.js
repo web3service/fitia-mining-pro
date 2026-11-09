@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('assert'); const fs=require('fs'); const crypto=require('crypto'); const {PGlite}=require('@electric-sql/pglite'); const {defaultState}=require('../farm-service');
+(async()=>{const db=new PGlite();try{
+  await db.exec(`create role anon; create role authenticated; create role service_role;
+    create table public.farm_accounts(wallet text primary key,state jsonb not null,revision bigint not null default 0,updated_at timestamptz default now());
+    create table public.farm_actions(action_id uuid primary key,wallet text not null,action_type text not null,tx_hash text unique,created_at timestamptz default now());
+    create table public.farm_withdrawals(id uuid primary key,wallet text not null,coins bigint not null,fta_units text not null,status text not null,created_at timestamptz not null,paid_at timestamptz,payout_tx_hash text unique);`);
+  for(const file of ['20261108100000_farm_live_withdraw_prepare.sql','20261108110000_farm_live_deposit_prepare.sql','20261108120000_farm_live_rate_admin_prepare.sql']) await db.exec(fs.readFileSync(`supabase/migrations/${file}`,'utf8'));
+  const call=async(name,args)=>(await db.query(`select public.${name}(${args.map((_,i)=>`$${i+1}`).join(',')}) as result`,args)).rows[0].result;
+  const updated=await call('farm_live_set_rate',['50000000',1]); assert.strictEqual(updated.rateUnits,'50000000');assert.strictEqual(updated.enabled,false); assert.strictEqual(Number(updated.version),2);
+  await assert.rejects(call('farm_live_set_rate',['25000000',1]),/FARM_LIVE_RATE_REVISION/);
+  await assert.rejects(call('farm_live_set_rate',['50000000',2]),/FARM_LIVE_RATE_UNCHANGED/);
+  await assert.rejects(db.exec('update public.farm_live_exchange_rate set enabled=true'),/farm_live_exchange_disabled/);
+  assert.strictEqual(Number((await db.query('select count(*) as n from public.farm_live_rate_history')).rows[0].n),1);
+  assert.strictEqual((await db.query("select has_function_privilege('anon','public.farm_live_set_rate(bigint,bigint)','execute') as allowed")).rows[0].allowed,false);
+  // Enable only in this throwaway local DB to exercise the post-activation candidate.
+  await db.exec('alter table public.farm_live_exchange_rate drop constraint farm_live_exchange_disabled; update public.farm_live_exchange_rate set enabled=true');
+  const wallet='0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',state=defaultState(wallet);state.coins=2000;state.land={owned:true};state.animals=[{id:crypto.randomUUID(),species:'chicken'}];
+  await db.query('insert into public.farm_accounts(wallet,state,revision) values($1,$2::jsonb,1)',[wallet,JSON.stringify(state)]);
+  const withdrawal=await call('farm_live_create_withdraw_quote',[crypto.randomUUID(),wallet,1000]);const deposit=await call('farm_live_create_deposit_quote',[crypto.randomUUID(),wallet,100]);
+  assert.strictEqual(withdrawal.amountUnits,'500000000');assert.strictEqual(deposit.amountUnits,'50000000');
+  const saved=await call('farm_live_withdraw',[withdrawal.quoteId,wallet]); assert.strictEqual(saved.ftaUnits,'500000000');
+  const stale=await call('farm_live_create_withdraw_quote',[crypto.randomUUID(),wallet,1000]);
+  await call('farm_live_set_rate',['25000000',2]);
+  await assert.rejects(call('farm_live_withdraw',[stale.quoteId,wallet]),/FARM_LIVE_RATE_CHANGED/);
+  assert.strictEqual((await call('farm_live_withdraw',[withdrawal.quoteId,wallet])).ftaUnits,'500000000');
+  assert.strictEqual((await call('farm_live_get_deposit_quote',[deposit.quoteId])).amountUnits,'50000000');
+  assert.strictEqual(Number((await db.query('select count(*) as n from public.farm_live_rate_history')).rows[0].n),2);
+  console.log('Taux réel préparé : historique, concurrence de version, devis et retraits préservés (base isolée)');
+}finally{await db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

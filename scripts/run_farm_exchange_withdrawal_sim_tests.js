@@ -1,0 +1,20 @@
+'use strict';
+const assert = require('assert');
+const crypto = require('crypto');
+const ethers = require('../vendor/ethers.umd.min.js');
+const Protocol = require('../farm-exchange-protocol');
+const { createWithdrawalSimulation } = require('../farm-exchange-withdrawal-simulation');
+(async () => {
+  const wallet = ethers.Wallet.createRandom();
+  const quote = { quoteId: crypto.randomUUID(), wallet: wallet.address, direction: 'withdraw', coins: '1000', amountUnits: '1000000000', rateUnits: '100000000', rateVersion: 1, issuedAt: 1000, expiresAt: 2000 };
+  let calls = 0, stored = quote;
+  const sim = createWithdrawalSimulation({ getQuote: async () => stored, simulateWithdrawal: async (id, account) => { calls++; return { id, account, status: 'simulated' }; } });
+  const signature = await wallet.signMessage(Protocol.message(quote));
+  const result = await sim.withdraw(quote.quoteId, signature); assert.strictEqual(result.status, 'simulated'); assert.strictEqual(result.account, wallet.address.toLowerCase());
+  await assert.rejects(sim.withdraw(quote.quoteId, 'wrong'), e => e.code === 'SIM_AUTH');
+  stored = { ...quote, rateVersion: 2 }; await assert.rejects(sim.withdraw(quote.quoteId, signature), e => e.code === 'SIM_AUTH');
+  stored = null; await assert.rejects(sim.withdraw(quote.quoteId, signature), e => e.code === 'SIM_QUOTE');
+  stored = { ...quote, direction: 'deposit' }; await assert.rejects(sim.withdraw(quote.quoteId, signature), e => e.code === 'SIM_AUTH');
+  assert.strictEqual(calls, 1);
+  console.log('Retrait simulé : signature vérifiée sur devis conservé par serveur avant transaction');
+})().catch(e => { console.error(e); process.exitCode = 1; });

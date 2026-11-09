@@ -2776,6 +2776,12 @@ main::-webkit-scrollbar { display: none; }
 .farm-dialog-price { display: block; margin: 8px 0; color: #edce82; font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; text-align: center; }
 .farm-dialog-copy { color: #a0b0a3; font-size: .7rem; line-height: 1.55; text-align: center; }
 .farm-dialog-hint { display: block; margin-top: 10px; color: #7f9284; font-size: .59rem; line-height: 1.5; }
+.farm-market-list { display: grid; gap: 8px; margin: 12px 0; }
+.farm-market-row { display: grid; grid-template-columns: minmax(0,1fr) 62px auto 28px; gap: 6px; align-items: center; padding: 10px; border: 1px solid #527354; border-radius: 12px; background: #254330; }
+.farm-market-info { min-width: 0; display: grid; gap: 3px; color: #f1f7eb; font-size: 13px; }
+.farm-market-info small { color: #c2d6be; font-size: 11px; }
+.farm-market-row .farm-market-quantity { width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 6px; }
+.farm-market-row .farm-small-button { min-height: 44px; padding: 8px 12px; }
 .farm-dialog-actions { display: grid; gap: 8px; }
 .farm-dialog-actions button { width: 100%; min-height: 45px; }
 .farm-dialog-error { margin: 0 0 8px; color: #f19a8e; font-size: .65rem; line-height: 1.45; }
@@ -3447,3 +3453,23 @@ main::-webkit-scrollbar { display: none; }
 #view-store button:focus-visible, #view-store input:focus-visible, #view-store select:focus-visible { outline: 2px solid #ffb25f; outline-offset: 2px; }
 @media (max-width: 360px) { #view-store .store-hero { padding: 10px 14px; } #view-store .store-product-body { padding: 10px; } }
 @media (min-width: 760px) { #view-store .store-product-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+
+/* Récompenses décoratives, sans impact sur les F-Coins. */
+.pf-unlocks { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.pf-unlock { padding: 5px 9px; border: 1px solid rgba(91,140,89,.35); border-radius: 999px; font-size: 12px; color: #386b42; background: rgba(220,239,217,.7); }
+
+.farm-market-select { width: 24px; height: 24px; accent-color: #9ad86b; cursor: pointer; }
+.farm-style-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; }
+.farm-style-group > strong { flex-basis: 100%; }
+.farm-style-choice { min-height: 44px; padding: 8px 12px; color: #fff; background: #284630; border: 1px solid #789576; border-radius: 10px; }
+.farm-style-choice::before { content: ''; display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 7px; border: 1px solid #fff; border-radius: 50%; background: var(--farm-style-color); }
+.farm-style-choice[aria-pressed="true"] { outline: 2px solid #b5e988; opacity: 1; }
+.farm-move-selector { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.farm-move-selector .farm-style-choice::before { display: none; }
+.farm-move-controls { display: grid; grid-template-columns: repeat(3, 68px); gap: 8px; justify-content: center; margin: 12px auto; }
+.farm-move-button { min-height: 50px; font-size: 12px; font-weight: bold; color: #fff; background: #315a39; border: 1px solid #8bbb82; border-radius: 12px; }
+.farm-move-button:first-child { grid-column: 2; }
+.farm-move-button:nth-child(2) { grid-column: 1; grid-row: 2; }
+.farm-move-button:nth-child(3) { grid-column: 3; grid-row: 2; }
+.farm-move-button:nth-child(4) { grid-column: 2; grid-row: 3; }
+.farm-move-button:disabled { opacity: .3; }

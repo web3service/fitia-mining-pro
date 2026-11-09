@@ -1,0 +1,34 @@
+'use strict';
+const assert = require('assert');
+const crypto = require('crypto');
+const ethers = require('../vendor/ethers.umd.min.js');
+const Protocol = require('../farm-exchange-protocol');
+const Config = require('../farm-config');
+const { createDepositSimulation } = require('../farm-exchange-deposit-simulation');
+const { SupabaseExchangeSimulationRepository } = require('../farm-exchange-simulation-repository');
+(async () => {
+  const wallet = ethers.Wallet.createRandom(); const tx = `0x${'12'.repeat(32)}`, hash = `0x${'34'.repeat(32)}`;
+  const q = { quoteId: crypto.randomUUID(), wallet: wallet.address.toLowerCase(), direction: 'deposit', coins: '100', amountUnits: '100000000', rateUnits: '100000000', rateVersion: 1, issuedAt: 1699999999000, expiresAt: 1700000001000 };
+  const signature = await wallet.signMessage(Protocol.message(q));
+  const log = { index: 5, address: Config.FTA_CONTRACT, topics: [ethers.id('Transfer(address,address,uint256)'), ethers.zeroPadValue(q.wallet, 32), ethers.zeroPadValue(Config.TREASURY_ADDRESS, 32)], data: ethers.toBeHex(100000000, 32) };
+  let receipt = { hash: tx, blockHash: hash, blockNumber: 100, status: 1, logs: [log] }, block = { hash, number: 100, timestamp: 1700000000 }, latest = 227, saved = [];
+  const provider = { getNetwork: async () => ({ chainId: 137n }), getTransactionReceipt: async () => receipt, getBlock: async () => block, getBlockNumber: async () => latest };
+  const repository = new SupabaseExchangeSimulationRepository({ request: async (method, path, body) => {
+    assert.strictEqual(method, 'POST');
+    if (path === 'rpc/farm_exchange_sim_get_quote') return q;
+    assert.strictEqual(path, 'rpc/farm_exchange_record_receipt_draft'); saved.push(body); return { status: body.p_block_time_ms >= q.expiresAt ? 'refund_required' : 'eligible' };
+  } });
+  const sim = createDepositSimulation(repository, provider);
+  const result = await sim.observe(q.quoteId, signature, tx, 5);
+  assert.strictEqual(result.status, 'eligible');
+  assert.deepStrictEqual(saved[0], { p_quote_id: q.quoteId, p_tx_hash: tx, p_log_index: 5, p_block_number: 100, p_block_hash: hash, p_block_time_ms: 1700000000000 });
+  const lateTx = `0x${'56'.repeat(32)}`;
+  receipt = { ...receipt, hash: lateTx }; block = { ...block, timestamp: 1700000002 };
+  assert.strictEqual((await sim.observe(q.quoteId, signature, lateTx, 5)).status, 'refund_required');
+  latest = 226; assert.strictEqual((await sim.observe(q.quoteId, signature, lateTx, 5)).status, 'pending');
+  await assert.rejects(sim.observe(q.quoteId, 'bad', tx, 5), e => e.code === 'SIM_AUTH');
+  latest = 227; receipt = { ...receipt, logs: [{ ...log, data: ethers.toBeHex(5, 32) }] };
+  await assert.rejects(sim.observe(q.quoteId, signature, lateTx, 5), e => e.code === 'RECEIPT_MISMATCH');
+  assert.strictEqual(saved.length, 2);
+  console.log('Dépôt simulé : signature, preuve Polygon simulée et enregistrement isolé reliés sans crédit');
+})().catch(e => { console.error(e); process.exitCode = 1; });

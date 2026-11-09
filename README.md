@@ -1,3 +1,5 @@
+> **FITIA FARM — travail en cours :** consulter [le guide de l’aperçu et de développement](docs/FITIA-FARM-README.md) et [la feuille de route](docs/FITIA-FARM-ROADMAP.md). Ces modifications ne sont pas publiées.
+
 # ⚡ FITIA PRO MINER V3.3.21 — Application Mobile Autonome & APK Android Durci
 
 Application mobile **100% indépendante** pour l'écosystème **FITIA PRO** sur **Polygon Mainnet (Chain ID 137)**, intégrant directement son propre **portefeuille crypto non-custodial haute sécurité** et compilée en **APK Android signé (`FITIA-PRO-Miner.apk`)**.

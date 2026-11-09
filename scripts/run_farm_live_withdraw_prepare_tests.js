@@ -1,0 +1,66 @@
+'use strict';
+const assert = require('assert');
+const fs = require('fs');
+const crypto = require('crypto');
+const { PGlite } = require('@electric-sql/pglite');
+const { defaultState } = require('../farm-service');
+(async () => {
+  const db = new PGlite();
+  try {
+    await db.exec(`create role anon; create role authenticated; create role service_role;
+      create table public.farm_accounts(wallet text primary key,state jsonb not null,revision bigint not null default 0,updated_at timestamptz not null default now());
+      create table public.farm_actions(action_id uuid primary key,wallet text not null,action_type text not null,tx_hash text unique,created_at timestamptz not null default now());
+      create table public.farm_withdrawals(id uuid primary key,wallet text not null,coins bigint not null,fta_units text not null,status text not null,created_at timestamptz not null,paid_at timestamptz,payout_tx_hash text unique);`);
+    await db.exec('create schema auth; create table auth.users(id uuid primary key); create table public.app_user_profiles(user_id uuid primary key, wallet_address text);');
+    await db.exec(fs.readFileSync('supabase/migrations/20261107040000_mfa_preparation.sql', 'utf8'));
+    await db.exec(fs.readFileSync('supabase/migrations/20261108020000_farm_state_version_guard.sql', 'utf8'));
+    await db.exec(fs.readFileSync('supabase/migrations/20261108100000_farm_live_withdraw_prepare.sql', 'utf8'));
+    const wallet = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; const id = crypto.randomUUID();
+    const call = async (name, params) => (await db.query(`select public.${name}(${params.map((_, i) => `$${i+1}`).join(',')}) as result`, params)).rows[0].result;
+    await assert.rejects(call('farm_live_create_withdraw_quote', [id,wallet,1000]), /FARM_LIVE_DISABLED/);
+    await assert.rejects(db.exec('update public.farm_live_exchange_rate set enabled=true'), /farm_live_exchange_disabled/);
+    // Test-only: the check is removed exclusively in this isolated in-memory DB.
+    await db.exec('alter table public.farm_live_exchange_rate drop constraint farm_live_exchange_disabled; update public.farm_live_exchange_rate set enabled=true,rate_units=50000000,version=2');
+    const state = defaultState(wallet); state.coins=2000; state.land={owned:true}; state.animals=[{id:crypto.randomUUID(), species:'chicken'}];
+    await db.query('insert into public.farm_accounts(wallet,state,revision) values($1,$2::jsonb,1)', [wallet,JSON.stringify(state)]);
+    const q = await call('farm_live_create_withdraw_quote', [id,wallet,1000]);
+    assert.strictEqual(q.amountUnits,'500000000');
+    const first = await call('farm_live_withdraw',[id,wallet]); assert.strictEqual(first.ftaUnits,'500000000'); assert.strictEqual(first.status,'pending');
+    await db.exec('update public.farm_live_exchange_rate set rate_units=25000000,version=3');
+    const replay = await call('farm_live_withdraw',[id,wallet]); assert.strictEqual(replay.ftaUnits,'500000000');
+    const account = (await db.query('select state,revision from public.farm_accounts where wallet=$1',[wallet])).rows[0];
+    assert.strictEqual(account.state.coins,1000); assert.strictEqual(Number(account.revision),2);
+    assert.strictEqual(Number((await db.query('select count(*) as n from public.farm_actions')).rows[0].n),1);
+    const next = await call('farm_live_create_withdraw_quote',[crypto.randomUUID(),wallet,1000]);
+    await assert.rejects(call('farm_live_withdraw',[next.quoteId,wallet]), /FARM_LIVE_PENDING/);
+    await db.exec("update public.farm_withdrawals set status='paid'");
+    await assert.rejects(call('farm_live_withdraw',[next.quoteId,wallet]), /FARM_LIVE_COOLDOWN/);
+    await db.exec("update public.farm_withdrawals set created_at=now()-interval '25 hours'");
+    await db.exec('update public.farm_live_exchange_rate set rate_units=50000000,version=4');
+    await assert.rejects(call('farm_live_withdraw',[next.quoteId,wallet]), /FARM_LIVE_RATE_CHANGED/);
+    const last = await call('farm_live_create_withdraw_quote',[crypto.randomUUID(),wallet,2000]);
+    await assert.rejects(call('farm_live_withdraw',[last.quoteId,wallet]), /FARM_LIVE_BALANCE/);
+    assert.strictEqual(Number((await db.query('select count(*) as n from public.farm_withdrawals')).rows[0].n),1);
+    const conflict = await call('farm_live_create_withdraw_quote',[crypto.randomUUID(),wallet,1000]);
+    await db.query("insert into public.farm_actions(action_id,wallet,action_type) values($1,$2,'cancelled')", [conflict.quoteId,wallet]);
+    await assert.rejects(call('farm_live_withdraw',[conflict.quoteId,wallet]), /duplicate key/);
+    assert.strictEqual((await db.query('select state from public.farm_accounts where wallet=$1',[wallet])).rows[0].state.coins,1000);
+    assert.strictEqual(Number((await db.query('select count(*) as n from public.farm_withdrawals')).rows[0].n),1);
+    // Exercise the actual MFA database trigger, not a mock.
+    const wallet2 = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', userId = crypto.randomUUID();
+    const secondState = defaultState(wallet2); secondState.coins=1000; secondState.land={owned:true}; secondState.animals=[{id:crypto.randomUUID(),species:'chicken'}];
+    await db.query('insert into auth.users(id) values($1)', [userId]);
+    await db.query('insert into public.app_user_profiles(user_id,wallet_address) values($1,$2)', [userId,wallet2]);
+    await db.query('insert into public.app_mfa_factors(user_id,record) values($1,$2::jsonb)', [userId,JSON.stringify({enabled:true})]);
+    await db.query('insert into public.farm_accounts(wallet,state,revision) values($1,$2::jsonb,1)',[wallet2,JSON.stringify(secondState)]);
+    const protectedQuote = await call('farm_live_create_withdraw_quote',[crypto.randomUUID(),wallet2,1000]);
+    await assert.rejects(call('farm_live_withdraw',[protectedQuote.quoteId,wallet2]), /FARM_MFA_REQUIRED/);
+    assert.strictEqual((await db.query('select state from public.farm_accounts where wallet=$1',[wallet2])).rows[0].state.coins,1000);
+    await db.query('update public.app_mfa_factors set record=$2::jsonb where user_id=$1',[userId,JSON.stringify({enabled:true,withdrawalApproval:{wallet:wallet2,actionId:protectedQuote.quoteId,coins:1000,expiresAt:Date.now()+60000}})]);
+    assert.strictEqual((await call('farm_live_withdraw',[protectedQuote.quoteId,wallet2])).status,'pending');
+    assert.strictEqual((await db.query('select record from public.app_mfa_factors where user_id=$1',[userId])).rows[0].record.withdrawalApproval,undefined);
+    const privileges = (await db.query("select has_function_privilege('anon','public.farm_live_withdraw(uuid,text)','execute') as anon, has_function_privilege('service_role','public.farm_live_withdraw(uuid,text)','execute') as service")).rows[0];
+    assert.strictEqual(privileges.anon,false); assert.strictEqual(privileges.service,true);
+    console.log('Retrait réel préparé : verrou inactif, débit atomique, ancien montant, taux périmé, solde et limites OK (base isolée)');
+  } finally { await db.close(); }
+})().catch(e => { console.error(e); process.exitCode = 1; });
