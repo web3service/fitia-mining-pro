@@ -29,6 +29,19 @@ const UNVALIDATED_ECONOMY_TYPES = new Set(['water_crop', 'care_animal', 'fertili
 // absent — rien ne change. Les nouveaux retraits passent par les devis live
 // (ferme_live_create_withdraw_quote), jamais par ce chemin.
 const LIVE_EXCHANGE = typeof process !== 'undefined' && Boolean(process.env) && process.env.FITIA_FARM_LIVE_EXCHANGE === 'true';
+// Arrêt d'urgence des flux argent du "bridge" historique (CONVERT, FTA vers F-Coins, et
+// WITHDRAW, F-Coins vers FTA). Défaut : bridge ACTIF (comportement inchangé).
+// Pour geler les conversions et les nouvelles demandes de retrait en une minute,
+// mettre FITIA_FARM_BRIDGE_ENABLED=false sur Vercel puis redéployer (ou redémarrer
+// le serveur self-hosted). Les retraits déjà en attente restent payables par
+// l'admin (completeWithdrawal et listWithdrawals ne sont PAS arrêtés), comme la
+// résolution d'un dépôt déjà diffusé (resolvePending).
+function bridgePaused() {
+  return typeof process !== 'undefined' && Boolean(process.env) && process.env.FITIA_FARM_BRIDGE_ENABLED === 'false';
+}
+function bridgePausedError() {
+  return new FarmError(503, 'Les conversions FARM sont temporairement suspendues. Les retraits en attente seront honorés.', 'FARM_BRIDGE_PAUSED');
+}
 
 class FarmError extends Error {
   constructor(status, message, code = 'FARM_ERROR') { super(message); this.status = status; this.code = code; }
@@ -417,7 +430,7 @@ function createFarmService(options = {}) {
     if (publicState.mines.active) delete publicState.mines.active.minePositions;
     if (publicState.crash.active) publicState.crash.active = publicAviatorRound(state.crash.active);
     const result = { state: publicState, revision: record?.revision || 0, withdrawals, serverTime: now().getTime(),
-      features: { unvalidatedEconomy: UNVALIDATED_ECONOMY, liveExchange: LIVE_EXCHANGE } };
+      features: { unvalidatedEconomy: UNVALIDATED_ECONOMY, liveExchange: LIVE_EXCHANGE, bridgePaused: bridgePaused() } };
     if (shared) {
       // Un ancien vol reste visible jusqu’à son règlement ; tous les nouveaux vols sont mondiaux.
       if (!publicState.crash.active) publicState.crash.active = shared.ownRound;
@@ -470,6 +483,7 @@ function createFarmService(options = {}) {
     return { status, ...(await view(wallet)) };
   }
   async function deposit(body) {
+    if (bridgePaused()) throw bridgePausedError();
     const wallet = authenticate('deposit', body);
     const actionId = Protocol.requireUuid(body.actionId);
     if (await repository.isActionProcessed(actionId, wallet)) return { pending: false, ...(await view(wallet)) };
@@ -1103,6 +1117,7 @@ function createFarmService(options = {}) {
     return applyIdempotent(wallet, actionId, ['sell_item', 'sell_batch'].includes(type) ? 'sell' : type === 'plant_plot' ? 'plant' : type, state, record?.revision || 0);
   }
   async function withdraw(body) {
+    if (bridgePaused()) throw bridgePausedError();
     const wallet = authenticate('withdraw', body);
     if (LIVE_EXCHANGE) {
       // Ancien chemin refusé : les retraits passent par les devis live.
