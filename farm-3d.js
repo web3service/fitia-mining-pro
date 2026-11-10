@@ -217,6 +217,53 @@
     const fieldMaterial = new THREE.MeshStandardMaterial({ map: soilTexture, color: 0x8f6b4d, roughness: 1, envMapIntensity: 0.16 });
     const pathMaterial = new THREE.MeshStandardMaterial({ map: pathTexture, color: 0xd4b87f, roughness: 1, envMapIntensity: 0.22 });
     materials.lawn = lawnMaterial; materials.field = fieldMaterial; materials.pathTextured = pathMaterial;
+
+    // ─── Assets PBR embarqués (Niveau 2) : chargement local, repli procédural ───
+    const pbrTextures = [];
+    const textureLoader = new THREE.TextureLoader();
+    // Le ciel embarqué remplace le dégradé procédural dès son chargement (IBL régénérée).
+    function applySkyTexture(tex) {
+      pbrTextures.push(tex);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      skyMaterial.map = tex; skyMaterial.needsUpdate = true;
+      try {
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        const newEnv = pmrem.fromEquirectangular(tex).texture;
+        pmrem.dispose();
+        if (environment) environment.dispose();
+        environment = newEnv; scene.environment = environment;
+        tex.mapping = THREE.UVMapping;
+      } catch (error) { /* IBL dégradé conservée */ }
+    }
+    textureLoader.load('assets/farm3d/sky.jpg', applySkyTexture, undefined, () => {});
+    function upgradeToPbr(materialRef, mapUrl, normalUrl, repeatX, repeatY) {
+      textureLoader.load(mapUrl, (tex) => {
+        pbrTextures.push(tex);
+        tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+        tex.repeat.set(repeatX, repeatY);
+        materialRef.map = tex; materialRef.needsUpdate = true;
+      }, undefined, () => {});
+      if (normalUrl) textureLoader.load(normalUrl, (tex) => {
+        pbrTextures.push(tex);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(repeatX, repeatY);
+        materialRef.normalMap = tex; materialRef.normalScale.set(0.85, 0.85); materialRef.needsUpdate = true;
+      }, undefined, () => {});
+    }
+    upgradeToPbr(lawnMaterial, 'assets/farm3d/grass-albedo.jpg', 'assets/farm3d/grass-normal.jpg', 10, 10);
+    upgradeToPbr(fieldMaterial, 'assets/farm3d/soil-albedo.jpg', 'assets/farm3d/soil-normal.jpg', 3, 3);
+    upgradeToPbr(pathMaterial, 'assets/farm3d/path-albedo.jpg', 'assets/farm3d/path-normal.jpg', 3, 3);
+    upgradeToPbr(materials.wood, 'assets/farm3d/wood-albedo.jpg', 'assets/farm3d/wood-normal.jpg', 1, 1);
+    upgradeToPbr(materials.roof, 'assets/farm3d/roof-albedo.jpg', 'assets/farm3d/roof-normal.jpg', 1.5, 1.5);
+    upgradeToPbr(materials.metal, 'assets/farm3d/metal-albedo.jpg', 'assets/farm3d/metal-normal.jpg', 1, 1);
+    textureLoader.load('assets/farm3d/water-normal.jpg', (tex) => {
+      pbrTextures.push(tex);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(5, 5);
+      materials.water.normalMap = tex; materials.water.normalScale.set(0.7, 0.7);
+      materials.water.roughness = 0.1; materials.water.needsUpdate = true;
+    }, undefined, () => {});
     const islandTop = mesh(geometries.islandTop, lawnMaterial, world, [0, -0.32, 0]); islandTop.castShadow = false;
     const islandBottom = mesh(geometries.islandBottom, M.soil, world, [0, -0.78, 0]); islandBottom.castShadow = false;
     box(world, M.soil, [0, -0.1, -1.65], [22.5, 0.55, 16.8]);
@@ -762,6 +809,7 @@
       skyGeometry.dispose(); skyMaterial.dispose(); skyTexture.dispose();
       sunGlowPlane.geometry.dispose(); sunGlowPlane.material.map.dispose(); sunGlowPlane.material.dispose();
       sunDisc.geometry.dispose(); sunDisc.material.dispose();
+      pbrTextures.forEach((tex) => tex.dispose());
       cloudMaterial.dispose(); if (environment) environment.dispose();
       renderer.dispose(); renderer.domElement.remove();
     }
