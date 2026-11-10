@@ -7,14 +7,14 @@
     if (!THREE) throw new Error('Three.js local est requis.');
     if (!container) throw new Error('Conteneur 3D manquant.');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x91cdec);
-    scene.fog = new THREE.FogExp2(0xc2dce0, 0.011);
-    const camera = new THREE.OrthographicCamera(-12, 12, 12, -12, 0.1, 180);
+    scene.background = new THREE.Color(0x88a5bd);
+    scene.fog = new THREE.FogExp2(0xe6dcbe, 0.0085);
+    const camera = new THREE.OrthographicCamera(-12, 12, 12, -12, 0.1, 220);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 1.7));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.06;
+    renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.className = 'farm-webgl-canvas';
@@ -22,6 +22,88 @@
     renderer.domElement.setAttribute('role', 'img');
     renderer.domElement.tabIndex = 0;
     container.appendChild(renderer.domElement);
+
+    // ─── Ciel dégradé + environnement IBL (chaud côté soleil) ────────────
+    // Dôme en dégradé vertical : zénith bleu → brume dorée à l'horizon.
+    function skyCanvas(width, height) {
+      const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, '#2e4a6e');
+      gradient.addColorStop(0.24, '#44688c');
+      gradient.addColorStop(0.44, '#6c8ca4');
+      gradient.addColorStop(0.6, '#97a4a2');
+      gradient.addColorStop(0.74, '#c2b48c');
+      gradient.addColorStop(0.85, '#e8d49e');
+      gradient.addColorStop(0.93, '#f7e0a0');
+      gradient.addColorStop(1, '#dcb87a');
+      ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
+      return canvas;
+    }
+    const skyTexture = new THREE.CanvasTexture(skyCanvas(32, 512));
+    skyTexture.colorSpace = THREE.SRGBColorSpace;
+    const skyGeometry = new THREE.SphereGeometry(160, 24, 14);
+    const skyMaterial = new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.BackSide, depthWrite: false, fog: false });
+    const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
+    skyDome.name = 'farm-sky-dome';
+    scene.add(skyDome);
+
+    // Éclairage image (IBL) : même dégradé + halo soleil, converti via PMREM.
+    const envCanvasEl = skyCanvas(512, 256);
+    const envCtx = envCanvasEl.getContext('2d');
+    const sunU = (Math.atan2(-13.5, 9.5) / (Math.PI * 2) + 0.5) * 512;
+    const sunGlow = envCtx.createRadialGradient(sunU, 150, 4, sunU, 150, 110);
+    sunGlow.addColorStop(0, 'rgba(255,232,170,0.95)');
+    sunGlow.addColorStop(0.35, 'rgba(255,206,120,0.55)');
+    sunGlow.addColorStop(1, 'rgba(255,206,120,0)');
+    envCtx.fillStyle = sunGlow;
+    envCtx.fillRect(0, 0, 512, 256);
+    const envEquirect = new THREE.CanvasTexture(envCanvasEl);
+    envEquirect.mapping = THREE.EquirectangularReflectionMapping;
+    envEquirect.colorSpace = THREE.SRGBColorSpace;
+    // IBL optionnel : en cas d'échec PMREM (GPU exotique), la scène reste fonctionnelle.
+    let environment = null;
+    try {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      environment = pmrem.fromEquirectangular(envEquirect).texture;
+      pmrem.dispose();
+    } catch (error) {
+      environment = null;
+    }
+    if (environment) scene.environment = environment;
+    envEquirect.dispose();
+
+    // Soleil : disque lumineux + halo additif orienté vers le centre.
+    function radialGlowCanvas() {
+      const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      const glow = ctx.createRadialGradient(64, 64, 2, 64, 64, 64);
+      glow.addColorStop(0, 'rgba(255,246,214,1)');
+      glow.addColorStop(0.18, 'rgba(255,232,160,0.9)');
+      glow.addColorStop(0.45, 'rgba(255,205,110,0.35)');
+      glow.addColorStop(1, 'rgba(255,205,110,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, 128, 128);
+      return canvas;
+    }
+    const glowTexture = new THREE.CanvasTexture(radialGlowCanvas());
+    glowTexture.colorSpace = THREE.SRGBColorSpace;
+    const sunDirection = new THREE.Vector3(-13.5, 14, 9.5).normalize();
+    const sunGlowPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(72, 72),
+      new THREE.MeshBasicMaterial({ map: glowTexture, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0.95 })
+    );
+    sunGlowPlane.position.copy(sunDirection).multiplyScalar(132);
+    sunGlowPlane.lookAt(0, 8, 0);
+    sunGlowPlane.name = 'farm-sun-glow';
+    scene.add(sunGlowPlane);
+    const sunDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(4.6, 26),
+      new THREE.MeshBasicMaterial({ color: 0xfff6d8, fog: false })
+    );
+    sunDisc.position.copy(sunDirection).multiplyScalar(126);
+    sunDisc.lookAt(0, 8, 0);
+    sunDisc.name = 'farm-sun-disc';
+    scene.add(sunDisc);
 
     const world = new THREE.Group(); scene.add(world);
     const animalsGroup = new THREE.Group(); const cropsGroup = new THREE.Group();
@@ -35,25 +117,25 @@
       torus: new THREE.TorusGeometry(1, 0.055, 8, 40)
     };
     const materials = {};
-    const material = (key, color, roughness = 0.78, metalness = 0) => {
-      if (!materials[key]) materials[key] = new THREE.MeshStandardMaterial({ color, roughness, metalness });
+    const material = (key, color, roughness = 0.78, metalness = 0, envMapIntensity = 0.45) => {
+      if (!materials[key]) materials[key] = new THREE.MeshStandardMaterial({ color, roughness, metalness, envMapIntensity });
       return materials[key];
     };
     const M = {
-      grass: material('grass', 0x557d35, 0.97), soil: material('soil', 0x604329, 1),
-      darkSoil: material('darkSoil', 0x39291e, 1), wood: material('wood', 0x765032, 0.91),
-      woodDark: material('woodDark', 0x3c2c23, 0.94), barn: material('barn', 0x813b32, 0.84),
-      roof: material('roof', 0x353b3c, 0.62, 0.12), white: material('white', 0xf1eee2, 0.8),
-      black: material('black', 0x242526, 0.8), pink: material('pink', 0xd9958f, 0.86),
-      brown: material('brown', 0x855233, 0.92), tan: material('tan', 0xb59a72, 0.9),
-      orange: material('orange', 0xd76d20, 0.86), red: material('red', 0xb62f2a, 0.75),
-      yellow: material('yellow', 0xe0ae3f, 0.83), leaf: material('leaf', 0x3f762d, 0.94),
-      leafLight: material('leafLight', 0x6b9638, 0.94), stone: material('stone', 0x8b8c7c, 1),
-      water: material('water', 0x3d8eaa, 0.18, 0.15), metal: material('metal', 0x7d8786, 0.38, 0.65),
-      path: material('path', 0xc7a66d, 1), plaster: material('plaster', 0xf0d9aa, 0.94),
-      blueRoof: material('blueRoof', 0x395f74, 0.68, 0.08), tractor: material('tractor', 0x477c3b, 0.65, 0.08),
-      flowerPink: material('flowerPink', 0xe98c9d, 0.85), flowerWhite: material('flowerWhite', 0xfff2d4, 0.9),
-      eye: material('eye', 0x090b09, 0.28), hoof: material('hoof', 0x302a27, 0.93)
+      grass: material('grass', 0x4f7431, 0.97, 0, 0.22), soil: material('soil', 0x5f3f28, 1, 0, 0.15),
+      darkSoil: material('darkSoil', 0x33231a, 1, 0, 0.1), wood: material('wood', 0x86603b, 0.88, 0, 0.35),
+      woodDark: material('woodDark', 0x38291f, 0.93, 0, 0.25), barn: material('barn', 0x8a4034, 0.82, 0, 0.4),
+      roof: material('roof', 0x2e3439, 0.55, 0.28, 0.75), white: material('white', 0xf1eee2, 0.72, 0, 0.4),
+      black: material('black', 0x242526, 0.7, 0, 0.35), pink: material('pink', 0xd9958f, 0.86, 0, 0.25),
+      brown: material('brown', 0x855233, 0.92, 0, 0.2), tan: material('tan', 0xb59a72, 0.9, 0, 0.2),
+      orange: material('orange', 0xd76d20, 0.84, 0, 0.25), red: material('red', 0xb62f2a, 0.72, 0, 0.3),
+      yellow: material('yellow', 0xe0ae3f, 0.83, 0, 0.3), leaf: material('leaf', 0x3d6b2b, 0.94, 0, 0.18),
+      leafLight: material('leafLight', 0x5f8a34, 0.94, 0, 0.18), stone: material('stone', 0x8b8c7c, 1, 0, 0.28),
+      water: material('water', 0x2e6a84, 0.12, 0.15, 1.15), metal: material('metal', 0x8a9291, 0.32, 0.78, 1.2),
+      path: material('path', 0xc7a66d, 1, 0, 0.2), plaster: material('plaster', 0xf0d9aa, 0.9, 0, 0.32),
+      blueRoof: material('blueRoof', 0x3a5c70, 0.6, 0.18, 0.7), tractor: material('tractor', 0x477c3b, 0.62, 0.1, 0.5),
+      flowerPink: material('flowerPink', 0xe98c9d, 0.85, 0, 0.25), flowerWhite: material('flowerWhite', 0xfff2d4, 0.9, 0, 0.25),
+      eye: material('eye', 0x090b09, 0.25, 0, 0.6), hoof: material('hoof', 0x2c2723, 0.9, 0, 0.2)
     };
     const selectMaterial = new THREE.MeshStandardMaterial({ color: 0xf4c95d, emissive: 0x6b4700, emissiveIntensity: 0.65, roughness: 0.5 });
     const readyMaterial = new THREE.MeshStandardMaterial({ color: 0x9be15d, emissive: 0x244d0c, emissiveIntensity: 0.75, roughness: 0.55 });
@@ -72,35 +154,66 @@
     function cylinder(parent, mat, position, scale, rotation) { return mesh(geometries.cylinder, mat, parent, position, scale, rotation); }
     function cone(parent, mat, position, scale, rotation) { return mesh(geometries.cone, mat, parent, position, scale, rotation); }
 
-    const hemi = new THREE.HemisphereLight(0xe8f4ff, 0x526134, 2.15); scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xfff0d0, 3.1);
-    sun.position.set(-12, 20, 10); sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -18; sun.shadow.camera.right = 18;
-    sun.shadow.camera.top = 18; sun.shadow.camera.bottom = -18; sun.shadow.camera.near = 1; sun.shadow.camera.far = 55;
-    sun.shadow.bias = -0.00025; sun.shadow.normalBias = 0.035; scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xb8d9ff, 0.45); fill.position.set(12, 8, -10); scene.add(fill);
+    const hemi = new THREE.HemisphereLight(0xdcecf6, 0x4c5632, 1.85); scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xffe0ae, 3.0);
+    sun.position.set(-13.5, 14, 9.5); sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -15; sun.shadow.camera.right = 15;
+    sun.shadow.camera.top = 15; sun.shadow.camera.bottom = -15; sun.shadow.camera.near = 1; sun.shadow.camera.far = 55;
+    sun.shadow.bias = -0.00035; sun.shadow.normalBias = 0.04; scene.add(sun);
+    const fill = new THREE.DirectionalLight(0xa9c8e6, 0.5); fill.position.set(12, 8, -10); scene.add(fill);
 
     // Sol texturé procéduralement : aucune ressource réseau n'est nécessaire dans l'APK.
-    function noiseTexture(base, fleck, size = 128) {
+    function noiseTexture(base, fleck, size = 128, fleck2 = null) {
       const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d'); ctx.fillStyle = base; ctx.fillRect(0, 0, size, size);
       let seed = 9173;
       const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-      for (let i = 0; i < 1900; i += 1) {
-        ctx.globalAlpha = 0.08 + random() * 0.2; ctx.fillStyle = fleck;
-        const radius = 0.3 + random() * 1.4; ctx.fillRect(random() * size, random() * size, radius, radius * 2.1);
+      const flecks = fleck2 ? [fleck, fleck2] : [fleck];
+      for (let i = 0; i < 2400; i += 1) {
+        ctx.globalAlpha = 0.08 + random() * 0.2; ctx.fillStyle = flecks[i % flecks.length];
+        const radius = 0.3 + random() * 1.5; ctx.fillRect(random() * size, random() * size, radius, radius * 2.1);
       }
       ctx.globalAlpha = 1;
       const texture = new THREE.CanvasTexture(canvas); texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
       return texture;
     }
-    const grassTexture = noiseTexture('#6f9c45', '#d2df83'); grassTexture.repeat.set(18, 18);
-    const soilTexture = noiseTexture('#79533a', '#382216'); soilTexture.repeat.set(5, 4);
-    const pathTexture = noiseTexture('#c9ad78', '#8e704b'); pathTexture.repeat.set(3, 3);
-    const lawnMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, color: 0xd6e8ac, roughness: 0.98 });
-    const fieldMaterial = new THREE.MeshStandardMaterial({ map: soilTexture, color: 0xb08a67, roughness: 1 });
-    const pathMaterial = new THREE.MeshStandardMaterial({ map: pathTexture, color: 0xe4c992, roughness: 1 });
+    // Terre labourée stratifiée : bandes horizontales, mottes et cailloux.
+    function stratifiedSoilTexture(size = 256) {
+      const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#6b4630'; ctx.fillRect(0, 0, size, size);
+      let seed = 7717;
+      const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+      const strata = ['#77543a', '#5a3a27', '#82603f', '#664631', '#715036'];
+      let y = 0; let index = 0;
+      while (y < size) {
+        const band = 6 + random() * 14;
+        ctx.globalAlpha = 0.55 + random() * 0.3;
+        ctx.fillStyle = strata[index % strata.length];
+        ctx.fillRect(0, y, size, band);
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = '#2e2015';
+        ctx.fillRect(0, y + band - 1.4, size, 1.4);
+        y += band; index += 1;
+      }
+      for (let i = 0; i < 950; i += 1) {
+        ctx.globalAlpha = 0.12 + random() * 0.22;
+        ctx.fillStyle = random() > 0.42 ? '#9a7a52' : '#3f2a1c';
+        const r = 0.5 + random() * 1.7;
+        ctx.fillRect(random() * size, random() * size, r, r * (0.7 + random() * 0.9));
+      }
+      ctx.globalAlpha = 1;
+      const texture = new THREE.CanvasTexture(canvas); texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+      return texture;
+    }
+    const grassTexture = noiseTexture('#678f3e', '#c4d876', 128, '#3f5f26'); grassTexture.repeat.set(18, 18);
+    const soilTexture = stratifiedSoilTexture(256); soilTexture.repeat.set(5, 4);
+    const pathTexture = noiseTexture('#c2a26e', '#8e704b', 128, '#e2c98f'); pathTexture.repeat.set(3, 3);
+    const lawnMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, color: 0xcfe0a0, roughness: 0.98, envMapIntensity: 0.22 });
+    const fieldMaterial = new THREE.MeshStandardMaterial({ map: soilTexture, color: 0xa87b58, roughness: 1, envMapIntensity: 0.16 });
+    const pathMaterial = new THREE.MeshStandardMaterial({ map: pathTexture, color: 0xdfc48c, roughness: 1, envMapIntensity: 0.22 });
     materials.lawn = lawnMaterial; materials.field = fieldMaterial; materials.pathTextured = pathMaterial;
     box(world, lawnMaterial, [0, -0.46, 0], [80, 0.7, 80]);
     box(world, M.soil, [0, -0.1, -1.65], [22.5, 0.55, 16.8]);
@@ -175,7 +288,7 @@
     }
     box(house, M.barn, [0.68, 3.1, -0.25], [0.38, 1.2, 0.42]);
     box(house, M.white, [0.68, 3.73, -0.25], [0.48, 0.12, 0.52]);
-    const smokeMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f2df, transparent: true, opacity: 0.42, roughness: 1, depthWrite: false });
+    const smokeMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f2df, transparent: true, opacity: 0.42, roughness: 1, depthWrite: false, envMapIntensity: 0 });
     materials.smoke = smokeMaterial;
     for (let i = 0; i < 4; i += 1) {
       const puff = ball(house, smokeMaterial, [0.68, 3.95 + i * 0.36, -0.25], [0.18 + i * 0.05, 0.15 + i * 0.04, 0.18 + i * 0.05]);
@@ -256,18 +369,34 @@
       ball(world, M.yellow, [x, 0.81, z], [0.035, 0.035, 0.035]);
     }
     [[-1.8, -5.7], [-1.4, -5.9], [1.1, -5.8], [1.45, -5.55], [-1.3, 5.8], [-1.6, 5.45], [1.1, 5.9], [1.35, 5.5], [-9.7, 1.2], [9.4, 1.4], [-8.9, -6.8], [8.8, -6.5]].forEach((p, index) => flower(p[0], p[1], index));
-    const hillMaterial = material('hill', 0x789b5a, 1);
+    const hillMaterial = material('hill', 0x6f8f57, 1, 0, 0.1);
     [[-18, -14, 8, 3.1, 5], [-7, -19, 10, 3.8, 5], [8, -20, 9, 3.3, 5], [20, -13, 7, 2.8, 4]].forEach((p) => ball(world, hillMaterial, [p[0], 0, p[1]], [p[2], p[3], p[4]]));
+    // Ligne d'arbres lointaine : silhouettes adoucies par la brume.
+    const farLeafMaterial = material('farLeaf', 0x46603a, 1, 0, 0.05);
+    const farTrunkMaterial = material('farTrunk', 0x3a2e24, 1, 0, 0.05);
+    for (let i = 0; i < 26; i += 1) {
+      const angle = (i / 26) * Math.PI * 2 + ((i * 37) % 13) * 0.02;
+      const radius = 30 + (i % 4) * 2.6;
+      const tx = Math.cos(angle) * radius;
+      const tz = Math.sin(angle) * radius - 3.5;
+      if (tz > 15) continue;
+      const s = 1.5 + ((i * 53) % 11) / 10 * 1.3;
+      const trunk = cylinder(world, farTrunkMaterial, [tx, s * 0.55, tz], [s * 0.16, s * 1.1, s * 0.16]);
+      const crown = ball(world, farLeafMaterial, [tx, s * 1.35, tz], [s * 0.75, s * 0.95, s * 0.75]);
+      trunk.castShadow = false; crown.castShadow = false;
+    }
     box(world, M.woodDark, [6.6, 0.65, 4.1], [1.7, 0.65, 0.85]);
     box(world, M.water, [6.6, 1, 4.1], [1.45, 0.06, 0.62]);
 
     const clouds = [];
-    const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xf4f5ed, transparent: true, opacity: 0.72, roughness: 1, depthWrite: false });
+    const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f2e4, transparent: true, opacity: 0.6, roughness: 1, depthWrite: false, envMapIntensity: 0 });
     materials.cloud = cloudMaterial;
     for (let i = 0; i < 4; i += 1) {
       const cloud = new THREE.Group(); cloud.position.set(-18 + i * 12, 12 + i % 2, -14 - i * 3); scene.add(cloud);
-      ball(cloud, cloudMaterial, [0, 0, 0], [2.4, 0.75, 1]); ball(cloud, cloudMaterial, [1.8, 0.15, 0], [1.7, 0.65, 0.85]);
-      ball(cloud, cloudMaterial, [-1.7, -0.1, 0], [1.5, 0.55, 0.8]); clouds.push(cloud);
+      const pufA = ball(cloud, cloudMaterial, [0, 0, 0], [2.4, 0.75, 1]); pufA.castShadow = false;
+      const pufB = ball(cloud, cloudMaterial, [1.8, 0.15, 0], [1.7, 0.65, 0.85]); pufB.castShadow = false;
+      const pufC = ball(cloud, cloudMaterial, [-1.7, -0.1, 0], [1.5, 0.55, 0.8]); pufC.castShadow = false;
+      clouds.push(cloud);
     }
 
     function animalRoot(kind, id, species, position, phase) {
@@ -629,6 +758,10 @@
       renderer.domElement.removeEventListener('wheel', onWheel); renderer.domElement.removeEventListener('keydown', onKey);
       Object.values(geometries).forEach((geometry) => geometry.dispose()); Object.values(materials).forEach((mat) => mat.dispose());
       selectMaterial.dispose(); readyMaterial.dispose(); workingMaterial.dispose(); grassTexture.dispose(); soilTexture.dispose(); pathTexture.dispose();
+      skyGeometry.dispose(); skyMaterial.dispose(); skyTexture.dispose();
+      sunGlowPlane.geometry.dispose(); sunGlowPlane.material.map.dispose(); sunGlowPlane.material.dispose();
+      sunDisc.geometry.dispose(); sunDisc.material.dispose();
+      cloudMaterial.dispose(); if (environment) environment.dispose();
       renderer.dispose(); renderer.domElement.remove();
     }
     return Object.freeze({ setState, setActive, focus, zoom, rotate, dispose, renderOnce: () => renderer.render(scene, camera), get canvas() { return renderer.domElement; } });

@@ -2722,7 +2722,7 @@ main::-webkit-scrollbar { display: none; }
 .farm-sync-dot.offline { background: #e77767; }
 .farm-view-presets { display: flex; gap: 3px; }
 .farm-view-presets button { min-height: 30px; padding: 5px 8px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.04); color: #b6c4b9; cursor: pointer; font-size: .55rem; }
-.farm-3d-container { position: relative; width: 100%; height: min(105vw, 430px); min-height: 320px; background: linear-gradient(#9bc8dc, #668c43); }
+.farm-3d-container { position: relative; width: 100%; height: min(105vw, 430px); min-height: 320px; background: linear-gradient(#7d9db5, #4a5a3a); }
 .farm-webgl-canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
 .farm-webgl-canvas:focus-visible { box-shadow: inset 0 0 0 3px var(--farm-gold); }
 .farm-3d-loading { position: absolute; z-index: 2; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 13px; padding: 25px; background: linear-gradient(145deg, #1d3529, #14231d); color: #b8c9b9; font-size: .73rem; text-align: center; }
@@ -2911,7 +2911,8 @@ main::-webkit-scrollbar { display: none; }
 .farm-view-presets { padding: 3px; border: 1px solid rgba(92,106,68,.14); border-radius: 999px; background: rgba(255,251,235,.9); box-shadow: 0 3px 10px rgba(0,0,0,.12); pointer-events: auto; backdrop-filter: blur(8px); }
 .farm-view-presets button { min-height: 28px; padding: 4px 8px; border: 0; border-radius: 999px; background: transparent; color: #3d563d; font-size: .52rem; font-weight: 750; }
 .farm-view-presets button:active { background: #dbe9c4; }
-.farm-3d-container { height: min(112vw,460px); min-height: 340px; overflow: hidden; border-radius: 21px; background: linear-gradient(#91cce8,#7fa94e); }
+.farm-3d-container { height: min(112vw,460px); min-height: 340px; overflow: hidden; border-radius: 21px; background: linear-gradient(#7d9db5, #46543a); }
+.farm-3d-container::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: inherit; box-shadow: inset 0 0 84px rgba(12,20,32,0.34), inset 0 -46px 70px rgba(12,20,32,0.26), inset 0 22px 54px rgba(255,236,180,0.12); }
 .farm-webgl-canvas { position: absolute; inset: 0; }
 .farm-camera-controls { position: absolute; z-index: 4; bottom: 11px; left: 50%; gap: 4px; padding: 5px; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: rgba(23,50,32,.8); box-shadow: 0 5px 15px rgba(0,0,0,.18); transform: translateX(-50%); backdrop-filter: blur(8px); }
 .farm-camera-controls button { width: 33px; height: 33px; border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: #fff9e9; font-size: .95rem; }
