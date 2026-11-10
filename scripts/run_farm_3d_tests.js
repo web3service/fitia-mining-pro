@@ -6,7 +6,13 @@ const fs = require('fs');
 const { JSDOM } = require(fs.existsSync('/tmp/test-deps/node_modules/jsdom') ? '/tmp/test-deps/node_modules/jsdom' : 'jsdom');
 const dom = new JSDOM('<div id="farm"></div>', { runScripts: 'outside-only', pretendToBeVisual: true });
 const w = dom.window;
-const canvasContext = { fillRect() {}, set fillStyle(v) {}, set globalAlpha(v) {} };
+const canvasContext = {
+  fillRect() {},
+  createLinearGradient() { return { addColorStop() {} }; },
+  createRadialGradient() { return { addColorStop() {} }; },
+  set fillStyle(v) {},
+  set globalAlpha(v) {}
+};
 w.HTMLCanvasElement.prototype.getContext = () => canvasContext;
 w.eval(fs.readFileSync('vendor/three.min.js', 'utf8'));
 w.eval(fs.readFileSync('farm-config.js', 'utf8'));
