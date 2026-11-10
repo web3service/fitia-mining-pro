@@ -24,7 +24,7 @@
     container.appendChild(renderer.domElement);
 
     // ─── Ciel dégradé + environnement IBL (chaud côté soleil) ────────────
-    // Dôme en dégradé vertical : zénith bleu → brume dorée à l'horizon.
+    // Dôme en dégradé vertical : zénith bleu vers la brume dorée à l'horizon.
     function skyCanvas(width, height) {
       const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext('2d');
