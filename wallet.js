@@ -105,10 +105,18 @@
       return '';
     },
 
-    downloadAndInstallUpdate(url, expectedSha256) {
+    // Play Protect bloque les applications capables d'installer des paquets : la mise à jour
+    // s'ouvre dans le navigateur du système, jamais par un installateur embarqué.
+    openExternalUpdate(url) {
       try {
-        if (global.FitiaNative && typeof global.FitiaNative.downloadAndInstallUpdate === 'function') {
-          return !!global.FitiaNative.downloadAndInstallUpdate(String(url || ''), String(expectedSha256 || ''));
+        const safe = String(url || '');
+        if (!/^https:\/\/github\.com\/web3service\/fitia-mining-pro\/releases\/download\/v[0-9]+\.[0-9]+\.[0-9]+\/FITIA-PRO-Miner\.apk$/.test(safe)) return false;
+        if (global.FitiaNative && typeof global.FitiaNative.openExternalUpdate === 'function') {
+          return !!global.FitiaNative.openExternalUpdate(safe);
+        }
+        if (typeof global.open === 'function') {
+          global.open(safe, '_blank', 'noopener,noreferrer');
+          return true;
         }
       } catch (_) {}
       return false;
