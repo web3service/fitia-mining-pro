@@ -7,14 +7,14 @@
     if (!THREE) throw new Error('Three.js local est requis.');
     if (!container) throw new Error('Conteneur 3D manquant.');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x88a5bd);
-    scene.fog = new THREE.FogExp2(0xe6dcbe, 0.0085);
+    scene.background = new THREE.Color(0x263c5a);
+    scene.fog = new THREE.FogExp2(0xe8d6ac, 0.0115);
     const camera = new THREE.OrthographicCamera(-12, 12, 12, -12, 0.1, 220);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 1.7));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.02;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.className = 'farm-webgl-canvas';
@@ -29,14 +29,14 @@
       const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext('2d');
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, '#2e4a6e');
-      gradient.addColorStop(0.24, '#44688c');
-      gradient.addColorStop(0.44, '#6c8ca4');
-      gradient.addColorStop(0.6, '#97a4a2');
-      gradient.addColorStop(0.74, '#c2b48c');
-      gradient.addColorStop(0.85, '#e8d49e');
-      gradient.addColorStop(0.93, '#f7e0a0');
-      gradient.addColorStop(1, '#dcb87a');
+      gradient.addColorStop(0, '#263c5a');
+      gradient.addColorStop(0.26, '#3d5a7c');
+      gradient.addColorStop(0.46, '#667e93');
+      gradient.addColorStop(0.62, '#978f7d');
+      gradient.addColorStop(0.74, '#bcab7d');
+      gradient.addColorStop(0.85, '#dcc183');
+      gradient.addColorStop(0.93, '#f2d48d');
+      gradient.addColorStop(1, '#e0a95f');
       ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
       return canvas;
     }
@@ -51,8 +51,8 @@
     // Éclairage image (IBL) : même dégradé + halo soleil, converti via PMREM.
     const envCanvasEl = skyCanvas(512, 256);
     const envCtx = envCanvasEl.getContext('2d');
-    const sunU = (Math.atan2(-13.5, 9.5) / (Math.PI * 2) + 0.5) * 512;
-    const sunGlow = envCtx.createRadialGradient(sunU, 150, 4, sunU, 150, 110);
+    const sunU = (Math.atan2(-13.5, -10.5) / (Math.PI * 2) + 0.5) * 512;
+    const sunGlow = envCtx.createRadialGradient(sunU, 168, 4, sunU, 168, 118);
     sunGlow.addColorStop(0, 'rgba(255,232,170,0.95)');
     sunGlow.addColorStop(0.35, 'rgba(255,206,120,0.55)');
     sunGlow.addColorStop(1, 'rgba(255,206,120,0)');
@@ -87,7 +87,7 @@
     }
     const glowTexture = new THREE.CanvasTexture(radialGlowCanvas());
     glowTexture.colorSpace = THREE.SRGBColorSpace;
-    const sunDirection = new THREE.Vector3(-13.5, 14, 9.5).normalize();
+    const sunDirection = new THREE.Vector3(-13.5, 8.5, -10.5).normalize();
     const sunGlowPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(72, 72),
       new THREE.MeshBasicMaterial({ map: glowTexture, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0.95 })
@@ -109,6 +109,8 @@
     const animalsGroup = new THREE.Group(); const cropsGroup = new THREE.Group();
     world.add(animalsGroup, cropsGroup);
     const geometries = {
+      islandTop: new THREE.CylinderGeometry(15.5, 14.9, 0.42, 48),
+      islandBottom: new THREE.CylinderGeometry(14.9, 12.6, 0.5, 48),
       sphere: new THREE.SphereGeometry(1, 20, 14),
       sphereFine: new THREE.SphereGeometry(1, 28, 20),
       box: new THREE.BoxGeometry(1, 1, 1),
@@ -154,13 +156,13 @@
     function cylinder(parent, mat, position, scale, rotation) { return mesh(geometries.cylinder, mat, parent, position, scale, rotation); }
     function cone(parent, mat, position, scale, rotation) { return mesh(geometries.cone, mat, parent, position, scale, rotation); }
 
-    const hemi = new THREE.HemisphereLight(0xdcecf6, 0x4c5632, 1.85); scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xffe0ae, 3.0);
-    sun.position.set(-13.5, 14, 9.5); sun.castShadow = true;
+    const hemi = new THREE.HemisphereLight(0xf3e2c4, 0x4a3f28, 1.35); scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xffd9a3, 3.35);
+    sun.position.set(-13.5, 8.5, -10.5); sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -15; sun.shadow.camera.right = 15;
     sun.shadow.camera.top = 15; sun.shadow.camera.bottom = -15; sun.shadow.camera.near = 1; sun.shadow.camera.far = 55;
     sun.shadow.bias = -0.00035; sun.shadow.normalBias = 0.04; scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xa9c8e6, 0.5); fill.position.set(12, 8, -10); scene.add(fill);
+    const fill = new THREE.DirectionalLight(0x9fb8d4, 0.35); fill.position.set(14, 9, 12); scene.add(fill);
 
     // Sol texturé procéduralement : aucune ressource réseau n'est nécessaire dans l'APK.
     function noiseTexture(base, fleck, size = 128, fleck2 = null) {
@@ -208,14 +210,15 @@
       texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
       return texture;
     }
-    const grassTexture = noiseTexture('#678f3e', '#c4d876', 128, '#3f5f26'); grassTexture.repeat.set(18, 18);
+    const grassTexture = noiseTexture('#5a7034', '#b9cd6d', 128, '#3a5423'); grassTexture.repeat.set(18, 18);
     const soilTexture = stratifiedSoilTexture(256); soilTexture.repeat.set(5, 4);
     const pathTexture = noiseTexture('#c2a26e', '#8e704b', 128, '#e2c98f'); pathTexture.repeat.set(3, 3);
-    const lawnMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, color: 0xcfe0a0, roughness: 0.98, envMapIntensity: 0.22 });
-    const fieldMaterial = new THREE.MeshStandardMaterial({ map: soilTexture, color: 0xa87b58, roughness: 1, envMapIntensity: 0.16 });
-    const pathMaterial = new THREE.MeshStandardMaterial({ map: pathTexture, color: 0xdfc48c, roughness: 1, envMapIntensity: 0.22 });
+    const lawnMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, color: 0x9faf68, roughness: 0.98, envMapIntensity: 0.22 });
+    const fieldMaterial = new THREE.MeshStandardMaterial({ map: soilTexture, color: 0x8f6b4d, roughness: 1, envMapIntensity: 0.16 });
+    const pathMaterial = new THREE.MeshStandardMaterial({ map: pathTexture, color: 0xd4b87f, roughness: 1, envMapIntensity: 0.22 });
     materials.lawn = lawnMaterial; materials.field = fieldMaterial; materials.pathTextured = pathMaterial;
-    box(world, lawnMaterial, [0, -0.46, 0], [80, 0.7, 80]);
+    const islandTop = mesh(geometries.islandTop, lawnMaterial, world, [0, -0.32, 0]); islandTop.castShadow = false;
+    const islandBottom = mesh(geometries.islandBottom, M.soil, world, [0, -0.78, 0]); islandBottom.castShadow = false;
     box(world, M.soil, [0, -0.1, -1.65], [22.5, 0.55, 16.8]);
     box(world, lawnMaterial, [0, 0.19, -1.65], [22.2, 0.12, 16.5]);
 
@@ -369,18 +372,16 @@
       ball(world, M.yellow, [x, 0.81, z], [0.035, 0.035, 0.035]);
     }
     [[-1.8, -5.7], [-1.4, -5.9], [1.1, -5.8], [1.45, -5.55], [-1.3, 5.8], [-1.6, 5.45], [1.1, 5.9], [1.35, 5.5], [-9.7, 1.2], [9.4, 1.4], [-8.9, -6.8], [8.8, -6.5]].forEach((p, index) => flower(p[0], p[1], index));
-    const hillMaterial = material('hill', 0x6f8f57, 1, 0, 0.1);
-    [[-18, -14, 8, 3.1, 5], [-7, -19, 10, 3.8, 5], [8, -20, 9, 3.3, 5], [20, -13, 7, 2.8, 4]].forEach((p) => ball(world, hillMaterial, [p[0], 0, p[1]], [p[2], p[3], p[4]]));
-    // Ligne d'arbres lointaine : silhouettes adoucies par la brume.
-    const farLeafMaterial = material('farLeaf', 0x46603a, 1, 0, 0.05);
-    const farTrunkMaterial = material('farTrunk', 0x3a2e24, 1, 0, 0.05);
-    for (let i = 0; i < 26; i += 1) {
-      const angle = (i / 26) * Math.PI * 2 + ((i * 37) % 13) * 0.02;
-      const radius = 30 + (i % 4) * 2.6;
+    // Ligne d'arbres en retrait de l'îlot : silhouettes discrètes, jamais dominantes.
+    const farLeafMaterial = material('farLeaf', 0x33462c, 1, 0, 0.05);
+    const farTrunkMaterial = material('farTrunk', 0x2e241c, 1, 0, 0.05);
+    for (let i = 0; i < 16; i += 1) {
+      const angle = (i / 16) * Math.PI * 2 + ((i * 37) % 13) * 0.02;
+      const radius = 10.6 + (i % 3) * 1.1;
       const tx = Math.cos(angle) * radius;
       const tz = Math.sin(angle) * radius - 3.5;
-      if (tz > 15) continue;
-      const s = 1.5 + ((i * 53) % 11) / 10 * 1.3;
+      if (tz > 6) continue;
+      const s = 1.15 + ((i * 53) % 11) / 10 * 0.8;
       const trunk = cylinder(world, farTrunkMaterial, [tx, s * 0.55, tz], [s * 0.16, s * 1.1, s * 0.16]);
       const crown = ball(world, farLeafMaterial, [tx, s * 1.35, tz], [s * 0.75, s * 0.95, s * 0.75]);
       trunk.castShadow = false; crown.castShadow = false;
@@ -392,7 +393,7 @@
     const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f2e4, transparent: true, opacity: 0.6, roughness: 1, depthWrite: false, envMapIntensity: 0 });
     materials.cloud = cloudMaterial;
     for (let i = 0; i < 4; i += 1) {
-      const cloud = new THREE.Group(); cloud.position.set(-18 + i * 12, 12 + i % 2, -14 - i * 3); scene.add(cloud);
+      const cloud = new THREE.Group(); cloud.position.set(-18 + i * 12, 14.5 + i % 3, -15 - i * 3.5); scene.add(cloud);
       const pufA = ball(cloud, cloudMaterial, [0, 0, 0], [2.4, 0.75, 1]); pufA.castShadow = false;
       const pufB = ball(cloud, cloudMaterial, [1.8, 0.15, 0], [1.7, 0.65, 0.85]); pufB.castShadow = false;
       const pufC = ball(cloud, cloudMaterial, [-1.7, -0.1, 0], [1.5, 0.55, 0.8]); pufC.castShadow = false;
