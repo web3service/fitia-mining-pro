@@ -23,6 +23,12 @@ const PRODUCT_KEYS = Object.keys(Config.PRODUCTS);
 // analyse et validation économiques (voir docs/FITIA-FARM-ECONOMIE.md).
 const UNVALIDATED_ECONOMY = typeof process !== 'undefined' && Boolean(process.env) && process.env.FITIA_FARM_UNVALIDATED_ECONOMY === 'true';
 const UNVALIDATED_ECONOMY_TYPES = new Set(['water_crop', 'care_animal', 'fertilize_crop', 'breed_animal', 'claim_mission', 'mill_feed']);
+// Blocage des anciens clients : une fois l'échange réel activé (jamais avant la
+// décision documentée dans docs/FITIA-FARM-ACTIVATION.md), le chemin de retrait
+// historique au taux figé est refusé pour tous les clients. Par défaut — drapeau
+// absent — rien ne change. Les nouveaux retraits passent par les devis live
+// (ferme_live_create_withdraw_quote), jamais par ce chemin.
+const LIVE_EXCHANGE = typeof process !== 'undefined' && Boolean(process.env) && process.env.FITIA_FARM_LIVE_EXCHANGE === 'true';
 
 class FarmError extends Error {
   constructor(status, message, code = 'FARM_ERROR') { super(message); this.status = status; this.code = code; }
@@ -411,7 +417,7 @@ function createFarmService(options = {}) {
     if (publicState.mines.active) delete publicState.mines.active.minePositions;
     if (publicState.crash.active) publicState.crash.active = publicAviatorRound(state.crash.active);
     const result = { state: publicState, revision: record?.revision || 0, withdrawals, serverTime: now().getTime(),
-      features: { unvalidatedEconomy: UNVALIDATED_ECONOMY } };
+      features: { unvalidatedEconomy: UNVALIDATED_ECONOMY, liveExchange: LIVE_EXCHANGE } };
     if (shared) {
       // Un ancien vol reste visible jusqu’à son règlement ; tous les nouveaux vols sont mondiaux.
       if (!publicState.crash.active) publicState.crash.active = shared.ownRound;
@@ -1098,6 +1104,10 @@ function createFarmService(options = {}) {
   }
   async function withdraw(body) {
     const wallet = authenticate('withdraw', body);
+    if (LIVE_EXCHANGE) {
+      // Ancien chemin refusé : les retraits passent par les devis live.
+      throw new FarmError(409, 'Les retraits FARM nécessitent la dernière version de l’application.', 'FARM_CLIENT_UPDATE_REQUIRED');
+    }
     const actionId = Protocol.requireUuid(body.actionId);
     if (await repository.isActionProcessed(actionId, wallet)) return view(wallet);
     const coins = Protocol.requireCoins(body.coins);

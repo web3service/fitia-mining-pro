@@ -32,7 +32,7 @@
     FARM_ALREADY_WATERED: 'Cette culture a déjà été arrosée.',
     FARM_WHEAT_REQUIRED: 'Blé insuffisant pour le moulin.', FARM_FEED_FULL: 'Le stock de nourriture est plein.',
     FARM_PLOT_OCCUPIED: 'Cette parcelle est déjà occupée. Actualisez la ferme.',
-    FARM_INVENTORY_EMPTY: 'Stock insuffisant.', FARM_LIMIT: 'La capacité maximale est atteinte.',
+    FARM_CLIENT_UPDATE_REQUIRED: 'Les retraits nécessitent la dernière version de l’application.', FARM_INVENTORY_EMPTY: 'Stock insuffisant.', FARM_LIMIT: 'La capacité maximale est atteinte.',
     FARM_AMOUNT: 'Montant invalide. Retrait : minimum 1 000 F-Coins, par multiples de 100.',
     FARM_WITHDRAWAL_PENDING: 'Une demande de retrait est déjà en attente.', FARM_WITHDRAWAL_COOLDOWN: 'Un retrait est autorisé toutes les 24 heures.',
     FARM_CANCELLED: 'Cette action a été annulée sans être exécutée.', FARM_REVISION: 'La ferme a changé dans une autre session. Actualisez-la.', FARM_CONFLICT: 'Action déjà traitée ou conflit de compte. Actualisez la ferme.',
@@ -54,7 +54,7 @@
     FARM_WHEAT_REQUIRED: 'Not enough wheat for the mill.', FARM_FEED_FULL: 'The feed storage is full.',
     FARM_PLOT_OCCUPIED: 'This plot is already occupied. Refresh your farm.',
     FARM_FEATURE_DISABLED: 'This feature is coming soon.',
-    FARM_INVENTORY_EMPTY: 'Your barn is empty. Harvest or collect a product first.', FARM_LIMIT: 'Your farm has reached its capacity limit.',
+    FARM_CLIENT_UPDATE_REQUIRED: 'Withdrawals require the latest version of the app.', FARM_INVENTORY_EMPTY: 'Your barn is empty. Harvest or collect a product first.', FARM_LIMIT: 'Your farm has reached its capacity limit.',
     FARM_AMOUNT: 'Enter a valid amount. Withdrawals start at 10 FTA (1,000 F-Coins) in multiples of 100 F-Coins.',
     FARM_WITHDRAWAL_PENDING: 'You already have a withdrawal in progress. Wait for its FTA payment before creating another.',
     FARM_WITHDRAWAL_COOLDOWN: 'One withdrawal is allowed every 24 hours. Your next available time is shown with your latest request.',
@@ -128,7 +128,7 @@
   class FitiaFarmCenter {
     constructor(app) {
       this.app = app; this.account = null; this.state = null; this.revision = 0; this.withdrawals = []; this.aviator = null;
-      this.features = { unvalidatedEconomy: false };
+      this.features = { unvalidatedEconomy: false, liveExchange: false };
       this.scene = null; this.active = false; this.initialized = false; this.operation = false;
       this.refreshPromise = null; this.pendingCheck = null; this.pendingDeposit = null;
       this.pollTimer = null; this.clockTimer = null; this.retryTimer = null; this.backgroundPollTimer = null; this.session = 0; this.tab = 'overview';
@@ -269,12 +269,14 @@
       if (data.aviator && typeof data.aviator === 'object') this.aviator = data.aviator;
       if (revision < this.revision) { this.app.fitaCrash?.render(); return; }
       this.revision = revision; this.state = data.state; this.withdrawals = Array.isArray(data.withdrawals) ? data.withdrawals : [];
-      this.features = data.features && typeof data.features === 'object' ? data.features : { unvalidatedEconomy: false };
+      this.features = data.features && typeof data.features === 'object' ? data.features : { unvalidatedEconomy: false, liveExchange: false };
       if (Number.isSafeInteger(data.serverTime) && Math.abs(data.serverTime - Date.now()) < 8640000000000000) this.serverOffset = data.serverTime - Date.now();
       this.synchronizeWithdrawals(this.withdrawals);
       this.scene?.setState(this.state); this.render();
     }
     unvalidatedEconomyEnabled() { return this.features?.unvalidatedEconomy === true; }
+    // Échange réel activé côté serveur : les retraits historiques sont refusés.
+    liveExchangeEnabled() { return this.features?.liveExchange === true; }
     // Économie non validée : chaque point d’entrée vérifie le drapeau serveur ;
     // un dialogue « bientôt » reste possible s’il existe une action en attente
     // à résoudre. Le serveur rejette de toute façon ces actions tant que le
@@ -340,6 +342,12 @@
       byId('farm-buy-land').disabled = Boolean(state.land?.owned) || this.operation;
       byId('farm-buy-first-animal').disabled = !state.land?.owned || this.operation;
       document.querySelectorAll('[data-farm-requires-start]').forEach((button) => { button.disabled = !this.started() || this.operation; });
+      if (this.liveExchangeEnabled()) {
+        // Points d'entrée du retrait historique masqués : le client live prend
+        // le relais (voir docs/FITIA-FARM-ACTIVATION.md). Le serveur refuse de
+        // toute façon l'ancien chemin avec FARM_CLIENT_UPDATE_REQUIRED.
+        document.querySelectorAll('#view-farm button[onclick*="openWithdraw"]').forEach((button) => { button.classList.add('hidden'); });
+      }
       document.querySelectorAll('[data-farm-requires-land]').forEach((button) => { button.disabled = !state.land?.owned || this.operation; });
       byId('farm-deposit-pending').classList.toggle('hidden', !this.pendingDeposit);
       const pendingGame = byId('farm-game-pending'); if (pendingGame) { pendingGame.classList.toggle('hidden', !this.readPendingGameAction()); pendingGame.disabled = this.operation; }
@@ -1298,6 +1306,7 @@
       this.retryTimer = setTimeout(() => { if (this.active) this.checkPendingDeposit().catch(() => {}); }, 12000);
     }
     openWithdraw() {
+      if (this.liveExchangeEnabled()) { this.showError({ code: 'FARM_CLIENT_UPDATE_REQUIRED' }); return; }
       if (!this.started()) { this.showError({ code: 'FARM_NOT_STARTED' }); return; }
       const latest = this.withdrawals[0];
       if (latest?.status === 'pending') {

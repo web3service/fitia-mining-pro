@@ -4,7 +4,9 @@
    actions tant que FITIA_FARM_UNVALIDATED_ECONOMY n’est pas explicitement
    activée, quel que soit le client, et les exposer comme telles via view().
    Le drapeau est lu au chargement du module : on le recharge pour chaque
-   scénario. Voir docs/FITIA-FARM-ECONOMIE.md. */
+   scénario. Voir docs/FITIA-FARM-ECONOMIE.md.
+   Même convention pour FITIA_FARM_LIVE_EXCHANGE (blocage des anciens clients
+   au retrait legacy). Voir docs/FITIA-FARM-ACTIVATION.md. */
 const assert = require('assert');
 const crypto = require('crypto');
 const ethers = require('../vendor/ethers.umd.min.js');
@@ -18,15 +20,17 @@ async function test(name, run) {
 const wallet = new ethers.Wallet(`0x${'11'.repeat(32)}`);
 const buyer = wallet.address.toLowerCase();
 
-function load(envValue) {
+function load(envValue, liveEnvValue) {
   const path = require.resolve('../farm-service');
   delete require.cache[path];
   if (envValue === undefined) delete process.env.FITIA_FARM_UNVALIDATED_ECONOMY;
   else process.env.FITIA_FARM_UNVALIDATED_ECONOMY = envValue;
+  if (liveEnvValue === undefined) delete process.env.FITIA_FARM_LIVE_EXCHANGE;
+  else process.env.FITIA_FARM_LIVE_EXCHANGE = liveEnvValue;
   return require('../farm-service');
 }
-function scenario(envValue) {
-  const mod = load(envValue);
+function scenario(envValue, liveEnvValue) {
+  const mod = load(envValue, liveEnvValue);
   const now = { ms: Date.parse('2026-11-09T12:00:00.000Z'), verification: { confirmed: true } };
   const repository = new mod.MemoryFarmRepository();
   const service = mod.createFarmService({ repository, now: () => new Date(now.ms), paymentVerifier: async () => now.verification });
@@ -39,8 +43,8 @@ function scenario(envValue) {
   const deposit = async (amountFta = '10') => service.deposit(await signed('deposit', { actionId: crypto.randomUUID(), txHash: `0x${crypto.randomBytes(32).toString('hex')}`, amountUnits: ethers.parseUnits(amountFta, 8).toString() }));
   return { mod, service, now, signed, action, deposit };
 }
-async function started(envValue) {
-  const s = scenario(envValue);
+async function started(envValue, liveEnvValue) {
+  const s = scenario(envValue, liveEnvValue);
   await s.deposit('10');
   await s.action('buy_land');
   await s.action('buy_animal', { species: 'chicken' });
@@ -101,6 +105,25 @@ async function started(envValue) {
       (error) => error.code === 'FARM_MISSION_INCOMPLETE');
   });
 
+  await test('Défaut : le retrait legacy fonctionne (1000 coins, taux historique)', async () => {
+    const s = await started(undefined, undefined);
+    const view = await s.service.getState(await s.signed('state'));
+    assert.strictEqual(view.features?.liveExchange, false);
+    await s.deposit('10'); // 2000 coins au total, après achats il reste ≥ 1000
+    const withdrawn = await s.service.withdraw(await s.signed('withdraw', { actionId: crypto.randomUUID(), coins: 1000, mfaCode: '000000' }));
+    assert.ok(withdrawn);
+  });
+
+  await test('FITIA_FARM_LIVE_EXCHANGE=true : retrait legacy refusé, view exposé', async () => {
+    const s = await started(undefined, 'true');
+    const view = await s.service.getState(await s.signed('state'));
+    assert.strictEqual(view.features?.liveExchange, true);
+    await assert.rejects(
+      s.service.withdraw(await s.signed('withdraw', { actionId: crypto.randomUUID(), coins: 1000, mfaCode: '000000' })),
+      (error) => error.code === 'FARM_CLIENT_UPDATE_REQUIRED' && error.status === 409
+    );
+  });
+
   await test('Activé : résolution d’une action en attente reste possible (annulation)', async () => {
     const s = await started(undefined);
     const actionId = crypto.randomUUID();
@@ -109,6 +132,7 @@ async function started(envValue) {
   });
 
   delete process.env.FITIA_FARM_UNVALIDATED_ECONOMY;
+  delete process.env.FITIA_FARM_LIVE_EXCHANGE;
   console.log('═'.repeat(68));
   console.log(`📊 RÉSULTAT SEUIL ÉCONOMIE : ${passed} réussis, ${failed} échoués`);
   process.exit(failed ? 1 : 0);

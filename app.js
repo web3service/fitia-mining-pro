@@ -36,6 +36,13 @@ const i18n = {
     updateStartError: "Impossible de lancer la mise à jour. Réessayez plus tard.",
     updateLatest: "L’application est à jour.",
     updateCheckFailed: "Impossible de vérifier la mise à jour pour le moment.",
+    updateDownloadingTitle: "La mise à jour est en cours de téléchargement",
+    updateDownloadingHint: "Veuillez ne pas fermer l'application",
+    updateVerifying: "Vérification de la mise à jour…",
+    updateReady: "Vérification terminée, ouverture de l’installation…",
+    updateScreenError: "Le téléchargement a échoué",
+    updateScreenErrorHint: "Vérifiez votre connexion, puis réessayez.",
+    updateRetry: "Réessayer",
     accountRequiredTitle: "Connexion à FITIA PRO",
     accountRequiredMessage: "Un compte FITIA est obligatoire pour accéder à l’application.",
     accountMyAccount: "Mon compte",
@@ -446,6 +453,13 @@ const i18n = {
     updateStartError: "Unable to start the update. Please try again later.",
     updateLatest: "The app is up to date.",
     updateCheckFailed: "Unable to check for updates right now.",
+    updateDownloadingTitle: "Update download in progress",
+    updateDownloadingHint: "Please don't close the app",
+    updateVerifying: "Verifying the update…",
+    updateReady: "Verified — opening the installer…",
+    updateScreenError: "The download failed",
+    updateScreenErrorHint: "Check your connection, then try again.",
+    updateRetry: "Try again",
     accountRequiredTitle: "Sign in to FITIA PRO",
     accountRequiredMessage: "A FITIA account is required to access the app.",
     accountMyAccount: "My account",
@@ -843,6 +857,13 @@ const i18n = {
     activityClaimDescription: "FITIA mining rewards"
   },
   de: {
+    updateDownloadingTitle: "Das Update wird heruntergeladen",
+    updateDownloadingHint: "Bitte schließen Sie die App nicht",
+    updateVerifying: "Update wird überprüft…",
+    updateReady: "Überprüfung abgeschlossen – Installation wird geöffnet…",
+    updateScreenError: "Der Download ist fehlgeschlagen",
+    updateScreenErrorHint: "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    updateRetry: "Erneut versuchen",
     accountRequiredTitle: "Anmeldung bei FITIA PRO",
     accountRequiredMessage: "Ein FITIA-Konto ist für den Zugriff auf die App erforderlich.",
     accountMyAccount: "Mein Konto",
@@ -1034,6 +1055,13 @@ const i18n = {
     addrCopied: "Adresse kopiert!"
   },
   zh: {
+    updateDownloadingTitle: "更新正在下载",
+    updateDownloadingHint: "请勿关闭应用",
+    updateVerifying: "正在校验更新…",
+    updateReady: "校验完成，正在启动安装程序…",
+    updateScreenError: "下载失败",
+    updateScreenErrorHint: "请检查网络连接后重试。",
+    updateRetry: "重试",
     accountRequiredTitle: "登录 FITIA PRO",
     accountRequiredMessage: "需要 FITIA 账户才能访问应用。",
     accountMyAccount: "我的账户",
@@ -1225,6 +1253,13 @@ const i18n = {
     addrCopied: "地址已复制！"
   },
   sg: {
+    updateDownloadingTitle: "Update is downloading",
+    updateDownloadingHint: "Please don't close the app",
+    updateVerifying: "Verifying the update…",
+    updateReady: "Verified — opening the installer…",
+    updateScreenError: "The download failed",
+    updateScreenErrorHint: "Check your connection, then try again.",
+    updateRetry: "Try again",
     accountRequiredTitle: "Sign in to FITIA PRO",
     accountRequiredMessage: "A FITIA account is required to access the app.",
     accountMyAccount: "My account",
@@ -1859,6 +1894,89 @@ class Application {
     }
     const fill = document.getElementById('update-download-progress-fill');
     if (fill) fill.style.width = indeterminate ? '' : `${percent}%`;
+    this.setUpdateScreenProgress(indeterminate ? -1 : percent);
+  }
+
+  showUpdateScreen() {
+    const screen = document.getElementById('update-screen');
+    if (!screen) return;
+    screen.hidden = false;
+    screen.classList.add('is-visible');
+    screen.classList.remove('is-error');
+    screen.setAttribute('aria-hidden', 'false');
+  }
+
+  hideUpdateScreen() {
+    const screen = document.getElementById('update-screen');
+    if (!screen) return;
+    screen.hidden = true;
+    screen.classList.remove('is-visible', 'is-error');
+    screen.setAttribute('aria-hidden', 'true');
+  }
+
+  resetUpdateScreen() {
+    const screen = document.getElementById('update-screen');
+    if (!screen) return;
+    screen.classList.remove('is-error');
+    const title = document.getElementById('update-screen-title');
+    if (title) title.textContent = this.t('updateDownloadingTitle');
+    const hint = document.getElementById('update-screen-hint');
+    if (hint) hint.textContent = this.t('updateDownloadingHint');
+    const state = document.getElementById('update-screen-state');
+    if (state) { state.textContent = ''; state.classList.remove('is-error'); }
+    const percent = document.getElementById('update-screen-percent');
+    if (percent) percent.textContent = '0%';
+    const track = document.getElementById('update-screen-track');
+    if (track) track.setAttribute('aria-valuenow', '0');
+    const fill = document.getElementById('update-screen-fill');
+    if (fill) { fill.classList.remove('is-indeterminate'); fill.style.width = '0%'; }
+    const retry = document.getElementById('update-screen-retry');
+    if (retry) retry.hidden = true;
+  }
+
+  setUpdateScreenProgress(progress) {
+    const numericProgress = Number(progress);
+    const indeterminate = !Number.isFinite(numericProgress) || numericProgress < 0;
+    const percent = indeterminate ? 0 : Math.max(0, Math.min(100, Math.round(numericProgress)));
+    const percentLabel = document.getElementById('update-screen-percent');
+    if (percentLabel) percentLabel.textContent = indeterminate ? '…' : `${percent}%`;
+    const track = document.getElementById('update-screen-track');
+    if (track) {
+      if (indeterminate) track.removeAttribute('aria-valuenow');
+      else track.setAttribute('aria-valuenow', String(percent));
+    }
+    const fill = document.getElementById('update-screen-fill');
+    if (fill) {
+      fill.classList.toggle('is-indeterminate', indeterminate);
+      fill.style.width = indeterminate ? '' : `${percent}%`;
+    }
+  }
+
+  setUpdateScreenState(key, isError = false) {
+    const state = document.getElementById('update-screen-state');
+    if (state) {
+      state.textContent = key ? this.t(key) : '';
+      state.classList.toggle('is-error', isError);
+    }
+  }
+
+  showUpdateScreenError() {
+    const screen = document.getElementById('update-screen');
+    if (!screen) return;
+    const title = document.getElementById('update-screen-title');
+    if (title) title.textContent = this.t('updateScreenError');
+    const hint = document.getElementById('update-screen-hint');
+    if (hint) hint.textContent = this.t('updateScreenErrorHint');
+    this.setUpdateScreenState('', false);
+    screen.classList.add('is-visible', 'is-error');
+    screen.hidden = false;
+    const retry = document.getElementById('update-screen-retry');
+    if (retry) retry.hidden = false;
+  }
+
+  retryUpdateDownload() {
+    this.resetUpdateScreen();
+    return this.startUpdateDownload();
   }
 
   onUpdateDownloadProgress(progress, state = 'downloading') {
@@ -1866,17 +1984,22 @@ class Application {
     if (state === 'error') {
       if (!this.updateDownloadInProgress && !button?.classList.contains('is-downloading')) return;
       this.resetUpdateDownloadButton();
+      this.showUpdateScreenError();
       this.showToast(this.t('updateStartError'), true);
       return;
     }
     if (!this.availableUpdate || !this.updateDownloadInProgress) return;
     this.setUpdateDownloadProgress(progress);
+    if (state === 'verifying') this.setUpdateScreenState('updateVerifying');
+    else if (state === 'ready') this.setUpdateScreenState('updateReady');
     if (state === 'ready') {
       this.updateDownloadInProgress = false;
-      // Si l'utilisateur quitte l'installateur Android, le bouton redevient disponible.
+      // Si l'utilisateur quitte l'installateur Android, l'écran se referme et la modale redevient disponible.
       this.updateDownloadResetTimer = setTimeout(() => {
         this.updateDownloadResetTimer = null;
         this.resetUpdateDownloadButton();
+        this.hideUpdateScreen();
+        document.getElementById('modal-update')?.classList.add('active');
       }, 1800);
     }
   }
@@ -1886,10 +2009,15 @@ class Application {
     const button = document.getElementById('update-install-button');
     if (!update || this.updateDownloadInProgress || button?.disabled) return false;
     this.updateDownloadInProgress = true;
+    this.resetUpdateScreen();
     this.setUpdateDownloadProgress(0);
+    document.getElementById('modal-update')?.classList.remove('active');
+    this.showUpdateScreen();
     const started = FitiaSecurity.Native.downloadAndInstallUpdate(update.apkUrl, update.sha256);
     if (!started) {
+      this.hideUpdateScreen();
       this.resetUpdateDownloadButton();
+      document.getElementById('modal-update')?.classList.add('active');
       this.showToast(this.t('updateStartError'), true);
       return false;
     }
@@ -1972,7 +2100,8 @@ class Application {
 
     // Gestionnaire du bouton Retour matériel Android (appelé par MainActivity.java)
     window.onAndroidBackPressed = () => {
-      if (document.getElementById('modal-update')?.classList.contains('active')) {
+      if (document.getElementById('modal-update')?.classList.contains('active')
+        || document.getElementById('update-screen')?.classList.contains('is-visible')) {
         return true;
       }
       const confirmModal = document.getElementById('modal-pin-confirm');
@@ -4355,6 +4484,7 @@ class Application {
     if (document.getElementById('modal-pin-confirm')?.classList.contains('active')) return false;
     if (document.getElementById('modal-secret-reveal')?.classList.contains('active')) return false;
     if (document.getElementById('modal-update')?.classList.contains('active')) return false;
+    if (document.getElementById('update-screen')?.classList.contains('is-visible')) return false;
 
     const code = FitiaSecurity.Native.consumeReferralDeepLink();
     if (!code || !this.parseReferralInput(code)) return false;
