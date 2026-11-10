@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -20,7 +19,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.provider.Settings;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -38,22 +36,13 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.security.MessageDigest;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import org.json.JSONObject;
 
@@ -76,8 +65,6 @@ public class MainActivity extends Activity {
     private long lastBackPressMs = 0L;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private Runnable pendingClipClear = null;
-    private boolean updateDownloadInProgress = false;
-    private boolean pendingUpdateInstall = false;
     private String pendingReferralCode = "";
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
@@ -333,15 +320,6 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        if (pendingUpdateInstall && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            && getPackageManager().canRequestPackageInstalls()) {
-            installDownloadedUpdate();
-        }
-    }
-
-    @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         if (webView != null) {
@@ -487,7 +465,7 @@ public class MainActivity extends Activity {
         return "application/octet-stream";
     }
 
-    // ─── Mise à jour APK : HTTPS + SHA-256 + installation Android ───
+    // ─── Version de l'application et mise à jour externe ───
     private String getAppVersionName() {
         try {
             return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
@@ -508,295 +486,29 @@ public class MainActivity extends Activity {
         }
     }
 
-    private boolean isValidUpdateUrl(String value) {
+    // Play Protect bloque les applications capables d'installer des paquets. La mise à jour
+    // s'ouvre donc dans le navigateur du système, qui gère seul le téléchargement de l'APK
+    // et l'installation avec le consentement standard d'Android.
+    private boolean openExternalUpdate(String url) {
+        if (url == null || url.length() > 512) return false;
         try {
-            URL url = new URL(value);
-            String path = url.getPath();
-            return "https".equalsIgnoreCase(url.getProtocol())
-                && "github.com".equalsIgnoreCase(url.getHost())
-                && url.getUserInfo() == null
-                && (url.getPort() == -1 || url.getPort() == 443)
+            java.net.URL parsed = new java.net.URL(url);
+            String path = parsed.getPath();
+            boolean hostOk = "https".equalsIgnoreCase(parsed.getProtocol())
+                && parsed.getUserInfo() == null
+                && (parsed.getPort() == -1 || parsed.getPort() == 443)
+                && "github.com".equalsIgnoreCase(parsed.getHost())
                 && path != null
                 && path.startsWith("/web3service/fitia-mining-pro/releases/download/")
                 && path.endsWith(".apk");
+            if (!hostOk) return false;
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            return true;
         } catch (Exception e) {
             return false;
         }
-    }
-
-    private String toHex(byte[] bytes) {
-        StringBuilder hex = new StringBuilder(bytes.length * 2);
-        for (byte value : bytes) {
-            hex.append(String.format(Locale.US, "%02x", value & 0xff));
-        }
-        return hex.toString();
-    }
-
-    private String sha256File(File file) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
-            byte[] buffer = new byte[16384];
-            int read;
-            while ((read = input.read(buffer)) != -1) {
-                digest.update(buffer, 0, read);
-            }
-        }
-        return toHex(digest.digest());
-    }
-
-    private android.content.pm.Signature[] getUpdateSigningCertificates(android.content.pm.PackageInfo info) {
-        android.content.pm.Signature[] signatures = null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && info.signingInfo != null) {
-            signatures = info.signingInfo.getApkContentsSigners();
-        }
-        // Android 9/10 peut ne pas remplir signingInfo pour un APK externe.
-        if ((signatures == null || signatures.length == 0) && info.signatures != null) {
-            signatures = info.signatures;
-        }
-        return signatures == null ? new android.content.pm.Signature[0] : signatures;
-    }
-
-    private String[] getSigningCertificateHashes(android.content.pm.PackageInfo info) throws Exception {
-        android.content.pm.Signature[] signatures = getUpdateSigningCertificates(info);
-        String[] hashes = new String[signatures.length];
-        for (int index = 0; index < signatures.length; index += 1) {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(signatures[index].toByteArray());
-            hashes[index] = toHex(digest);
-        }
-        return hashes;
-    }
-
-    private boolean hasSameSigningCertificates(android.content.pm.PackageInfo candidate, android.content.pm.PackageInfo installed) throws Exception {
-        String[] candidateHashes = getSigningCertificateHashes(candidate);
-        String[] installedHashes = getSigningCertificateHashes(installed);
-        if (candidateHashes.length == 0 || candidateHashes.length != installedHashes.length) return false;
-        boolean[] matched = new boolean[installedHashes.length];
-        for (String candidateHash : candidateHashes) {
-            int found = -1;
-            for (int index = 0; index < installedHashes.length; index += 1) {
-                if (!matched[index] && candidateHash.equals(installedHashes[index])) {
-                    found = index;
-                    break;
-                }
-            }
-            if (found < 0) return false;
-            matched[found] = true;
-        }
-        return true;
-    }
-
-    private long getPackageVersionCode(android.content.pm.PackageInfo info) {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? info.getLongVersionCode() : info.versionCode;
-    }
-
-    private boolean verifyDownloadedUpdate(File apk) {
-        try {
-            int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
-                ? android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES | android.content.pm.PackageManager.GET_SIGNATURES
-                : android.content.pm.PackageManager.GET_SIGNATURES;
-            android.content.pm.PackageInfo candidate = getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), flags);
-            android.content.pm.PackageInfo installed = getPackageManager().getPackageInfo(getPackageName(), flags);
-            if (candidate == null || !getPackageName().equals(candidate.packageName)) return false;
-            long candidateVersion = getPackageVersionCode(candidate);
-            long installedVersion = getPackageVersionCode(installed);
-            if (installedVersion <= 0 || candidateVersion <= installedVersion) return false;
-            return hasSameSigningCertificates(candidate, installed);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private void showUpdateToast(final String message) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private void notifyUpdateDownloadProgress(final int progress, final String state) {
-        final int boundedProgress = Math.max(-1, Math.min(100, progress));
-        final String safeState;
-        if ("verifying".equals(state) || "ready".equals(state) || "error".equals(state)) {
-            safeState = state;
-        } else {
-            safeState = "downloading";
-        }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (webView == null) return;
-                String script = "(function(){if(window.App&&typeof window.App.onUpdateDownloadProgress==='function'){"
-                    + "window.App.onUpdateDownloadProgress(" + boundedProgress + ",'" + safeState + "');}})();";
-                webView.evaluateJavascript(script, null);
-            }
-        });
-    }
-
-    private void installDownloadedUpdate() {
-        File apk = UpdateProvider.getUpdateApkFile(this);
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String expectedSha256 = prefs.getString("update_sha256", "");
-        try {
-            if (!apk.isFile() || expectedSha256.length() != 64
-                || !expectedSha256.equalsIgnoreCase(sha256File(apk))) {
-                showUpdateToast("Le fichier de mise à jour est absent ou invalide.");
-                return;
-            }
-            if (!verifyDownloadedUpdate(apk)) {
-                apk.delete();
-                prefs.edit().remove("update_sha256").apply();
-                showUpdateToast("The update package, version or signing certificate is invalid.");
-                return;
-            }
-        } catch (Exception e) {
-            showUpdateToast("Impossible de vérifier la mise à jour.");
-            return;
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
-            pendingUpdateInstall = true;
-            try {
-                Intent permissionIntent = new Intent(
-                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:" + getPackageName())
-                );
-                startActivity(permissionIntent);
-                Toast.makeText(this, "Autorisez l’installation pour FITIA PRO, puis revenez à l’application.", Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                showUpdateToast("Autorisez l’installation depuis cette source dans les réglages Android.");
-            }
-            return;
-        }
-
-        try {
-            pendingUpdateInstall = false;
-            Intent installIntent = new Intent(Intent.ACTION_VIEW);
-            installIntent.setDataAndType(UpdateProvider.getUpdateUri(this), "application/vnd.android.package-archive");
-            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(installIntent);
-        } catch (Exception e) {
-            showUpdateToast("Impossible d’ouvrir le programme d’installation Android.");
-        }
-    }
-
-    private boolean startUpdateDownload(final String url, final String expectedSha256) {
-        if (!isValidUpdateUrl(url) || expectedSha256 == null
-            || !expectedSha256.matches("(?i)^[0-9a-f]{64}$")) {
-            return false;
-        }
-        final String normalizedHash = expectedSha256.toLowerCase(Locale.US);
-        final File apk = UpdateProvider.getUpdateApkFile(this);
-        File parent = apk.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            return false;
-        }
-
-        try {
-            if (apk.isFile() && normalizedHash.equalsIgnoreCase(sha256File(apk))) {
-                getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit().putString("update_sha256", normalizedHash).apply();
-                notifyUpdateDownloadProgress(100, "ready");
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        installDownloadedUpdate();
-                    }
-                });
-                return true;
-            }
-        } catch (Exception ignored) {
-        }
-        if (apk.exists()) apk.delete();
-
-        synchronized (this) {
-            if (updateDownloadInProgress) return true;
-            updateDownloadInProgress = true;
-        }
-        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove("update_sha256").apply();
-        notifyUpdateDownloadProgress(0, "downloading");
-
-        Thread downloadThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                HttpURLConnection connection = null;
-                File partial = new File(apk.getParentFile(), apk.getName() + ".part");
-                try {
-                    connection = (HttpURLConnection) new URL(url).openConnection();
-                    connection.setInstanceFollowRedirects(true);
-                    connection.setConnectTimeout(15000);
-                    connection.setReadTimeout(30000);
-                    connection.setRequestProperty("Accept", "application/vnd.android.package-archive");
-                    connection.setRequestProperty("User-Agent", "FITIA-PRO-Android-Updater");
-                    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                        throw new IOException("Téléchargement refusé");
-                    }
-                    long maxBytes = 200L * 1024L * 1024L;
-                    long contentLength = connection.getContentLengthLong();
-                    if (contentLength > maxBytes) {
-                        throw new IOException("Fichier trop volumineux");
-                    }
-                    MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                    long total = 0L;
-                    int lastReportedProgress = -2;
-                    try (
-                        InputStream input = new BufferedInputStream(connection.getInputStream());
-                        OutputStream output = new FileOutputStream(partial)
-                    ) {
-                        byte[] buffer = new byte[16384];
-                        int read;
-                        while ((read = input.read(buffer)) != -1) {
-                            total += read;
-                            if (total > maxBytes) throw new IOException("Fichier trop volumineux");
-                            digest.update(buffer, 0, read);
-                            output.write(buffer, 0, read);
-                            int currentProgress = contentLength > 0
-                                ? (int) Math.min(99L, (total * 100L) / contentLength)
-                                : -1;
-                            if (currentProgress != lastReportedProgress) {
-                                notifyUpdateDownloadProgress(currentProgress, "downloading");
-                                lastReportedProgress = currentProgress;
-                            }
-                        }
-                    }
-                    notifyUpdateDownloadProgress(100, "verifying");
-                    StringBuilder hex = new StringBuilder(64);
-                    for (byte value : digest.digest()) {
-                        hex.append(String.format(Locale.US, "%02x", value & 0xff));
-                    }
-                    if (!normalizedHash.equals(hex.toString())) {
-                        throw new IOException("Empreinte SHA-256 différente");
-                    }
-                    if (!verifyDownloadedUpdate(partial)) {
-                        throw new IOException("Package, version ou certificat de mise à jour invalide");
-                    }
-                    if (apk.exists() && !apk.delete()) throw new IOException("Remplacement impossible");
-                    if (!partial.renameTo(apk)) throw new IOException("Enregistrement impossible");
-                    getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                        .edit().putString("update_sha256", normalizedHash).apply();
-                    notifyUpdateDownloadProgress(100, "ready");
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            installDownloadedUpdate();
-                        }
-                    });
-                } catch (Exception e) {
-                    if (partial.exists()) partial.delete();
-                    if (apk.exists()) apk.delete();
-                    getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove("update_sha256").apply();
-                    notifyUpdateDownloadProgress(0, "error");
-                } finally {
-                    if (connection != null) connection.disconnect();
-                    synchronized (MainActivity.this) {
-                        updateDownloadInProgress = false;
-                    }
-                }
-            }
-        }, "FitiaUpdateDownload");
-        downloadThread.start();
-        return true;
     }
 
     // ─── Pont JavaScript Natif Sécurisé (@JavascriptInterface) ─────
@@ -836,8 +548,8 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public boolean downloadAndInstallUpdate(String url, String expectedSha256) {
-            return startUpdateDownload(url, expectedSha256);
+        public boolean openExternalUpdate(String url) {
+            return MainActivity.this.openExternalUpdate(url);
         }
 
         @JavascriptInterface
