@@ -417,6 +417,20 @@ async function waitFor(condition, label) {
   await waitFor(() => gameWrites.length === 4, 'réaffichage Crash');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réaffichage Crash');
   assert.deepStrictEqual(gameManifest.hiddenGames, []);
+  gameToggle = window.document.querySelector('[data-game-visibility-toggle="farm"]');
+  gameToggle.checked = false;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 5, 'masquage FITIA FARM');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin masquage FITIA FARM');
+  assert.deepStrictEqual(gameManifest.hiddenGames, ['farm']);
+  assert.ok(window.document.querySelector('[data-game-visibility="farm"]').classList.contains('is-hidden'));
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '5 / 6 visibles');
+  gameToggle = window.document.querySelector('[data-game-visibility-toggle="farm"]');
+  gameToggle.checked = true;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 6, 'réaffichage FITIA FARM');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réaffichage FITIA FARM');
+  assert.deepStrictEqual(gameManifest.hiddenGames, []);
   assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '6 / 6 visibles');
 
   window.document.querySelector('[data-section="store"]').click();

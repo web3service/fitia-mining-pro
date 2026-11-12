@@ -503,6 +503,9 @@ function clone(value) {
         method: 'PUT', cookie, body: { manifest: next, revision: initialRevision }
       });
       assert.strictEqual(withoutCsrf.response.status, 403);
+      const farmIcon = await request(localBase, '/assets/farm/barn.svg');
+      assert.strictEqual(farmIcon.response.status, 200);
+      assert.ok(farmIcon.response.headers.get('content-type').includes('image/svg+xml'));
       const saved = await request(localBase, '/api/admin/game-visibility', {
         method: 'PUT', cookie, csrf, body: { manifest: next, revision: initialRevision }
       });
@@ -510,9 +513,15 @@ function clone(value) {
       assert.deepStrictEqual(saved.data.manifest.hiddenGames, ['wheel', 'dice', 'crash']);
       assert.deepStrictEqual(JSON.parse(fs.readFileSync(gameVisibilityFile, 'utf8')).hiddenGames, ['wheel', 'dice', 'crash']);
 
-      for (const hiddenGames of [['unknown'], ['wheel', 'wheel'], [1], ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'wheel'], 'wheel']) {
+      const farmHidden = await request(localBase, '/api/admin/game-visibility', {
+        method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames: ['farm'] }, revision: saved.data.revision }
+      });
+      assert.strictEqual(farmHidden.response.status, 200, farmHidden.text);
+      assert.deepStrictEqual(farmHidden.data.manifest.hiddenGames, ['farm']);
+
+      for (const hiddenGames of [['unknown'], ['wheel', 'wheel'], [1], ['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'farm', 'wheel'], 'wheel']) {
         const invalid = await request(localBase, '/api/admin/game-visibility', {
-          method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames }, revision: saved.data.revision }
+          method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames }, revision: farmHidden.data.revision }
         });
         assert.strictEqual(invalid.response.status, 400, JSON.stringify(hiddenGames));
         assert.strictEqual(invalid.data.code, 'VALIDATION');
@@ -522,7 +531,7 @@ function clone(value) {
       });
       assert.strictEqual(stale.response.status, 409);
       const restored = await request(localBase, '/api/admin/game-visibility', {
-        method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames: [] }, revision: saved.data.revision }
+        method: 'PUT', cookie, csrf, body: { manifest: { hiddenGames: [] }, revision: farmHidden.data.revision }
       });
       assert.strictEqual(restored.response.status, 200, restored.text);
       assert.deepStrictEqual(restored.data.manifest.hiddenGames, []);

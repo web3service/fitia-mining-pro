@@ -577,7 +577,8 @@ function createAdminServer(options = {}) {
     ['/assets/dice.svg', { file: path.join(ROOT, 'assets', 'dice.svg'), type: 'image/svg+xml' }],
     ['/assets/mines.svg', { file: path.join(ROOT, 'assets', 'mines.svg'), type: 'image/svg+xml' }],
     ['/assets/crash.svg', { file: path.join(ROOT, 'assets', 'crash.svg'), type: 'image/svg+xml' }],
-    ['/assets/coin-flip.svg', { file: path.join(ROOT, 'assets', 'coin-flip.svg'), type: 'image/svg+xml' }]
+    ['/assets/coin-flip.svg', { file: path.join(ROOT, 'assets', 'coin-flip.svg'), type: 'image/svg+xml' }],
+    ['/assets/farm/barn.svg', { file: path.join(ROOT, 'assets', 'farm', 'barn.svg'), type: 'image/svg+xml' }]
   ]);
 
   async function handleApi(req, res, pathname) {

@@ -2855,6 +2855,7 @@ class Application {
       if (!sessionIsCurrent()) return;
       this.applyConnectedProvider(conn);
       this.promotionCenter.refresh({ force: true });
+      this.gameVisibility.refresh({ force: true });
 
       const loadContractParameters = async () => {
         try {
@@ -3105,6 +3106,7 @@ class Application {
   async updateData() {
     if (!this.user || !this.core || !this.mine) return;
     void this.announcementCenter.refresh({ force: false });
+    void this.gameVisibility.refresh({ force: false });
     if (this.activity.hasPending()) this.activity.refreshPending(this.provider);
     try {
       // Lecture groupée parallèle pour une réactivité maximale sur mobile

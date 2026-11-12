@@ -130,10 +130,18 @@ function setAccounts(account) {
       const coins = center.state.coins;
       visibility.hiddenGames = new Set(['dice']); visibility.apply();
       assert.ok(window.document.querySelector('#view-hub [data-game-id="dice"]').classList.contains('hidden'));
+      assert.strictEqual(window.document.querySelector('#view-hub .ph-gateway').classList.contains('hidden'), false);
       assert.strictEqual(center.state.coins, coins);
       assert.ok(window.document.getElementById('view-dice'));
+      visibility.hiddenGames = new Set(['farm']); visibility.apply();
+      assert.ok(window.document.querySelector('#view-hub [data-game-id="farm"]').classList.contains('hidden'));
+      assert.strictEqual(window.document.querySelector('#view-hub .ph-gateway').classList.contains('hidden'), false);
+      visibility.hiddenGames = new Set(['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'farm']); visibility.apply();
+      assert.ok(window.document.querySelector('#view-hub .ph-gateway').classList.contains('hidden'));
+      assert.strictEqual(window.document.getElementById('game-hub-games').hidden, true);
+      assert.strictEqual(window.document.getElementById('game-hub-landing').hidden, false);
       visibility.hiddenGames = new Set(); visibility.apply();
-      window.document.getElementById('ph-back-hub').click();
+      assert.strictEqual(window.document.querySelector('#view-hub .ph-gateway').classList.contains('hidden'), false);
       assert.strictEqual(window.document.getElementById('game-hub-landing').hidden, false);
     });
 
