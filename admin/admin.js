@@ -6,7 +6,13 @@
     event: 'Événement',
     information: 'Information',
     referral: 'Parrainage',
-    security: 'Sécurité'
+    security: 'Sécurité',
+    birthday: 'Anniversaire',
+    blackfriday: 'Black Friday',
+    promotion: 'Promotion',
+    sale: 'Soldes',
+    airdrop: 'Airdrop',
+    welcome: 'Bienvenue'
   };
   const TEAM_AVATAR_PRESETS = ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg'];
   const MALE_3D_AVATAR_PRESETS = [
@@ -36,6 +42,126 @@
         de: 'Die Wartung ist abgeschlossen. FITIA PRO ist wieder verfügbar. Vielen Dank für Ihr Vertrauen und Ihre Treue.',
         zh: '维护已完成，FITIA PRO 已恢复使用。感谢您的信任与一如既往的支持。',
         sg: 'Maintenance is complete. FITIA PRO is available again. Thank you for your trust and continued support.'
+      }
+    },
+    'anniversary-celebration': {
+      category: 'birthday',
+      theme: 'birthday',
+      font: 'rounded',
+      avatars: TEAM_AVATAR_PRESETS,
+      title: {
+        fr: 'FITIA fête son anniversaire',
+        en: 'FITIA is celebrating its anniversary',
+        de: 'FITIA feiert Geburtstag',
+        zh: 'FITIA 迎来周年庆典',
+        sg: 'FITIA is celebrating its anniversary'
+      },
+      message: {
+        fr: 'À l’occasion de notre anniversaire, nous vous remercions pour votre confiance et votre fidélité.',
+        en: 'On our anniversary, thank you for your trust and continued support.',
+        de: 'Zum Geburtstag von FITIA danken wir Ihnen für Ihr Vertrauen und Ihre Treue.',
+        zh: '值此 FITIA 周年之际，感谢您的信任与一路相伴。',
+        sg: 'On our anniversary, thank you for your trust and continued support.'
+      }
+    },
+    'blackfriday-offers': {
+      category: 'blackfriday',
+      theme: 'blackfriday',
+      font: 'modern',
+      avatars: ['assets/avatars/man-3d-1.webp'],
+      title: {
+        fr: 'Black Friday FITIA',
+        en: 'FITIA Black Friday',
+        de: 'FITIA Black Friday',
+        zh: 'FITIA 黑色星期五',
+        sg: 'FITIA Black Friday'
+      },
+      message: {
+        fr: 'Des offres Black Friday vous attendent sur une sélection d’articles du STORE. Dans la limite des stocks disponibles.',
+        en: 'Black Friday offers await you on selected STORE items. While stocks last.',
+        de: 'Black-Friday-Angebote bei ausgewählten STORE-Artikeln. Solange der Vorrat reicht.',
+        zh: '黑色星期五特惠：精选 STORE 商品限时优惠，售完即止。',
+        sg: 'Black Friday offers await you on selected STORE items. While stocks last.'
+      }
+    },
+    'limited-promotion': {
+      category: 'promotion',
+      theme: 'promotion',
+      font: 'modern',
+      avatars: ['assets/avatars/man-3d-1.webp'],
+      title: {
+        fr: 'Promotion spéciale',
+        en: 'Special promotion',
+        de: 'Sonderaktion',
+        zh: '特别促销',
+        sg: 'Special promotion'
+      },
+      message: {
+        fr: 'Une promotion spéciale sur une sélection d’articles du STORE. Retrouvez les détails dans l’onglet Boutique.',
+        en: 'A special promotion on selected STORE items. See the Shop tab for details.',
+        de: 'Sonderaktion auf ausgewählte STORE-Artikel. Alle Details im Shop-Bereich.',
+        zh: '精选 STORE 商品特别促销，详情见“商店”标签页。',
+        sg: 'A special promotion on selected STORE items. See the Shop tab for details.'
+      }
+    },
+    'season-sale': {
+      category: 'sale',
+      theme: 'sale',
+      font: 'rounded',
+      avatars: ['assets/avatars/man-3d-4.webp'],
+      title: {
+        fr: 'Soldes FITIA',
+        en: 'FITIA sale',
+        de: 'FITIA Ausverkauf',
+        zh: 'FITIA 折扣季',
+        sg: 'FITIA sale'
+      },
+      message: {
+        fr: 'Les soldes sont là : une sélection d’articles du STORE à prix réduit, dans la limite des stocks.',
+        en: 'Our sale is on: selected STORE items at reduced prices, while stocks last.',
+        de: 'Ausverkauf: ausgewählte STORE-Artikel zum reduzierten Preis, solange der Vorrat reicht.',
+        zh: '折扣季已开启：精选 STORE 商品低价出售，数量有限。',
+        sg: 'Our sale is on: selected STORE items at reduced prices, while stocks last.'
+      }
+    },
+    'community-airdrop': {
+      category: 'airdrop',
+      theme: 'airdrop',
+      font: 'mono',
+      avatars: ['assets/avatars/man-3d-2.webp'],
+      title: {
+        fr: 'Airdrop à venir',
+        en: 'Upcoming airdrop',
+        de: 'Kommender Airdrop',
+        zh: '空投即将到来',
+        sg: 'Upcoming airdrop'
+      },
+      message: {
+        fr: 'Un airdrop est prévu pour la communauté. Les modalités seront annoncées sur nos canaux officiels. Ne partagez jamais vos 12 mots.',
+        en: 'An airdrop is planned for the community. Details will be announced on our official channels. Never share your 12 words.',
+        de: 'Ein Airdrop für die Community ist geplant. Details folgen über unsere offiziellen Kanäle. Teilen Sie nie Ihre 12 Wörter.',
+        zh: '社区空投即将到来，规则将通过官方渠道公布。切勿泄露您的 12 个助记词。',
+        sg: 'An airdrop is planned for the community. Details will be announced on our official channels. Never share your 12 words.'
+      }
+    },
+    'welcome-onboard': {
+      category: 'welcome',
+      theme: 'welcome',
+      font: 'modern',
+      avatars: ['assets/avatars/team-1.svg'],
+      title: {
+        fr: 'Bienvenue sur FITIA PRO',
+        en: 'Welcome to FITIA PRO',
+        de: 'Willkommen bei FITIA PRO',
+        zh: '欢迎使用 FITIA PRO',
+        sg: 'Welcome to FITIA PRO'
+      },
+      message: {
+        fr: 'Bienvenue dans l’aventure FITIA PRO : minage, FARM, STORE et annonces officielles vous attendent.',
+        en: 'Welcome to FITIA PRO: mining, FARM, STORE and official announcements await you.',
+        de: 'Willkommen bei FITIA PRO: Mining, FARM, STORE und offizielle Ankündigungen erwarten Sie.',
+        zh: '欢迎加入 FITIA PRO：挖矿、FARM、STORE 与官方公告等您体验。',
+        sg: 'Welcome to FITIA PRO: mining, FARM, STORE and official announcements await you.'
       }
     },
     'update-thanks': {
@@ -98,6 +224,8 @@
     editorBgPosition: 'center',
     editorBgFit: 'cover',
     editorAvatars: [],
+    editorAvatarFraming: {},
+    selectedAvatarFraming: '',
     uploadedAvatars: [],
     editorAssetData: {},
     editorSession: 0,
@@ -784,6 +912,63 @@
     return state.editorAssetData[assetPath] || `/${assetPath}`;
   }
 
+  const AVATAR_FRAMING_DEFAULT = { scale: 100, x: 0, y: 0 };
+
+  function clampAvatarFraming(entry) {
+    const scale = Number.isFinite(Number(entry?.scale)) ? Math.min(300, Math.max(100, Math.round(Number(entry.scale)))) : 100;
+    const x = Number.isFinite(Number(entry?.x)) ? Math.min(50, Math.max(-50, Math.round(Number(entry.x)))) : 0;
+    const y = Number.isFinite(Number(entry?.y)) ? Math.min(50, Math.max(-50, Math.round(Number(entry.y)))) : 0;
+    return { scale, x, y };
+  }
+
+  function avatarFraming(assetPath) {
+    return clampAvatarFraming(state.editorAvatarFraming[assetPath] || AVATAR_FRAMING_DEFAULT);
+  }
+
+  function setAvatarFraming(assetPath, patch) {
+    const next = clampAvatarFraming({ ...avatarFraming(assetPath), ...patch });
+    if (next.scale === 100 && next.x === 0 && next.y === 0) delete state.editorAvatarFraming[assetPath];
+    else state.editorAvatarFraming[assetPath] = next;
+  }
+
+  function pruneAvatarFraming() {
+    const selected = new Set(state.editorAvatars);
+    Object.keys(state.editorAvatarFraming).forEach((assetPath) => {
+      if (!selected.has(assetPath)) delete state.editorAvatarFraming[assetPath];
+    });
+    if (state.selectedAvatarFraming && !selected.has(state.selectedAvatarFraming)) state.selectedAvatarFraming = '';
+  }
+
+  function selectedFramingTarget() {
+    if (state.selectedAvatarFraming && state.editorAvatars.includes(state.selectedAvatarFraming)) return state.selectedAvatarFraming;
+    return state.editorAvatars[0] || '';
+  }
+
+  function syncAvatarFramingPanel() {
+    const panel = byId('item-avatar-framing');
+    if (!panel) return;
+    const target = selectedFramingTarget();
+    panel.classList.toggle('hidden', !target);
+    if (!target) return;
+    state.selectedAvatarFraming = target;
+    const index = state.editorAvatars.indexOf(target);
+    const framing = avatarFraming(target);
+    const indexLabel = byId('item-avatar-framing-index');
+    if (indexLabel) indexLabel.textContent = `n°${index + 1}`;
+    const zoom = byId('item-avatar-framing-zoom');
+    const xInput = byId('item-avatar-framing-x');
+    const yInput = byId('item-avatar-framing-y');
+    if (zoom) zoom.value = String(framing.scale);
+    if (xInput) xInput.value = String(framing.x);
+    if (yInput) yInput.value = String(framing.y);
+    const zoomValue = byId('item-avatar-framing-zoom-value');
+    const xValue = byId('item-avatar-framing-x-value');
+    const yValue = byId('item-avatar-framing-y-value');
+    if (zoomValue) zoomValue.textContent = `${framing.scale} %`;
+    if (xValue) xValue.textContent = String(framing.x);
+    if (yValue) yValue.textContent = String(framing.y);
+  }
+
   function updateAssetUploadUi() {
     const pending = state.assetUploads > 0;
     byId('item-background-upload').disabled = pending;
@@ -792,6 +977,7 @@
   }
 
   function renderAvatarEditor() {
+    pruneAvatarFraming();
     byId('item-avatar-count').textContent = `${state.editorAvatars.length}/3`;
     document.querySelectorAll('[data-avatar-preset]').forEach((button) => {
       const selected = state.editorAvatars.includes(button.dataset.avatarPreset);
@@ -800,25 +986,44 @@
       button.disabled = state.assetUploads > 0 || (!selected && state.editorAvatars.length >= 3);
     });
     renderAvatarLibrary();
+    const framingTarget = selectedFramingTarget();
     const list = byId('item-avatar-list');
     list.textContent = '';
     state.editorAvatars.forEach((assetPath, index) => {
       const item = document.createElement('span');
-      item.className = 'avatar-selected';
+      item.className = `avatar-selected${assetPath === framingTarget ? ' framing-target' : ''}`;
+      item.setAttribute('role', 'button');
+      item.tabIndex = 0;
+      item.setAttribute('aria-pressed', String(assetPath === framingTarget));
+      item.setAttribute('aria-label', `Cadrer l’avatar ${index + 1}`);
       const image = document.createElement('img');
       image.src = editorAssetUrl(assetPath);
       image.alt = `Avatar ${index + 1}`;
       image.width = 42;
       image.height = 42;
-      const remove = makeButton('×', 'avatar-remove', () => {
+      const remove = makeButton('×', 'avatar-remove', (event) => {
+        event.stopPropagation();
         state.editorAvatars.splice(index, 1);
         renderAvatarEditor();
         updatePreview();
       });
       remove.setAttribute('aria-label', `Retirer l’avatar ${index + 1}`);
       item.append(image, remove);
+      const selectForFraming = () => {
+        state.selectedAvatarFraming = assetPath;
+        renderAvatarEditor();
+        updatePreview();
+      };
+      item.addEventListener('click', selectForFraming);
+      item.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectForFraming();
+        }
+      });
       list.appendChild(item);
     });
+    syncAvatarFramingPanel();
     updateAssetUploadUi();
   }
 
@@ -882,6 +1087,8 @@
     state.editorBackground = '';
     resetBackgroundAdjustments();
     state.editorAvatars = [...template.avatars];
+    state.editorAvatarFraming = {};
+    state.selectedAvatarFraming = '';
     byId('asset-upload-status').textContent = '';
     renderAvatarEditor();
     updatePreview();
@@ -1007,6 +1214,16 @@
     state.editorBgPosition = item?.backgroundPosition || 'center';
     state.editorBgFit = item?.backgroundFit || 'cover';
     state.editorAvatars = Array.isArray(item?.avatars) ? [...item.avatars] : [];
+    state.editorAvatarFraming = {};
+    if (item?.avatarFraming && typeof item.avatarFraming === 'object') {
+      Object.keys(item.avatarFraming).forEach((assetPath) => {
+        if (!state.editorAvatars.includes(assetPath)) return;
+        const entry = item.avatarFraming[assetPath];
+        const framing = clampAvatarFraming(entry);
+        if (framing.scale !== 100 || framing.x !== 0 || framing.y !== 0) state.editorAvatarFraming[assetPath] = framing;
+      });
+    }
+    state.selectedAvatarFraming = '';
     state.editorEnabled = item?.enabled !== false;
     state.editingId = item && !duplicate ? item.id : null;
     byId('announcement-form').reset();
@@ -1059,6 +1276,7 @@
     slide.className = `preview-slide preview-${category} announcement-theme-${theme} announcement-font-${font}`;
     slide.classList.toggle('has-background', Boolean(state.editorBackground));
     slide.classList.toggle('has-avatars', state.editorAvatars.length > 0);
+    slide.style.setProperty('--avatar-count', String(Math.max(1, state.editorAvatars.length)));
     slide.style.setProperty('--announcement-bg-image', state.editorBackground ? `url(${JSON.stringify(editorAssetUrl(state.editorBackground))})` : 'none');
     slide.style.setProperty('--announcement-bg-dim', String(state.editorBgDim / 100));
     slide.style.setProperty('--announcement-bg-brightness', `${state.editorBgBrightness}%`);
@@ -1073,14 +1291,24 @@
     byId('item-background-controls')?.classList.toggle('hidden', !state.editorBackground);
     const avatarPreview = byId('preview-avatars');
     avatarPreview.textContent = '';
-    state.editorAvatars.forEach((assetPath) => {
+    const previewCount = Math.max(1, state.editorAvatars.length);
+    avatarPreview.style.setProperty('--avatar-count', String(previewCount));
+    state.editorAvatars.forEach((assetPath, index) => {
+      const framing = avatarFraming(assetPath);
+      const frame = document.createElement('span');
+      frame.className = 'preview-avatar';
+      frame.dataset.avatarIndex = String(index);
       const image = document.createElement('img');
       image.src = editorAssetUrl(assetPath);
       image.alt = '';
-      image.width = 30;
-      image.height = 30;
-      avatarPreview.appendChild(image);
+      image.draggable = false;
+      const zoomOffset = (framing.scale - 100) / 100;
+      image.style.transform = `translate3d(${framing.x * zoomOffset}%, ${framing.y * zoomOffset}%, 0) scale(${framing.scale / 100})`;
+      frame.appendChild(image);
+      frame.addEventListener('pointerdown', (event) => startAvatarDrag(event, assetPath, frame));
+      avatarPreview.appendChild(frame);
     });
+    syncAvatarFramingPanel();
     const startsAt = fromInputDate(byId('item-starts-at').value);
     const expiresAt = fromInputDate(byId('item-expires-at').value);
     let schedule = 'Diffusion sans limite de date';
@@ -1088,6 +1316,48 @@
     else if (startsAt) schedule = `À partir du ${formatDate(startsAt)}`;
     else if (expiresAt) schedule = `Jusqu’au ${formatDate(expiresAt)}`;
     byId('preview-schedule').textContent = schedule;
+  }
+
+  function startAvatarDrag(event, assetPath, frame) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const framing = avatarFraming(assetPath);
+    const zoomOffset = (framing.scale - 100) / 100;
+    if (zoomOffset <= 0) {
+      showToast('Augmentez le zoom pour déplacer l’avatar.', 'error');
+      return;
+    }
+    event.preventDefault();
+    state.selectedAvatarFraming = assetPath;
+    renderAvatarEditor();
+    syncAvatarFramingPanel();
+    const image = frame.querySelector('img');
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startTx = framing.x * zoomOffset;
+    const startTy = framing.y * zoomOffset;
+    try { frame.setPointerCapture(event.pointerId); } catch (_) { /* Le glisser reste actif sans capture. */ }
+    const move = (moveEvent) => {
+      const dx = ((moveEvent.clientX - startX) / frame.offsetWidth) * 100;
+      const dy = ((moveEvent.clientY - startY) / frame.offsetHeight) * 100;
+      const next = clampAvatarFraming({
+        scale: framing.scale,
+        x: Math.round((startTx + dx) / zoomOffset),
+        y: Math.round((startTy + dy) / zoomOffset)
+      });
+      if (next.scale === 100 && next.x === 0 && next.y === 0) delete state.editorAvatarFraming[assetPath];
+      else state.editorAvatarFraming[assetPath] = next;
+      if (image) image.style.transform = `translate3d(${next.x * zoomOffset}%, ${next.y * zoomOffset}%, 0) scale(${next.scale / 100})`;
+      syncAvatarFramingPanel();
+    };
+    const up = () => {
+      frame.removeEventListener('pointermove', move);
+      frame.removeEventListener('pointerup', up);
+      frame.removeEventListener('pointercancel', up);
+      updatePreview();
+    };
+    frame.addEventListener('pointermove', move);
+    frame.addEventListener('pointerup', up);
+    frame.addEventListener('pointercancel', up);
   }
 
   async function submitEditor(event) {
@@ -1120,6 +1390,12 @@
       if (state.editorBgFit !== 'cover') item.backgroundFit = state.editorBgFit;
     }
     if (state.editorAvatars.length) item.avatars = [...state.editorAvatars];
+    const framingPayload = {};
+    state.editorAvatars.forEach((assetPath) => {
+      const framing = state.editorAvatarFraming[assetPath];
+      if (framing) framingPayload[assetPath] = clampAvatarFraming(framing);
+    });
+    if (Object.keys(framingPayload).length) item.avatarFraming = framingPayload;
     if (startsAt) item.startsAt = startsAt;
     if (expiresAt) item.expiresAt = expiresAt;
     const next = clone(state.manifest);
@@ -1192,6 +1468,30 @@
     byId('item-avatar-upload').addEventListener('click', () => byId('item-avatar-file').click());
     byId('item-background-file').addEventListener('change', (event) => handleImageSelection(event, 'background'));
     byId('item-avatar-file').addEventListener('change', (event) => handleImageSelection(event, 'avatar'));
+    const framingTargetPath = () => selectedFramingTarget();
+    byId('item-avatar-framing-zoom')?.addEventListener('input', (event) => {
+      const target = framingTargetPath();
+      if (!target) return;
+      setAvatarFraming(target, { scale: Number(event.target.value) });
+      updatePreview();
+    });
+    byId('item-avatar-framing-x')?.addEventListener('input', (event) => {
+      const target = framingTargetPath();
+      if (!target) return;
+      setAvatarFraming(target, { x: Number(event.target.value) });
+      updatePreview();
+    });
+    byId('item-avatar-framing-y')?.addEventListener('input', (event) => {
+      const target = framingTargetPath();
+      if (!target) return;
+      setAvatarFraming(target, { y: Number(event.target.value) });
+      updatePreview();
+    });
+    byId('item-avatar-framing-reset')?.addEventListener('click', () => {
+      const target = framingTargetPath();
+      if (target) delete state.editorAvatarFraming[target];
+      updatePreview();
+    });
     byId('item-background-remove').addEventListener('click', () => {
       state.editorBackground = '';
       resetBackgroundAdjustments();

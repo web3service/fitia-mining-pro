@@ -10,6 +10,12 @@
       categoryEvent: 'Événement',
       categoryReferral: 'Parrainage',
       categorySecurity: 'Sécurité',
+      categoryBirthday: 'Anniversaire',
+      categoryBlackfriday: 'Black Friday',
+      categoryPromotion: 'Promotion',
+      categorySale: 'Soldes',
+      categoryAirdrop: 'Airdrop',
+      categoryWelcome: 'Bienvenue',
       select: 'Afficher l’annonce',
       informationTitle: 'Annonces officielles',
       informationMessage: 'Retrouvez ici les nouveautés et informations importantes de FITIA PRO.',
@@ -26,6 +32,12 @@
       categoryEvent: 'Event',
       categoryReferral: 'Referral',
       categorySecurity: 'Security',
+      categoryBirthday: 'Birthday',
+      categoryBlackfriday: 'Black Friday',
+      categoryPromotion: 'Promotion',
+      categorySale: 'Sale',
+      categoryAirdrop: 'Airdrop',
+      categoryWelcome: 'Welcome',
       select: 'Show announcement',
       informationTitle: 'Official announcements',
       informationMessage: 'Find FITIA PRO news and important information here.',
@@ -42,6 +54,12 @@
       categoryEvent: 'Veranstaltung',
       categoryReferral: 'Empfehlung',
       categorySecurity: 'Sicherheit',
+      categoryBirthday: 'Geburtstag',
+      categoryBlackfriday: 'Black Friday',
+      categoryPromotion: 'Aktion',
+      categorySale: 'Ausverkauf',
+      categoryAirdrop: 'Airdrop',
+      categoryWelcome: 'Willkommen',
       select: 'Ankündigung anzeigen',
       informationTitle: 'Offizielle Ankündigungen',
       informationMessage: 'Hier finden Sie Neuigkeiten und wichtige Informationen zu FITIA PRO.',
@@ -58,6 +76,12 @@
       categoryEvent: '活动',
       categoryReferral: '推荐',
       categorySecurity: '安全',
+      categoryBirthday: '生日',
+      categoryBlackfriday: '黑色星期五',
+      categoryPromotion: '促销',
+      categorySale: '折扣',
+      categoryAirdrop: '空投',
+      categoryWelcome: '欢迎',
       select: '查看公告',
       informationTitle: '官方公告',
       informationMessage: '在这里查看 FITIA PRO 的最新消息和重要信息。',
@@ -154,9 +178,28 @@
       return new URL(assetPath, MANIFEST_URL).href;
     }
 
+    normalizeAvatarFraming(value, allowedPaths) {
+      if (value === undefined || value === null) return { ok: true, value: {} };
+      if (typeof value !== 'object' || Array.isArray(value)) return { ok: false, value: null };
+      const framing = {};
+      for (const [path, entry] of Object.entries(value)) {
+        if (!allowedPaths.has(path) || framing[path]) return { ok: false, value: null };
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return { ok: false, value: null };
+        const scale = entry.scale === undefined ? 100 : Number(entry.scale);
+        const x = entry.x === undefined ? 0 : Number(entry.x);
+        const y = entry.y === undefined ? 0 : Number(entry.y);
+        if (!Number.isSafeInteger(scale) || scale < 100 || scale > 300) return { ok: false, value: null };
+        if (!Number.isSafeInteger(x) || x < -50 || x > 50) return { ok: false, value: null };
+        if (!Number.isSafeInteger(y) || y < -50 || y > 50) return { ok: false, value: null };
+        if (scale !== 100 || x !== 0 || y !== 0) framing[path] = { scale, x, y };
+      }
+      return { ok: true, value: framing };
+    }
+
     normalizeManifest(raw, now = Date.now()) {
       if (!raw || raw.enabled !== true || !Array.isArray(raw.announcements)) return [];
-      const acceptedCategories = new Set(['information', 'event', 'referral', 'security']);
+      const acceptedCategories = new Set(['information', 'event', 'referral', 'security', 'birthday', 'blackfriday', 'promotion', 'sale', 'airdrop', 'welcome']);
+      const acceptedThemes = ['classic', 'aurora', 'gold', 'emerald', 'violet', 'celebration', 'birthday', 'blackfriday', 'promotion', 'sale', 'airdrop', 'welcome'];
       const acceptedBgPositions = new Set(['center', 'top', 'bottom', 'left', 'right']);
       const acceptedBgFits = new Set(['cover', 'contain']);
       const seenIds = new Set();
@@ -174,7 +217,7 @@
         if (!title || !message) return;
         const theme = item.theme === undefined ? 'classic' : item.theme;
         const font = item.font === undefined ? 'modern' : item.font;
-        if (!['classic', 'aurora', 'gold', 'emerald', 'violet', 'celebration'].includes(theme)) return;
+        if (!acceptedThemes.includes(theme)) return;
         if (!['modern', 'elegant', 'rounded', 'mono'].includes(font)) return;
         const backgroundImage = item.backgroundImage ? this.normalizeAssetPath(item.backgroundImage) : '';
         if (item.backgroundImage && !backgroundImage) return;
@@ -209,6 +252,10 @@
             avatars.push(avatar);
           }
         }
+        const avatarFraming = item.avatarFraming === undefined
+          ? { ok: true, value: {} }
+          : this.normalizeAvatarFraming(item.avatarFraming, new Set(avatars));
+        if (!avatarFraming.ok) return;
         const startsAt = this.parseDate(item.startsAt);
         const expiresAt = this.parseDate(item.expiresAt);
         if (startsAt === undefined || expiresAt === undefined) return;
@@ -225,6 +272,7 @@
           if (backgroundFit !== 'cover') normalizedItem.backgroundFit = backgroundFit;
         }
         if (avatars.length) normalizedItem.avatars = avatars;
+        if (Object.keys(avatarFraming.value).length) normalizedItem.avatarFraming = avatarFraming.value;
         normalized.push(normalizedItem);
       });
       return normalized;
@@ -323,13 +371,22 @@
         const avatarStack = document.createElement('div');
         avatarStack.className = 'announcement-avatars';
         avatarStack.setAttribute('aria-hidden', 'true');
+        slide.style.setProperty('--avatar-count', String(Math.min(3, item.avatars.length)));
         item.avatars.forEach((assetPath) => {
-          const avatar = document.createElement('img');
-          avatar.src = this.assetUrl(assetPath);
-          avatar.alt = '';
-          avatar.draggable = false;
-          avatar.addEventListener('error', () => avatar.remove(), { once: true });
-          avatarStack.appendChild(avatar);
+          const frame = document.createElement('span');
+          frame.className = 'announcement-avatar';
+          const img = document.createElement('img');
+          img.src = this.assetUrl(assetPath);
+          img.alt = '';
+          img.draggable = false;
+          const framing = item.avatarFraming?.[assetPath] || { scale: 100, x: 0, y: 0 };
+          const zoomOffset = (framing.scale - 100) / 100;
+          const tx = framing.x * zoomOffset;
+          const ty = framing.y * zoomOffset;
+          img.style.transform = `translate3d(${tx}%, ${ty}%, 0) scale(${framing.scale / 100})`;
+          img.addEventListener('error', () => frame.remove(), { once: true });
+          frame.appendChild(img);
+          avatarStack.appendChild(frame);
         });
         slide.appendChild(avatarStack);
       }

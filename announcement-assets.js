@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const MAX_ANNOUNCEMENT_IMAGE_BYTES = 1536 * 1024;
 const MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES = 2200 * 1024;
-const ANNOUNCEMENT_THEMES = Object.freeze(['classic', 'aurora', 'gold', 'emerald', 'violet', 'celebration']);
+const ANNOUNCEMENT_THEMES = Object.freeze(['classic', 'aurora', 'gold', 'emerald', 'violet', 'celebration', 'birthday', 'blackfriday', 'promotion', 'sale', 'airdrop', 'welcome']);
 const ANNOUNCEMENT_FONTS = Object.freeze(['modern', 'elegant', 'rounded', 'mono']);
 const ANNOUNCEMENT_BG_POSITIONS = Object.freeze(['center', 'top', 'bottom', 'left', 'right']);
 const ANNOUNCEMENT_BG_FITS = Object.freeze(['cover', 'contain']);
@@ -26,6 +26,40 @@ function normalizeAssetPath(value, { allowAvatarPresets = false } = {}) {
   if (UPLOADED_ASSET_PATTERN.test(clean)) return clean;
   if (allowAvatarPresets && ANNOUNCEMENT_AVATAR_PRESETS.includes(clean)) return clean;
   return null;
+}
+
+const AVATAR_SCALE_MIN = 100;
+const AVATAR_SCALE_MAX = 300;
+const AVATAR_OFFSET_LIMIT = 50;
+
+function normalizeAvatarFraming(value, allowedPaths) {
+  if (value === undefined || value === null) return { ok: true, value: {} };
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return { ok: false, status: 400, code: 'AVATAR_FRAMING', message: 'Les cadrages d’avatars sont invalides.' };
+  }
+  const framing = {};
+  for (const [path, entry] of Object.entries(value)) {
+    if (!allowedPaths.has(path) || framing[path]) {
+      return { ok: false, status: 400, code: 'AVATAR_FRAMING', message: 'Un cadrage d’avatar ne correspond à aucun avatar sélectionné ou est dupliqué.' };
+    }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      return { ok: false, status: 400, code: 'AVATAR_FRAMING', message: 'Un cadrage d’avatar est invalide.' };
+    }
+    const scale = entry.scale === undefined ? AVATAR_SCALE_MIN : Number(entry.scale);
+    const x = entry.x === undefined ? 0 : Number(entry.x);
+    const y = entry.y === undefined ? 0 : Number(entry.y);
+    if (!Number.isSafeInteger(scale) || scale < AVATAR_SCALE_MIN || scale > AVATAR_SCALE_MAX) {
+      return { ok: false, status: 400, code: 'AVATAR_SCALE', message: 'Le zoom d’un avatar doit être un entier entre 100 et 300.' };
+    }
+    if (!Number.isSafeInteger(x) || x < -AVATAR_OFFSET_LIMIT || x > AVATAR_OFFSET_LIMIT
+      || !Number.isSafeInteger(y) || y < -AVATAR_OFFSET_LIMIT || y > AVATAR_OFFSET_LIMIT) {
+      return { ok: false, status: 400, code: 'AVATAR_OFFSET', message: 'Le déplacement d’un avatar doit être un entier entre -50 et 50.' };
+    }
+    if (scale !== AVATAR_SCALE_MIN || x !== 0 || y !== 0) {
+      framing[path] = { scale, x, y };
+    }
+  }
+  return { ok: true, value: framing };
 }
 
 function normalizeAppearance(item) {
@@ -88,6 +122,9 @@ function normalizeAppearance(item) {
       avatars.push(avatar);
     }
     if (avatars.length) appearance.avatars = avatars;
+    const framing = normalizeAvatarFraming(item.avatarFraming, new Set(avatars));
+    if (!framing.ok) return framing;
+    if (Object.keys(framing.value).length) appearance.avatarFraming = framing.value;
   }
 
   return { ok: true, value: appearance };
@@ -153,6 +190,7 @@ module.exports = {
   ANNOUNCEMENT_BG_FITS,
   ANNOUNCEMENT_AVATAR_PRESETS,
   normalizeAssetPath,
+  normalizeAvatarFraming,
   normalizeAppearance,
   validateImagePayload
 };
