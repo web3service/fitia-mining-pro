@@ -19,6 +19,7 @@ const { SupabaseFarmRepository } = require('./farm-service');
 const { getDefaultAccountService } = require('./account-service');
 const { getClientKey, getLoginFailure, recordLoginFailure } = require('./request-security');
 const GameVisibility = require('./game-visibility-config');
+const PromotionEffects = require('./promotion-effects');
 
 const ROOT = __dirname;
 const ADMIN_DIR = path.join(ROOT, 'admin');
@@ -175,7 +176,7 @@ function validatePromotionManifest(raw) {
     if (!['machine', 'battery'].includes(targetType) || !Number.isSafeInteger(targetId) || targetId < 0 || targetId > 99) {
       throw new ApiError(400, 'La machine ou la batterie sélectionnée est invalide.', 'VALIDATION');
     }
-    if (!['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge'].includes(variant) || typeof animated !== 'boolean') {
+    if (!PromotionEffects.isVariant(variant) || typeof animated !== 'boolean') {
       throw new ApiError(400, 'Le style ou le réglage d’animation de la décoration est invalide.', 'VALIDATION');
     }
     if (targets.has(targetKey)) throw new ApiError(400, 'Un article ne peut avoir qu’une seule décoration.', 'VALIDATION');
@@ -565,6 +566,10 @@ function createAdminServer(options = {}) {
     ['/promotion-effects.css', { file: path.join(ROOT, 'promotion-effects.css'), type: 'text/css; charset=utf-8' }],
     ['/store-catalog.js', { file: path.join(ROOT, 'store-catalog.js'), type: 'application/javascript; charset=utf-8' }],
     ['/assets/icon-192.png', { file: path.join(ROOT, 'assets/icon-192.png'), type: 'image/png' }],
+    ['/assets/avatars/man-3d-1.webp', { file: path.join(ROOT, 'assets', 'avatars', 'man-3d-1.webp'), type: 'image/webp' }],
+    ['/assets/avatars/man-3d-2.webp', { file: path.join(ROOT, 'assets', 'avatars', 'man-3d-2.webp'), type: 'image/webp' }],
+    ['/assets/avatars/man-3d-3.webp', { file: path.join(ROOT, 'assets', 'avatars', 'man-3d-3.webp'), type: 'image/webp' }],
+    ['/assets/avatars/man-3d-4.webp', { file: path.join(ROOT, 'assets', 'avatars', 'man-3d-4.webp'), type: 'image/webp' }],
     ['/assets/avatars/team-1.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-1.svg'), type: 'image/svg+xml' }],
     ['/assets/avatars/team-2.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-2.svg'), type: 'image/svg+xml' }],
     ['/assets/avatars/team-3.svg', { file: path.join(ROOT, 'assets', 'avatars', 'team-3.svg'), type: 'image/svg+xml' }],
@@ -572,7 +577,8 @@ function createAdminServer(options = {}) {
     ['/assets/dice.svg', { file: path.join(ROOT, 'assets', 'dice.svg'), type: 'image/svg+xml' }],
     ['/assets/mines.svg', { file: path.join(ROOT, 'assets', 'mines.svg'), type: 'image/svg+xml' }],
     ['/assets/crash.svg', { file: path.join(ROOT, 'assets', 'crash.svg'), type: 'image/svg+xml' }],
-    ['/assets/coin-flip.svg', { file: path.join(ROOT, 'assets', 'coin-flip.svg'), type: 'image/svg+xml' }]
+    ['/assets/coin-flip.svg', { file: path.join(ROOT, 'assets', 'coin-flip.svg'), type: 'image/svg+xml' }],
+    ['/assets/farm/barn.svg', { file: path.join(ROOT, 'assets', 'farm', 'barn.svg'), type: 'image/svg+xml' }]
   ]);
 
   async function handleApi(req, res, pathname) {

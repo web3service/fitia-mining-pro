@@ -256,6 +256,23 @@
       image.src = editorImageUrl();
       byId('store-image-status').textContent = state.editorImage ? 'Photo enregistrée' : 'Logo FITIA par défaut';
       byId('store-image-remove').classList.toggle('hidden', !state.editorImage);
+      const previewCard = byId('store-preview-card');
+      const promoVariant = byId('store-promo-variant')?.value || '';
+      const promoAnimated = byId('store-promo-animated')?.checked !== false;
+      const promoLabel = byId('store-promo-label-fr')?.value.trim() || byId('store-promo-label-en')?.value.trim() || '';
+      const promoLabelEl = byId('store-preview-promo-label');
+      if (previewCard && window.FitiaPromotionEffects) {
+        previewCard.className = 'store-preview-card';
+        window.FitiaPromotionEffects.clear(previewCard);
+        if (promoVariant && window.FitiaPromotionEffects.isVariant(promoVariant)) {
+          previewCard.classList.add('shop-promo', `shop-promo-${promoVariant}`);
+          window.FitiaPromotionEffects.decorate(previewCard, promoVariant, promoAnimated);
+        }
+      }
+      if (promoLabelEl) {
+        promoLabelEl.textContent = promoLabel;
+        promoLabelEl.classList.toggle('hidden', !promoVariant || !promoLabel);
+      }
     }
 
     function openEditor(item = null, duplicate = false) {
@@ -282,6 +299,9 @@
       byId('store-shipping-fee').value = item?.shippingFee || '0';
       byId('store-stock').value = String(item?.stock ?? 1);
       byId('store-delivery-estimate').value = item?.deliveryEstimate || '';
+      if (byId('store-promo-variant')) byId('store-promo-variant').value = item?.promoVariant || '';
+      if (byId('store-promo-animated')) byId('store-promo-animated').checked = item?.promoAnimated !== false;
+      if (byId('store-promo-label-fr')) fillLocalized('promo-label', item?.promoLabel || {});
       byId('store-starts-at').value = item ? deps.toInputDate(item.startsAt) : '';
       byId('store-expires-at').value = item ? deps.toInputDate(item.expiresAt) : '';
       byId('store-editor-title').textContent = state.editingId ? 'Modifier le produit' : duplicate ? 'Dupliquer le produit' : 'Nouveau produit';
@@ -369,6 +389,13 @@
       };
       if (startsAt) item.startsAt = startsAt;
       if (expiresAt) item.expiresAt = expiresAt;
+      const promoVariant = byId('store-promo-variant')?.value || '';
+      if (promoVariant) {
+        item.promoVariant = promoVariant;
+        item.promoAnimated = byId('store-promo-animated')?.checked !== false;
+        const promoLabel = readLocalized('promo-label');
+        if (Object.keys(promoLabel).length) item.promoLabel = promoLabel;
+      }
       const next = clone(state.manifest);
       if (state.editingId) {
         const index = next.products.findIndex((candidate) => candidate.id === state.editingId);

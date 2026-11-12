@@ -179,7 +179,7 @@ async function waitFor(condition, label) {
   assert.ok(html.indexOf('src="/admin/users-admin.js"') < html.indexOf('src="/admin/admin.js"'));
   assert.deepStrictEqual(
     Array.from(window.document.querySelectorAll('#promotion-variant option'), (option) => option.value),
-    ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge']
+    ['birthday', 'confetti', 'fireworks', 'hearts', 'blossom', 'summer', 'halloween', 'blackfriday', 'flash', 'sale', 'vip', 'new', 'badge', 'gift', 'bells', 'snow']
   );
   assert.ok(adminCss.includes('@media (max-width: 760px)'));
   assert.ok(adminCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr))'));
@@ -214,8 +214,27 @@ async function waitFor(condition, label) {
   const firstPreset = window.document.querySelector('[data-avatar-preset="assets/avatars/team-1.svg"]');
   firstPreset.click();
   assert.strictEqual(window.document.querySelectorAll('#preview-avatars img').length, 2);
+  const male3dPreset = window.document.querySelector('[data-avatar-preset="assets/avatars/man-3d-1.webp"]');
+  male3dPreset.click();
+  assert.strictEqual(window.document.querySelectorAll('#preview-avatars img').length, 3);
+  assert.ok(Array.from(window.document.querySelectorAll('#preview-avatars img'), (img) => img.getAttribute('src')).includes('/assets/avatars/man-3d-1.webp'));
+  male3dPreset.click();
   firstPreset.click();
   assert.strictEqual(window.document.querySelectorAll('#preview-avatars img').length, 3);
+  window.document.getElementById('item-background-dim').value = '25';
+  window.document.getElementById('item-background-brightness').value = '115';
+  window.document.getElementById('item-background-position').value = 'top';
+  window.document.getElementById('item-background-fit').value = 'contain';
+  window.document.getElementById('item-background-dim').dispatchEvent(new window.Event('input', { bubbles: true }));
+  assert.strictEqual(window.document.getElementById('item-background-dim-value').textContent, '25 %');
+  assert.strictEqual(window.document.getElementById('item-background-brightness-value').textContent, '115 %');
+  assert.strictEqual(window.document.getElementById('preview-slide').style.getPropertyValue('--announcement-bg-dim'), '0.25');
+  assert.strictEqual(window.document.getElementById('preview-slide').style.getPropertyValue('--announcement-bg-brightness'), '115%');
+  assert.strictEqual(window.document.getElementById('preview-slide').style.getPropertyValue('--announcement-bg-position'), 'top');
+  assert.strictEqual(window.document.getElementById('preview-slide').style.getPropertyValue('--announcement-bg-fit'), 'contain');
+  window.document.getElementById('item-background-reset').click();
+  assert.strictEqual(window.document.getElementById('item-background-dim').value, '0');
+  assert.strictEqual(window.document.getElementById('item-background-brightness').value, '100');
   const title = '<img src=x data-injected> Événement test';
   const message = '<script>window.__xss = true</script> Message test';
   window.document.getElementById('item-title-fr').value = title;
@@ -398,6 +417,20 @@ async function waitFor(condition, label) {
   await waitFor(() => gameWrites.length === 4, 'réaffichage Crash');
   await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réaffichage Crash');
   assert.deepStrictEqual(gameManifest.hiddenGames, []);
+  gameToggle = window.document.querySelector('[data-game-visibility-toggle="farm"]');
+  gameToggle.checked = false;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 5, 'masquage FITIA FARM');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin masquage FITIA FARM');
+  assert.deepStrictEqual(gameManifest.hiddenGames, ['farm']);
+  assert.ok(window.document.querySelector('[data-game-visibility="farm"]').classList.contains('is-hidden'));
+  assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '5 / 6 visibles');
+  gameToggle = window.document.querySelector('[data-game-visibility-toggle="farm"]');
+  gameToggle.checked = true;
+  gameToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await waitFor(() => gameWrites.length === 6, 'réaffichage FITIA FARM');
+  await waitFor(() => window.document.getElementById('loading-overlay').classList.contains('hidden'), 'fin réaffichage FITIA FARM');
+  assert.deepStrictEqual(gameManifest.hiddenGames, []);
   assert.strictEqual(window.document.getElementById('game-visible-count').textContent, '6 / 6 visibles');
 
   window.document.querySelector('[data-section="store"]').click();
@@ -419,8 +452,14 @@ async function waitFor(condition, label) {
   window.document.getElementById('store-shipping-fee').value = '1.01';
   window.document.getElementById('store-stock').value = '7';
   window.document.getElementById('store-delivery-estimate').value = '3 à 7 jours';
+  window.document.getElementById('store-promo-variant').value = 'blackfriday';
+  window.document.getElementById('store-promo-variant').dispatchEvent(new window.Event('change', { bubbles: true }));
+  window.document.getElementById('store-promo-label-fr').value = 'BLACK FRIDAY -30%';
   window.document.getElementById('store-name-fr').dispatchEvent(new window.Event('input', { bubbles: true }));
   assert.strictEqual(window.document.getElementById('store-preview-name').textContent, storeProductName);
+  assert.ok(window.document.getElementById('store-preview-card').classList.contains('shop-promo-blackfriday'));
+  assert.strictEqual(window.document.getElementById('store-preview-promo-label').textContent, 'BLACK FRIDAY -30%');
+  assert.ok(window.document.querySelector('#store-preview-card .promotion-effect-blackfriday svg'));
   window.document.getElementById('store-product-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => storeWrites.length === 1, 'création produit STORE');
   await waitFor(() => window.document.getElementById('store-editor-modal').classList.contains('hidden'), 'fermeture éditeur STORE');
@@ -430,6 +469,8 @@ async function waitFor(condition, label) {
   assert.strictEqual(createdStoreProduct.price, '19.99');
   assert.strictEqual(createdStoreProduct.shippingFee, '1.01');
   assert.strictEqual(createdStoreProduct.stock, 7);
+  assert.strictEqual(createdStoreProduct.promoVariant, 'blackfriday');
+  assert.strictEqual(createdStoreProduct.promoLabel.fr, 'BLACK FRIDAY -30%');
   const storeRow = window.document.querySelector(`[data-store-product-id="${createdStoreProduct.id}"]`);
   assert.ok(storeRow.textContent.includes(storeProductName));
   assert.strictEqual(storeRow.querySelector('[data-store-xss]'), null);

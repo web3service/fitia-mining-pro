@@ -1,16 +1,22 @@
 // Illustrations et particules locales des décorations FITIA.
 // Aucun texte administrateur n'est utilisé dans le SVG ou les particules.
-(() => {
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  if (root) root.FitiaPromotionEffects = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
   let svgSequence = 0;
   const VARIANTS = Object.freeze([
-    'gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge'
+    'gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge',
+    'birthday', 'blackfriday', 'flash', 'sale', 'vip', 'new', 'summer'
   ]);
   const PARTICLE_COUNTS = {
     gift: 4, bells: 5, snow: 8, confetti: 10, fireworks: 8,
-    hearts: 6, blossom: 7, halloween: 6, badge: 4
+    hearts: 6, blossom: 7, halloween: 6, badge: 4,
+    birthday: 8, blackfriday: 7, flash: 6, sale: 6, vip: 6, new: 7, summer: 6
   };
   const PARTICLE_COLORS = {
     gift: ['#fde68a', '#f87171', '#86efac'],
@@ -21,7 +27,14 @@
     hearts: ['#fda4af', '#fb7185', '#f9a8d4'],
     blossom: ['#fbcfe8', '#f9a8d4', '#bef264', '#fde68a'],
     halloween: ['#fb923c', '#c084fc', '#a3e635'],
-    badge: ['#fde68a', '#f0b90b', '#fff7d6']
+    badge: ['#fde68a', '#f0b90b', '#fff7d6'],
+    birthday: ['#f472b6', '#fde68a', '#60a5fa', '#34d399'],
+    blackfriday: ['#fbbf24', '#ef4444', '#fff7d6'],
+    flash: ['#facc15', '#fb923c', '#fff7d6'],
+    sale: ['#fb7185', '#fde68a', '#ffffff'],
+    vip: ['#fde047', '#f59e0b', '#fef9c3'],
+    new: ['#38bdf8', '#fde047', '#a5f3fc'],
+    summer: ['#fde047', '#38bdf8', '#fb923c']
   };
 
   function isVariant(value) {
@@ -123,6 +136,60 @@
       add('path', { d: 'M32 14C15 14 7 24 9 39C11 53 23 57 32 57C41 57 53 53 55 39C57 24 49 14 32 14Z', fill: gradient(['#fed7aa', '#f97316', '#c2410c'], true), stroke: '#fed7aa', 'stroke-width': 1.5 });
       add('path', { d: 'M32 15C23 21 22 49 32 56M32 15C41 21 42 49 32 56M20 17C14 28 15 45 23 53M44 17C50 28 49 45 41 53', fill: 'none', stroke: '#c2410c', 'stroke-width': 2, opacity: 0.75 });
       add('path', { d: 'M18 29L26 24L27 33ZM46 29L38 24L37 33ZM22 42L28 45L33 42L38 45L44 41C41 50 27 52 22 42Z', fill: '#31102f' });
+    } else if (variant === 'birthday') {
+      // Gâteau d'anniversaire festif avec bougies allumées et glaçage
+      add('rect', { x: 9, y: 52, width: 46, height: 5, rx: 2.5, fill: gradient(['#fef3c7', '#fbbf24', '#b45309']) });
+      add('rect', { x: 13, y: 36, width: 38, height: 17, rx: 4, fill: gradient(['#f9a8d4', '#ec4899', '#9d174d']), stroke: '#fbcfe8', 'stroke-width': 1.3 });
+      add('rect', { x: 18, y: 24, width: 28, height: 14, rx: 3.5, fill: gradient(['#fde68a', '#f59e0b', '#d97706']), stroke: '#fef3c7', 'stroke-width': 1.2 });
+      add('path', { d: 'M13 40C17 44 21 44 25 40C29 44 35 44 39 40C43 44 47 44 51 40', fill: 'none', stroke: '#fff1f2', 'stroke-width': 2.6, 'stroke-linecap': 'round' });
+      add('path', { d: 'M18 27C22 31 26 31 30 27C34 31 38 31 46 27', fill: 'none', stroke: '#fffbeb', 'stroke-width': 2.2, 'stroke-linecap': 'round' });
+      add('rect', { x: 22, y: 14, width: 4, height: 10, rx: 1.5, fill: '#60a5fa', stroke: '#dbeafe', 'stroke-width': 0.9 });
+      add('rect', { x: 30, y: 12, width: 4, height: 12, rx: 1.5, fill: '#34d399', stroke: '#d1fae5', 'stroke-width': 0.9 });
+      add('rect', { x: 38, y: 14, width: 4, height: 10, rx: 1.5, fill: '#f472b6', stroke: '#fce7f3', 'stroke-width': 0.9 });
+      add('path', { d: 'M24 6C26 9 26 12 24 13C22 12 22 9 24 6Z', fill: '#fde047' });
+      add('path', { d: 'M32 4C34.5 7.5 34.5 10.5 32 11.5C29.5 10.5 29.5 7.5 32 4Z', fill: '#fde047' });
+      add('path', { d: 'M40 6C42 9 42 12 40 13C38 12 38 9 40 6Z', fill: '#fde047' });
+      add('circle', { cx: 11, cy: 18, r: 2.2, fill: '#fde68a' });
+      add('circle', { cx: 53, cy: 16, r: 2.4, fill: '#f472b6' });
+    } else if (variant === 'blackfriday') {
+      // Étiquette Black Friday noir obsidienne, or et rouge vif avec éclair
+      add('path', { d: 'M14 14L35 10L54 29L33 54L10 31Z', fill: gradient(['#27272a', '#09090b', '#000000']), stroke: '#fbbf24', 'stroke-width': 2 });
+      add('path', { d: 'M17 17L34 14L49 29L33 49L14 30Z', fill: 'none', stroke: '#ef4444', 'stroke-width': 1.1, opacity: 0.85 });
+      add('circle', { cx: 21, cy: 21, r: 3.2, fill: '#fbbf24', stroke: '#09090b', 'stroke-width': 1 });
+      add('path', { d: 'M35 20L27 33H33L29 44L41 30H35Z', fill: gradient(['#fff7d6', '#fbbf24', '#ef4444']), stroke: '#fef3c7', 'stroke-width': 0.9, 'stroke-linejoin': 'round' });
+      add('path', { d: 'M48 11L51 15M53 20H57M11 45L15 49', stroke: '#fbbf24', 'stroke-width': 2.2, 'stroke-linecap': 'round' });
+    } else if (variant === 'flash') {
+      // Vente Flash — éclair haute tension ambre & or
+      add('circle', { cx: 32, cy: 32, r: 24, fill: gradient(['#fb923c', '#b45309', '#451a03'], true), stroke: '#fde047', 'stroke-width': 1.6 });
+      add('path', { d: 'M36 9L19 34H31L26 55L46 28H34Z', fill: gradient(['#ffffff', '#fde047', '#f97316']), stroke: '#fff7d6', 'stroke-width': 1.3, 'stroke-linejoin': 'round' });
+      add('path', { d: 'M11 19L15 22M50 42L54 45M49 16L45 20', stroke: '#fef08a', 'stroke-width': 2.2, 'stroke-linecap': 'round' });
+    } else if (variant === 'sale') {
+      // Soldes / Réduction — badge étoilé avec pourcentage net
+      add('path', { d: 'M32 6L39 14L50 12L51 23L59 31L51 39L50 50L39 48L32 57L25 48L14 50L13 39L5 31L13 23L14 12L25 14Z', fill: gradient(['#fb7185', '#e11d48', '#881337']), stroke: '#fecdd3', 'stroke-width': 1.5, 'stroke-linejoin': 'round' });
+      add('circle', { cx: 24, cy: 24, r: 4, fill: 'none', stroke: '#fffbeb', 'stroke-width': 2.8 });
+      add('circle', { cx: 40, cy: 39, r: 4, fill: 'none', stroke: '#fffbeb', 'stroke-width': 2.8 });
+      add('path', { d: 'M41 21L23 42', stroke: '#fde68a', 'stroke-width': 3.4, 'stroke-linecap': 'round' });
+    } else if (variant === 'vip') {
+      // VIP / Prestige Or — couronne royale sertie de gemmes
+      add('path', { d: 'M10 46L7 20L21 31L32 14L43 31L57 20L54 46Z', fill: gradient(['#fef9c3', '#f59e0b', '#92400e']), stroke: '#fef08a', 'stroke-width': 1.6, 'stroke-linejoin': 'round' });
+      add('rect', { x: 10, y: 46, width: 44, height: 7, rx: 3, fill: gradient(['#fde047', '#ca8a04', '#713f12']), stroke: '#fef9c3', 'stroke-width': 1.2 });
+      add('circle', { cx: 32, cy: 13, r: 3.5, fill: '#ef4444', stroke: '#fef9c3', 'stroke-width': 1 });
+      add('circle', { cx: 7, cy: 19, r: 3, fill: '#38bdf8', stroke: '#fef9c3', 'stroke-width': 0.9 });
+      add('circle', { cx: 57, cy: 19, r: 3, fill: '#34d399', stroke: '#fef9c3', 'stroke-width': 0.9 });
+      add('circle', { cx: 32, cy: 37, r: 4, fill: gradient(['#ffffff', '#60a5fa', '#1d4ed8'], true), stroke: '#fef9c3', 'stroke-width': 1 });
+    } else if (variant === 'new') {
+      // Nouveauté / Lancement — fusée dynamique vers le haut
+      add('path', { d: 'M32 7C41 16 44 28 42 40H22C20 28 23 16 32 7Z', fill: gradient(['#e0f2fe', '#38bdf8', '#0369a1']), stroke: '#bae6fd', 'stroke-width': 1.4 });
+      add('path', { d: 'M22 33L13 42L21 43ZM42 33L51 42L43 43Z', fill: gradient(['#fde047', '#f59e0b', '#b45309']), stroke: '#fef3c7', 'stroke-width': 1 });
+      add('circle', { cx: 32, cy: 24, r: 5.5, fill: gradient(['#ffffff', '#7dd3fc', '#0284c7'], true), stroke: '#f0f9ff', 'stroke-width': 1.2 });
+      add('path', { d: 'M27 42L32 56L37 42Z', fill: gradient(['#fef08a', '#fb923c', '#ef4444']) });
+      add('circle', { cx: 14, cy: 16, r: 2.2, fill: '#fde047' });
+      add('circle', { cx: 51, cy: 14, r: 2, fill: '#bae6fd' });
+    } else if (variant === 'summer') {
+      // Été / Soleil — soleil rayonnant doré & vague turquoise
+      add('path', { d: 'M32 7V13M32 51V57M7 32H13M51 32H57M14 14L19 19M45 45L50 50M50 14L45 19M19 45L14 50', stroke: '#fde047', 'stroke-width': 3, 'stroke-linecap': 'round' });
+      add('circle', { cx: 32, cy: 32, r: 15, fill: gradient(['#fef9c3', '#facc15', '#ea580c'], true), stroke: '#fef08a', 'stroke-width': 1.5 });
+      add('path', { d: 'M12 49C18 44 25 44 32 49C39 54 46 54 52 49', fill: 'none', stroke: '#38bdf8', 'stroke-width': 3.2, 'stroke-linecap': 'round' });
     } else {
       add('path', { d: 'M20 36L13 58L28 50L34 60L40 39Z', fill: '#dc2626', stroke: '#fca5a5', 'stroke-width': 1.2 });
       add('path', { d: 'M40 36L51 56L38 51L32 60L25 39Z', fill: '#166534', stroke: '#86efac', 'stroke-width': 1.2 });
@@ -180,5 +247,5 @@
     card.appendChild(decoration);
   }
 
-  window.FitiaPromotionEffects = { VARIANTS, isVariant, createIcon, decorate, clear };
-})();
+  return { VARIANTS, isVariant, createIcon, decorate, clear };
+});

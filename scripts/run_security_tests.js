@@ -1694,7 +1694,11 @@ function httpRequest(port, method, reqPath) {
           theme: 'celebration',
           font: 'elegant',
           backgroundImage: uploadedBackground,
-          avatars: ['assets/avatars/team-1.svg', uploadedAvatar],
+          backgroundDim: 25,
+          backgroundBrightness: 115,
+          backgroundPosition: 'top',
+          backgroundFit: 'contain',
+          avatars: ['assets/avatars/man-3d-1.webp', 'assets/avatars/team-1.svg', uploadedAvatar],
           startsAt: '2026-10-01T00:00:00Z',
           expiresAt: '2026-12-31T23:59:59Z'
         };
@@ -1712,6 +1716,8 @@ function httpRequest(port, method, reqPath) {
             { ...safe, id: 'bad-theme', theme: 'injected-theme' },
             { ...safe, id: 'bad-font', font: 'url(https://evil.example/font)' },
             { ...safe, id: 'bad-background', backgroundImage: 'https://evil.example/background.png' },
+            { ...safe, id: 'bad-dim', backgroundDim: 95 },
+            { ...safe, id: 'bad-position', backgroundPosition: 'diagonal' },
             { ...safe, id: 'bad-avatar', avatars: ['https://evil.example/avatar.png'] },
             { ...safe, id: 'duplicate-avatar', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-1.svg'] },
             { ...safe, id: 'too-many-avatars', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg', uploadedAvatar] }
@@ -1738,8 +1744,12 @@ function httpRequest(port, method, reqPath) {
         assert.ok(visualSlide.classList.contains('has-background'));
         assert.ok(visualSlide.style.getPropertyValue('--announcement-bg-image').includes(uploadedBackground));
         assert.ok(visualSlide.style.getPropertyValue('--announcement-bg-image').includes('raw.githubusercontent.com'));
-        assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatars img').length, 2, 'Les avatars validés sont affichés');
-        assert.strictEqual(visualSlide.querySelector('.announcement-avatars img').getAttribute('src'), 'assets/avatars/team-1.svg', 'Les avatars FITIA restent embarqués');
+        assert.strictEqual(visualSlide.style.getPropertyValue('--announcement-bg-dim'), '0.25');
+        assert.strictEqual(visualSlide.style.getPropertyValue('--announcement-bg-brightness'), '115%');
+        assert.strictEqual(visualSlide.style.getPropertyValue('--announcement-bg-position'), 'top');
+        assert.strictEqual(visualSlide.style.getPropertyValue('--announcement-bg-fit'), 'contain');
+        assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatars img').length, 3, 'Les avatars validés sont affichés');
+        assert.strictEqual(visualSlide.querySelector('.announcement-avatars img').getAttribute('src'), 'assets/avatars/man-3d-1.webp', 'Les avatars 3D FITIA restent embarqués');
         assert.strictEqual(visualSlide.querySelector('.announcement-avatars').getAttribute('aria-hidden'), 'true');
 
         App.setLanguage('en');
@@ -1942,7 +1952,10 @@ function httpRequest(port, method, reqPath) {
         center.items = normalized;
 
         const effectVariants = e2eWin.FitiaPromotionEffects.VARIANTS;
-        assert.deepStrictEqual(Array.from(effectVariants), ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge']);
+        assert.deepStrictEqual(Array.from(effectVariants), [
+          'gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge',
+          'birthday', 'blackfriday', 'flash', 'sale', 'vip', 'new', 'summer'
+        ]);
         const effectCard = e2eWin.document.createElement('div');
         for (const variant of effectVariants) {
           center.items = [{ ...normalized[0], id: `effect-${variant}`, variant, animated: true, startsAt: null, expiresAt: null }];
@@ -3262,7 +3275,7 @@ function httpRequest(port, method, reqPath) {
         assert.ok(packagedFiles.includes(`assets/www/assets/fonts/${fontFile}`), `La police locale ${fontFile} est embarquée dans l’APK`);
       }
       assert.ok(packagedFiles.includes('assets/www/assets/fta.png'), 'Le vrai logo FTA est embarqué dans l’APK');
-      for (const avatar of ['team-1.svg', 'team-2.svg', 'team-3.svg']) {
+      for (const avatar of ['team-1.svg', 'team-2.svg', 'team-3.svg', 'man-3d-1.webp', 'man-3d-2.webp', 'man-3d-3.webp', 'man-3d-4.webp']) {
         assert.ok(packagedFiles.includes(`assets/www/assets/avatars/${avatar}`), `L’avatar FITIA ${avatar} est embarqué dans l’APK`);
       }
       assert.ok(!packagedFiles.includes('assets/www/assets/fta.svg'), 'L’ancien dessin FTA n’est plus embarqué');

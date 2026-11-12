@@ -6,7 +6,13 @@ const MAX_ANNOUNCEMENT_IMAGE_BYTES = 1536 * 1024;
 const MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES = 2200 * 1024;
 const ANNOUNCEMENT_THEMES = Object.freeze(['classic', 'aurora', 'gold', 'emerald', 'violet', 'celebration']);
 const ANNOUNCEMENT_FONTS = Object.freeze(['modern', 'elegant', 'rounded', 'mono']);
+const ANNOUNCEMENT_BG_POSITIONS = Object.freeze(['center', 'top', 'bottom', 'left', 'right']);
+const ANNOUNCEMENT_BG_FITS = Object.freeze(['cover', 'contain']);
 const ANNOUNCEMENT_AVATAR_PRESETS = Object.freeze([
+  'assets/avatars/man-3d-1.webp',
+  'assets/avatars/man-3d-2.webp',
+  'assets/avatars/man-3d-3.webp',
+  'assets/avatars/man-3d-4.webp',
   'assets/avatars/team-1.svg',
   'assets/avatars/team-2.svg',
   'assets/avatars/team-3.svg'
@@ -39,6 +45,34 @@ function normalizeAppearance(item) {
       return { ok: false, status: 400, code: 'BACKGROUND', message: 'Image d’arrière-plan non autorisée.' };
     }
     appearance.backgroundImage = backgroundImage;
+
+    if (item.backgroundDim !== undefined && item.backgroundDim !== null && item.backgroundDim !== '') {
+      if (!Number.isSafeInteger(item.backgroundDim) || item.backgroundDim < 0 || item.backgroundDim > 80) {
+        return { ok: false, status: 400, code: 'BACKGROUND_DIM', message: 'Le voile d’arrière-plan doit être un entier entre 0 et 80.' };
+      }
+      if (item.backgroundDim > 0) appearance.backgroundDim = item.backgroundDim;
+    }
+
+    if (item.backgroundBrightness !== undefined && item.backgroundBrightness !== null && item.backgroundBrightness !== '') {
+      if (!Number.isSafeInteger(item.backgroundBrightness) || item.backgroundBrightness < 70 || item.backgroundBrightness > 150) {
+        return { ok: false, status: 400, code: 'BACKGROUND_BRIGHTNESS', message: 'La luminosité d’arrière-plan doit être un entier entre 70 et 150.' };
+      }
+      if (item.backgroundBrightness !== 100) appearance.backgroundBrightness = item.backgroundBrightness;
+    }
+
+    if (item.backgroundPosition !== undefined && item.backgroundPosition !== null && item.backgroundPosition !== '') {
+      if (typeof item.backgroundPosition !== 'string' || !ANNOUNCEMENT_BG_POSITIONS.includes(item.backgroundPosition)) {
+        return { ok: false, status: 400, code: 'BACKGROUND_POSITION', message: 'Position d’image d’arrière-plan non autorisée.' };
+      }
+      if (item.backgroundPosition !== 'center') appearance.backgroundPosition = item.backgroundPosition;
+    }
+
+    if (item.backgroundFit !== undefined && item.backgroundFit !== null && item.backgroundFit !== '') {
+      if (typeof item.backgroundFit !== 'string' || !ANNOUNCEMENT_BG_FITS.includes(item.backgroundFit)) {
+        return { ok: false, status: 400, code: 'BACKGROUND_FIT', message: 'Mode d’affichage d’arrière-plan non autorisé.' };
+      }
+      if (item.backgroundFit !== 'cover') appearance.backgroundFit = item.backgroundFit;
+    }
   }
 
   if (item.avatars !== undefined) {
@@ -115,6 +149,8 @@ module.exports = {
   MAX_ANNOUNCEMENT_IMAGE_BODY_BYTES,
   ANNOUNCEMENT_THEMES,
   ANNOUNCEMENT_FONTS,
+  ANNOUNCEMENT_BG_POSITIONS,
+  ANNOUNCEMENT_BG_FITS,
   ANNOUNCEMENT_AVATAR_PRESETS,
   normalizeAssetPath,
   normalizeAppearance,

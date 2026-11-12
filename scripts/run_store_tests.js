@@ -60,6 +60,7 @@ async function createHarness(token = 'USDT', options = {}) {
   Object.defineProperty(win, 'crypto', { value: crypto.webcrypto, configurable: true });
   win.confirm = () => true;
   win.eval(fs.readFileSync(path.join(ROOT, 'vendor/ethers.umd.min.js'), 'utf8'));
+  win.eval(fs.readFileSync(path.join(ROOT, 'promotion-effects.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'store-catalog.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'store-order-protocol.js'), 'utf8'));
   win.eval(fs.readFileSync(path.join(ROOT, 'store.js'), 'utf8'));
@@ -622,6 +623,38 @@ async function createHarness(token = 'USDT', options = {}) {
       assert.strictEqual(h.transfers.length, 0);
       assert.strictEqual(h.center.orders.length, 0);
       assert.strictEqual(h.serverOrders.size, 1, 'La commande temporaire peut exister, mais aucun transfert ne doit partir');
+    } finally { h.close(); }
+  });
+
+  await runTest('Promotions STORE : validation stricte et décoration visuelle facultative des produits', async () => {
+    const valid = Catalog.validateManifest({
+      version: 1,
+      enabled: true,
+      products: [product({ promoVariant: 'blackfriday', promoLabel: { fr: 'BLACK FRIDAY -30%', en: 'BLACK FRIDAY 30% OFF' }, promoAnimated: false })]
+    });
+    assert.strictEqual(valid.products[0].promoVariant, 'blackfriday');
+    assert.strictEqual(valid.products[0].promoLabel.en, 'BLACK FRIDAY 30% OFF');
+    assert.strictEqual(valid.products[0].promoAnimated, false);
+
+    assert.throws(() => Catalog.validateManifest({
+      version: 1,
+      enabled: true,
+      products: [product({ promoVariant: 'unknown-variant' })]
+    }));
+
+    const h = await createHarness('USDT');
+    try {
+      const m = h.getManifest();
+      m.products[0].promoVariant = 'birthday';
+      m.products[0].promoLabel = { en: 'BIRTHDAY DEAL' };
+      m.products[0].promoAnimated = true;
+      h.setManifest(m);
+      await h.center.refresh({ force: true });
+      const card = h.win.document.querySelector('#store-product-grid .store-product-card');
+      assert.ok(card.classList.contains('store-promo'));
+      assert.ok(card.classList.contains('shop-promo-birthday'));
+      assert.strictEqual(card.querySelector('.store-promo-label').textContent, 'BIRTHDAY DEAL');
+      assert.ok(card.querySelector('.promotion-effect-birthday svg'));
     } finally { h.close(); }
   });
 

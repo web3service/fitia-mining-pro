@@ -233,7 +233,7 @@
           </div>
           <div class="game-visibility-panel">
             <div class="game-visibility-heading">
-              <div><strong>Masquage visuel uniquement</strong><p>Un jeu masqué disparaît du Hub. Ses règles, ses parties côté serveur, les soldes et les historiques ne sont pas modifiés. Swap reste toujours disponible.</p></div>
+              <div><strong>Masquage visuel uniquement</strong><p>Un jeu masqué (y compris FITIA FARM) disparaît du Hub. Si tous les jeux sont masqués, la section Jeux du Hub est masquée automatiquement. Ses règles, ses parties côté serveur, les soldes et les historiques ne sont pas modifiés. Swap reste toujours disponible.</p></div>
             </div>
             <div id="game-visibility-error" class="alert alert-error hidden" role="alert"></div>
             <div id="game-visibility-list" class="game-visibility-list" aria-live="polite"></div>
@@ -442,20 +442,58 @@
               </div>
 
               <div class="asset-field">
-                <div class="asset-field-heading"><div><strong>Image d’arrière-plan</strong><small>PNG, JPEG ou WebP · 1,5 Mo maximum</small></div><span id="item-background-status" class="asset-status">Aucune image</span></div>
+                <div class="asset-field-heading"><div><strong>Image d’arrière-plan</strong><small>PNG, JPEG ou WebP · 1,5 Mo maximum · affichée en clair par défaut</small></div><span id="item-background-status" class="asset-status">Aucune image</span></div>
                 <div class="asset-actions">
                   <button id="item-background-upload" class="button button-quiet" type="button">Importer une image</button>
                   <button id="item-background-remove" class="button button-danger hidden" type="button">Retirer</button>
                   <input id="item-background-file" class="hidden" type="file" accept="image/png,image/jpeg,image/webp">
                 </div>
+                <div id="item-background-controls" class="bg-controls-panel hidden">
+                  <div class="date-grid bg-controls-grid">
+                    <div class="field-group">
+                      <label for="item-background-dim">Voile sombre <span id="item-background-dim-value">0 %</span></label>
+                      <input id="item-background-dim" type="range" min="0" max="80" step="5" value="0">
+                    </div>
+                    <div class="field-group">
+                      <label for="item-background-brightness">Luminosité <span id="item-background-brightness-value">100 %</span></label>
+                      <input id="item-background-brightness" type="range" min="70" max="150" step="5" value="100">
+                    </div>
+                    <div class="field-group">
+                      <label for="item-background-position">Cadrage de l’image</label>
+                      <select id="item-background-position">
+                        <option value="center">Centré</option>
+                        <option value="top">Haut</option>
+                        <option value="bottom">Bas</option>
+                        <option value="left">Gauche</option>
+                        <option value="right">Droite</option>
+                      </select>
+                    </div>
+                    <div class="field-group">
+                      <label for="item-background-fit">Affichage</label>
+                      <select id="item-background-fit">
+                        <option value="cover">Remplir la bannière</option>
+                        <option value="contain">Image entière visible</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button id="item-background-reset" class="button button-quiet action-button" type="button">Réinitialiser le rendu</button>
+                </div>
               </div>
 
               <div class="asset-field">
-                <div class="asset-field-heading"><div><strong>Avatars de l’équipe</strong><small>Jusqu’à 3 avatars, avec des visuels FITIA prêts à l’emploi</small></div><span id="item-avatar-count" class="asset-status">0/3</span></div>
+                <div class="asset-field-heading"><div><strong>Avatars de la bannière</strong><small>Jusqu’à 3 avatars : personnages 3D, équipe FITIA ou vos propres imports réutilisables</small></div><span id="item-avatar-count" class="asset-status">0/3</span></div>
                 <div id="item-avatar-presets" class="avatar-presets" aria-label="Avatars FITIA disponibles">
+                  <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/man-3d-1.webp" aria-pressed="false" aria-label="Choisir l’avatar 3D mégaphone"><img src="/assets/avatars/man-3d-1.webp" alt="" width="48" height="48"></button>
+                  <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/man-3d-2.webp" aria-pressed="false" aria-label="Choisir l’avatar 3D téléphone pointé"><img src="/assets/avatars/man-3d-2.webp" alt="" width="48" height="48"></button>
+                  <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/man-3d-3.webp" aria-pressed="false" aria-label="Choisir l’avatar 3D consultation mobile"><img src="/assets/avatars/man-3d-3.webp" alt="" width="48" height="48"></button>
+                  <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/man-3d-4.webp" aria-pressed="false" aria-label="Choisir l’avatar 3D coureur"><img src="/assets/avatars/man-3d-4.webp" alt="" width="48" height="48"></button>
                   <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/team-1.svg" aria-pressed="false" aria-label="Choisir l’avatar FITIA 1"><img src="/assets/avatars/team-1.svg" alt="" width="48" height="48"></button>
                   <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/team-2.svg" aria-pressed="false" aria-label="Choisir l’avatar FITIA 2"><img src="/assets/avatars/team-2.svg" alt="" width="48" height="48"></button>
                   <button type="button" class="avatar-preset" data-avatar-preset="assets/avatars/team-3.svg" aria-pressed="false" aria-label="Choisir l’avatar FITIA 3"><img src="/assets/avatars/team-3.svg" alt="" width="48" height="48"></button>
+                </div>
+                <div id="item-avatar-library-wrap" class="avatar-library-wrap hidden">
+                  <small class="field-hint">Vos avatars importés (cliquez pour ajouter ou retirer) :</small>
+                  <div id="item-avatar-library" class="avatar-presets" aria-label="Avatars importés réutilisables"></div>
                 </div>
                 <div class="asset-actions">
                   <button id="item-avatar-upload" class="button button-quiet" type="button">Importer un avatar</button>
@@ -519,19 +557,28 @@
             <div class="field-group">
               <label for="promotion-variant">Effet de l’événement</label>
               <select id="promotion-variant" required>
+                <optgroup label="Événements &amp; fêtes">
+                  <option value="birthday">Anniversaire — gâteau &amp; bougies</option>
+                  <option value="confetti">Confettis et célébration</option>
+                  <option value="fireworks">Feux d’artifice — Nouvel An</option>
+                  <option value="hearts">Cœurs — Saint-Valentin</option>
+                  <option value="blossom">Fleurs — Printemps</option>
+                  <option value="summer">Été — soleil &amp; vague</option>
+                  <option value="halloween">Citrouille — Halloween</option>
+                </optgroup>
+                <optgroup label="Promotions &amp; boutique">
+                  <option value="blackfriday">Black Friday — étiquette or &amp; noir</option>
+                  <option value="flash">Offre Flash — éclair</option>
+                  <option value="sale">Soldes — étiquette -%</option>
+                  <option value="vip">Offre VIP — couronne dorée</option>
+                  <option value="new">Nouveauté — fusée</option>
+                  <option value="badge">Badge promotionnel</option>
+                </optgroup>
                 <optgroup label="Noël et hiver">
                   <option value="gift">Cadeau emballé</option>
                   <option value="bells">Cloches de Noël</option>
                   <option value="snow">Neige et flocons</option>
                 </optgroup>
-                <optgroup label="Événements de l’année">
-                  <option value="confetti">Confettis et célébration</option>
-                  <option value="fireworks">Feux d’artifice — Nouvel An</option>
-                  <option value="hearts">Cœurs — Saint-Valentin</option>
-                  <option value="blossom">Fleurs — Printemps</option>
-                  <option value="halloween">Citrouille — Halloween</option>
-                </optgroup>
-                <option value="badge">Badge promotionnel</option>
               </select>
             </div>
             <label class="animation-control" for="promotion-animated">
@@ -644,6 +691,56 @@
               <div class="field-group"><label for="store-stock">Stock public affiché</label><input id="store-stock" type="number" min="0" max="1000000" step="1" value="1" required><small class="field-hint">Actualisez-le après les ventes et auprès du fournisseur.</small></div>
             </div>
             <div class="field-group"><label for="store-delivery-estimate">Délai de livraison indicatif</label><input id="store-delivery-estimate" maxlength="80" placeholder="Ex. 3 à 7 jours ouvrés" required></div>
+
+            <fieldset class="design-fieldset">
+              <legend>Promotion / décoration visuelle <span>facultatif</span></legend>
+              <p class="field-hint">Ajoutez un effet saisonnier ou promotionnel (Anniversaire, Black Friday, Soldes…) sur la fiche produit sans modifier le prix.</p>
+              <div class="date-grid">
+                <div class="field-group">
+                  <label for="store-promo-variant">Style de promotion</label>
+                  <select id="store-promo-variant">
+                    <option value="">Aucune décoration</option>
+                    <optgroup label="Promotions &amp; boutique">
+                      <option value="blackfriday">Black Friday</option>
+                      <option value="flash">Offre Flash</option>
+                      <option value="sale">Soldes / Promo -%</option>
+                      <option value="vip">Offre VIP</option>
+                      <option value="new">Nouveauté</option>
+                      <option value="badge">Badge promotionnel</option>
+                    </optgroup>
+                    <optgroup label="Événements &amp; fêtes">
+                      <option value="birthday">Anniversaire</option>
+                      <option value="confetti">Confettis</option>
+                      <option value="fireworks">Feux d’artifice</option>
+                      <option value="hearts">Cœurs</option>
+                      <option value="blossom">Fleurs — Printemps</option>
+                      <option value="summer">Été — Soleil</option>
+                      <option value="halloween">Halloween</option>
+                    </optgroup>
+                    <optgroup label="Noël et hiver">
+                      <option value="gift">Cadeau emballé</option>
+                      <option value="bells">Cloches de Noël</option>
+                      <option value="snow">Neige et flocons</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="store-promo-label-fr">Badge en français <span>32 car. max</span></label>
+                  <input id="store-promo-label-fr" maxlength="32" placeholder="Ex. BLACK FRIDAY -30%">
+                </div>
+              </div>
+              <label class="animation-control" for="store-promo-animated"><input id="store-promo-animated" type="checkbox" checked><span><strong>Animer la décoration du produit</strong><small>Particules et icône animées sur la carte FITIA STORE.</small></span></label>
+              <details class="translations-panel">
+                <summary>Autres langues du badge promotionnel <span>facultatif</span></summary>
+                <div class="translations-grid">
+                  <div class="translation-fields"><h3>Anglais</h3><label for="store-promo-label-en">Badge</label><input id="store-promo-label-en" maxlength="32" placeholder="BLACK FRIDAY"></div>
+                  <div class="translation-fields"><h3>Allemand</h3><label for="store-promo-label-de">Badge</label><input id="store-promo-label-de" maxlength="32"></div>
+                  <div class="translation-fields"><h3>Chinois</h3><label for="store-promo-label-zh">Badge</label><input id="store-promo-label-zh" maxlength="32"></div>
+                  <div class="translation-fields"><h3>Sango</h3><label for="store-promo-label-sg">Badge</label><input id="store-promo-label-sg" maxlength="32"></div>
+                </div>
+              </details>
+            </fieldset>
+
             <div class="date-grid">
               <div class="field-group"><label for="store-starts-at">Début de vente <span>facultatif</span></label><input id="store-starts-at" type="datetime-local"></div>
               <div class="field-group"><label for="store-expires-at">Fin de vente <span>facultatif</span></label><input id="store-expires-at" type="datetime-local"></div>
@@ -655,8 +752,9 @@
             <p class="eyebrow">Aperçu dans FITIA STORE</p>
             <div class="phone-preview store-phone-preview">
               <div class="phone-preview-brand"><img src="/assets/icon-192.png" width="28" height="28" alt=""><strong>FITIA STORE</strong></div>
-              <div class="store-preview-card">
+              <div id="store-preview-card" class="store-preview-card">
                 <img id="store-preview-image" src="/assets/icon-192.png" width="180" height="180" alt="">
+                <span id="store-preview-promo-label" class="shop-promo-label store-preview-promo-label hidden"></span>
                 <span id="store-preview-source" class="store-preview-source">STOCK PROPRE</span>
                 <strong id="store-preview-name">Nom du produit</strong>
                 <p id="store-preview-description">Description du produit</p>

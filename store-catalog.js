@@ -15,6 +15,10 @@
   ]);
   const SOURCE_TYPES = Object.freeze(['own', 'dropshipping']);
   const TOKENS = Object.freeze(['USDT', 'FTA']);
+  const PROMO_VARIANTS = Object.freeze([
+    'gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge',
+    'birthday', 'blackfriday', 'flash', 'sale', 'vip', 'new', 'summer'
+  ]);
   // Codes ISO 3166-1 alpha-2 : les noms sont localisés par l'appareil et les
   // drapeaux SVG sont embarqués localement, sans dépendre d'un service d'images.
   const COUNTRY_CODES = Object.freeze([
@@ -184,6 +188,16 @@
     if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
       fail('La date de fin doit être postérieure à la date de début.');
     }
+    let promoVariant = '';
+    let promoLabel = null;
+    let promoAnimated = true;
+    if (item.promoVariant !== undefined && item.promoVariant !== null && item.promoVariant !== '') {
+      promoVariant = cleanText(item.promoVariant, 16).toLowerCase();
+      if (!PROMO_VARIANTS.includes(promoVariant)) fail('Le style de promotion du produit est invalide.');
+      promoLabel = localized(item.promoLabel, 32, 'Le badge promotionnel', false);
+      promoAnimated = item.promoAnimated === undefined ? true : item.promoAnimated;
+      if (typeof promoAnimated !== 'boolean') fail('Le réglage d’animation promotionnelle est invalide.');
+    }
     const product = {
       id,
       active: item.active,
@@ -206,6 +220,11 @@
     if (!product.deliveryEstimate) fail('Le délai de livraison est obligatoire.');
     if (startsAt) product.startsAt = startsAt;
     if (expiresAt) product.expiresAt = expiresAt;
+    if (promoVariant) {
+      product.promoVariant = promoVariant;
+      if (Object.keys(promoLabel).length) product.promoLabel = promoLabel;
+      product.promoAnimated = promoAnimated;
+    }
     return product;
   }
 
@@ -294,7 +313,7 @@
   }
 
   return Object.freeze({
-    LANGUAGES, CATEGORIES, SOURCE_TYPES, TOKENS, COUNTRY_CODES, TOKEN_DECIMALS, MAX_PRODUCTS,
+    LANGUAGES, CATEGORIES, SOURCE_TYPES, TOKENS, PROMO_VARIANTS, COUNTRY_CODES, TOKEN_DECIMALS, MAX_PRODUCTS,
     PRODUCT_IMAGE_PATTERN, ZERO_ADDRESS, StoreValidationError,
     cleanText, decimalString, parseUnits, formatUnits, countryFlag, countryName, normalizeShippingCountries,
     normalizeProduct, validateManifest, isVisible, groupKey, calculateCart

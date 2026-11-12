@@ -87,6 +87,9 @@ function visibleGameCards() {
       assert.strictEqual(window.document.querySelector('#view-hub .hub-card-farm').classList.contains('hidden'), true);
       assert.strictEqual(window.document.getElementById('view-farm').classList.contains('hidden'), false);
       assert.strictEqual(window.document.querySelector('#view-hub .hub-card-swap').classList.contains('hidden'), false);
+      resetCenter(['wheel', 'dice', 'mines', 'crash', 'coin-flip', 'farm']);
+      assert.deepStrictEqual(visibleGameCards(), []);
+      assert.strictEqual(window.document.querySelector('#view-hub .hub-card-swap').classList.contains('hidden'), false);
       resetCenter(['coin-flip']);
       assert.deepStrictEqual(visibleGameCards(), ['farm', 'wheel', 'dice', 'mines', 'crash']);
       resetCenter();

@@ -26,14 +26,33 @@
 
     apply() {
       if (!this.initialized) return;
+      let visibleCount = 0;
       CONFIG.GAMES.forEach(({ id }) => {
         const card = document.querySelector(`#view-hub [data-game-id="${id}"]`);
-        if (!card) return;
         const visible = this.isVisible(id);
+        if (visible) visibleCount += 1;
+        if (!card) return;
         card.classList.toggle('hidden', !visible);
         if (visible) card.removeAttribute('aria-hidden');
         else card.setAttribute('aria-hidden', 'true');
       });
+      const gateway = document.querySelector('#view-hub .ph-gateway');
+      if (gateway) {
+        const hideGateway = visibleCount === 0;
+        gateway.classList.toggle('hidden', hideGateway);
+        if (hideGateway) gateway.setAttribute('aria-hidden', 'true');
+        else gateway.removeAttribute('aria-hidden');
+      }
+      if (visibleCount === 0) {
+        const gamesSection = document.getElementById('game-hub-games');
+        const landing = document.getElementById('game-hub-landing');
+        const openButton = document.getElementById('ph-open-games');
+        if (gamesSection && landing && !gamesSection.hidden) {
+          gamesSection.hidden = true;
+          landing.hidden = false;
+          if (openButton) openButton.setAttribute('aria-expanded', 'false');
+        }
+      }
     }
 
     async refresh(options = {}) {

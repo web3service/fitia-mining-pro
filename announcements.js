@@ -145,7 +145,7 @@
       const clean = value.trim();
       if (clean.length > 160 || clean.includes('\\') || clean.includes('..')) return null;
       if (/^assets\/announcements\/announcement-[a-f0-9]{24}\.(png|jpg|webp)$/.test(clean)) return clean;
-      if (allowAvatarPresets && /^assets\/avatars\/team-[123]\.svg$/.test(clean)) return clean;
+      if (allowAvatarPresets && (/^assets\/avatars\/team-[123]\.svg$/.test(clean) || /^assets\/avatars\/man-3d-[1-4]\.webp$/.test(clean))) return clean;
       return null;
     }
 
@@ -157,6 +157,8 @@
     normalizeManifest(raw, now = Date.now()) {
       if (!raw || raw.enabled !== true || !Array.isArray(raw.announcements)) return [];
       const acceptedCategories = new Set(['information', 'event', 'referral', 'security']);
+      const acceptedBgPositions = new Set(['center', 'top', 'bottom', 'left', 'right']);
+      const acceptedBgFits = new Set(['cover', 'contain']);
       const seenIds = new Set();
       const normalized = [];
       const currentTime = Number.isFinite(Number(now)) ? Number(now) : Date.now();
@@ -176,6 +178,28 @@
         if (!['modern', 'elegant', 'rounded', 'mono'].includes(font)) return;
         const backgroundImage = item.backgroundImage ? this.normalizeAssetPath(item.backgroundImage) : '';
         if (item.backgroundImage && !backgroundImage) return;
+        let backgroundDim = 0;
+        let backgroundBrightness = 100;
+        let backgroundPosition = 'center';
+        let backgroundFit = 'cover';
+        if (backgroundImage) {
+          if (item.backgroundDim !== undefined) {
+            if (!Number.isSafeInteger(item.backgroundDim) || item.backgroundDim < 0 || item.backgroundDim > 80) return;
+            backgroundDim = item.backgroundDim;
+          }
+          if (item.backgroundBrightness !== undefined) {
+            if (!Number.isSafeInteger(item.backgroundBrightness) || item.backgroundBrightness < 70 || item.backgroundBrightness > 150) return;
+            backgroundBrightness = item.backgroundBrightness;
+          }
+          if (item.backgroundPosition !== undefined) {
+            if (typeof item.backgroundPosition !== 'string' || !acceptedBgPositions.has(item.backgroundPosition)) return;
+            backgroundPosition = item.backgroundPosition;
+          }
+          if (item.backgroundFit !== undefined) {
+            if (typeof item.backgroundFit !== 'string' || !acceptedBgFits.has(item.backgroundFit)) return;
+            backgroundFit = item.backgroundFit;
+          }
+        }
         const avatars = [];
         if (item.avatars !== undefined) {
           if (!Array.isArray(item.avatars) || item.avatars.length > 3) return;
@@ -193,7 +217,13 @@
         if (startsAt !== null && expiresAt !== null && expiresAt <= startsAt) return;
         seenIds.add(id);
         const normalizedItem = { id, category, title, message, theme, font, startsAt, expiresAt };
-        if (backgroundImage) normalizedItem.backgroundImage = backgroundImage;
+        if (backgroundImage) {
+          normalizedItem.backgroundImage = backgroundImage;
+          if (backgroundDim > 0) normalizedItem.backgroundDim = backgroundDim;
+          if (backgroundBrightness !== 100) normalizedItem.backgroundBrightness = backgroundBrightness;
+          if (backgroundPosition !== 'center') normalizedItem.backgroundPosition = backgroundPosition;
+          if (backgroundFit !== 'cover') normalizedItem.backgroundFit = backgroundFit;
+        }
         if (avatars.length) normalizedItem.avatars = avatars;
         normalized.push(normalizedItem);
       });
@@ -260,6 +290,10 @@
       slide.classList.toggle('has-avatars', Boolean(item.avatars?.length));
       if (item.backgroundImage) {
         slide.style.setProperty('--announcement-bg-image', `url(${JSON.stringify(this.assetUrl(item.backgroundImage))})`);
+        slide.style.setProperty('--announcement-bg-dim', String((item.backgroundDim ?? 0) / 100));
+        slide.style.setProperty('--announcement-bg-brightness', `${item.backgroundBrightness ?? 100}%`);
+        slide.style.setProperty('--announcement-bg-position', item.backgroundPosition || 'center');
+        slide.style.setProperty('--announcement-bg-fit', item.backgroundFit || 'cover');
       }
       if (isClone) slide.setAttribute('aria-hidden', 'true');
 

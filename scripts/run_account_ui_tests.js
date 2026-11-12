@@ -517,6 +517,24 @@ async function test(name, fn) {
     assert.strictEqual(button.fontSize, '0.875rem');
   });
 
+  await test('Compte : sélection directe des avatars 3D prédéfinis et bascule réversible', async ({ center, win, doc }) => {
+    const presetButtons = doc.querySelectorAll('#account-avatar-presets [data-account-avatar]');
+    assert.strictEqual(presetButtons.length, 4);
+    presetButtons[0].click();
+    assert.strictEqual(win.localStorage.getItem('fitia_profile_photo_v1:account-1'), 'assets/avatars/man-3d-1.webp');
+    assert.strictEqual(doc.querySelector('#account-profile-avatar img').getAttribute('src'), 'assets/avatars/man-3d-1.webp');
+    assert.strictEqual(presetButtons[0].getAttribute('aria-pressed'), 'true');
+    assert.strictEqual(doc.getElementById('account-photo-remove').classList.contains('hidden'), false);
+    presetButtons[2].click();
+    assert.strictEqual(win.localStorage.getItem('fitia_profile_photo_v1:account-1'), 'assets/avatars/man-3d-3.webp');
+    assert.strictEqual(presetButtons[0].getAttribute('aria-pressed'), 'false');
+    assert.strictEqual(presetButtons[2].getAttribute('aria-pressed'), 'true');
+    presetButtons[2].click();
+    assert.strictEqual(win.localStorage.getItem('fitia_profile_photo_v1:account-1'), null);
+    assert.strictEqual(doc.querySelector('#account-profile-avatar img'), null);
+    assert.strictEqual(presetButtons[2].getAttribute('aria-pressed'), 'false');
+  });
+
   await test('Tous les nouveaux libellés du compte existent dans les cinq langues', async ({ doc }) => {
     const keys = new Set([...doc.querySelectorAll('#account-access-screen [data-i18n], #account-access-screen [data-i18n-aria-label], #account-access-screen [data-i18n-title]')]
       .flatMap((element) => ['data-i18n', 'data-i18n-aria-label', 'data-i18n-title'].map((name) => element.getAttribute(name)).filter(Boolean)));
