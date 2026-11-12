@@ -978,6 +978,10 @@ function httpRequest(port, method, reqPath) {
       assert.ok(!/(?:src|href)=["']https?:\/\//i.test(walletHtml), 'Aucun sous-chargement HTTP(S) ne doit rester dans wallet.html');
       assert.ok(!/(?:fonts\.googleapis\.com|fonts\.gstatic\.com|i\.ibb\.co)/i.test(walletHtml));
       assert.ok(walletHtml.includes('src="assets/pol.svg"') && walletHtml.includes('src="assets/usdt.svg"'));
+      const avatarRule = /\.announcement-avatar\s*\{[^}]*\}/.exec(styleSource)?.[0] || '';
+      assert.ok(avatarRule, 'La règle .announcement-avatar existe');
+      assert.ok(!/border|background|box-shadow|overflow/.test(avatarRule), 'L’avatar d’annonce est un personnage libre, sans cadre');
+      assert.match(styleSource, /\.announcement-avatar img\s*\{[^}]*object-fit:\s*contain/, 'Le personnage entier est affiché, non rogné');
 
       const fontFiles = [
         'inter-latin-400-normal.woff2', 'inter-latin-600-normal.woff2',
@@ -1850,7 +1854,7 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(visualSlide.style.getPropertyValue('--announcement-bg-fit'), 'contain');
         assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatars img').length, 3, 'Les avatars validés sont affichés');
         assert.strictEqual(visualSlide.querySelector('.announcement-avatars img').getAttribute('src'), 'assets/avatars/man-3d-1.webp', 'Les avatars 3D FITIA restent embarqués');
-        assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatar').length, 3, 'Les avatars sont rendus en portraits plein cadre');
+        assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatar').length, 3, 'Les avatars sont rendus en personnages libres sur la bannière');
         assert.ok(visualSlide.querySelector('.announcement-avatar img').style.transform.includes('scale(1.5)'), 'Le zoom par avatar est appliqué');
         assert.deepStrictEqual(Object.keys(normalized[0].avatarFraming || {}), ['assets/avatars/man-3d-1.webp'], 'Un seul cadrage validé est conservé');
         assert.deepStrictEqual([normalized[0].avatarFraming['assets/avatars/man-3d-1.webp'].scale, normalized[0].avatarFraming['assets/avatars/man-3d-1.webp'].x, normalized[0].avatarFraming['assets/avatars/man-3d-1.webp'].y], [150, 10, -10], 'Le cadrage validé est conservé');

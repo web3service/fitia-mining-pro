@@ -8,7 +8,7 @@ Le panneau d’administration est une application Node.js séparée du wallet et
 - création, modification, duplication et suppression ;
 - catégories `event`, `information`, `referral`, `security`, `birthday` (Anniversaire), `blackfriday` (Black Friday), `promotion` (Promotion), `sale` (Soldes), `airdrop` (Airdrop) et `welcome` (Bienvenue) ;
 - thèmes `classic`, `aurora`, `gold`, `emerald`, `violet`, `celebration`, `birthday`, `blackfriday`, `promotion`, `sale`, `airdrop` et `welcome` ;
-- jusqu’à 3 avatars en portrait plein cadre à droite de la bannière, avec zoom (100–300 %) et déplacement (−50…+50) réglables par avatar depuis l’éditeur (curseurs ou glisser-déposer dans l’aperçu) ; le cadrage est enregistré avec l’annonce dans `avatarFraming` ;
+- jusqu’à 3 avatars, image entière libre posée sur la bannière (sans cadre), zoom (100–300 %) et déplacement (−50…+50) réglables par avatar depuis l’éditeur (curseurs ou glisser-déposer dans l’aperçu) ; le cadrage est enregistré avec l’annonce dans `avatarFraming` ;
 - dates de début et de fin facultatives, converties en ISO 8601 ;
 - titres et messages en français, anglais, allemand, chinois et sango ;
 - aperçu mobile avant enregistrement ;
