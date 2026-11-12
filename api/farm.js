@@ -6,6 +6,7 @@ const MAX_BODY_BYTES = 32 * 1024;
 function headers(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");

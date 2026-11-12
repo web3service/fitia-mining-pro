@@ -15,6 +15,7 @@ const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'cha
 function setHeaders(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cache-Control', 'no-store, private');
   res.setHeader('Pragma', 'no-cache');
