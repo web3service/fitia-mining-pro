@@ -61,7 +61,7 @@ body {
   top: max(14px, var(--safe-top));
   left: 14px;
   right: 14px;
-  z-index: 3500;
+  z-index: 5500;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1393,7 +1393,13 @@ main::-webkit-scrollbar { display: none; }
 .update-modal-heading { display: grid; justify-items: center; gap: 10px; margin-bottom: 22px; }
 .update-modal-heading h3 { margin: 0; color: var(--text); font-size: 1.32rem; font-weight: 800; letter-spacing: -0.025em; }
 .update-version { display: inline-flex; min-height: 30px; align-items: center; padding: 5px 12px; border: 1px solid rgba(240,185,11,0.28); border-radius: 999px; background: rgba(240,185,11,0.09); color: var(--primary); font-family: 'Inter', system-ui, sans-serif; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; }
-.update-install-button { width: 100%; min-height: 52px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.84rem; font-weight: 800; }
+.update-install-button { position: relative; display: flex; width: 100%; min-height: 52px; align-items: center; justify-content: center; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; font-size: 0.84rem; font-weight: 800; }
+.update-install-button.is-downloading { border-color: rgba(240,185,11,0.35); background: rgba(15,23,42,0.94); color: #fff; cursor: default; opacity: 1; }
+.update-download-progress { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; background: rgba(2,6,23,0.72); }
+.update-download-progress-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #a16207, var(--primary)); transition: width 0.18s linear; }
+.update-download-percent { position: relative; z-index: 1; min-width: 4ch; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; text-align: center; text-shadow: 0 1px 4px rgba(0,0,0,0.45); }
+.update-install-button.is-indeterminate .update-download-progress-fill { width: 38%; animation: updateDownloadIndeterminate 1.15s ease-in-out infinite; }
+@keyframes updateDownloadIndeterminate { from { transform: translateX(-105%); } to { transform: translateX(370%); } }
 @keyframes updateModalIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (max-width: 360px) {
   .modal.modal-centered { padding: 14px 12px; }
@@ -1406,6 +1412,34 @@ main::-webkit-scrollbar { display: none; }
   .account-settings-section { padding: 13px; }
   .account-profile-utilities { grid-template-columns: 1fr; }
   .account-input-action .btn-secondary { min-width: 74px; padding-right: 10px; padding-left: 10px; }
+}
+/* Écran plein d'écran pendant le téléchargement de la mise à jour dans l'application */
+.update-screen { position: fixed; inset: 0; z-index: 5000; display: flex; flex-direction: column; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); overflow: hidden; background: radial-gradient(125% 88% at 50% 0%, #151f3a 0%, #0a101f 48%, #04060c 100%); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+.update-screen[hidden] { display: none; }
+.update-screen-topbar { display: flex; min-height: 56px; align-items: center; justify-content: center; border-bottom: 1px solid rgba(148,163,184,0.12); }
+.update-screen-wordmark { font-size: 1.05rem; font-weight: 900; letter-spacing: 0.22em; color: #f8fafc; text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
+.update-screen-wordmark em { font-style: normal; color: var(--primary); }
+.update-screen-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px 28px 8px; text-align: center; }
+.update-screen-icon { display: grid; width: 132px; height: 132px; margin-bottom: 8px; place-items: center; filter: drop-shadow(0 20px 46px rgba(240,185,11,0.16)); animation: updateScreenFloat 2.8s ease-in-out infinite; }
+.update-screen-title { margin: 0; max-width: 360px; color: #f8fafc; font-size: clamp(1.42rem, 6.6vw, 1.8rem); font-weight: 800; line-height: 1.22; letter-spacing: -0.02em; text-wrap: balance; }
+.update-screen-hint { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+.update-screen-state { min-height: 1.45em; margin: 0; color: var(--primary); font-size: 0.88rem; font-weight: 600; letter-spacing: 0.01em; }
+.update-screen-state.is-error { color: #f87171; }
+.update-screen-footer { display: grid; justify-items: center; gap: 11px; padding: 0 32px calc(28px + env(safe-area-inset-bottom, 0px)); }
+.update-screen-percent { color: #e2e8f0; font-size: 0.95rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.update-screen-track { width: 100%; height: 4px; overflow: hidden; border-radius: 999px; background: rgba(148,163,184,0.22); }
+.update-screen-fill { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b45309 0%, var(--primary) 58%, #ffe98a 100%); box-shadow: 0 0 14px rgba(240,185,11,0.55); transition: width 0.18s linear; }
+.update-screen-fill.is-indeterminate { width: 38%; animation: updateDownloadIndeterminate 1.15s ease-in-out infinite; }
+.update-screen-retry { margin: 0 auto calc(30px + env(safe-area-inset-bottom, 0px)); min-width: 190px; }
+.update-screen.is-error .update-screen-footer { display: none; }
+@keyframes updateScreenFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@media (prefers-reduced-motion: reduce) {
+  .update-modal-content { animation: none; }
+  .update-download-progress-fill { transition: none; }
+  .update-install-button.is-indeterminate .update-download-progress-fill { width: 65%; animation: none; }
+  .update-screen-icon { animation: none; }
+  .update-screen-fill { transition: none; }
+  .update-screen-fill.is-indeterminate { width: 65%; animation: none; }
 }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }

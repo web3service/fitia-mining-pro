@@ -133,8 +133,8 @@ function createMockAndroidBridge() {
       state.pendingReferralCode = '';
       return code;
     },
-    openExternalUpdate: (url) => {
-      state.updateDownloads.push({ url: String(url) });
+    downloadAndInstallUpdate: (url, expectedSha256) => {
+      state.updateDownloads.push({ url: String(url), expectedSha256: String(expectedSha256) });
       return true;
     },
     vibrate: () => { state.vibrations++; },
@@ -1483,7 +1483,7 @@ function httpRequest(port, method, reqPath) {
       }
     });
 
-    await runTest('APP-UPDATE', 'Mise à jour obligatoire sans installeur embarqué : téléchargement ouvert dans le navigateur du système', async () => {
+    await runTest('APP-UPDATE', 'Mise à jour obligatoire dans l’application : téléchargement intégré, progression, SHA-256 et installation Android', async () => {
       const originalFetch = e2eWin.fetch;
       const originalShowToast = App.showToast;
       const toastMessages = [];
@@ -1529,21 +1529,108 @@ function httpRequest(port, method, reqPath) {
 
         const installButton = e2eWin.document.getElementById('update-install-button');
         const installLabel = e2eWin.document.getElementById('update-install-label');
+        const downloadProgress = e2eWin.document.getElementById('update-download-progress');
+        const downloadFill = e2eWin.document.getElementById('update-download-progress-fill');
+        const downloadPercent = e2eWin.document.getElementById('update-download-percent');
+        const updateScreen = e2eWin.document.getElementById('update-screen');
         assert.strictEqual(installButton.disabled, false);
-        assert.strictEqual(e2eWin.document.getElementById('update-download-progress'), null, 'La barre de progression locale est supprimée');
-        assert.strictEqual(e2eWin.document.getElementById('update-download-percent'), null, 'Le pourcentage local est supprimé');
-        assert.strictEqual(e2eWin.document.getElementById('update-screen'), null, 'L’écran de téléchargement plein écran est supprimé');
-        assert.strictEqual(installLabel.classList.contains('hidden'), false, 'Le libellé reste visible : aucun faux téléchargement affiché');
-        assert.strictEqual(installButton.getAttribute('role'), null, 'Aucune fausse barre de progression ARIA');
+        assert.ok(downloadProgress, 'La barre de progression locale existe');
+        assert.ok(downloadPercent, 'Le pourcentage local existe');
+        assert.ok(updateScreen, 'L’écran plein d’écran de téléchargement dans l’application existe');
+
         assert.strictEqual(App.startUpdateDownload(), true);
         assert.strictEqual(nativeState.updateDownloads.length, 1);
-        assert.strictEqual(nativeState.updateDownloads[0].url, update.apkUrl, 'L’URL ouverte est exactement celle du manifeste épinglé');
-        assert.strictEqual(toastMessages.length, 0, 'Aucun faux message de progression');
-        assert.strictEqual(App.startUpdateDownload(), true, 'Un second appui rouvre le téléchargement navigateur');
-        assert.strictEqual(nativeState.updateDownloads.length, 2);
-        assert.strictEqual(modal.classList.contains('active'), true, 'La modale reste affichée : seule l’installation effective de la nouvelle version ferme la mise à jour');
-        assert.strictEqual(e2eWin.onAndroidBackPressed(), true, 'Le bouton Retour Android reste consommé');
+        assert.strictEqual(nativeState.updateDownloads[0].url, update.apkUrl);
+        assert.strictEqual(nativeState.updateDownloads[0].expectedSha256, update.sha256);
+        assert.strictEqual(toastMessages.length, 0, 'Aucun message toast inutile pendant le téléchargement');
+        assert.strictEqual(installButton.disabled, true, 'Le bouton devient une barre non cliquable pendant le téléchargement');
+        assert.strictEqual(installButton.getAttribute('role'), 'progressbar');
+        assert.strictEqual(installButton.getAttribute('aria-valuenow'), '0');
+        assert.ok(installLabel.classList.contains('hidden'));
+        assert.ok(!downloadProgress.classList.contains('hidden'));
+        assert.ok(!downloadPercent.classList.contains('hidden'));
+        assert.ok(!updateScreen.hidden && updateScreen.classList.contains('is-visible'), 'Le téléchargement ouvre l’écran intégré dans l’application');
+        assert.strictEqual(updateScreen.getAttribute('aria-hidden'), 'false');
+        assert.ok(!modal.classList.contains('active'), 'La modale s’efface au profit de l’écran intégré');
+        assert.strictEqual(e2eWin.onAndroidBackPressed(), true, 'Le bouton Retour Android est consommé sur l’écran de téléchargement');
 
+        const screenTrack = e2eWin.document.getElementById('update-screen-track');
+        const screenFill = e2eWin.document.getElementById('update-screen-fill');
+        const screenPercent = e2eWin.document.getElementById('update-screen-percent');
+        assert.strictEqual(screenTrack.getAttribute('aria-valuenow'), '0');
+        assert.strictEqual(screenPercent.textContent, '0%');
+        assert.ok(!screenFill.classList.contains('is-indeterminate'));
+
+        App.onUpdateDownloadProgress(-1, 'downloading');
+        assert.ok(installButton.classList.contains('is-indeterminate'), 'Une taille inconnue affiche une progression indéterminée');
+        assert.strictEqual(downloadPercent.textContent, '…');
+        assert.strictEqual(installButton.getAttribute('aria-valuenow'), null);
+        assert.ok(screenFill.classList.contains('is-indeterminate'), 'L’écran intégré gère aussi le mode indéterminé');
+        assert.strictEqual(screenPercent.textContent, '…');
+        assert.strictEqual(screenTrack.getAttribute('aria-valuenow'), null);
+
+        App.onUpdateDownloadProgress(47.4, 'downloading');
+        assert.ok(!installButton.classList.contains('is-indeterminate'));
+        assert.strictEqual(downloadFill.style.width, '47%');
+        assert.strictEqual(downloadPercent.textContent, '47%');
+        assert.strictEqual(installButton.getAttribute('aria-valuenow'), '47');
+        assert.strictEqual(screenFill.style.width, '47%');
+        assert.strictEqual(screenPercent.textContent, '47%');
+        assert.strictEqual(screenTrack.getAttribute('aria-valuenow'), '47');
+
+        assert.strictEqual(App.startUpdateDownload(), false, 'Un second clic ne duplique pas le téléchargement');
+        assert.strictEqual(nativeState.updateDownloads.length, 1);
+
+        App.onUpdateDownloadProgress(100, 'verifying');
+        assert.strictEqual(downloadPercent.textContent, '100%', 'La vérification suit un téléchargement complet');
+        assert.strictEqual(screenPercent.textContent, '100%');
+        assert.strictEqual(e2eWin.document.getElementById('update-screen-state').textContent, App.t('updateVerifying'), 'L’écran intégré annonce la vérification');
+
+        App.onUpdateDownloadProgress(100, 'permission');
+        assert.strictEqual(e2eWin.document.getElementById('update-screen-state').textContent, App.t('updatePermissionPrompt'), 'L’autorisation Android reste affichée pendant le passage aux réglages');
+        assert.strictEqual(App.updateDownloadInProgress, true, 'Le flux reste actif en attente du retour depuis les réglages');
+
+        App.onUpdateDownloadProgress(0, 'cancelled');
+        assert.strictEqual(App.updateDownloadInProgress, false);
+        assert.ok(updateScreen.hidden && !updateScreen.classList.contains('is-visible'), 'Un retour sans autorisation referme proprement l’écran');
+        assert.ok(modal.classList.contains('active'), 'La modale obligatoire réapparaît si l’autorisation est refusée');
+
+        assert.strictEqual(App.startUpdateDownload(), true);
+        assert.strictEqual(nativeState.updateDownloads.length, 2);
+        App.onUpdateDownloadProgress(0, 'error');
+        assert.strictEqual(installButton.disabled, false, 'Une erreur permet de réessayer');
+        assert.strictEqual(installButton.getAttribute('role'), null);
+        assert.ok(!installLabel.classList.contains('hidden'));
+        assert.ok(downloadProgress.classList.contains('hidden'));
+        assert.ok(updateScreen.classList.contains('is-error'), 'L’écran intégré passe en état erreur');
+        assert.strictEqual(e2eWin.document.getElementById('update-screen-title').textContent, App.t('updateScreenError'));
+        assert.strictEqual(e2eWin.document.getElementById('update-screen-hint').textContent, App.t('updateScreenErrorHint'));
+        assert.strictEqual(e2eWin.document.getElementById('update-screen-retry').hidden, false, 'Un bouton Réessayer est proposé plein écran');
+        assert.deepStrictEqual(toastMessages.pop(), { message: App.t('updateStartError'), isError: true }, 'Seule l’erreur essentielle est annoncée');
+
+        assert.strictEqual(App.retryUpdateDownload(), true);
+        assert.strictEqual(nativeState.updateDownloads.length, 3);
+        assert.ok(!updateScreen.classList.contains('is-error'), 'Un nouvel essai quitte l’état erreur');
+        assert.ok(!modal.classList.contains('active'), 'L’écran intégré reprend la main lors d’un nouvel essai');
+
+        App.onUpdateDownloadProgress(100, 'ready');
+        assert.strictEqual(downloadPercent.textContent, '100%');
+        assert.strictEqual(screenPercent.textContent, '100%');
+        assert.strictEqual(e2eWin.document.getElementById('update-screen-state').textContent, App.t('updateReady'), 'L’écran intégré annonce l’ouverture de l’installateur');
+        assert.strictEqual(installButton.disabled, true);
+        assert.strictEqual(App.updateDownloadInProgress, false);
+        assert.ok(App.updateDownloadResetTimer, 'La modale pourra rouvrir l’installateur si l’installation Android est annulée');
+
+        assert.strictEqual(
+          e2eWin.FitiaSecurity.Native.downloadAndInstallUpdate('https://example.com/FITIA-PRO-Miner.apk', update.sha256),
+          false,
+          'Le pont JS bloque toute URL hors dépôt officiel'
+        );
+        assert.strictEqual(
+          e2eWin.FitiaSecurity.Native.downloadAndInstallUpdate(update.apkUrl, 'invalide'),
+          false,
+          'Le pont JS bloque tout SHA-256 invalide'
+        );
         assert.strictEqual(
           App.normalizeUpdateManifest({ ...update, apkUrl: 'https://example.com/FITIA-PRO-Miner.apk' }),
           null,
@@ -1562,6 +1649,13 @@ function httpRequest(port, method, reqPath) {
         nativeState.appVersionCode = 0;
         nativeState.updateDownloads = originalDownloads;
         e2eWin.localStorage.removeItem('fitia_update_dismissed_code');
+        if (App.updateDownloadResetTimer) {
+          clearTimeout(App.updateDownloadResetTimer);
+          App.updateDownloadResetTimer = null;
+        }
+        App.resetUpdateDownloadButton();
+        App.hideUpdateScreen();
+        App.resetUpdateScreen();
         App.availableUpdate = null;
         App.updateCheckInFlight = false;
         e2eWin.document.getElementById('modal-update').classList.remove('active');
@@ -3180,29 +3274,44 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(postRes.statusCode, 405);
     });
 
-    await runTest('APP-UPDATE-EXTERNAL', 'Aucun installateur embarqué : la mise à jour s’ouvre dans le navigateur du système, sans permission d’installation', async () => {
-      const main = fs.readFileSync(path.join(ROOT, 'android-src', 'java', 'com', 'fitia', 'miningpro', 'MainActivity.java'), 'utf8');
-      for (const forbidden of [
+    await runTest('APP-UPDATE-SIGNATURE', 'Téléchargement et installation intégrés dans l’application : HTTPS, SHA-256, certificat et UpdateProvider', async () => {
+      const source = fs.readFileSync(path.join(ROOT, 'android-src', 'java', 'com', 'fitia', 'miningpro', 'MainActivity.java'), 'utf8');
+      assert.ok(!source.includes('openExternalUpdate'), 'Aucune redirection navigateur pour la mise à jour');
+      for (const required of [
         'getPackageArchiveInfo(', 'GET_SIGNING_CERTIFICATES', 'GET_SIGNATURES',
-        'verifyDownloadedUpdate(', 'hasSameSigningCertificates(', 'installDownloadedUpdate',
-        'UpdateProvider', 'REQUEST_INSTALL_PACKAGES', 'ACTION_VIEW_PACKAGE_INSTALLATION',
-        'onUpdateDownloadProgress(', 'startUpdateDownload'
-      ]) assert.ok(!main.includes(forbidden), `Installateur embarqué encore présent : ${forbidden}`);
-      assert.ok(main.includes('openExternalUpdate('), 'Le pont natif ouvre la mise à jour dans le navigateur du système');
-      assert.ok(main.includes('Intent.ACTION_VIEW'), 'La mise à jour passe par une intention externe standard');
-      assert.ok(main.includes('github.com'), 'Le lien externe est restreint au dépôt officiel des releases APK');
+        'getApkContentsSigners()', 'info.signatures != null', 'verifyDownloadedUpdate(', 'hasSameSigningCertificates(',
+        'candidateVersion <= installedVersion', 'getPackageName().equals(candidate.packageName)',
+        'openUpdateConnection(', 'downloadAndInstallUpdate(', 'installDownloadedUpdate()'
+      ]) assert.ok(source.includes(required), `Contrôle Android absent : ${required}`);
+      assert.ok(source.includes('if (!verifyDownloadedUpdate(partial))'), 'Le fichier téléchargé est vérifié avant remplacement');
+      assert.ok(source.includes('if (!verifyDownloadedUpdate(apk))'), 'Le fichier est revérifié avant l’ouverture de l’installeur');
+      assert.ok(source.includes('apk.delete();'), 'Un package non conforme est supprimé');
+      assert.ok(source.includes('UpdateProvider.getUpdateUri(this)'), 'L’installation passe par le UpdateProvider interne');
+      assert.ok(source.includes('Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES'), 'La permission Android d’installation est gérée dans l’app');
+      for (const required of [
+        'notifyUpdateDownloadProgress(', 'connection.getContentLengthLong()',
+        '(total * 100L) / contentLength', 'window.App.onUpdateDownloadProgress(',
+        'notifyUpdateDownloadProgress(100, "verifying")', 'notifyUpdateDownloadProgress(100, "permission")',
+        'notifyUpdateDownloadProgress(100, "ready")', 'notifyUpdateDownloadProgress(0, "cancelled")',
+        'notifyUpdateDownloadProgress(0, "error")'
+      ]) assert.ok(source.includes(required), `Progression native absente : ${required}`);
+
       const manifest = fs.readFileSync(path.join(ROOT, 'android-src', 'AndroidManifest.xml'), 'utf8');
-      assert.ok(!manifest.includes('REQUEST_INSTALL_PACKAGES'), 'La permission d’installation des paquets est absente du Manifest');
-      assert.ok(!manifest.includes('UpdateProvider'), 'Le fournisseur d’installation est supprimé du Manifest');
-      assert.ok(!manifest.includes('grantUriPermissions'), 'Aucun accès URI accordé à un installateur');
-      assert.ok(!fs.existsSync(path.join(ROOT, 'android-src', 'java', 'com', 'fitia', 'miningpro', 'UpdateProvider.java')), 'UpdateProvider.java est supprimé');
+      assert.ok(manifest.includes('REQUEST_INSTALL_PACKAGES'), 'La permission d’installation des paquets est présente dans le Manifest');
+      assert.ok(manifest.includes('UpdateProvider'), 'Le fournisseur d’installation UpdateProvider est déclaré dans le Manifest');
+      assert.ok(manifest.includes('grantUriPermissions'), 'L’accès URI temporaire pour l’installeur est configuré');
+      const providerPath = path.join(ROOT, 'android-src', 'java', 'com', 'fitia', 'miningpro', 'UpdateProvider.java');
+      assert.ok(fs.existsSync(providerPath), 'UpdateProvider.java existe');
+      const provider = fs.readFileSync(providerPath, 'utf8');
+      assert.ok(provider.includes('MODE_READ_ONLY') && provider.includes('getCanonicalPath()'), 'UpdateProvider restreint l’accès en lecture seule au fichier officiel');
+
       const walletJs = fs.readFileSync(path.join(ROOT, 'wallet.js'), 'utf8');
-      assert.ok(walletJs.includes('openExternalUpdate'), 'Le pont JS ouvre la mise à jour via le système');
-      assert.ok(!walletJs.includes('downloadAndInstallUpdate'), 'L’application n’expose plus aucune capacité d’installation');
-      assert.ok(!walletJs.includes('expectedSha256'), 'Le SHA-256 du manifeste n’est plus passé à un installateur embarqué');
+      assert.ok(walletJs.includes('downloadAndInstallUpdate'), 'Le pont JS télécharge et installe dans l’application');
+      assert.ok(!walletJs.includes('openExternalUpdate'), 'Le pont JS ne redirige plus vers un navigateur externe');
+
       const html = fs.readFileSync(path.join(ROOT, 'android-src', 'wallet.html'), 'utf8');
-      assert.ok(!html.includes('update-screen'), 'L’écran de téléchargement plein écran est supprimé');
-      assert.ok(!html.includes('update-download-progress'), 'La fausse barre de progression est supprimée');
+      assert.ok(html.includes('update-screen'), 'L’écran de téléchargement intégré existe');
+      assert.ok(html.includes('update-download-progress'), 'La barre de progression intégrée existe');
     });
 
     // ─── SUITE 6 : Audit Binaire de l'APK Android Compilé ───────────────
@@ -3319,9 +3428,9 @@ function httpRequest(port, method, reqPath) {
         const manifestTree = execFileSync(aapt2, ['dump', 'xmltree', apkPath, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
         assert.ok(manifestTree.includes(`versionCode(0x0101021b)=${androidVersionCode}`), `versionCode=${androidVersionCode} présent`);
         assert.ok(manifestTree.includes(`versionName(0x0101021c)="${androidVersion}"`), `versionName=${androidVersion} présent`);
-        assert.ok(!manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission d’installation absente : mise à jour navigateur uniquement');
-        assert.ok(!manifestTree.includes('UpdateProvider'), 'Aucun Provider APK interne (mise à jour externe)');
-        assert.ok(!manifestTree.includes('grantUriPermissions'), 'Aucun accès URI accordé à un installateur');
+        assert.ok(manifestTree.includes('REQUEST_INSTALL_PACKAGES'), 'Permission Android d’installation des mises à jour présente');
+        assert.ok(manifestTree.includes('UpdateProvider'), 'Provider APK interne présent');
+        assert.ok(manifestTree.includes('grantUriPermissions'), 'Accès URI limité à l’installateur autorisé');
         assert.ok(/allowBackup\([^)]+\)=false/.test(manifestTree), 'android:allowBackup=false vérifié');
         assert.ok(/debuggable\([^)]+\)=false/.test(manifestTree), 'android:debuggable=false vérifié');
         assert.ok(/usesCleartextTraffic\([^)]+\)=false/.test(manifestTree), 'android:usesCleartextTraffic=false vérifié');

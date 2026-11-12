@@ -3,12 +3,16 @@ package com.fitia.miningpro;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.graphics.Color;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,6 +23,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.provider.Settings;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -36,13 +41,22 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.security.MessageDigest;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.json.JSONObject;
 
@@ -65,6 +79,8 @@ public class MainActivity extends Activity {
     private long lastBackPressMs = 0L;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private Runnable pendingClipClear = null;
+    private boolean updateDownloadInProgress = false;
+    private boolean pendingUpdateInstall = false;
     private String pendingReferralCode = "";
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
@@ -221,6 +237,7 @@ public class MainActivity extends Activity {
         });
 
         captureReferralIntent(getIntent());
+        cleanupObsoleteUpdateFiles();
         if (savedInstanceState == null) {
             webView.loadUrl(START_URL);
         } else {
@@ -316,6 +333,20 @@ public class MainActivity extends Activity {
             return new String(pt, StandardCharsets.UTF_8);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (pendingUpdateInstall) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls()) {
+                installDownloadedUpdate();
+            } else {
+                pendingUpdateInstall = false;
+                notifyUpdateDownloadProgress(0, "cancelled");
+                showUpdateToast("Autorisez l’installation pour FITIA PRO, puis réessayez.");
+            }
         }
     }
 
@@ -465,7 +496,7 @@ public class MainActivity extends Activity {
         return "application/octet-stream";
     }
 
-    // ─── Version de l'application et mise à jour externe ───
+    // ─── Mise à jour APK dans l'application : HTTPS + SHA-256 + certificat + installation Android ───
     private String getAppVersionName() {
         try {
             return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
@@ -476,7 +507,7 @@ public class MainActivity extends Activity {
 
     private long getAppVersionCode() {
         try {
-            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 return info.getLongVersionCode();
             }
@@ -486,27 +517,392 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Play Protect bloque les applications capables d'installer des paquets. La mise à jour
-    // s'ouvre donc dans le navigateur du système, qui gère seul le téléchargement de l'APK
-    // et l'installation avec le consentement standard d'Android.
-    private boolean openExternalUpdate(String url) {
-        if (url == null || url.length() > 512) return false;
+    private void cleanupObsoleteUpdateFiles() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (MainActivity.this) {
+                    if (updateDownloadInProgress) return;
+                }
+                try {
+                    File updatesDir = UpdateProvider.getUpdateDir(MainActivity.this);
+                    if (!updatesDir.isDirectory()) return;
+                    File[] files = updatesDir.listFiles();
+                    if (files == null) return;
+                    File activeApk = UpdateProvider.getUpdateApkFile(MainActivity.this);
+                    for (File file : files) {
+                        if (!file.equals(activeApk)) {
+                            synchronized (MainActivity.this) {
+                                if (updateDownloadInProgress) return;
+                                file.delete();
+                            }
+                        }
+                    }
+                    if (activeApk.isFile() && !verifyDownloadedUpdate(activeApk)) {
+                        synchronized (MainActivity.this) {
+                            if (updateDownloadInProgress) return;
+                            activeApk.delete();
+                            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                                .edit().remove("update_sha256").apply();
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }, "FitiaUpdateCleanup").start();
+    }
+
+    private boolean isValidUpdateUrl(String value) {
+        if (value == null || value.length() > 512) return false;
         try {
-            java.net.URL parsed = new java.net.URL(url);
-            String path = parsed.getPath();
-            boolean hostOk = "https".equalsIgnoreCase(parsed.getProtocol())
-                && parsed.getUserInfo() == null
-                && (parsed.getPort() == -1 || parsed.getPort() == 443)
-                && "github.com".equalsIgnoreCase(parsed.getHost())
+            URL url = new URL(value);
+            String path = url.getPath();
+            return "https".equalsIgnoreCase(url.getProtocol())
+                && "github.com".equalsIgnoreCase(url.getHost())
+                && url.getUserInfo() == null
+                && (url.getPort() == -1 || url.getPort() == 443)
                 && path != null
                 && path.startsWith("/web3service/fitia-mining-pro/releases/download/")
                 && path.endsWith(".apk");
-            if (!hostOk) return false;
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            return true;
         } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private HttpURLConnection openUpdateConnection(String initialUrl) throws IOException {
+        URL currentUrl = new URL(initialUrl);
+        for (int hop = 0; hop <= 5; hop++) {
+            if (!"https".equalsIgnoreCase(currentUrl.getProtocol()) || currentUrl.getUserInfo() != null) {
+                throw new IOException("HTTPS requis");
+            }
+            HttpURLConnection conn = (HttpURLConnection) currentUrl.openConnection();
+            conn.setInstanceFollowRedirects(false);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(30000);
+            conn.setRequestProperty("Accept", "application/vnd.android.package-archive, application/octet-stream");
+            conn.setRequestProperty("User-Agent", "FITIA-PRO-Android-Updater");
+            int status = conn.getResponseCode();
+            if (status == HttpURLConnection.HTTP_MOVED_TEMP
+                || status == HttpURLConnection.HTTP_MOVED_PERM
+                || status == HttpURLConnection.HTTP_SEE_OTHER
+                || status == 307
+                || status == 308) {
+                String location = conn.getHeaderField("Location");
+                conn.disconnect();
+                if (location == null || location.isEmpty()) {
+                    throw new IOException("Redirection invalide");
+                }
+                URL nextUrl = new URL(currentUrl, location);
+                if (!"https".equalsIgnoreCase(nextUrl.getProtocol()) || nextUrl.getUserInfo() != null) {
+                    throw new IOException("Redirection non sécurisée refusée");
+                }
+                currentUrl = nextUrl;
+                continue;
+            }
+            if (status != HttpURLConnection.HTTP_OK) {
+                conn.disconnect();
+                throw new IOException("Téléchargement refusé");
+            }
+            return conn;
+        }
+        throw new IOException("Trop de redirections");
+    }
+
+    private String toHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            hex.append(String.format(Locale.US, "%02x", value & 0xff));
+        }
+        return hex.toString();
+    }
+
+    private String sha256File(File file) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
+            byte[] buffer = new byte[16384];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+        }
+        return toHex(digest.digest());
+    }
+
+    private Signature[] getUpdateSigningCertificates(PackageInfo info) {
+        Signature[] signatures = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && info.signingInfo != null) {
+            signatures = info.signingInfo.getApkContentsSigners();
+        }
+        // Android 9/10 peut ne pas remplir signingInfo pour un APK externe.
+        if ((signatures == null || signatures.length == 0) && info.signatures != null) {
+            signatures = info.signatures;
+        }
+        return signatures == null ? new Signature[0] : signatures;
+    }
+
+    private String[] getSigningCertificateHashes(PackageInfo info) throws Exception {
+        Signature[] signatures = getUpdateSigningCertificates(info);
+        String[] hashes = new String[signatures.length];
+        for (int index = 0; index < signatures.length; index += 1) {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(signatures[index].toByteArray());
+            hashes[index] = toHex(digest);
+        }
+        return hashes;
+    }
+
+    private boolean hasSameSigningCertificates(PackageInfo candidate, PackageInfo installed) throws Exception {
+        String[] candidateHashes = getSigningCertificateHashes(candidate);
+        String[] installedHashes = getSigningCertificateHashes(installed);
+        if (candidateHashes.length == 0 || candidateHashes.length != installedHashes.length) return false;
+        boolean[] matched = new boolean[installedHashes.length];
+        for (String candidateHash : candidateHashes) {
+            int found = -1;
+            for (int index = 0; index < installedHashes.length; index += 1) {
+                if (!matched[index] && candidateHash.equals(installedHashes[index])) {
+                    found = index;
+                    break;
+                }
+            }
+            if (found < 0) return false;
+            matched[found] = true;
+        }
+        return true;
+    }
+
+    private long getPackageVersionCode(PackageInfo info) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? info.getLongVersionCode() : info.versionCode;
+    }
+
+    private boolean verifyDownloadedUpdate(File apk) {
+        try {
+            int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                ? PackageManager.GET_SIGNING_CERTIFICATES | PackageManager.GET_SIGNATURES
+                : PackageManager.GET_SIGNATURES;
+            PackageInfo candidate = getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+            PackageInfo installed = getPackageManager().getPackageInfo(getPackageName(), flags);
+            if (candidate == null || !getPackageName().equals(candidate.packageName)) return false;
+            long candidateVersion = getPackageVersionCode(candidate);
+            long installedVersion = getPackageVersionCode(installed);
+            if (installedVersion <= 0 || candidateVersion <= installedVersion) return false;
+            return hasSameSigningCertificates(candidate, installed);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void showUpdateToast(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void notifyUpdateDownloadProgress(final int progress, final String state) {
+        final int boundedProgress = Math.max(-1, Math.min(100, progress));
+        final String safeState;
+        if ("verifying".equals(state)
+            || "permission".equals(state)
+            || "ready".equals(state)
+            || "cancelled".equals(state)
+            || "error".equals(state)) {
+            safeState = state;
+        } else {
+            safeState = "downloading";
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                String script = "(function(){if(window.App&&typeof window.App.onUpdateDownloadProgress==='function'){"
+                    + "window.App.onUpdateDownloadProgress(" + boundedProgress + ",'" + safeState + "');}})();";
+                webView.evaluateJavascript(script, null);
+            }
+        });
+    }
+
+    private void installDownloadedUpdate() {
+        File apk = UpdateProvider.getUpdateApkFile(this);
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String expectedSha256 = prefs.getString("update_sha256", "");
+        try {
+            if (!apk.isFile() || expectedSha256.length() != 64
+                || !expectedSha256.equalsIgnoreCase(sha256File(apk))) {
+                pendingUpdateInstall = false;
+                notifyUpdateDownloadProgress(0, "error");
+                showUpdateToast("Le fichier de mise à jour est absent ou invalide.");
+                return;
+            }
+            if (!verifyDownloadedUpdate(apk)) {
+                pendingUpdateInstall = false;
+                apk.delete();
+                prefs.edit().remove("update_sha256").apply();
+                notifyUpdateDownloadProgress(0, "error");
+                showUpdateToast("Le paquet, la version ou le certificat de mise à jour est invalide.");
+                return;
+            }
+        } catch (Exception e) {
+            pendingUpdateInstall = false;
+            notifyUpdateDownloadProgress(0, "error");
+            showUpdateToast("Impossible de vérifier la mise à jour.");
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
+            pendingUpdateInstall = true;
+            notifyUpdateDownloadProgress(100, "permission");
+            try {
+                Intent permissionIntent = new Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:" + getPackageName())
+                );
+                startActivity(permissionIntent);
+                Toast.makeText(this, "Autorisez l’installation pour FITIA PRO, puis revenez à l’application.", Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                pendingUpdateInstall = false;
+                notifyUpdateDownloadProgress(0, "error");
+                showUpdateToast("Autorisez l’installation depuis cette source dans les réglages Android.");
+            }
+            return;
+        }
+
+        try {
+            pendingUpdateInstall = false;
+            Uri apkUri = UpdateProvider.getUpdateUri(this);
+            Intent installIntent = new Intent(Intent.ACTION_VIEW);
+            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(installIntent);
+            } catch (ActivityNotFoundException fallbackNeeded) {
+                Intent altIntent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+                altIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+                altIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(altIntent);
+            }
+            notifyUpdateDownloadProgress(100, "ready");
+        } catch (Exception e) {
+            notifyUpdateDownloadProgress(0, "error");
+            showUpdateToast("Impossible d’ouvrir le programme d’installation Android.");
+        }
+    }
+
+    private boolean startUpdateDownload(final String url, final String expectedSha256) {
+        if (!isValidUpdateUrl(url) || expectedSha256 == null
+            || !expectedSha256.matches("(?i)^[0-9a-f]{64}$")) {
+            return false;
+        }
+        final String normalizedHash = expectedSha256.toLowerCase(Locale.US);
+        final File apk = UpdateProvider.getUpdateApkFile(this);
+        File parent = apk.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            return false;
+        }
+
+        synchronized (this) {
+            if (updateDownloadInProgress) return true;
+            updateDownloadInProgress = true;
+        }
+
+        try {
+            if (apk.isFile() && normalizedHash.equalsIgnoreCase(sha256File(apk)) && verifyDownloadedUpdate(apk)) {
+                getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit().putString("update_sha256", normalizedHash).apply();
+                synchronized (this) {
+                    updateDownloadInProgress = false;
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        installDownloadedUpdate();
+                    }
+                });
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+        if (apk.exists()) apk.delete();
+
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove("update_sha256").apply();
+        notifyUpdateDownloadProgress(0, "downloading");
+
+        Thread downloadThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection connection = null;
+                File partial = new File(apk.getParentFile(), "FITIA-PRO-Miner-update.tmp.apk");
+                try {
+                    connection = openUpdateConnection(url);
+                    long maxBytes = 200L * 1024L * 1024L;
+                    long contentLength = connection.getContentLengthLong();
+                    if (contentLength > maxBytes) {
+                        throw new IOException("Fichier trop volumineux");
+                    }
+                    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                    long total = 0L;
+                    int lastReportedProgress = -2;
+                    try (
+                        InputStream input = new BufferedInputStream(connection.getInputStream());
+                        OutputStream output = new FileOutputStream(partial)
+                    ) {
+                        byte[] buffer = new byte[16384];
+                        int read;
+                        while ((read = input.read(buffer)) != -1) {
+                            total += read;
+                            if (total > maxBytes) throw new IOException("Fichier trop volumineux");
+                            digest.update(buffer, 0, read);
+                            output.write(buffer, 0, read);
+                            int currentProgress = contentLength > 0
+                                ? (int) Math.min(99L, (total * 100L) / contentLength)
+                                : -1;
+                            if (currentProgress != lastReportedProgress) {
+                                notifyUpdateDownloadProgress(currentProgress, "downloading");
+                                lastReportedProgress = currentProgress;
+                            }
+                        }
+                    }
+                    if (total <= 0L) {
+                        throw new IOException("Fichier vide");
+                    }
+                    notifyUpdateDownloadProgress(100, "verifying");
+                    if (!normalizedHash.equals(toHex(digest.digest()))) {
+                        throw new IOException("Empreinte SHA-256 différente");
+                    }
+                    if (!verifyDownloadedUpdate(partial)) {
+                        throw new IOException("Package, version ou certificat de mise à jour invalide");
+                    }
+                    if (apk.exists() && !apk.delete()) throw new IOException("Remplacement impossible");
+                    if (!partial.renameTo(apk)) throw new IOException("Enregistrement impossible");
+                    getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        .edit().putString("update_sha256", normalizedHash).apply();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            installDownloadedUpdate();
+                        }
+                    });
+                } catch (Exception e) {
+                    if (partial.exists()) partial.delete();
+                    if (apk.exists()) apk.delete();
+                    getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove("update_sha256").apply();
+                    notifyUpdateDownloadProgress(0, "error");
+                } finally {
+                    if (connection != null) connection.disconnect();
+                    synchronized (MainActivity.this) {
+                        updateDownloadInProgress = false;
+                    }
+                }
+            }
+        }, "FitiaUpdateDownload");
+        try {
+            downloadThread.start();
+            return true;
+        } catch (Throwable t) {
+            synchronized (this) {
+                updateDownloadInProgress = false;
+            }
+            notifyUpdateDownloadProgress(0, "error");
             return false;
         }
     }
@@ -548,8 +944,8 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public boolean openExternalUpdate(String url) {
-            return MainActivity.this.openExternalUpdate(url);
+        public boolean downloadAndInstallUpdate(String url, String expectedSha256) {
+            return startUpdateDownload(url, expectedSha256);
         }
 
         @JavascriptInterface
