@@ -13,6 +13,7 @@ const { SupabaseFarmRepository } = require('../farm-service');
 const { getDefaultAccountService } = require('../account-service');
 const { getClientKey, getLoginFailure, recordLoginFailure } = require('../request-security');
 const GameVisibility = require('../game-visibility-config');
+const PromotionEffects = require('../promotion-effects');
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -148,7 +149,7 @@ function validatePromotionManifest(raw) {
     if (!['machine', 'battery'].includes(targetType) || !Number.isSafeInteger(targetId) || targetId < 0 || targetId > 99) {
       throw new ApiError(400, 'La machine ou la batterie sélectionnée est invalide.', 'VALIDATION');
     }
-    if (!['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge'].includes(variant) || typeof animated !== 'boolean') {
+    if (!PromotionEffects.isVariant(variant) || typeof animated !== 'boolean') {
       throw new ApiError(400, 'Le style ou le réglage d’animation de la décoration est invalide.', 'VALIDATION');
     }
     if (targets.has(targetKey)) throw new ApiError(400, 'Un article ne peut avoir qu’une seule décoration.', 'VALIDATION');

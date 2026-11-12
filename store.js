@@ -630,6 +630,8 @@
         const card = document.createElement('article');
         card.className = 'store-product-card';
         card.dataset.productId = product.id;
+        const promoVariant = product.promoVariant && window.FitiaPromotionEffects?.isVariant(product.promoVariant) ? product.promoVariant : '';
+        if (promoVariant) card.classList.add('shop-promo', 'store-promo', `shop-promo-${promoVariant}`);
         const visual = document.createElement('div');
         visual.className = 'store-product-image-wrap';
         const image = document.createElement('img');
@@ -647,6 +649,16 @@
         }
         const body = document.createElement('div');
         body.className = 'store-product-body';
+        if (promoVariant) {
+          const promoText = this.localize(product.promoLabel);
+          if (promoText) {
+            const promoBadge = document.createElement('span');
+            promoBadge.className = 'shop-promo-label store-promo-label';
+            promoBadge.textContent = promoText;
+            promoBadge.setAttribute('aria-label', promoText);
+            body.appendChild(promoBadge);
+          }
+        }
         const name = document.createElement('h3');
         name.className = 'store-product-name';
         name.textContent = this.localize(product.name);
@@ -680,6 +692,7 @@
         add.addEventListener('click', () => this.addToCart(product.id));
         body.append(name, priceRow, delivery, description, seller, stock, add);
         card.append(visual, body);
+        if (promoVariant) window.FitiaPromotionEffects.decorate(card, promoVariant, product.promoAnimated !== false);
         grid.appendChild(card);
       });
     }

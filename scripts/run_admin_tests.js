@@ -273,7 +273,11 @@ function clone(value) {
         theme: 'aurora',
         font: 'rounded',
         backgroundImage: uploadedAssetPath,
-        avatars: ['assets/avatars/team-1.svg', uploadedAssetPath],
+        backgroundDim: 20,
+        backgroundBrightness: 115,
+        backgroundPosition: 'top',
+        backgroundFit: 'contain',
+        avatars: ['assets/avatars/man-3d-1.webp', 'assets/avatars/team-1.svg', uploadedAssetPath],
         startsAt: '2030-01-01T00:00:00.000Z',
         expiresAt: '2030-12-31T23:59:59.000Z'
       });
@@ -288,9 +292,16 @@ function clone(value) {
       assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].theme, 'aurora');
       assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].font, 'rounded');
       assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundImage, uploadedAssetPath);
-      assert.deepStrictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].avatars, ['assets/avatars/team-1.svg', uploadedAssetPath]);
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundDim, 20);
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundBrightness, 115);
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundPosition, 'top');
+      assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundFit, 'contain');
+      assert.deepStrictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].avatars, ['assets/avatars/man-3d-1.webp', 'assets/avatars/team-1.svg', uploadedAssetPath]);
       assert.strictEqual(saved.announcements[INITIAL_ANNOUNCEMENT_COUNT].enabled, false);
       assert.ok(!fs.readdirSync(temporaryDirectory).some((name) => name.includes('.tmp-')));
+      const avatarStatic = await request(localBase, '/assets/avatars/man-3d-1.webp');
+      assert.strictEqual(avatarStatic.response.status, 200);
+      assert.strictEqual(avatarStatic.response.headers.get('content-type'), 'image/webp');
       const reactivation = clone(result.data.manifest);
       reactivation.announcements[INITIAL_ANNOUNCEMENT_COUNT].enabled = true;
       const reactivated = await request(localBase, '/api/admin/announcements', {
@@ -299,7 +310,7 @@ function clone(value) {
       assert.strictEqual(reactivated.response.status, 200, reactivated.text);
       assert.strictEqual(reactivated.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].enabled, true);
       assert.strictEqual(reactivated.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].backgroundImage, uploadedAssetPath);
-      assert.deepStrictEqual(reactivated.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].avatars, ['assets/avatars/team-1.svg', uploadedAssetPath]);
+      assert.deepStrictEqual(reactivated.data.manifest.announcements[INITIAL_ANNOUNCEMENT_COUNT].avatars, ['assets/avatars/man-3d-1.webp', 'assets/avatars/team-1.svg', uploadedAssetPath]);
       manifest = reactivated.data.manifest;
       revision = reactivated.data.revision;
     });
@@ -341,6 +352,19 @@ function clone(value) {
       assert.strictEqual(result.response.status, 400);
       invalidAppearance.announcements[0].backgroundImage = '';
       invalidAppearance.announcements[0].avatars = ['assets/avatars/team-1.svg', 'assets/avatars/team-1.svg'];
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidAppearance, revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+      invalidAppearance.announcements[0].avatars = undefined;
+      invalidAppearance.announcements[0].backgroundImage = uploadedAssetPath;
+      invalidAppearance.announcements[0].backgroundDim = 95;
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: invalidAppearance, revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+      invalidAppearance.announcements[0].backgroundDim = 0;
+      invalidAppearance.announcements[0].backgroundPosition = 'diagonal';
       result = await request(localBase, '/api/admin/announcements', {
         method: 'PUT', cookie, csrf, body: { manifest: invalidAppearance, revision }
       });
@@ -447,10 +471,13 @@ function clone(value) {
       });
       assert.strictEqual(result.response.status, 400);
 
-      const variants = ['gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge'];
+      const variants = [
+        'gift', 'bells', 'snow', 'confetti', 'fireworks', 'hearts', 'blossom', 'halloween', 'badge',
+        'birthday', 'blackfriday', 'flash', 'sale', 'vip', 'new', 'summer'
+      ];
       const seasonal = clone(saved.data.manifest);
       seasonal.promotions = variants.map((variant, index) => ({
-        ...saved.data.manifest.promotions[0], id: `${variant}-admin-test`, targetId: index, variant, animated: index % 2 === 0
+        ...saved.data.manifest.promotions[0], id: `${variant}-admin-test`, targetType: index < 8 ? 'machine' : 'battery', targetId: index % 8, variant, animated: index % 2 === 0
       }));
       const seasonalSaved = await request(localBase, '/api/admin/promotions', {
         method: 'PUT', cookie, csrf, body: { manifest: seasonal, revision: saved.data.revision }

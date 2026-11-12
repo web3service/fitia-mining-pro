@@ -306,7 +306,8 @@ async function request(base, action, options = {}) {
       const next = loaded.data.manifest;
       next.announcements.push({
         id: 'event-vercel-test', category: 'event', enabled: false, title: { fr: 'Test Vercel' }, message: { fr: 'Publication serverless' },
-        theme: 'gold', font: 'elegant', backgroundImage: uploadedAssetPath, avatars: ['assets/avatars/team-2.svg']
+        theme: 'gold', font: 'elegant', backgroundImage: uploadedAssetPath, backgroundDim: 15, backgroundBrightness: 110, backgroundPosition: 'top', backgroundFit: 'contain',
+        avatars: ['assets/avatars/man-3d-2.webp', 'assets/avatars/team-2.svg']
       });
       const rejected = await request(baseB, 'announcements', {
         method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
@@ -322,7 +323,11 @@ async function request(base, action, options = {}) {
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].theme, 'gold');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].font, 'elegant');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundImage, uploadedAssetPath);
-      assert.deepStrictEqual(githubManifest.announcements[initialAnnouncementCount].avatars, ['assets/avatars/team-2.svg']);
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundDim, 15);
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundBrightness, 110);
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundPosition, 'top');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundFit, 'contain');
+      assert.deepStrictEqual(githubManifest.announcements[initialAnnouncementCount].avatars, ['assets/avatars/man-3d-2.webp', 'assets/avatars/team-2.svg']);
       assert.strictEqual(githubWrites, 1);
       assert.ok(!saved.text.includes(TOKEN));
     });
@@ -335,8 +340,11 @@ async function request(base, action, options = {}) {
       const next = loaded.data.manifest;
       next.hiddenShopItems = { machine: [2], battery: [1] };
       next.promotions = [{
-        id: 'gift-vercel-test', targetType: 'machine', targetId: 2, variant: 'gift', animated: false,
-        label: { fr: 'JOYEUX NOËL', en: 'MERRY CHRISTMAS' }
+        id: 'birthday-vercel-test', targetType: 'machine', targetId: 2, variant: 'birthday', animated: false,
+        label: { fr: 'JOYEUX ANNIVERSAIRE', en: 'HAPPY BIRTHDAY' }
+      }, {
+        id: 'blackfriday-vercel-test', targetType: 'battery', targetId: 0, variant: 'blackfriday', animated: true,
+        label: { fr: 'BLACK FRIDAY', en: 'BLACK FRIDAY' }
       }];
       const rejected = await request(baseB, 'promotions', {
         method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
@@ -349,9 +357,10 @@ async function request(base, action, options = {}) {
       assert.strictEqual(saved.data.revision, 'sha-vercel-promotion-write-1');
       assert.strictEqual(saved.data.manifest.promotions[0].targetId, 2);
       assert.strictEqual(saved.data.manifest.promotions[0].animated, false);
+      assert.strictEqual(saved.data.manifest.promotions[1].variant, 'blackfriday');
       assert.deepStrictEqual(saved.data.manifest.hiddenShopItems, { machine: [2], battery: [1] });
       assert.deepStrictEqual(githubPromotionManifest.hiddenShopItems, { machine: [2], battery: [1] });
-      assert.strictEqual(githubPromotionManifest.promotions[0].id, 'gift-vercel-test');
+      assert.strictEqual(githubPromotionManifest.promotions[0].id, 'birthday-vercel-test');
       assert.strictEqual(githubPromotionWrites, 1);
       assert.strictEqual(githubWrites, 1);
       assert.ok(!saved.text.includes(TOKEN));

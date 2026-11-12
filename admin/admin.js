@@ -8,14 +8,21 @@
     referral: 'Parrainage',
     security: 'Sécurité'
   };
-  const AVATAR_PRESETS = ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg'];
+  const TEAM_AVATAR_PRESETS = ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg'];
+  const MALE_3D_AVATAR_PRESETS = [
+    'assets/avatars/man-3d-1.webp',
+    'assets/avatars/man-3d-2.webp',
+    'assets/avatars/man-3d-3.webp',
+    'assets/avatars/man-3d-4.webp'
+  ];
+  const AVATAR_PRESETS = [...MALE_3D_AVATAR_PRESETS, ...TEAM_AVATAR_PRESETS];
   const MAX_IMAGE_BYTES = 1536 * 1024;
   const ANNOUNCEMENT_TEMPLATES = {
     'maintenance-thanks': {
       category: 'event',
       theme: 'celebration',
       font: 'elegant',
-      avatars: AVATAR_PRESETS,
+      avatars: TEAM_AVATAR_PRESETS,
       title: {
         fr: 'Merci pour votre patience',
         en: 'Thank you for your patience',
@@ -35,7 +42,7 @@
       category: 'event',
       theme: 'celebration',
       font: 'elegant',
-      avatars: AVATAR_PRESETS,
+      avatars: TEAM_AVATAR_PRESETS,
       title: {
         fr: 'Merci pour votre confiance',
         en: 'Thank you for your trust',
@@ -55,6 +62,13 @@
   const STATUS_LABELS = { active: 'Active', scheduled: 'Programmée', expired: 'Expirée', disabled: 'Désactivée' };
   const SHOP_ITEM_NAMES = ['STARTER', 'STANDARD', 'ADVANCED', 'PRO', 'ELITE', 'ULTRA', 'SUPREME', 'LEGEND'];
   const PROMOTION_VARIANT_LABELS = {
+    birthday: 'Anniversaire',
+    blackfriday: 'Black Friday',
+    flash: 'Offre Flash',
+    sale: 'Soldes / Promo',
+    vip: 'Offre VIP',
+    new: 'Nouveauté',
+    summer: 'Été & Soleil',
     gift: 'Cadeau emballé',
     bells: 'Cloches de Noël',
     snow: 'Neige et flocons',
@@ -79,7 +93,12 @@
     editingPromotionId: null,
     editorEnabled: true,
     editorBackground: '',
+    editorBgDim: 0,
+    editorBgBrightness: 100,
+    editorBgPosition: 'center',
+    editorBgFit: 'cover',
     editorAvatars: [],
+    uploadedAvatars: [],
     editorAssetData: {},
     editorSession: 0,
     assetUploads: 0,
@@ -780,6 +799,7 @@
       button.setAttribute('aria-pressed', String(selected));
       button.disabled = state.assetUploads > 0 || (!selected && state.editorAvatars.length >= 3);
     });
+    renderAvatarLibrary();
     const list = byId('item-avatar-list');
     list.textContent = '';
     state.editorAvatars.forEach((assetPath, index) => {
@@ -800,6 +820,43 @@
       list.appendChild(item);
     });
     updateAssetUploadUi();
+  }
+
+  function renderAvatarLibrary() {
+    const wrap = byId('item-avatar-library-wrap');
+    const container = byId('item-avatar-library');
+    if (!wrap || !container) return;
+    const saved = new Set(state.uploadedAvatars);
+    (state.manifest?.announcements || []).forEach((item) => {
+      if (!Array.isArray(item.avatars)) return;
+      item.avatars.forEach((assetPath) => {
+        if (/^assets\/announcements\/announcement-[a-f0-9]{24}\.(png|jpg|webp)$/.test(assetPath)) saved.add(assetPath);
+      });
+    });
+    state.editorAvatars.forEach((assetPath) => {
+      if (/^assets\/announcements\/announcement-[a-f0-9]{24}\.(png|jpg|webp)$/.test(assetPath)) saved.add(assetPath);
+    });
+    const customPaths = [...saved];
+    wrap.classList.toggle('hidden', customPaths.length === 0);
+    container.textContent = '';
+    customPaths.forEach((assetPath, index) => {
+      const selected = state.editorAvatars.includes(assetPath);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `avatar-preset${selected ? ' selected' : ''}`;
+      button.dataset.avatarCustom = assetPath;
+      button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute('aria-label', `Choisir l’avatar importé ${index + 1}`);
+      button.disabled = state.assetUploads > 0 || (!selected && state.editorAvatars.length >= 3);
+      const image = document.createElement('img');
+      image.src = editorAssetUrl(assetPath);
+      image.alt = '';
+      image.width = 48;
+      image.height = 48;
+      button.appendChild(image);
+      button.addEventListener('click', () => toggleAvatar(assetPath));
+      container.appendChild(button);
+    });
   }
 
   function toggleAvatar(assetPath) {
@@ -823,6 +880,7 @@
     byId('item-theme').value = template.theme;
     byId('item-font').value = template.font;
     state.editorBackground = '';
+    resetBackgroundAdjustments();
     state.editorAvatars = [...template.avatars];
     byId('asset-upload-status').textContent = '';
     renderAvatarEditor();
@@ -905,7 +963,10 @@
       if (editorSession !== state.editorSession) return;
       state.editorAssetData[assetPath] = image.dataUrl;
       if (kind === 'background') state.editorBackground = assetPath;
-      else if (!state.editorAvatars.includes(assetPath) && state.editorAvatars.length < 3) state.editorAvatars.push(assetPath);
+      else {
+        if (!state.uploadedAvatars.includes(assetPath)) state.uploadedAvatars.push(assetPath);
+        if (!state.editorAvatars.includes(assetPath) && state.editorAvatars.length < 3) state.editorAvatars.push(assetPath);
+      }
       byId('asset-upload-status').textContent = 'Visuel enregistré. Publiez l’annonce pour l’associer au manifeste.';
       renderAvatarEditor();
       updatePreview();
@@ -924,12 +985,27 @@
     }
   }
 
+  function resetBackgroundAdjustments() {
+    state.editorBgDim = 0;
+    state.editorBgBrightness = 100;
+    state.editorBgPosition = 'center';
+    state.editorBgFit = 'cover';
+    if (byId('item-background-dim')) byId('item-background-dim').value = '0';
+    if (byId('item-background-brightness')) byId('item-background-brightness').value = '100';
+    if (byId('item-background-position')) byId('item-background-position').value = 'center';
+    if (byId('item-background-fit')) byId('item-background-fit').value = 'cover';
+  }
+
   function openEditor(item = null, options = {}) {
     const duplicate = Boolean(options.duplicate);
     state.editorSession += 1;
     state.assetUploads = 0;
     state.editorAssetData = {};
     state.editorBackground = item?.backgroundImage || '';
+    state.editorBgDim = Number.isSafeInteger(item?.backgroundDim) ? item.backgroundDim : 0;
+    state.editorBgBrightness = Number.isSafeInteger(item?.backgroundBrightness) ? item.backgroundBrightness : 100;
+    state.editorBgPosition = item?.backgroundPosition || 'center';
+    state.editorBgFit = item?.backgroundFit || 'cover';
     state.editorAvatars = Array.isArray(item?.avatars) ? [...item.avatars] : [];
     state.editorEnabled = item?.enabled !== false;
     state.editingId = item && !duplicate ? item.id : null;
@@ -940,6 +1016,10 @@
     byId('item-category').value = item?.category || options.category || 'event';
     byId('item-theme').value = item?.theme || 'classic';
     byId('item-font').value = item?.font || 'modern';
+    if (byId('item-background-dim')) byId('item-background-dim').value = String(state.editorBgDim);
+    if (byId('item-background-brightness')) byId('item-background-brightness').value = String(state.editorBgBrightness);
+    if (byId('item-background-position')) byId('item-background-position').value = state.editorBgPosition;
+    if (byId('item-background-fit')) byId('item-background-fit').value = state.editorBgFit;
     const titleValues = item ? clone(item.title) : {};
     if (duplicate && titleValues.fr) titleValues.fr = `${titleValues.fr} — copie`.slice(0, 80);
     fillLocalizedField('title', titleValues);
@@ -969,17 +1049,28 @@
     const font = byId('item-font').value;
     const title = byId('item-title-fr').value.trim() || byId('item-title-en').value.trim() || 'Votre titre';
     const message = byId('item-message-fr').value.trim() || byId('item-message-en').value.trim() || 'Votre message apparaîtra ici.';
+    state.editorBgDim = Math.min(80, Math.max(0, Number(byId('item-background-dim')?.value || 0)));
+    state.editorBgBrightness = Math.min(150, Math.max(70, Number(byId('item-background-brightness')?.value || 100)));
+    state.editorBgPosition = byId('item-background-position')?.value || 'center';
+    state.editorBgFit = byId('item-background-fit')?.value || 'cover';
+    if (byId('item-background-dim-value')) byId('item-background-dim-value').textContent = `${state.editorBgDim} %`;
+    if (byId('item-background-brightness-value')) byId('item-background-brightness-value').textContent = `${state.editorBgBrightness} %`;
     const slide = byId('preview-slide');
     slide.className = `preview-slide preview-${category} announcement-theme-${theme} announcement-font-${font}`;
     slide.classList.toggle('has-background', Boolean(state.editorBackground));
     slide.classList.toggle('has-avatars', state.editorAvatars.length > 0);
     slide.style.setProperty('--announcement-bg-image', state.editorBackground ? `url(${JSON.stringify(editorAssetUrl(state.editorBackground))})` : 'none');
+    slide.style.setProperty('--announcement-bg-dim', String(state.editorBgDim / 100));
+    slide.style.setProperty('--announcement-bg-brightness', `${state.editorBgBrightness}%`);
+    slide.style.setProperty('--announcement-bg-position', state.editorBgPosition);
+    slide.style.setProperty('--announcement-bg-fit', state.editorBgFit);
     byId('preview-category').textContent = CATEGORY_LABELS[category];
     byId('preview-title').textContent = title;
     byId('preview-message').textContent = message;
     byId('message-count').textContent = String(byId('item-message-fr').value.length);
     byId('item-background-status').textContent = state.editorBackground ? 'Image sélectionnée' : 'Aucune image';
     byId('item-background-remove').classList.toggle('hidden', !state.editorBackground);
+    byId('item-background-controls')?.classList.toggle('hidden', !state.editorBackground);
     const avatarPreview = byId('preview-avatars');
     avatarPreview.textContent = '';
     state.editorAvatars.forEach((assetPath) => {
@@ -1021,7 +1112,13 @@
       theme: byId('item-theme').value,
       font: byId('item-font').value
     };
-    if (state.editorBackground) item.backgroundImage = state.editorBackground;
+    if (state.editorBackground) {
+      item.backgroundImage = state.editorBackground;
+      if (state.editorBgDim > 0) item.backgroundDim = state.editorBgDim;
+      if (state.editorBgBrightness !== 100) item.backgroundBrightness = state.editorBgBrightness;
+      if (state.editorBgPosition !== 'center') item.backgroundPosition = state.editorBgPosition;
+      if (state.editorBgFit !== 'cover') item.backgroundFit = state.editorBgFit;
+    }
     if (state.editorAvatars.length) item.avatars = [...state.editorAvatars];
     if (startsAt) item.startsAt = startsAt;
     if (expiresAt) item.expiresAt = expiresAt;
@@ -1097,8 +1194,17 @@
     byId('item-avatar-file').addEventListener('change', (event) => handleImageSelection(event, 'avatar'));
     byId('item-background-remove').addEventListener('click', () => {
       state.editorBackground = '';
+      resetBackgroundAdjustments();
       byId('asset-upload-status').textContent = '';
       updatePreview();
+    });
+    byId('item-background-reset')?.addEventListener('click', () => {
+      resetBackgroundAdjustments();
+      updatePreview();
+    });
+    ['item-background-dim', 'item-background-brightness', 'item-background-position', 'item-background-fit'].forEach((id) => {
+      byId(id)?.addEventListener('input', updatePreview);
+      byId(id)?.addEventListener('change', updatePreview);
     });
     document.querySelectorAll('[data-avatar-preset]').forEach((button) => {
       button.addEventListener('click', () => toggleAvatar(button.dataset.avatarPreset));
