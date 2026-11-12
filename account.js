@@ -89,9 +89,6 @@
       this.byId('account-photo-choose')?.addEventListener('click', () => this.choosePhoto());
       this.byId('account-photo-remove')?.addEventListener('click', () => this.removePhoto());
       this.byId('account-photo-input')?.addEventListener('change', (event) => this.loadPhoto(event));
-      document.querySelectorAll('[data-account-avatar]').forEach((button) => {
-        button.addEventListener('click', () => this.selectAvatarPreset(button.getAttribute('data-account-avatar')));
-      });
       window.addEventListener('fitia-profile-photo', (event) => this.acceptNativePhoto(event.detail));
       this.byId('account-copy-wallet')?.addEventListener('click', () => this.copyWalletAddress().catch(() => {}));
       this.byId('account-show-login')?.addEventListener('click', () => this.setMode('login'));
@@ -495,20 +492,7 @@
 
     isAllowedProfilePhoto(value) {
       if (typeof value !== 'string') return false;
-      if (/^assets\/avatars\/man-3d-[1-4]\.webp$/.test(value)) return true;
       return /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value) && value.length <= 200000;
-    }
-
-    selectAvatarPreset(presetPath) {
-      if (!this.isAuthenticated() || !/^assets\/avatars\/man-3d-[1-4]\.webp$/.test(presetPath || '')) return;
-      let current = null;
-      try { current = localStorage.getItem(this.photoKey()); } catch (_) {}
-      if (current === presetPath) {
-        this.removePhoto();
-        return;
-      }
-      try { localStorage.setItem(this.photoKey(), presetPath); this.clearMessage('profile'); this.render(); }
-      catch (_) { this.showMessage(this.t('accountPhotoError', 'Unable to use this photo. Choose a JPEG, PNG or WebP image.'), true, 'profile'); }
     }
 
     choosePhoto() {
@@ -854,12 +838,6 @@
       if (this.isAllowedProfilePhoto(photo)) {
         const image = document.createElement('img'); image.src = photo; image.alt = ''; avatar.textContent = ''; avatar.appendChild(image);
       } else { photo = null; }
-      avatar.classList.toggle('has-preset-avatar', Boolean(photo && photo.startsWith('assets/avatars/')));
-      document.querySelectorAll('[data-account-avatar]').forEach((button) => {
-        const selected = Boolean(photo && button.getAttribute('data-account-avatar') === photo);
-        button.classList.toggle('active', selected);
-        button.setAttribute('aria-pressed', String(selected));
-      });
       this.byId('account-photo-remove')?.classList.toggle('hidden', !photo);
       const country = this.byId('account-profile-country');
       if (country) {

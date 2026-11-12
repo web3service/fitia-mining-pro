@@ -798,12 +798,29 @@ main::-webkit-scrollbar { display: none; }
 .announcement-information { --announcement-overlay-a: rgba(20, 54, 86, 0.86); --announcement-overlay-b: rgba(12, 23, 39, 0.92); --announcement-accent: #93c5fd; }
 .announcement-referral { --announcement-overlay-a: rgba(78, 57, 12, 0.86); --announcement-overlay-b: rgba(27, 24, 15, 0.92); --announcement-accent: #ffe066; }
 .announcement-security { --announcement-overlay-a: rgba(84, 28, 46, 0.86); --announcement-overlay-b: rgba(30, 18, 28, 0.92); --announcement-accent: #fda4af; }
+.announcement-birthday { --announcement-accent: #ffb3c7; }
+.announcement-blackfriday { --announcement-accent: #ff5252; }
+.announcement-promotion { --announcement-accent: #ffd94d; }
+.announcement-sale { --announcement-accent: #34d399; }
+.announcement-airdrop { --announcement-accent: #c4b5fd; }
+.announcement-welcome { --announcement-accent: #5eead4; }
 .announcement-theme-aurora { --announcement-overlay-a: rgba(8, 83, 105, 0.82); --announcement-overlay-b: rgba(15, 23, 62, 0.9); --announcement-accent: #7dd3fc; }
 .announcement-theme-gold { --announcement-overlay-a: rgba(105, 65, 10, 0.82); --announcement-overlay-b: rgba(35, 23, 15, 0.9); --announcement-accent: #fde68a; }
 .announcement-theme-emerald { --announcement-overlay-a: rgba(10, 84, 69, 0.82); --announcement-overlay-b: rgba(9, 30, 36, 0.9); --announcement-accent: #6ee7b7; }
 .announcement-theme-violet { --announcement-overlay-a: rgba(77, 41, 116, 0.82); --announcement-overlay-b: rgba(26, 20, 51, 0.9); --announcement-accent: #d8b4fe; }
 .announcement-theme-celebration { --announcement-overlay-a: rgba(105, 55, 86, 0.8); --announcement-overlay-b: rgba(28, 44, 69, 0.9); --announcement-accent: #fde68a; }
 .announcement-theme-celebration::after { background-image: radial-gradient(circle at 12% 22%, #ffd166 0 2px, transparent 2.5px), radial-gradient(circle at 86% 18%, #7dd3fc 0 2px, transparent 2.5px), radial-gradient(circle at 78% 78%, #f0abfc 0 2px, transparent 2.5px), radial-gradient(circle at 23% 84%, #6ee7b7 0 1.5px, transparent 2px); background-size: 73px 67px, 91px 79px, 83px 71px, 67px 61px; opacity: 0.58; }
+.announcement-theme-birthday { --announcement-overlay-a: rgba(88, 34, 64, 0.84); --announcement-overlay-b: rgba(24, 16, 40, 0.92); --announcement-accent: #ffb3c7; }
+.announcement-theme-birthday::after { background-image: radial-gradient(circle at 9% 18%, #ffb3c7 0 2.5px, transparent 3px), radial-gradient(circle at 30% 82%, #7dd3fc 0 2px, transparent 2.5px), radial-gradient(circle at 47% 14%, #fde68a 0 2.2px, transparent 2.7px), radial-gradient(circle at 64% 76%, #f0abfc 0 2px, transparent 2.5px), radial-gradient(circle at 82% 24%, #6ee7b7 0 2.4px, transparent 2.9px), radial-gradient(circle at 93% 68%, #fda4af 0 2px, transparent 2.5px); background-size: 97px 83px, 71px 89px, 83px 61px, 67px 97px, 89px 73px, 79px 67px; opacity: 0.65; }
+.announcement-theme-blackfriday { --announcement-overlay-a: rgba(13, 13, 16, 0.9); --announcement-overlay-b: rgba(7, 7, 9, 0.96); --announcement-accent: #ff5252; }
+.announcement-theme-blackfriday::after { background-image: repeating-linear-gradient(135deg, transparent 0 15px, rgba(255, 82, 82, 0.055) 15px 17px); }
+.announcement-theme-promotion { --announcement-overlay-a: rgba(92, 56, 10, 0.84); --announcement-overlay-b: rgba(25, 17, 6, 0.93); --announcement-accent: #ffd94d; }
+.announcement-theme-promotion::after { background-image: conic-gradient(from 165deg at 82% 52%, rgba(255, 217, 77, 0.16) 0deg 9deg, transparent 9deg 22deg, rgba(255, 217, 77, 0.1) 22deg 30deg, transparent 30deg 44deg, rgba(255, 217, 77, 0.16) 44deg 53deg, transparent 53deg 67deg, rgba(255, 217, 77, 0.1) 67deg 75deg, transparent 75deg 90deg); }
+.announcement-theme-sale { --announcement-overlay-a: rgba(6, 78, 59, 0.86); --announcement-overlay-b: rgba(6, 23, 19, 0.93); --announcement-accent: #34d399; }
+.announcement-theme-sale::after { background-image: repeating-linear-gradient(-48deg, transparent 0 17px, rgba(52, 211, 153, 0.055) 17px 19px); }
+.announcement-theme-airdrop { --announcement-overlay-a: rgba(42, 26, 92, 0.85); --announcement-overlay-b: rgba(15, 11, 39, 0.93); --announcement-accent: #c4b5fd; }
+.announcement-theme-airdrop::after { background-image: radial-gradient(circle at 14% 32%, #e9d5ff 0 1.5px, transparent 2px), radial-gradient(circle at 38% 68%, #a5b4fc 0 1.5px, transparent 2px), radial-gradient(circle at 55% 20%, #e9d5ff 0 2px, transparent 2.5px), radial-gradient(circle at 72% 58%, #c4b5fd 0 1.5px, transparent 2px), radial-gradient(circle at 88% 34%, #e9d5ff 0 1.5px, transparent 2px), radial-gradient(circle at 27% 12%, #c4b5fd 0 1.2px, transparent 1.7px); background-size: 89px 79px, 73px 91px, 81px 67px, 67px 83px, 93px 71px, 59px 59px; opacity: 0.7; }
+.announcement-theme-welcome { --announcement-overlay-a: rgba(13, 74, 82, 0.84); --announcement-overlay-b: rgba(8, 25, 31, 0.93); --announcement-accent: #5eead4; }
 .announcement-font-modern { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 .announcement-font-elegant { font-family: Georgia, 'Times New Roman', serif; }
 .announcement-font-rounded { font-family: ui-rounded, 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif; }
@@ -817,10 +834,11 @@ main::-webkit-scrollbar { display: none; }
 }
 .announcement-slide.has-background > .announcement-artwork { display: none; }
 .announcement-copy { min-width: 0; flex: 1; }
-.announcement-slide.has-avatars { min-height: 112px; }
-.announcement-slide.has-avatars .announcement-copy { padding-bottom: 38px; }
-.announcement-avatars { position: absolute; z-index: 2; right: 12px; bottom: 8px; display: flex; align-items: center; padding-left: 8px; }
-.announcement-avatars img { width: 40px; height: 40px; margin-left: -8px; padding: 2px; border: 2px solid rgba(255, 255, 255, 0.78); border-radius: 50%; background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.16), rgba(15, 23, 42, 0.9)); object-fit: contain; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.34); }
+.announcement-slide.has-avatars { min-height: 118px; }
+.announcement-slide.has-avatars .announcement-copy { padding-right: calc(var(--avatar-count, 1) * 68px + 2px); padding-bottom: 0; }
+.announcement-avatars { position: absolute; z-index: 2; top: 7px; right: 7px; bottom: 7px; display: flex; gap: 6px; }
+.announcement-avatar { position: relative; display: block; width: 62px; height: 100%; overflow: hidden; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.36); background: #0b1220; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.42); }
+.announcement-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; transform-origin: center; user-select: none; -webkit-user-drag: none; }
 .announcement-category {
   display: block;
   margin-bottom: 3px;
@@ -3486,15 +3504,10 @@ main::-webkit-scrollbar { display: none; }
 /* Profile photo is local to this device and cropped without changing wallet data. */
 .account-profile-avatar { overflow: hidden; }
 .account-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.account-profile-avatar.has-preset-avatar img { padding: 3px; object-fit: contain; }
+
 .account-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .account-photo-actions button { min-height: 38px; padding: 8px 12px; font-size: .76rem; }
-.account-avatar-presets-wrap { margin-top: 12px; display: grid; gap: 8px; }
-.account-avatar-presets-label { color: #b5c3d2; font-size: .7rem; font-weight: 700; }
-.account-avatar-presets { display: flex; flex-wrap: wrap; gap: 8px; }
-.account-avatar-preset-btn { display: grid; width: 48px; height: 48px; place-items: center; padding: 3px; border: 1px solid rgba(148,163,184,0.28); border-radius: 14px; background: radial-gradient(circle at 35% 25%, rgba(255,255,255,0.14), rgba(15,23,42,0.88)); cursor: pointer; transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
-.account-avatar-preset-btn img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; pointer-events: none; }
-.account-avatar-preset-btn.active { border-color: #f0b90b; box-shadow: 0 0 0 2px rgba(240,185,11,0.25); transform: translateY(-1px); }
+
 #account-signup-country { color-scheme: dark; }
 
 /* Store: marketplace hierarchy and accessible touch targets */

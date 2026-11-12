@@ -315,6 +315,60 @@ function clone(value) {
       revision = reactivated.data.revision;
     });
 
+    await runTest('Cadrage par avatar : nouvelles catégories et thèmes acceptés, cadrage validé ou rejeté', async () => {
+      const next = clone(manifest);
+      const targetIndex = INITIAL_ANNOUNCEMENT_COUNT;
+      next.announcements[targetIndex].category = 'blackfriday';
+      next.announcements[targetIndex].theme = 'blackfriday';
+      next.announcements[targetIndex].avatarFraming = { 'assets/avatars/man-3d-1.webp': { scale: 140, x: 8, y: -6 } };
+      const valid = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: next, revision }
+      });
+      assert.strictEqual(valid.response.status, 200, valid.text);
+      assert.deepStrictEqual(valid.data.manifest.announcements[targetIndex].avatarFraming, { 'assets/avatars/man-3d-1.webp': { scale: 140, x: 8, y: -6 } });
+      assert.strictEqual(valid.data.manifest.announcements[targetIndex].category, 'blackfriday');
+      assert.strictEqual(valid.data.manifest.announcements[targetIndex].theme, 'blackfriday');
+
+      const badScale = clone(valid.data.manifest);
+      badScale.announcements[targetIndex].avatarFraming = { 'assets/avatars/man-3d-1.webp': { scale: 500, x: 0, y: 0 } };
+      let result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: badScale, revision: valid.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const badOffset = clone(valid.data.manifest);
+      badOffset.announcements[targetIndex].avatarFraming = { 'assets/avatars/man-3d-1.webp': { scale: 150, x: 90, y: 0 } };
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: badOffset, revision: valid.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const badPath = clone(valid.data.manifest);
+      badPath.announcements[targetIndex].avatarFraming = { 'assets/avatars/team-2.svg': { scale: 150, x: 0, y: 0 } };
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: badPath, revision: valid.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400, 'Le cadrage exige un avatar sélectionné');
+
+      const badCategory = clone(valid.data.manifest);
+      badCategory.announcements[targetIndex].category = 'winterfest';
+      result = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: badCategory, revision: valid.data.revision }
+      });
+      assert.strictEqual(result.response.status, 400);
+
+      const restored = clone(valid.data.manifest);
+      restored.announcements[targetIndex].category = 'event';
+      restored.announcements[targetIndex].theme = 'aurora';
+      delete restored.announcements[targetIndex].avatarFraming;
+      const restoreResult = await request(localBase, '/api/admin/announcements', {
+        method: 'PUT', cookie, csrf, body: { manifest: restored, revision: valid.data.revision }
+      });
+      assert.strictEqual(restoreResult.response.status, 200, restoreResult.text);
+      manifest = restoreResult.data.manifest;
+      revision = restoreResult.data.revision;
+    });
+
     await runTest('Validation des catégories, dates, doublons et limite de 12 annonces actives', async () => {
       const invalidCategory = clone(manifest);
       invalidCategory.announcements[0].category = 'unknown';

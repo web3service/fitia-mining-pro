@@ -305,9 +305,10 @@ async function request(base, action, options = {}) {
 
       const next = loaded.data.manifest;
       next.announcements.push({
-        id: 'event-vercel-test', category: 'event', enabled: false, title: { fr: 'Test Vercel' }, message: { fr: 'Publication serverless' },
-        theme: 'gold', font: 'elegant', backgroundImage: uploadedAssetPath, backgroundDim: 15, backgroundBrightness: 110, backgroundPosition: 'top', backgroundFit: 'contain',
-        avatars: ['assets/avatars/man-3d-2.webp', 'assets/avatars/team-2.svg']
+        id: 'event-vercel-test', category: 'birthday', enabled: false, title: { fr: 'Test Vercel' }, message: { fr: 'Publication serverless' },
+        theme: 'birthday', font: 'elegant', backgroundImage: uploadedAssetPath, backgroundDim: 15, backgroundBrightness: 110, backgroundPosition: 'top', backgroundFit: 'contain',
+        avatars: ['assets/avatars/man-3d-2.webp', 'assets/avatars/team-2.svg'],
+        avatarFraming: { 'assets/avatars/man-3d-2.webp': { scale: 145, x: 12, y: -8 } }
       });
       const rejected = await request(baseB, 'announcements', {
         method: 'PUT', cookie, body: { manifest: next, revision: loaded.data.revision }
@@ -320,7 +321,9 @@ async function request(base, action, options = {}) {
       assert.strictEqual(saved.data.revision, 'sha-vercel-write-1');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].id, 'event-vercel-test');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].enabled, false);
-      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].theme, 'gold');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].theme, 'birthday');
+      assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].category, 'birthday');
+      assert.deepStrictEqual(githubManifest.announcements[initialAnnouncementCount].avatarFraming, { 'assets/avatars/man-3d-2.webp': { scale: 145, x: 12, y: -8 } });
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].font, 'elegant');
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundImage, uploadedAssetPath);
       assert.strictEqual(githubManifest.announcements[initialAnnouncementCount].backgroundDim, 15);

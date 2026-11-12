@@ -1,7 +1,7 @@
 {
   "name": "fitia-mining-pro",
-  "version": "3.7.8",
-  "description": "Application mobile autonome FITIA PRO MINER avec portefeuille Polygon chiffr\u00e9 (3 couches AES-256-GCM + AndroidKeyStore) et APK Android sign\u00e9.",
+  "version": "3.7.9",
+  "description": "Application mobile autonome FITIA PRO MINER avec portefeuille Polygon chiffré (3 couches AES-256-GCM + AndroidKeyStore) et APK Android signé.",
   "main": "server.js",
   "engines": {
     "node": "22.x"

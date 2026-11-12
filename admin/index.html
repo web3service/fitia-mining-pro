@@ -174,7 +174,7 @@
 
           <div class="list-toolbar">
             <label class="search-field"><span class="sr-only">Rechercher une annonce</span><input id="search-input" type="search" placeholder="Rechercher un titre ou un message…"></label>
-            <label><span class="sr-only">Filtrer par catégorie</span><select id="category-filter"><option value="all">Toutes les catégories</option><option value="event">Événements</option><option value="information">Informations</option><option value="referral">Parrainage</option><option value="security">Sécurité</option></select></label>
+              <label><span class="sr-only">Filtrer par catégorie</span><select id="category-filter"><option value="all">Toutes les catégories</option><option value="event">Événements</option><option value="information">Informations</option><option value="referral">Parrainage</option><option value="security">Sécurité</option><option value="birthday">Anniversaire</option><option value="blackfriday">Black Friday</option><option value="promotion">Promotion</option><option value="sale">Soldes</option><option value="airdrop">Airdrop</option><option value="welcome">Bienvenue</option></select></label>
             <label><span class="sr-only">Filtrer par statut</span><select id="status-filter"><option value="all">Tous les statuts</option><option value="active">Actives</option><option value="scheduled">Programmées</option><option value="expired">Expirées</option><option value="disabled">Désactivées</option></select></label>
           </div>
 
@@ -389,7 +389,7 @@
           <div class="editor-fields">
             <div class="field-group">
               <label for="item-category">Catégorie</label>
-              <select id="item-category" required><option value="event">Événement</option><option value="information">Information</option><option value="referral">Parrainage</option><option value="security">Sécurité</option></select>
+              <select id="item-category" required><option value="event">Événement</option><option value="information">Information</option><option value="referral">Parrainage</option><option value="security">Sécurité</option><option value="birthday">Anniversaire</option><option value="blackfriday">Black Friday</option><option value="promotion">Promotion</option><option value="sale">Soldes</option><option value="airdrop">Airdrop</option><option value="welcome">Bienvenue</option></select>
             </div>
             <div class="field-group template-field">
               <label for="item-template">Modèle d’annonce</label>
@@ -397,6 +397,12 @@
                 <option value="custom">Contenu personnalisé</option>
                 <option value="maintenance-thanks">Remerciement — fin de maintenance</option>
                 <option value="update-thanks">Remerciement — mise à jour terminée</option>
+                <option value="anniversary-celebration">Anniversaire — FITIA fête son anniversaire</option>
+                <option value="blackfriday-offers">Black Friday — offres STORE</option>
+                <option value="limited-promotion">Promotion — offre spéciale STORE</option>
+                <option value="season-sale">Soldes — sélection à prix réduit</option>
+                <option value="community-airdrop">Airdrop — annonce communauté</option>
+                <option value="welcome-onboard">Bienvenue — nouvel utilisateur</option>
               </select>
               <small class="field-hint">Le modèle préremplit le brouillon. Rien n’est publié sans votre validation.</small>
             </div>
@@ -428,6 +434,12 @@
                     <option value="emerald">Émeraude</option>
                     <option value="violet">Violet prestige</option>
                     <option value="celebration">Confettis &amp; remerciements</option>
+                    <option value="birthday">Anniversaire — confettis et roses</option>
+                    <option value="blackfriday">Black Friday — noir &amp; rouge néon</option>
+                    <option value="promotion">Promotion — soleil doré</option>
+                    <option value="sale">Soldes — vert percutant</option>
+                    <option value="airdrop">Airdrop — cosmos violet</option>
+                    <option value="welcome">Bienvenue — turquoise clair</option>
                   </select>
                 </div>
                 <div class="field-group">
@@ -500,6 +512,21 @@
                   <input id="item-avatar-file" class="hidden" type="file" accept="image/png,image/jpeg,image/webp">
                 </div>
                 <div id="item-avatar-list" class="avatar-selection" aria-live="polite"></div>
+                <div id="item-avatar-framing" class="avatar-framing hidden" aria-label="Cadrage de l’avatar">
+                  <div class="avatar-framing-head">
+                    <strong>Cadrage de l’avatar <span id="item-avatar-framing-index"></span></strong>
+                    <button id="item-avatar-framing-reset" class="button button-quiet" type="button">Réinitialiser</button>
+                  </div>
+                  <div class="avatar-framing-grid">
+                    <label for="item-avatar-framing-zoom">Zoom <span id="item-avatar-framing-zoom-value">100 %</span></label>
+                    <input id="item-avatar-framing-zoom" type="range" min="100" max="300" step="5" value="100">
+                    <label for="item-avatar-framing-x">Horizontal <span id="item-avatar-framing-x-value">0</span></label>
+                    <input id="item-avatar-framing-x" type="range" min="-50" max="50" step="1" value="0">
+                    <label for="item-avatar-framing-y">Vertical <span id="item-avatar-framing-y-value">0</span></label>
+                    <input id="item-avatar-framing-y" type="range" min="-50" max="50" step="1" value="0">
+                  </div>
+                  <small class="field-hint">Astuce : faites glisser l’avatar directement dans l’aperçu pour le repositionner.</small>
+                </div>
               </div>
               <p id="asset-upload-status" class="field-hint" role="status"></p>
             </fieldset>

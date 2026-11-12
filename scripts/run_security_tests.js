@@ -1793,6 +1793,7 @@ function httpRequest(port, method, reqPath) {
           backgroundPosition: 'top',
           backgroundFit: 'contain',
           avatars: ['assets/avatars/man-3d-1.webp', 'assets/avatars/team-1.svg', uploadedAvatar],
+          avatarFraming: { 'assets/avatars/man-3d-1.webp': { scale: 150, x: 10, y: -10 } },
           startsAt: '2026-10-01T00:00:00Z',
           expiresAt: '2026-12-31T23:59:59Z'
         };
@@ -1813,6 +1814,11 @@ function httpRequest(port, method, reqPath) {
             { ...safe, id: 'bad-dim', backgroundDim: 95 },
             { ...safe, id: 'bad-position', backgroundPosition: 'diagonal' },
             { ...safe, id: 'bad-avatar', avatars: ['https://evil.example/avatar.png'] },
+            { ...safe, id: 'bad-framing-scale', avatarFraming: { 'assets/avatars/team-1.svg': { scale: 500, x: 0, y: 0 } } },
+            { ...safe, id: 'bad-framing-offset', avatarFraming: { 'assets/avatars/team-1.svg': { scale: 150, x: 90, y: 0 } } },
+            { ...safe, id: 'bad-framing-path', avatarFraming: { 'https://evil.example/a.png': { scale: 150, x: 0, y: 0 } } },
+            { ...safe, id: 'bad-framing-orphan', avatarFraming: { 'assets/avatars/team-2.svg': { scale: 150, x: 0, y: 0 } } },
+            { ...safe, id: 'bad-framing-type', avatarFraming: 'assets/avatars/man-3d-1.webp' },
             { ...safe, id: 'duplicate-avatar', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-1.svg'] },
             { ...safe, id: 'too-many-avatars', avatars: ['assets/avatars/team-1.svg', 'assets/avatars/team-2.svg', 'assets/avatars/team-3.svg', uploadedAvatar] }
           ]
@@ -1844,6 +1850,10 @@ function httpRequest(port, method, reqPath) {
         assert.strictEqual(visualSlide.style.getPropertyValue('--announcement-bg-fit'), 'contain');
         assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatars img').length, 3, 'Les avatars validés sont affichés');
         assert.strictEqual(visualSlide.querySelector('.announcement-avatars img').getAttribute('src'), 'assets/avatars/man-3d-1.webp', 'Les avatars 3D FITIA restent embarqués');
+        assert.strictEqual(visualSlide.querySelectorAll('.announcement-avatar').length, 3, 'Les avatars sont rendus en portraits plein cadre');
+        assert.ok(visualSlide.querySelector('.announcement-avatar img').style.transform.includes('scale(1.5)'), 'Le zoom par avatar est appliqué');
+        assert.deepStrictEqual(Object.keys(normalized[0].avatarFraming || {}), ['assets/avatars/man-3d-1.webp'], 'Un seul cadrage validé est conservé');
+        assert.deepStrictEqual([normalized[0].avatarFraming['assets/avatars/man-3d-1.webp'].scale, normalized[0].avatarFraming['assets/avatars/man-3d-1.webp'].x, normalized[0].avatarFraming['assets/avatars/man-3d-1.webp'].y], [150, 10, -10], 'Le cadrage validé est conservé');
         assert.strictEqual(visualSlide.querySelector('.announcement-avatars').getAttribute('aria-hidden'), 'true');
 
         App.setLanguage('en');
