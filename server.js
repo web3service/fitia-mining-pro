@@ -83,6 +83,7 @@ const server = http.createServer((req, res) => {
         'X-Frame-Options': 'DENY',
         'Content-Security-Policy': "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'none'; connect-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'none'; frame-ancestors 'none'",
         'Referrer-Policy': 'no-referrer',
+        'Strict-Transport-Security': 'max-age=63072000',
         'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
         'Cache-Control': ext === '.apk' ? 'no-store' : 'no-cache'
       };
