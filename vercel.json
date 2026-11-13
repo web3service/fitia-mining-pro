@@ -139,6 +139,38 @@
     {
       "source": "/api/account/mfa-verify",
       "destination": "/api/account?action=mfa-verify"
+    },
+    {
+      "source": "/api/siwe/nonce",
+      "destination": "/api/siwe?action=nonce"
+    },
+    {
+      "source": "/api/siwe/verify",
+      "destination": "/api/siwe?action=verify"
+    },
+    {
+      "source": "/api/integrity/challenge",
+      "destination": "/api/integrity?action=challenge"
+    },
+    {
+      "source": "/api/integrity/verify",
+      "destination": "/api/integrity?action=verify"
+    },
+    {
+      "source": "/api/push/register",
+      "destination": "/api/push?action=register"
+    },
+    {
+      "source": "/api/push/unregister",
+      "destination": "/api/push?action=unregister"
+    },
+    {
+      "source": "/api/push/send",
+      "destination": "/api/push?action=send"
+    },
+    {
+      "source": "/api/errors/ingest",
+      "destination": "/api/errors?action=ingest"
     }
   ],
   "headers": [
