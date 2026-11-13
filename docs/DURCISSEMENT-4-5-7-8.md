@@ -24,7 +24,8 @@ variables d'environnement et la configuration externe (Firebase, Play Console, S
    - Rotation sans downtime : ajouter `kid2:secret2` à gauche, déployer, retirer `kid1` après expiration des jetons (5–15 min).
 3. Exécuter `supabase/migrations/20261113000001_hardening_tables.sql` dans le SQL Editor Supabase
    (tables `siwe_nonces`, `push_tokens`, `app_errors` — RLS sans policies, accès `service_role` uniquement).
-   Sans ce fichier, les tables restent vides et SIWE retombe sur la mémoire (dev uniquement, non multi-instance).
+   ✅ **Déjà appliqué en production** le 2026-11-13 via le connecteur (migration `hardening_tables`) sur `fitia-pro-miner`.
+   Les routes lisent `FITIA_SUPABASE_URL` / `FITIA_SUPABASE_SERVICE_ROLE_KEY` (mêmes variables que `account-service.js`).
 
 ### Item 4 — Play Integrity
 

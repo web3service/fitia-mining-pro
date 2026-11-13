@@ -77,10 +77,12 @@ function createSupabaseNonceStore(options) {
 function fromEnv(env = process.env, overrides = {}) {
   const secrets = HmacTokens.parseSecrets(env.FITIA_SESSION_SECRETS || env.SIWE_SESSION_SECRETS);
   let store = overrides.store || null;
-  if (!store && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+  const supabaseUrl = env.FITIA_SUPABASE_URL || env.SUPABASE_URL;
+  const supabaseKey = env.FITIA_SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!store && supabaseUrl && supabaseKey) {
     store = createSupabaseNonceStore({
-      url: env.SUPABASE_URL,
-      serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      url: supabaseUrl,
+      serviceRoleKey: supabaseKey,
       fetchImpl: overrides.fetchImpl
     });
   }
