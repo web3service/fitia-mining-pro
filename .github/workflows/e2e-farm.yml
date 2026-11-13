@@ -1,0 +1,35 @@
+name: E2E farm preview (manuel)
+
+# Smoke test navigateur réel du preview de ferme (WebGL).
+# Non branché sur main/PR : exécution volontaire avant release.
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e-farm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium (playwright)
+        run: npx -y playwright@1.65.0 install --with-deps chromium
+      - name: Locate Chromium
+        id: chromium
+        run: |
+          CHROME_PATH=$(find "$HOME/.cache/ms-playwright" -path "*chrome-linux/chrome" -type f -name chrome | head -n 1)
+          echo "path=$CHROME_PATH" >> "$GITHUB_OUTPUT"
+          test -n "$CHROME_PATH"
+      - name: Start farm preview
+        run: |
+          node scripts/preview-farm.js &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 2; done
+      - name: Run browser smoke test
+        env:
+          FARM_CHROMIUM_PATH: ${{ steps.chromium.outputs.path }}
+          FARM_PREVIEW_URL: http://127.0.0.1:4173/
+        run: node scripts/run_farm_browser_tests.js
