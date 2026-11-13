@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.fitia.miningpro",
+      "sha256_cert_fingerprints": [
+        "FA:34:94:FB:50:EE:22:40:F4:77:B7:CB:21:BB:0D:86:06:CE:DC:EA:C3:6A:26:3E:1E:87:7F:34:31:9F:DF:72"
+      ]
+    }
+  }
+]

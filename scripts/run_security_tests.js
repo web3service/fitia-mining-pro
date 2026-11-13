@@ -1297,12 +1297,12 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(App.formatReferralCode(0), '', 'Sans UID, le format FITIA ne fabrique pas un faux code');
       assert.strictEqual(document.getElementById('my-ref-id-label').textContent, 'FITIA-001042', 'L’UID on-chain 1042 est présenté sous sa forme professionnelle');
       assert.strictEqual(App.getMyReferralCode(), 'FITIA-001042');
-      const expectedLink = 'fitiapro://parrainage/FITIA-001042';
+      const expectedLink = 'https://app.fitia.pro/parrainage/FITIA-001042';
       assert.strictEqual(App.getMyReferralLink(), expectedLink);
       assert.strictEqual(document.getElementById('my-ref-link-label').textContent, expectedLink);
       App.myReferralCode = '';
       assert.strictEqual(App.getMyReferralCode(), App.user, 'Sans code UID, le partage utilise l’adresse complète et non raccourcie');
-      assert.strictEqual(App.getMyReferralLink(), `fitiapro://parrainage/${App.user}`, 'Le lien de secours conserve aussi l’adresse complète');
+      assert.strictEqual(App.getMyReferralLink(), `https://app.fitia.pro/parrainage/${App.user}`, 'Le lien de secours conserve aussi l’adresse complète');
       App.myReferralCode = 'FITIA-001042';
 
       for (const [input, expected] of [['FITIA-001042', 1042n], ['fitia-1042', 1042n], ['#1042', 1042n], ['1042', 1042n]]) {
@@ -2658,6 +2658,135 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(pinPromptTriggered, false, 'Solde insuffisant bloqué avant demande de PIN');
 
       App.requestPinVerification = origReqPin;
+    });
+
+    await runTest('SEND-ANTIPOISON', 'Historique analysé : adresses connues OK, lookalikes bloquées avant PIN, ack réactivant le bouton', async () => {
+      const document = e2eWin.document;
+      const activity = App.activity;
+      const originalTransactions = activity.state.transactions;
+      const originalToast = App.showToast;
+      const toasts = [];
+      App.showToast = (message, isError = false) => toasts.push({ message: String(message), isError });
+      const known = '0x' + 'a1' + '0'.repeat(36) + 'bb'; // 42 caractères valides (40 hex)
+      const strongLookalike = known.slice(0, 8) + '3'.repeat(28) + known.slice(-6); // même tête(8) + même queue(6)
+      const weakLookalike = known.slice(0, 6) + '99' + '4'.repeat(30) + known.slice(-4); // tête(6) + queue(4) seulement
+      assert.strictEqual(strongLookalike.length, 42);
+      assert.strictEqual(weakLookalike.length, 42);
+      try {
+        activity.state.transactions = [{
+          hash: '0x' + '11'.repeat(32), to: known, status: 'success',
+          title: 'test', createdAt: Date.now(), updatedAt: Date.now()
+        }];
+
+        // Unité : classification des adresses
+        assert.deepStrictEqual(App.analyzeRecipientAddress('').status, 'empty');
+        assert.deepStrictEqual(App.analyzeRecipientAddress('0xZZ').status, 'invalid');
+        assert.deepStrictEqual(App.analyzeRecipientAddress(known).status, 'known');
+        assert.deepStrictEqual(App.analyzeRecipientAddress('0x' + 'bc'.repeat(20)).status, 'new');
+        assert.strictEqual(App.analyzeRecipientAddress(strongLookalike).status, 'lookalike');
+        assert.strictEqual(App.analyzeRecipientAddress(weakLookalike).status, 'lookalike');
+
+        // UI : lookalike → bouton désactivé + bannière visible
+        App.openSend();
+        const addressInput = document.getElementById('send-to-address');
+        const confirmButton = document.getElementById('send-confirm-button');
+        const banner = document.getElementById('send-addr-warning');
+        const ackWrap = document.getElementById('send-lookalike-ack-wrap');
+        const ack = document.getElementById('send-lookalike-ack');
+
+        addressInput.value = strongLookalike;
+        App.updateSendAddressGuard();
+        assert.strictEqual(banner.classList.contains('hidden'), false, 'Bannière lookalike visible');
+        assert.strictEqual(banner.classList.contains('is-lookalike'), true);
+        assert.strictEqual(ackWrap.classList.contains('hidden'), false, 'Case de reconnaissance affichée');
+        assert.strictEqual(confirmButton.disabled, true, 'Envoi bloqué sans ack explicite');
+
+        // executeSend bloque avant le PIN
+        let pinPromptTriggered = false;
+        const origReqPin = App.requestPinVerification;
+        App.requestPinVerification = async () => { pinPromptTriggered = true; return false; };
+        let originalPinSet = true;
+        document.getElementById('send-token-select').value = 'USDT';
+        document.getElementById('send-amount').value = '1';
+        await App.executeSend();
+        assert.strictEqual(pinPromptTriggered, false, 'Lookalike bloqué avant demande de PIN');
+        assert.ok(toasts.some((item) => item.message.includes('⛔')), 'Toast anti-empoisonnement affiché');
+        App.requestPinVerification = origReqPin;
+
+        // Ack cochée → bouton réactivé, garde levée
+        ack.checked = true;
+        App.updateSendConfirmGate();
+        assert.strictEqual(confirmButton.disabled, false, 'Ack réactive le bouton');
+
+        // Adresse connue → bannière verte, pas d’ack requise
+        addressInput.value = known;
+        App.updateSendAddressGuard();
+        assert.strictEqual(banner.classList.contains('is-known'), true);
+        assert.strictEqual(ackWrap.classList.contains('hidden'), true);
+        assert.strictEqual(confirmButton.disabled, false);
+
+        // Adresse faiblement similaire → lookalike aussi
+        addressInput.value = weakLookalike;
+        App.updateSendAddressGuard();
+        assert.strictEqual(banner.classList.contains('is-lookalike'), true);
+        assert.strictEqual(confirmButton.disabled, true);
+      } finally {
+        activity.state.transactions = originalTransactions;
+        App.showToast = originalToast;
+        App.closeModals();
+      }
+    });
+
+    await runTest('SEND-FEE-USD', 'Frais réseau live affichés avec équivalent USD et montant USD au-dessus du champ', async () => {
+      const document = e2eWin.document;
+      App.openSend();
+      try {
+        document.getElementById('send-token-select').value = 'POL';
+        document.getElementById('send-amount').value = '12';
+        await App.refreshSendFeeAndUsd();
+        const usdLine = document.getElementById('send-amount-usd');
+        assert.strictEqual(usdLine.classList.contains('hidden'), false, 'Équivalent USD affiché');
+        assert.ok(usdLine.textContent.startsWith('≈ $'), `Format USD respecté (reçu : ${usdLine.textContent})`);
+        const feeEl = document.getElementById('send-fee-usd');
+        assert.ok(feeEl.textContent.length > 0 && feeEl.textContent !== '~0.002 POL (Polygon)', 'Frais live remplacent la valeur codée en dur');
+        assert.ok(/POL/.test(feeEl.textContent), 'Frais exprimés en POL');
+      } finally {
+        App.closeModals();
+      }
+    });
+
+    await runTest('APPLINKS-PRIVACY', 'assetlinks.json valide, fingerprint = certificat release, manifest autoVerify, page privacy bilingue complète', async () => {
+      const assetlinks = JSON.parse(fs.readFileSync(path.join(ROOT, '.well-known', 'assetlinks.json'), 'utf8'));
+      assert.strictEqual(assetlinks.length, 1);
+      assert.deepStrictEqual(assetlinks[0].relation, ['delegate_permission/common.handle_all_urls']);
+      const target = assetlinks[0].target;
+      assert.strictEqual(target.namespace, 'android_app');
+      assert.strictEqual(target.package_name, 'com.fitia.miningpro');
+      const certHex = fs.readFileSync(path.join(ROOT, 'android-src', 'release-certificate-sha256.txt'), 'utf8').trim().toLowerCase().replace(/[^0-9a-f]/g, '');
+      assert.strictEqual(certHex.length, 64, 'Fingerprint SHA-256 attendue (64 hex)');
+      const expectedFingerprint = certHex.match(/../g).join(':').toUpperCase();
+      assert.deepStrictEqual(target.sha256_cert_fingerprints, [expectedFingerprint], 'assetlinks.json doit correspondre au certificat release');
+
+      const manifest = fs.readFileSync(path.join(ROOT, 'android-src', 'AndroidManifest.xml'), 'utf8');
+      assert.ok(manifest.includes('android:autoVerify="true"'), 'Intent-filter App Links autoVerify présent');
+      assert.ok(/android:scheme="https"/.test(manifest) && /android:host="app.fitia.pro"/.test(manifest) && /android:pathPrefix="\/parrainage"/.test(manifest), 'App Links https://app.fitia.pro/parrainage/* déclarés');
+
+      const privacy = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
+      assert.ok(privacy.includes('Content-Security-Policy'), 'privacy.html définit sa CSP');
+      assert.ok(privacy.includes('id="fr"') && privacy.includes('id="en"'), 'privacy.html bilingue FR/EN');
+      for (const needle of ['privacy@fitia.pro', 'Supprimer mon compte', 'Delete my account', 'certification', '30 jours']) {
+        assert.ok(privacy.includes(needle), `privacy.html contient « ${needle} »`);
+      }
+
+      const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+      assert.ok(vercel.rewrites.some((r) => r.source === '/api/account/delete' && r.destination.includes('action=delete')), 'Route /api/account/delete publiée');
+      assert.ok(vercel.rewrites.some((r) => r.source === '/parrainage/:path*' && r.destination === '/referral.html'), 'Repli des liens /parrainage/* vers la page referral');
+      const referral = fs.readFileSync(path.join(ROOT, 'referral.html'), 'utf8');
+      const referralJs = fs.readFileSync(path.join(ROOT, 'referral.js'), 'utf8');
+      assert.ok(referral.includes('Content-Security-Policy') && referral.includes('referral.js'), 'referral.html : CSP + script externe');
+      assert.ok(referralJs.includes('FITIA-[0-9]{1,78}'), 'referral.js valide le code avant usage');
+      const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+      assert.ok(server.includes('/.well-known/assetlinks.json'), 'Le serveur statique publie assetlinks.json');
     });
 
     await runTest('TRANSACTION-UX', 'Messages professionnels : 403 neutre, confirmation réelle et échec confirmé sans détail RPC', async () => {

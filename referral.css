@@ -1,0 +1,11 @@
+/* ─── Page de repli /parrainage ─── */
+.referral-main { min-height: 62vh; display: flex; align-items: center; padding: 40px 0 64px; }
+.referral-card { max-width: 560px; margin-inline: auto; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 34px 30px; }
+.referral-card h1 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); line-height: 1.12; margin: 12px 0 10px; letter-spacing: -0.02em; }
+.referral-card h1 span { color: var(--gold); }
+.referral-card .eyebrow { display: flex; justify-content: center; }
+.referral-lead { color: var(--muted); font-size: .93rem; margin: 0 0 18px; }
+.referral-code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: clamp(1.2rem, 4vw, 1.6rem); font-weight: 700; letter-spacing: .06em; color: var(--gold); background: var(--panel-light); border: 1px dashed rgba(245, 200, 66, 0.4); border-radius: 12px; padding: 14px 10px; margin: 0 0 18px; overflow-wrap: anywhere; }
+.referral-actions { display: flex; flex-direction: column; gap: 10px; }
+.referral-help { color: var(--muted); font-size: .8rem; margin: 14px 0 0; }
+.referral-disabled { opacity: .45; pointer-events: none; }

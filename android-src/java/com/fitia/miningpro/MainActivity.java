@@ -173,6 +173,18 @@ public class MainActivity extends Activity {
                 }
                 Uri uri = request.getUrl();
                 if ("https".equalsIgnoreCase(uri.getScheme()) && APP_HOST.equalsIgnoreCase(uri.getHost())) {
+                    String appPath = uri.getPath();
+                    // La politique de confidentialité s'ouvre dans le navigateur
+                    // externe : l'état de l'app est préservé et la page reste
+                    // lisible en entier.
+                    if (appPath != null && appPath.startsWith("/privacy")) {
+                        try {
+                            Intent external = new Intent(Intent.ACTION_VIEW, uri);
+                            startActivity(external);
+                        } catch (Exception ignored) {
+                        }
+                        return true;
+                    }
                     return false;
                 }
                 if ("https".equalsIgnoreCase(uri.getScheme())) {
@@ -262,11 +274,21 @@ public class MainActivity extends Activity {
     private synchronized void captureReferralIntent(Intent intent) {
         if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())) return;
         Uri uri = intent.getData();
-        if (uri == null
-            || !"fitiapro".equalsIgnoreCase(uri.getScheme())
-            || !"parrainage".equalsIgnoreCase(uri.getHost())
-            || uri.getPathSegments().size() != 1) return;
-        String code = uri.getLastPathSegment();
+        if (uri == null) return;
+        String code = null;
+        if ("fitiapro".equalsIgnoreCase(uri.getScheme())
+                && "parrainage".equalsIgnoreCase(uri.getHost())
+                && uri.getPathSegments().size() == 1) {
+            // Ancien schéma custom : fitiapro://parrainage/<code>
+            code = uri.getLastPathSegment();
+        } else if ("https".equalsIgnoreCase(uri.getScheme())
+                && APP_HOST.equalsIgnoreCase(uri.getHost())
+                && uri.getUserInfo() == null
+                && uri.getPathSegments().size() == 2
+                && "parrainage".equalsIgnoreCase(uri.getPathSegments().get(0))) {
+            // App Links vérifiés : https://app.fitia.pro/parrainage/<code>
+            code = uri.getPathSegments().get(1);
+        }
         if (code == null || !code.matches("(?i)^(?:FITIA-[0-9]{1,78}|0x[0-9a-f]{40})$")) return;
         pendingReferralCode = code;
     }

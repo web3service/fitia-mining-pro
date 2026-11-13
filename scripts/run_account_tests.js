@@ -53,6 +53,11 @@ class FakeAuth {
     this.refreshTokens.delete(refreshToken); return this.issue(user);
   }
   async logout(accessToken) { this.access.delete(accessToken); }
+  async deleteUser(userId) {
+    this.users.delete(userId);
+    for (const [token, id] of [...this.access.entries()]) if (id === userId) this.access.delete(token);
+    for (const [token, id] of [...this.refreshTokens.entries()]) if (id === userId) this.refreshTokens.delete(token);
+  }
   async updateEmail(userId, email) {
     if ([...this.users.values()].some((user) => user.id !== userId && user.email === email)) throw new AccountError(400, 'Exists', 'ACCOUNT_EMAIL_UPDATE');
     const user = this.users.get(userId);
@@ -505,6 +510,53 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
       }
     } finally { await close(server); }
     assert.strictEqual(auth.users.size, 1);
+  });
+
+  await test('Suppression de compte : re-authentification, effacement du profil et de l’identité Auth', async () => {
+    const { service, auth, repository } = createService();
+    const signed = await service.signUp({ email: 'delete@example.com', password: 'A-correct-passphrase-2026', username: 'Delete_User' });
+    const token = signed.session.accessToken;
+    const userId = signed.user.userId;
+    // Mauvais mot de passe → refusé, rien n'est effacé.
+    await rejects(service.deleteAccount(token, { currentPassword: 'Wrong-passphrase-2026' }), 'ACCOUNT_REAUTH');
+    assert.ok(await repository.findProfile(userId));
+    assert.strictEqual(auth.users.size, 1);
+    // Bon mot de passe → suppression complète et idempotente côté service.
+    const result = await service.deleteAccount(token, { currentPassword: 'A-correct-passphrase-2026' });
+    assert.strictEqual(result.deleted, true);
+    assert.strictEqual(await repository.findProfile(userId), null);
+    assert.strictEqual(auth.users.size, 0);
+    await rejects(service.signIn({ email: 'delete@example.com', password: 'A-correct-passphrase-2026' }), 'ACCOUNT_LOGIN');
+  });
+
+  await test('API: /api/account/delete exige Bearer et un mot de passe valide, puis efface le compte', async () => {
+    const { service } = createService();
+    const signed = await service.signUp({ email: 'delete-api@example.com', password: 'A-correct-passphrase-2026', username: 'Delete_Api' });
+    const token = signed.session.accessToken;
+    const server = http.createServer(createAccountHandler({ accountService: service, trustProxy: true }));
+    const base = await listen(server);
+    try {
+      let response = await fetch(`${base}/api/account/delete`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: 'A-correct-passphrase-2026' })
+      });
+      assert.strictEqual(response.status, 401);
+      response = await fetch(`${base}/api/account/delete`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: 'Wrong-passphrase-2026' })
+      });
+      assert.strictEqual(response.status, 403);
+      assert.strictEqual((await response.json()).code, 'ACCOUNT_REAUTH');
+      response = await fetch(`${base}/api/account/delete`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: 'A-correct-passphrase-2026' })
+      });
+      assert.strictEqual(response.status, 200);
+      assert.strictEqual((await response.json()).deleted, true);
+      // Le jeton est invalidé après suppression.
+      response = await fetch(`${base}/api/account/session`, { headers: { Authorization: `Bearer ${token}` } });
+      assert.strictEqual(response.status, 401);
+    } finally { await close(server); }
   });
 
   console.log('═'.repeat(68));
