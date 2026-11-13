@@ -12,7 +12,13 @@ const ROOT = __dirname;
 const ALLOWED_ROOT_FILES = new Set([
   '/index.html',
   '/landing.css',
-  '/FITIA-PRO-Miner.apk'
+  '/FITIA-PRO-Miner.apk',
+  '/.well-known/assetlinks.json',
+  '/privacy.html',
+  '/privacy.css',
+  '/referral.html',
+  '/referral.css',
+  '/referral.js'
 ]);
 
 const ALLOWED_DIRS = ['/assets/'];

@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://app.fitia.pro',
   'https://fitia-mining-pro.vercel.app'
 ]);
-const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password', 'mfa-status', 'mfa-begin', 'mfa-confirm', 'mfa-disable', 'mfa-verify']);
+const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password', 'delete', 'mfa-status', 'mfa-begin', 'mfa-confirm', 'mfa-disable', 'mfa-verify']);
 
 function setHeaders(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -191,6 +191,12 @@ function createAccountHandler(options = {}) {
       }
       if (action === 'password') {
         send(res, 200, await withAuthRateLimit(req, () => account().changePassword(getAccessToken(req), body)));
+        return;
+      }
+      if (action === 'delete') {
+        // Suppression de compte self-service (RGPD) : re-authentification par
+        // mot de passe + limitation stricte anti brute-force.
+        send(res, 200, await withAuthRateLimit(req, () => account().deleteAccount(getAccessToken(req), body)));
         return;
       }
     } catch (error) {

@@ -11,7 +11,8 @@
   const PASSWORD_FIELDS = [
     'account-login-password', 'account-signup-password', 'account-signup-confirm',
     'account-email-current-password', 'account-password-current',
-    'account-password-new', 'account-password-confirm'
+    'account-password-new', 'account-password-confirm',
+    'account-delete-current-password'
   ];
   const USERNAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_]{2,23}$/;
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -48,6 +49,7 @@
       this.messageIsError = false;
       this.messageScope = 'global';
       this.logoutConfirmationOpen = false;
+      this.deleteConfirmationOpen = false;
       this.refreshTimer = null;
       this.refreshPromise = null;
       this.profilePromise = null;
@@ -99,6 +101,9 @@
       this.byId('account-logout')?.addEventListener('click', () => this.setLogoutConfirmation(!this.logoutConfirmationOpen));
       this.byId('account-logout-cancel')?.addEventListener('click', () => this.setLogoutConfirmation(false, true));
       this.byId('account-logout-confirm')?.addEventListener('click', () => this.logout().catch(() => {}));
+      this.byId('account-delete')?.addEventListener('click', () => this.setDeleteConfirmation(!this.deleteConfirmationOpen));
+      this.byId('account-delete-cancel')?.addEventListener('click', () => this.setDeleteConfirmation(false, true));
+      this.byId('account-delete-confirm')?.addEventListener('click', () => this.deleteAccount().catch(() => {}));
       this.byId('account-retry')?.addEventListener('click', () => this.retryRestore().catch(() => {}));
       document.querySelectorAll('[data-account-password-toggle]').forEach((button) => {
         button.addEventListener('click', () => this.togglePassword(button.getAttribute('data-account-password-toggle')));
@@ -107,7 +112,8 @@
         global: ['account-login-email', 'account-login-password', 'account-signup-username', 'account-signup-country', 'account-signup-email', 'account-signup-password', 'account-signup-confirm'],
         username: ['account-username-input'],
         email: ['account-email-input', 'account-email-current-password'],
-        password: ['account-password-current', 'account-password-new', 'account-password-confirm']
+        password: ['account-password-current', 'account-password-new', 'account-password-confirm'],
+        delete: ['account-delete-current-password']
       };
       Object.entries(inputs).forEach(([scope, ids]) => ids.forEach((id) => {
         this.byId(id)?.addEventListener('input', (event) => {
@@ -176,7 +182,8 @@
       ['account-login-submit', 'account-signup-submit', 'account-show-login', 'account-show-signup',
         'account-username-submit', 'account-email-submit', 'account-password-submit', 'account-copy-wallet',
         'account-link-wallet', 'account-refresh-profile', 'account-logout', 'account-logout-confirm',
-        'account-logout-cancel', 'account-retry'].forEach((id) => {
+        'account-logout-cancel', 'account-delete', 'account-delete-confirm',
+        'account-delete-cancel', 'account-retry'].forEach((id) => {
         const element = this.byId(id);
         if (!element) return;
         element.disabled = busy;
@@ -193,6 +200,15 @@
       this.render();
       if (open) this.byId('account-logout-cancel')?.focus();
       else if (returnFocus) this.byId('account-logout')?.focus();
+    }
+
+    setDeleteConfirmation(open, returnFocus = false) {
+      if (this.busy) return;
+      this.deleteConfirmationOpen = Boolean(open);
+      if (!open) this.clearPasswords(['account-delete-current-password']);
+      this.render();
+      if (open) this.byId('account-delete-cancel')?.focus();
+      else if (returnFocus) this.byId('account-delete')?.focus();
     }
 
     renderPasswordToggles() {
@@ -245,6 +261,7 @@
       });
       this.profileInputKey = '';
       this.logoutConfirmationOpen = false;
+      this.deleteConfirmationOpen = false;
       this.clearMessage();
       this.render();
     }
@@ -783,6 +800,37 @@
       } finally { this.setBusy(false); }
     }
 
+    async deleteAccount() {
+      if (this.busy || !this.session) return;
+      if (this.app.mfaClient && !this.app.mfaClient.canLeaveSetup()) {
+        this.showMessage(this.t('mfaSaveBeforeExit', 'Save your recovery codes and confirm before leaving.'), true, 'delete');
+        return;
+      }
+      const field = 'account-delete-current-password';
+      const input = this.byId(field);
+      const currentPassword = input?.value || '';
+      if (!validCurrentPassword(currentPassword)) {
+        this.clearPasswords([field]);
+        this.invalidField(field, this.t('accountCurrentPasswordRequired', 'Enter your current password.'), 'delete');
+        return;
+      }
+      this.setBusy(true, 'account-delete-confirm');
+      try {
+        await this.request('delete', { body: { currentPassword }, retry: false });
+        await this.clearLocalSession();
+        this.mode = 'login';
+        this.deleteConfirmationOpen = false;
+        this.clearMessage();
+        this.showMessage(this.t('accountDeleted', 'Your FITIA PRO account has been permanently deleted.'), false, 'global');
+        this.render();
+      } catch (error) {
+        this.showMessage(error.message || this.t('accountDeleteFailed', 'Account deletion failed. Try again.'), true, 'delete');
+      } finally {
+        this.clearPasswords([field]);
+        this.setBusy(false);
+      }
+    }
+
     renderBadge(container, label, kind) {
       const item = document.createElement('span');
       item.className = `account-status-badge account-status-${kind}`;
@@ -812,7 +860,7 @@
       if (live) live.textContent = this.busy ? this.t('accountWorking', 'Working…') : '';
       const messageIds = {
         global: 'account-message', profile: 'account-profile-message', username: 'account-username-message',
-        email: 'account-email-message', password: 'account-password-message', wallet: 'account-wallet-message'
+        email: 'account-email-message', password: 'account-password-message', wallet: 'account-wallet-message', delete: 'account-delete-message'
       };
       Object.entries(messageIds).forEach(([scope, id]) => {
         const element = this.byId(id);
@@ -827,6 +875,8 @@
       if (confirmation) { confirmation.textContent = this.confirmation; confirmation.classList.toggle('hidden', !this.confirmation); }
       this.byId('account-logout-confirmation')?.classList.toggle('hidden', !connected || !this.logoutConfirmationOpen);
       this.byId('account-logout')?.setAttribute('aria-expanded', String(connected && this.logoutConfirmationOpen));
+      this.byId('account-delete-confirmation')?.classList.toggle('hidden', !connected || !this.deleteConfirmationOpen);
+      this.byId('account-delete')?.setAttribute('aria-expanded', String(connected && this.deleteConfirmationOpen));
       if (!connected) return;
 
       this.byId('account-profile-name').textContent = this.user.username;

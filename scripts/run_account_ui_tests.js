@@ -456,6 +456,54 @@ async function test(name, fn) {
     assert.ok(!doc.getElementById('account-auth-panel').classList.contains('hidden'));
   });
 
+  await test('Suppression de compte : repli annulable, mot de passe requis, session effacée', async ({ center, app, doc, storage, win }) => {
+    let calls = 0;
+    center.fetch = async (url, options = {}) => {
+      calls += 1;
+      assert.ok(url.endsWith('/delete'));
+      const body = JSON.parse(options.body || '{}');
+      assert.strictEqual(body.currentPassword, 'A-correct-passphrase-2026');
+      return result(200, { deleted: true });
+    };
+    // Ouverture / fermeture sans mot de passe → aucun appel réseau
+    doc.getElementById('account-delete').click();
+    assert.strictEqual(doc.getElementById('account-delete').getAttribute('aria-expanded'), 'true');
+    assert.strictEqual(doc.activeElement.id, 'account-delete-cancel');
+    doc.getElementById('account-delete-confirm').click();
+    await tick();
+    assert.strictEqual(calls, 0);
+    assert.strictEqual(doc.getElementById('account-delete-current-password').getAttribute('aria-invalid'), 'true');
+    doc.getElementById('account-delete-cancel').click();
+    assert.strictEqual(doc.getElementById('account-delete').getAttribute('aria-expanded'), 'false');
+    assert.ok(center.session && app.user);
+    // Mot de passe correct → suppression serveur + effacement local
+    doc.getElementById('account-delete').click();
+    input(win, 'account-delete-current-password', 'A-correct-passphrase-2026');
+    doc.getElementById('account-delete-confirm').click();
+    await tick(); await tick();
+    assert.strictEqual(calls, 1);
+    assert.strictEqual(center.session, null);
+    assert.strictEqual(storage.cleared, 1);
+    assert.strictEqual(app.signedOut, 1);
+    assert.strictEqual(app.user, null);
+    assert.ok(!doc.getElementById('account-auth-panel').classList.contains('hidden'));
+  });
+
+  await test('Suppression refusée par le serveur : compte conservé, message affiché, champ effacé', async ({ center, app, doc, storage, win }) => {
+    center.fetch = async () => result(403, { error: 'Mot de passe actuel incorrect.', code: 'ACCOUNT_REAUTH' });
+    doc.getElementById('account-delete').click();
+    input(win, 'account-delete-current-password', 'Wrong-passphrase-2026');
+    doc.getElementById('account-delete-confirm').click();
+    await tick(); await tick();
+    assert.ok(center.session, 'Session conservée après refus serveur');
+    assert.strictEqual(storage.cleared, 0);
+    assert.strictEqual(app.signedOut, 0);
+    const message = doc.getElementById('account-delete-message');
+    assert.strictEqual(message.classList.contains('hidden'), false);
+    assert.ok(message.textContent.length > 0);
+    assert.strictEqual(doc.getElementById('account-delete-current-password').value, '', 'Le mot de passe est effacé après la tentative');
+  });
+
   await test('Pays avec drapeau : sélection obligatoire et profil lisible', async ({ center, win, doc }) => {
     const select = doc.getElementById('account-signup-country');
     assert.ok(select.options.length > 240);

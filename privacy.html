@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080d18">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Politique de confidentialité de FITIA PRO MINER : données collectées, finalités, hébergeurs, droits RGPD et suppression de compte self-service. / Privacy policy for FITIA PRO MINER.">
+  <title>Politique de confidentialité — FITIA PRO MINER</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'none'; connect-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'none'; frame-ancestors 'none'">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="landing.css">
+  <link rel="stylesheet" href="privacy.css">
+</head>
+<body>
+  <div class="page-glow" aria-hidden="true"></div>
+  <header class="site-header container">
+    <a class="brand" href="/" aria-label="FITIA PRO MINER — Accueil">
+      <img src="assets/icon-192.png" alt="" width="48" height="48">
+      <span class="brand-name">FITIA <strong>PRO</strong><small>MINER</small></span>
+    </a>
+    <span class="platform-pill">Android App</span>
+  </header>
+
+  <main class="legal-main container">
+    <div class="legal-hero">
+      <div class="eyebrow"><span></span> PRIVACY · RGPD</div>
+      <h1>Politique de confidentialité<br><span>de FITIA PRO MINER</span></h1>
+      <p>Ce document décrit quelles données l’application FITIA PRO MINER traite, pourquoi, où elles sont hébergées et comment exercer vos droits, y compris le droit à l’effacement (suppression définitive de votre compte depuis l’application).</p>
+      <nav class="legal-lang-nav" aria-label="Langues / Languages">
+        <a href="#fr">Français</a>
+        <a href="#en">English</a>
+      </nav>
+      <p class="legal-updated">Version 1.0 — en vigueur au 13 novembre 2026 · Version 1.0 — effective 13 November 2026</p>
+    </div>
+
+    <div class="legal-grid">
+      <!-- ════════════════════ FRANÇAIS ════════════════════ -->
+      <div id="fr" class="legal-lang">
+        <section class="legal-section">
+          <h2>1. Responsable du traitement</h2>
+          <p>Le responsable du traitement des données personnelles décrites ici est l’éditeur de l’application FITIA PRO MINER (« FITIA PRO », « nous »). Pour toute question ou demande relative à vos données : <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a>.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>2. Données que nous traitons</h2>
+          <h3>2.1 Données de votre compte (serveur)</h3>
+          <table>
+            <thead><tr><th>Donnée</th><th>Détail</th><th>Conservation</th></tr></thead>
+            <tbody>
+              <tr><td>Email + mot de passe</td><td>L’email sert d’identifiant de connexion. Le mot de passe n’est jamais stocké en clair : il est géré par notre fournisseur d’authentification (hachage bcrypt/argon2).</td><td>Jusqu’à la suppression du compte</td></tr>
+              <tr><td>Nom d’utilisateur</td><td>Pseudonyme public affiché dans l’app (profil, certification).</td><td>Jusqu’à la suppression du compte</td></tr>
+              <tr><td>Pays</td><td>Pays sélectionné à l’inscription, utilisé pour les statistiques et la conformité.</td><td>Jusqu’à la suppression du compte</td></tr>
+              <tr><td>Wallet lié</td><td>Adresse publique Polygon liée par signature. Nous ne custodialisons aucun actif et ne détenons jamais votre phrase de récupération.</td><td>Jusqu’à la suppression du compte (ou déliaison)</td></tr>
+              <tr><td>Historique de certification</td><td>Évènements « certifié / dé-certifié » associés à votre compte (date, auteur).</td><td>Jusqu’à la suppression du compte</td></tr>
+              <tr><td>Défis de liaison (challenges)</td><td>Messages signés à usage unique, expirant après 10 minutes.</td><td>Supprimés avec le compte</td></tr>
+            </tbody>
+          </table>
+
+          <h3>2.2 Données qui ne quittent jamais votre téléphone</h3>
+          <ul>
+            <li><strong>Coffre du wallet</strong> : clé privée / phrase de récupération, chiffrée en AES-256-GCM. La clé de déchiffrement est scellée dans le <em>Android Keystore</em> (non exportable), protégée par votre PIN.</li>
+            <li><strong>PIN</strong> : jamais transmis ni stocké en clair.</li>
+            <li><strong>Historique d’activité local</strong> (transactions initiées dans l’app, notifications) : stocké en <code>localStorage</code> sur l’appareil, par compte.</li>
+            <li><strong>Session de compte</strong> : jetons chiffrés dans le coffre local, effacés à la déconnexion ou à la suppression du compte.</li>
+          </ul>
+          <div class="legal-ok"><strong>Architecture non-custodiale.</strong> Nous ne pouvons pas accéder à vos fonds, signer en votre nom ni restaurer votre phrase de récupération. Une perte de téléphone sans sauvegarde de la phrase entraîne la perte définitive de l’accès à vos cryptomonnaies.</div>
+
+          <h3>2.3 Données techniques</h3>
+          <p>Notre hébergeur (Vercel) journalise des métadonnées de requêtes (IP, user-agent, horodatage) à des fins de sécurité et de prévention des abus. Nous n’utilisons <strong>aucun</strong> outil d’analytics, de publicité ou de traçage tiers.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>3. Finalités et bases légales</h2>
+          <table>
+            <thead><tr><th>Finalité</th><th>Base légale</th></tr></thead>
+            <tbody>
+              <tr><td>Créer et gérer votre compte, vous authentifier</td><td>Exécution du contrat (art. 6.1.b RGPD)</td></tr>
+              <tr><td>Afficher votre profil, votre statut de certification et vos actifs Polygon (lecture publique)</td><td>Exécution du contrat</td></tr>
+              <tr><td>Sécurité, prévention de la fraude et des abus</td><td>Intérêt légitime (art. 6.1.f RGPD)</td></tr>
+              <tr><td>Emails transactionnels (confirmation de compte)</td><td>Exécution du contrat</td></tr>
+              <tr><td>Respect des obligations légales et réponses aux autorités</td><td>Obligation légale (art. 6.1.c RGPD)</td></tr>
+            </tbody>
+          </table>
+          <p>Les lectures on-chain (machines, soldes) interrogent des nœuds publics du réseau Polygon ; ces requêtes ne contiennent aucune donnée personnelle côté serveur.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>4. Destinataires et hébergement</h2>
+          <p>Nous n’avons pas recours à la vente de données. Les données de compte sont hébergées par nos sous-traitants techniques :</p>
+          <ul>
+            <li><strong>Supabase</strong> — base de données et authentification (comptes, profils, certification).</li>
+            <li><strong>Vercel</strong> — hébergement du site app.fitia.pro et des API.</li>
+          </ul>
+          <p>Ces prestataires peuvent traiter des données en dehors de l’Union européenne ; les transferts sont encadrés par des clauses contractuelles types de la Commission européenne et par les garanties offertes par ces éditeurs. L’APK et le site sont servis via HTTPS avec HSTS.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>5. Durée de conservation</h2>
+          <ul>
+            <li>Compte et profil : conservés jusqu’à suppression (par vous ou par nous dans les cas prévus à la section 7).</li>
+            <li>Après suppression effective du compte : purge des lignes de profil, défis et évènements de certification ; les sauvegardes chiffrées des hébergeurs peuvent subsister jusqu’à <strong>30 jours</strong> avant effacement définitif.</li>
+            <li>Données locales sur l’appareil : jusqu’à effacement par vos soins (désinstallation / effacement des données de l’app).</li>
+          </ul>
+        </section>
+
+        <section class="legal-section">
+          <h2>6. Vos droits RGPD</h2>
+          <p>Vous disposez des droits suivants : accès, rectification, effacement (« droit à l’oubli »), limitation, opposition, portabilité, et du droit d’introduire une réclamation auprès de la <a href="https://www.cnil.fr" rel="noopener noreferrer">CNIL</a> (France) ou de l’autorité de contrôle de votre pays de résidence dans l’UE.</p>
+          <div class="legal-callout"><strong>Suppression self-service.</strong> Depuis l’application : <strong>Mon compte : Supprimer mon compte</strong>. La suppression est immédiate côté serveur après confirmation par mot de passe : profil, wallet lié, historique de certification, défis et compte d’authentification sont effacés. Votre wallet local et votre phrase de récupération restent sous votre seule responsabilité (voir 2.2).</div>
+          <p>Pour l’accès, la rectification, la portabilité ou toute question : <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a>. Nous répondons dans un délai de <strong>30 jours</strong>.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>7. Suppression par FITIA PRO</h2>
+          <p>Nous pouvons supprimer un compte inactif depuis plus de 24 mois, après information préalable, ou en cas de violation des conditions d’utilisation, de fraude ou d’obligation légale.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>8. Cookies et stockage local</h2>
+          <p>Le site et l’app n’utilisent ni cookies publicitaires ni traceurs. L’app utilise le stockage local de l’appareil (coffre chiffré, historique, préférences de langue). Aucune donnée de navigation n’est partagée.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>9. Mineurs</h2>
+          <p>FITIA PRO MINER n’est pas destiné aux personnes de moins de 16 ans. Si vous pensez qu’un compte est détenu par un mineur, contactez <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a>.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>10. Sécurité</h2>
+          <ul>
+            <li>Chiffrement des données en transit (TLS 1.2+, HSTS, en-têtes de sécurité strictes).</li>
+            <li>Mots de passe hachés côté authentification ; la clé serveur (service role) ne quitte jamais le backend.</li>
+            <li>Coffre AES-256-GCM sur l’appareil, clé scellée Android Keystore, autoverrouillage, blocage des captures d’écran sur les écrans sensibles.</li>
+            <li>Limitation anti brute-force sur l’authentification et la suppression de compte.</li>
+          </ul>
+          <p>Aucun système n’étant infaillible, signalez toute vulnérabilité à <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a> avec les détails techniques nécessaires à la reproduction.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>11. Modifications de cette politique</h2>
+          <p>Toute modification substantielle sera publiée sur cette page avec une nouvelle version et une nouvelle date d’effet. La version affichée fait foi.</p>
+        </section>
+      </div>
+
+      <!-- ════════════════════ ENGLISH ════════════════════ -->
+      <div id="en" class="legal-lang">
+        <section class="legal-section">
+          <h2>1. Data controller</h2>
+          <p>The controller for the personal data described here is the publisher of the FITIA PRO MINER application (“FITIA PRO”, “we”). For any privacy question or request: <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a>.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>2. Data we process</h2>
+          <h3>2.1 Account data (server side)</h3>
+          <table>
+            <thead><tr><th>Data</th><th>Details</th><th>Retention</th></tr></thead>
+            <tbody>
+              <tr><td>Email + password</td><td>Email is your sign-in identifier. Passwords are never stored in plain text; they are handled by our authentication provider (bcrypt/argon2 hashing).</td><td>Until account deletion</td></tr>
+              <tr><td>Username</td><td>Public pseudonym shown in the app (profile, certification).</td><td>Until account deletion</td></tr>
+              <tr><td>Country</td><td>Selected at sign-up; used for statistics and compliance.</td><td>Until account deletion</td></tr>
+              <tr><td>Linked wallet</td><td>Public Polygon address linked by signature. We never custody assets and never hold your recovery phrase.</td><td>Until account deletion (or unlinking)</td></tr>
+              <tr><td>Certification history</td><td>“Certified / de-certified” events tied to your account (timestamp, actor).</td><td>Until account deletion</td></tr>
+              <tr><td>Link challenges</td><td>Single-use signed messages, expiring after 10 minutes.</td><td>Deleted with the account</td></tr>
+            </tbody>
+          </table>
+
+          <h3>2.2 Data that never leaves your phone</h3>
+          <ul>
+            <li><strong>Wallet vault</strong>: private key / recovery phrase encrypted with AES-256-GCM. The decryption key is sealed in the <em>Android Keystore</em> (non-exportable), protected by your PIN.</li>
+            <li><strong>PIN</strong>: never transmitted, never stored in plain text.</li>
+            <li><strong>Local activity history</strong> (transactions initiated in the app, notifications): stored in <code>localStorage</code> on the device, per account.</li>
+            <li><strong>Account session</strong>: tokens encrypted in the local vault, erased on sign-out or account deletion.</li>
+          </ul>
+          <div class="legal-ok"><strong>Non-custodial by design.</strong> We cannot access your funds, sign on your behalf or restore your recovery phrase. Losing your phone without backing up your phrase means permanently losing access to your crypto assets.</div>
+
+          <h3>2.3 Technical data</h3>
+          <p>Our hosting provider (Vercel) logs request metadata (IP, user-agent, timestamp) for security and abuse prevention. We use <strong>no</strong> third-party analytics, advertising or tracking.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>3. Purposes and legal bases</h2>
+          <table>
+            <thead><tr><th>Purpose</th><th>Legal basis</th></tr></thead>
+            <tbody>
+              <tr><td>Create and manage your account, authenticate you</td><td>Performance of a contract (Art. 6.1.b GDPR)</td></tr>
+              <tr><td>Display your profile, certification status and Polygon assets (public read)</td><td>Performance of a contract</td></tr>
+              <tr><td>Security, fraud and abuse prevention</td><td>Legitimate interests (Art. 6.1.f GDPR)</td></tr>
+              <tr><td>Transactional emails (account confirmation)</td><td>Performance of a contract</td></tr>
+              <tr><td>Legal obligations and authority requests</td><td>Legal obligation (Art. 6.1.c GDPR)</td></tr>
+            </tbody>
+          </table>
+          <p>On-chain reads (machines, balances) hit public Polygon nodes; these requests carry no personal data on our side.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>4. Recipients and hosting</h2>
+          <p>We do not sell data. Account data is hosted by our technical processors:</p>
+          <ul>
+            <li><strong>Supabase</strong> — database and authentication (accounts, profiles, certification).</li>
+            <li><strong>Vercel</strong> — hosting of the app.fitia.pro site and its APIs.</li>
+          </ul>
+          <p>These providers may process data outside the European Union; transfers rely on the European Commission’s standard contractual clauses and the safeguards offered by those vendors. The APK and site are served over HTTPS with HSTS.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>5. Retention</h2>
+          <ul>
+            <li>Account and profile: kept until deletion (by you, or by us in the cases listed in §7).</li>
+            <li>After effective deletion: profile rows, challenges and certification events are purged; encrypted backups held by hosting providers may persist for up to <strong>30 days</strong> before being irreversibly erased.</li>
+            <li>Local on-device data: until you erase it (uninstall / clear app data).</li>
+          </ul>
+        </section>
+
+        <section class="legal-section">
+          <h2>6. Your GDPR rights</h2>
+          <p>You have the rights of access, rectification, erasure (“right to be forgotten”), restriction, objection and portability, and the right to lodge a complaint with your local supervisory authority (e.g. the <a href="https://www.cnil.fr" rel="noopener noreferrer">CNIL</a> in France).</p>
+          <div class="legal-callout"><strong>Self-service deletion.</strong> In the app: <strong>My account : Delete my account</strong>. Deletion is immediate server-side once you confirm with your password: profile, linked wallet, certification history, challenges and the authentication account are erased. Your local wallet and recovery phrase remain solely your responsibility (see §2.2).</div>
+          <p>For access, rectification, portability or any question: <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a>. We reply within <strong>30 days</strong>.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>7. Deletion by FITIA PRO</h2>
+          <p>We may delete an account inactive for more than 24 months, after prior notice, or in case of breach of the terms of use, fraud, or legal obligation.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>8. Cookies and local storage</h2>
+          <p>The site and the app use no advertising cookies or trackers. The app stores data locally on the device (encrypted vault, history, language preferences). No browsing data is shared.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>9. Children</h2>
+          <p>FITIA PRO MINER is not intended for users under 16. If you believe an account belongs to a child, contact <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a>.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>10. Security</h2>
+          <ul>
+            <li>Data encrypted in transit (TLS 1.2+, HSTS, strict security headers).</li>
+            <li>Passwords hashed by the authentication provider; the server (service-role) key never leaves the backend.</li>
+            <li>On-device AES-256-GCM vault, Android Keystore-sealed key, auto-lock, screenshot blocking on sensitive screens.</li>
+            <li>Brute-force rate limiting on authentication and on account deletion.</li>
+          </ul>
+          <p>No system is perfect — report vulnerabilities to <a href="mailto:privacy@fitia.pro">privacy@fitia.pro</a> with enough detail to reproduce.</p>
+        </section>
+
+        <section class="legal-section">
+          <h2>11. Changes to this policy</h2>
+          <p>Substantial changes will be published on this page with a new version and effective date. The version shown here prevails.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer container">
+    <div class="brand footer-brand"><img src="assets/icon-192.png" alt="" width="34" height="34"><span class="brand-name">FITIA <strong>PRO</strong><small>MINER</small></span></div>
+    <p>Standalone Android app on the Polygon network.</p>
+    <span>© 2026 FITIA PRO</span>
+  </footer>
+</body>
+</html>

@@ -245,6 +245,22 @@ class SupabaseAuthClient {
     }
   }
 
+  async deleteUser(userId) {
+    try {
+      // Suppression définitive (RGPD) : DELETE admin/users/{id} avec la clé
+      // de service. La session courante est invalidée côté Auth en même temps.
+      await this.request(`admin/users/${encodeURIComponent(userId)}`, {
+        method: 'DELETE', accessToken: this.serviceRoleKey, body: {}
+      });
+    } catch (error) {
+      if (error.code === 'ACCOUNT_UNAVAILABLE') throw error;
+      if (error.supabaseStatus === 404) return; // Déjà supprimé : idempotent.
+      if (error.supabaseStatus === 429) throw new AccountError(429, 'Trop de tentatives. Réessayez plus tard.', 'ACCOUNT_RATE_LIMIT');
+      if (error.supabaseStatus >= 500) throw new AccountError(503, 'Suppression du compte temporairement indisponible.', 'ACCOUNT_UNAVAILABLE');
+      throw new AccountError(502, 'La suppression du compte a été refusée. Réessayez ou contactez le support.', 'ACCOUNT_DELETE_AUTH');
+    }
+  }
+
   async refresh(refreshToken) {
     try {
       return await this.request('token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: refreshToken } });
@@ -402,6 +418,14 @@ class SupabaseAccountRepository {
     const rows = await this.request(`app_user_certification_events?select=id,user_id,certified,actor,created_at&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=20`);
     return Array.isArray(rows) ? rows : [];
   }
+
+  async deleteAccountData(userId) {
+    const filter = `user_id=eq.${encodeURIComponent(userId)}`;
+    // Ordre : évènements de certification, défis de liaison, puis profil.
+    await this.request(`app_user_certification_events?${filter}`, { method: 'DELETE', prefer: 'return=minimal' });
+    await this.request(`app_wallet_link_challenges?${filter}`, { method: 'DELETE', prefer: 'return=minimal' });
+    await this.request(`app_user_profiles?${filter}`, { method: 'DELETE', prefer: 'return=minimal' });
+  }
 }
 
 class MemoryAccountRepository {
@@ -482,6 +506,14 @@ class MemoryAccountRepository {
 
   async listCertificationEvents(userId) {
     return clone(this.certificationEvents.filter((row) => row.user_id === userId).reverse().slice(0, 20));
+  }
+
+  async deleteAccountData(userId) {
+    this.certificationEvents = this.certificationEvents.filter((row) => row.user_id !== userId);
+    for (const [key, value] of [...this.challenges.entries()]) {
+      if (value && value.user_id === userId) this.challenges.delete(key);
+    }
+    this.profiles.delete(userId);
   }
 }
 
@@ -700,6 +732,24 @@ class AccountService {
     const freshSession = await this.reauthenticate(current, currentPassword);
     await this.auth.updatePassword(current.userId, newPassword);
     return this.sessionPayload(freshSession, current);
+  }
+
+  async deleteAccount(accessToken, params = {}) {
+    const authUser = await this.auth.getUser(accessToken);
+    const current = await this.ensureProfile(authUser);
+    const currentPassword = normalizeCurrentPassword(params.currentPassword);
+    await this.reauthenticate(current, currentPassword);
+    // RGPD : effacer les données personnelles côté stockage, puis le compte Auth.
+    await this.repository.deleteAccountData(current.userId);
+    try {
+      await this.auth.deleteUser(current.userId);
+    } catch (error) {
+      // Les données métier sont effacées mais l'identité Auth subsiste :
+      // l'utilisateur peut se reconnecter et redemander la suppression.
+      if (error instanceof AccountError) throw new AccountError(503, 'Compte effacé mais l’identité de connexion n’a pas pu être supprimée. Reconnectez-vous et réessayez, ou contactez le support.', 'ACCOUNT_DELETE_PARTIAL');
+      throw error;
+    }
+    return { deleted: true };
   }
 
   async logout(accessToken) {

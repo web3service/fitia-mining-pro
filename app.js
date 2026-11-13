@@ -255,6 +255,12 @@ const i18n = {
     pluggingIn: "Connexion en cours...",
     pluggedIn: "Machine connectée !",
     invalidAmount: "Montant invalide",
+    antiPoisonKnown: "✓ Destinataire déjà utilisé par ce wallet.",
+    antiPoisonNew: "Nouvelle adresse — comparez les 6 premiers et 4 derniers caractères avant de confirmer.",
+    antiPoisonLookalike: "⛔ Cette adresse ressemble à une adresse de votre historique ({match}) mais n'est PAS identique — possible empoisonnement. L'envoi reste bloqué tant que la case ci-dessous n'est pas cochée.",
+    antiPoisonAck: "Je comprends le risque et je maintiens l'envoi vers cette adresse",
+    networkFeeUnavailable: "Frais indisponibles (RPC hors ligne)",
+    networkFeeEstimating: "Frais estimés…",
     swapping: "Échange en cours...",
     swapSuccess: "Échange réussi !",
     claiming: "Réclamation en attente…",
@@ -331,6 +337,13 @@ const i18n = {
     contractAddrBlocked: "⛔ Adresse de contrat détectée ! N'envoyez pas directement à l'adresse d'un contrat.",
     confirmSend: "CONFIRMER L’ENVOI",
     invalidAddr: "Adresse invalide",
+    accountPrivacyLink: "Politique de confidentialité",
+    accountDelete: "Supprimer mon compte",
+    accountDeleteConfirmTitle: "Supprimer définitivement votre compte ?",
+    accountDeleteConfirmHelp: "Efface définitivement votre compte FITIA PRO : profil, wallet lié et historique de certification. Votre wallet sur cet appareil et votre phrase de récupération ne sont pas concernés et ne peuvent pas être récupérés par nos soins. Cette action est irréversible.",
+    accountDeleteConfirmAction: "Supprimer définitivement",
+    accountDeleted: "Votre compte FITIA PRO a été définitivement supprimé.",
+    accountDeleteFailed: "La suppression du compte a échoué. Réessayez.",
     recipientAddr: "Adresse destinataire (0x...)",
     amount: "Montant",
     securityCenterTitle: "Portefeuille & Sécurité",
@@ -673,6 +686,12 @@ const i18n = {
     pluggingIn: "Connecting...",
     pluggedIn: "Machine connected!",
     invalidAmount: "Invalid amount",
+    antiPoisonKnown: "✓ Recipient already used by this wallet.",
+    antiPoisonNew: "New address — compare the first 6 and last 4 characters before confirming.",
+    antiPoisonLookalike: "⛔ This address resembles an address from your history ({match}) but is NOT identical — possible address poisoning. Send stays blocked until the box below is ticked.",
+    antiPoisonAck: "I understand the risk and want to send to this address anyway",
+    networkFeeUnavailable: "Fee unavailable (RPC offline)",
+    networkFeeEstimating: "Estimating fees…",
     swapping: "Swapping...",
     swapSuccess: "Swap successful!",
     claiming: "Claim pending…",
@@ -749,6 +768,13 @@ const i18n = {
     contractAddrBlocked: "⛔ Contract address detected! Do not send tokens directly to a contract address.",
     confirmSend: "CONFIRM SEND",
     invalidAddr: "Invalid address",
+    accountPrivacyLink: "Privacy policy",
+    accountDelete: "Delete my account",
+    accountDeleteConfirmTitle: "Delete your account permanently?",
+    accountDeleteConfirmHelp: "Permanently erases your FITIA PRO account: profile, linked wallet and certification history. Your on-device wallet and recovery phrase are not affected and cannot be recovered by us. This action cannot be undone.",
+    accountDeleteConfirmAction: "Delete permanently",
+    accountDeleted: "Your FITIA PRO account has been permanently deleted.",
+    accountDeleteFailed: "Account deletion failed. Try again.",
     recipientAddr: "Recipient address (0x...)",
     amount: "Amount",
     securityCenterTitle: "Wallet & Security",
@@ -867,6 +893,19 @@ const i18n = {
     updateScreenError: "Der Download ist fehlgeschlagen",
     updateScreenErrorHint: "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     updateRetry: "Erneut versuchen",
+    antiPoisonKnown: "✓ Empfänger wurde von dieser Wallet bereits genutzt.",
+    antiPoisonNew: "Neue Adresse — vergleiche die ersten 6 und letzten 4 Zeichen vor dem Bestätigen.",
+    antiPoisonLookalike: "⛔ Diese Adresse ähnelt einer Adresse aus deinem Verlauf ({match}), ist aber NICHT identisch — mögliches Address-Poisoning. Der Versand bleibt blockiert, bis das Kästchen unten markiert ist.",
+    antiPoisonAck: "Ich verstehe das Risiko und möchte an diese Adresse senden",
+    networkFeeUnavailable: "Gebühr nicht verfügbar (RPC offline)",
+    networkFeeEstimating: "Gebühr wird geschätzt…",
+    accountPrivacyLink: "Datenschutzerklärung",
+    accountDelete: "Mein Konto löschen",
+    accountDeleteConfirmTitle: "Dein Konto endgültig löschen?",
+    accountDeleteConfirmHelp: "Löscht dein FITIA-PRO-Konto dauerhaft: Profil, verknüpfte Wallet und Zertifizierungshistorie. Deine Wallet auf diesem Gerät und deine Wiederherstellungsphrase sind nicht betroffen und können von uns nicht wiederhergestellt werden. Diese Aktion kann nicht rückgängig gemacht werden.",
+    accountDeleteConfirmAction: "Endgültig löschen",
+    accountDeleted: "Dein FITIA-PRO-Konto wurde endgültig gelöscht.",
+    accountDeleteFailed: "Kontolöschung fehlgeschlagen. Versuche es erneut.",
     accountRequiredTitle: "Anmeldung bei FITIA PRO",
     accountRequiredMessage: "Ein FITIA-Konto ist für den Zugriff auf die App erforderlich.",
     accountMyAccount: "Mein Konto",
@@ -1066,6 +1105,19 @@ const i18n = {
     updateScreenError: "下载失败",
     updateScreenErrorHint: "请检查网络连接后重试。",
     updateRetry: "重试",
+    antiPoisonKnown: "✓ 该地址已被此钱包使用过。",
+    antiPoisonNew: "新地址 — 确认前请核对地址的前 6 位和后 4 位字符。",
+    antiPoisonLookalike: "⛔ 该地址与历史记录中的地址 ({match}) 相似但并非同一地址 — 可能是地址投毒攻击。在勾选下方复选框之前，发送将被阻止。",
+    antiPoisonAck: "我了解风险，仍要向此地址发送",
+    networkFeeUnavailable: "费用不可用（RPC 离线）",
+    networkFeeEstimating: "正在估算费用…",
+    accountPrivacyLink: "隐私政策",
+    accountDelete: "删除我的账户",
+    accountDeleteConfirmTitle: "永久删除您的账户？",
+    accountDeleteConfirmHelp: "将永久清除您的 FITIA PRO 账户：个人资料、已绑定的钱包和认证记录。本设备上的钱包和助记词不受影响，我们也无法为您恢复。此操作无法撤销。",
+    accountDeleteConfirmAction: "永久删除",
+    accountDeleted: "您的 FITIA PRO 账户已被永久删除。",
+    accountDeleteFailed: "账户删除失败，请重试。",
     accountRequiredTitle: "登录 FITIA PRO",
     accountRequiredMessage: "需要 FITIA 账户才能访问应用。",
     accountMyAccount: "我的账户",
@@ -1265,6 +1317,19 @@ const i18n = {
     updateScreenError: "The download failed",
     updateScreenErrorHint: "Check your connection, then try again.",
     updateRetry: "Try again",
+    antiPoisonKnown: "✓ Recipient already used by this wallet.",
+    antiPoisonNew: "New address — check the first 6 and last 4 characters before confirming.",
+    antiPoisonLookalike: "⛔ This address looks like an address from your history ({match}) but is NOT identical — possible address poisoning. Send stays blocked until the box below is ticked.",
+    antiPoisonAck: "I understand the risk and want to send to this address anyway",
+    networkFeeUnavailable: "Fee unavailable (RPC offline)",
+    networkFeeEstimating: "Estimating fees…",
+    accountPrivacyLink: "Privacy policy",
+    accountDelete: "Delete my account",
+    accountDeleteConfirmTitle: "Delete your account permanently?",
+    accountDeleteConfirmHelp: "Permanently erases your FITIA PRO account: profile, linked wallet and certification history. Your on-device wallet and recovery phrase are not affected and cannot be recovered by us. This cannot be undone.",
+    accountDeleteConfirmAction: "Delete permanently",
+    accountDeleted: "Your FITIA PRO account has been permanently deleted.",
+    accountDeleteFailed: "Account deletion failed. Try again.",
     accountRequiredTitle: "Sign in to FITIA PRO",
     accountRequiredMessage: "A FITIA account is required to access the app.",
     accountMyAccount: "My account",
@@ -3826,8 +3891,20 @@ class Application {
     document.getElementById('send-to-address').value = '';
     document.getElementById('send-amount').value = '';
     this.closeSendTokenMenu();
+    const banner = document.getElementById('send-addr-warning');
+    const ackWrap = document.getElementById('send-lookalike-ack-wrap');
+    const ack = document.getElementById('send-lookalike-ack');
+    const usdLine = document.getElementById('send-amount-usd');
+    banner?.classList.add('hidden'); banner && (banner.textContent = '');
+    ackWrap?.classList.add('hidden');
+    if (ack) ack.checked = false;
+    usdLine?.classList.add('hidden');
+    this.sendAddressAnalysis = { status: 'empty' };
+    this._sendAddressAnalysisKey = 'empty:';
+    this._sendFeeCache = null;
     document.getElementById('modal-send').classList.add('active');
     this.updateSendBalance();
+    this.refreshSendFeeAndUsd();
   }
 
   getSendTokenMeta(token) {
@@ -3879,6 +3956,7 @@ class Application {
     document.getElementById('send-amount').value = '';
     this.closeSendTokenMenu();
     this.updateSendBalance();
+    this.refreshSendFeeAndUsd();
   }
 
   updateSendBalance() {
@@ -3904,6 +3982,7 @@ class Application {
       maxVal = this.balances.walletFta;
       document.getElementById('send-amount').value = maxVal > 0 ? maxVal.toFixed(4) : '';
     }
+    this.refreshSendFeeAndUsd();
   }
 
   async pasteRecipientAddr() {
@@ -3913,6 +3992,137 @@ class Application {
         if (t) document.getElementById('send-to-address').value = t.trim();
       }
     } catch (_) {}
+    this.updateSendAddressGuard();
+  }
+
+  openPrivacyPolicy() {
+    try {
+      // Le WebView intercepte la navigation /privacy* et la délègue au
+      // navigateur externe (shouldOverrideUrlLoading). Sur le Web, repli classique.
+      if (FitiaSecurity.Native.isNativeApk()) {
+        window.location.assign('https://app.fitia.pro/privacy.html');
+      } else {
+        window.open('privacy.html', '_blank', 'noopener,noreferrer');
+      }
+    } catch (_) {
+      try { window.location.assign('privacy.html'); } catch (__) { /* no-op */ }
+    }
+  }
+
+  // ─── Envoi : équivalent USD live & frais réseau réels ────────────
+  async refreshSendFeeAndUsd() {
+    const amountInput = document.getElementById('send-amount');
+    const usdLine = document.getElementById('send-amount-usd');
+    const feeEl = document.getElementById('send-fee-usd');
+    if (!amountInput || !usdLine || !feeEl) return;
+    const token = document.getElementById('send-token-select')?.value || 'POL';
+
+    // 1) Équivalent USD du montant (au-dessus du champ Montant)
+    const raw = amountInput.value.trim().replace(',', '.');
+    const amount = Number.parseFloat(raw);
+    const priceUsd = token === 'USDT' ? 1 : token === 'POL' ? this.polPriceUsd : this.ftaPriceUsd;
+    if (Number.isFinite(amount) && amount > 0 && Number.isFinite(priceUsd) && priceUsd > 0) {
+      usdLine.textContent = '≈ ' + this.formatUsd(amount * priceUsd);
+      usdLine.classList.remove('hidden');
+    } else {
+      usdLine.classList.add('hidden');
+    }
+
+    // 2) Frais réseau live, mis en cache 30 s et dédupliqué
+    const now = Date.now();
+    if (this._sendFeeCache && now - this._sendFeeCache.at < 30000 && this._sendFeeCache.token === token) {
+      feeEl.textContent = this._sendFeeCache.text;
+      return;
+    }
+    if (this._sendFeeInFlight) return this._sendFeeInFlight;
+    this._sendFeeInFlight = (async () => {
+      try {
+        if (!this.provider || !FitiaSecurity.Rpc?.getOptimalFeeData) throw new Error('RPC_UNAVAILABLE');
+        const fees = await FitiaSecurity.Rpc.getOptimalFeeData(this.provider);
+        const gasLimit = token === 'POL' ? 21000n : 75000n;
+        const feeWei = BigInt(fees.maxFeePerGas || 0n) * gasLimit;
+        const feePol = Number(ethers.formatEther(feeWei));
+        const feeText = feePol > 0 && feePol < 0.0001 ? '<0.0001 POL' : `${feePol.toFixed(6)} POL`;
+        const feeUsd = this.polPriceUsd > 0 ? ` (≈ ${this.formatUsd(feePol * this.polPriceUsd)})` : '';
+        const text = `~${feeText}${feeUsd}`;
+        this._sendFeeCache = { at: Date.now(), token, text };
+        feeEl.textContent = text;
+      } catch (_) {
+        feeEl.textContent = this.t('networkFeeUnavailable');
+      } finally {
+        this._sendFeeInFlight = null;
+      }
+    })();
+    return this._sendFeeInFlight;
+  }
+
+  // ─── Envoi : anti-empoisonnement d'adresse (lookalike) ──────────
+  getKnownRecipientAddresses() {
+    try {
+      const seen = new Set();
+      for (const tx of (this.activity?.state?.transactions || [])) {
+        const to = String(tx?.to || '').trim().toLowerCase();
+        if (/^0x[0-9a-f]{40}$/.test(to)) seen.add(to);
+      }
+      return [...seen];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  analyzeRecipientAddress(candidate) {
+    const value = String(candidate || '').trim().toLowerCase();
+    if (!value) return { status: 'empty' };
+    if (!/^0x[0-9a-f]{40}$/.test(value)) return { status: 'invalid' };
+    const known = this.getKnownRecipientAddresses();
+    if (known.includes(value)) return { status: 'known' };
+    // Empoisonnement classique : même tête et même queue, milieu différent.
+    const strong = known.find((addr) => addr.slice(0, 8) === value.slice(0, 8) && addr.slice(-6) === value.slice(-6));
+    if (strong) return { status: 'lookalike', match: strong };
+    const weak = known.find((addr) => addr.slice(0, 6) === value.slice(0, 6) && addr.slice(-4) === value.slice(-4));
+    return weak ? { status: 'lookalike', match: weak } : { status: 'new' };
+  }
+
+  updateSendAddressGuard() {
+    const input = document.getElementById('send-to-address');
+    const banner = document.getElementById('send-addr-warning');
+    const ackWrap = document.getElementById('send-lookalike-ack-wrap');
+    const ack = document.getElementById('send-lookalike-ack');
+    if (!input || !banner || !ackWrap || !ack) return;
+    const analysis = this.analyzeRecipientAddress(input.value);
+    const analysisKey = `${analysis.status}:${analysis.match || input.value.trim().toLowerCase()}`;
+    const keyChanged = this._sendAddressAnalysisKey !== analysisKey;
+    if (keyChanged) {
+      ack.checked = false;
+      this._sendAddressAnalysisKey = analysisKey;
+    }
+    this.sendAddressAnalysis = analysis;
+    banner.classList.remove('is-known', 'is-new', 'is-lookalike');
+    const show = (className, text) => { banner.textContent = text; banner.classList.add(className); banner.classList.remove('hidden'); };
+    if (analysis.status === 'known') {
+      show('is-known', this.t('antiPoisonKnown'));
+      ackWrap.classList.add('hidden');
+    } else if (analysis.status === 'new') {
+      show('is-new', this.t('antiPoisonNew'));
+      ackWrap.classList.add('hidden');
+    } else if (analysis.status === 'lookalike') {
+      show('is-lookalike', this.t('antiPoisonLookalike').replace('{match}', this.shortAddr(analysis.match)));
+      ackWrap.classList.remove('hidden');
+    } else {
+      banner.textContent = '';
+      banner.classList.add('hidden');
+      ackWrap.classList.add('hidden');
+      ack.checked = false;
+    }
+    this.updateSendConfirmGate();
+  }
+
+  updateSendConfirmGate() {
+    const ack = document.getElementById('send-lookalike-ack');
+    const button = document.getElementById('send-confirm-button');
+    if (!button) return;
+    const lookalike = this.sendAddressAnalysis?.status === 'lookalike';
+    button.disabled = !!lookalike && !(ack && ack.checked);
   }
 
   openReceive() {
@@ -3976,6 +4186,13 @@ class Application {
       if (!['POL', 'USDT', 'FTA'].includes(token) || !ethers.isAddress(toRaw)) {
         return this.showToast(this.t('invalidAddr'), true);
       }
+      const addressAnalysis = this.analyzeRecipientAddress(toRaw);
+      if (addressAnalysis.status === 'lookalike') {
+        const ackEl = document.getElementById('send-lookalike-ack');
+        if (!ackEl || !ackEl.checked) {
+          return this.showToast(this.t('antiPoisonLookalike').replace('{match}', addressAnalysis.match ? this.shortAddr(addressAnalysis.match) : ''), true);
+        }
+      }
       const to = ethers.getAddress(toRaw);
 
       if (to === ethers.ZeroAddress) return this.showToast(this.t('burnAddrBlocked'), true);
@@ -4031,7 +4248,7 @@ class Application {
       this.showError(error);
     } finally {
       this.sendTransactionInProgress = false;
-      if (submitButton) submitButton.disabled = false;
+      if (submitButton) { submitButton.disabled = false; this.updateSendConfirmGate(); }
       this.setLoader(false);
     }
   }
@@ -4469,7 +4686,10 @@ class Application {
 
   getMyReferralLink() {
     const code = this.getMyReferralCode();
-    return code ? `fitiapro://parrainage/${encodeURIComponent(code)}` : '';
+    // App Links vérifiés (assetlinks.json) : https arrive directement dans l'app
+    // sur Android ; ailleurs, referral.html propose le téléchargement.
+    // Le schéma fitiapro:// reste accepté à l'ouverture (rétrocompatibilité).
+    return code ? `https://app.fitia.pro/parrainage/${encodeURIComponent(code)}` : '';
   }
 
   async copyMyReferralCode() {

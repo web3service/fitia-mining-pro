@@ -314,3 +314,6 @@ h1 span, .security-copy h2 span { color: var(--gold); }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; }
 }
+
+.site-footer .footer-privacy-link { color: var(--gold); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.site-footer .footer-privacy-link:hover { text-decoration: underline; text-underline-offset: 3px; }
