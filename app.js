@@ -3997,10 +3997,10 @@ class Application {
 
   openPrivacyPolicy() {
     try {
-      // Le WebView intercepte la navigation /privacy* et la délègue au
-      // navigateur externe (shouldOverrideUrlLoading). Sur le Web, repli classique.
+      // URL absolue de production : le WebView la route vers le navigateur
+      // externe (shouldOverrideUrlLoading). Sur le Web, repli classique.
       if (FitiaSecurity.Native.isNativeApk()) {
-        window.location.assign('https://app.fitia.pro/privacy.html');
+        window.location.assign('https://fitia-mining-pro.vercel.app/privacy.html');
       } else {
         window.open('privacy.html', '_blank', 'noopener,noreferrer');
       }
@@ -4689,7 +4689,7 @@ class Application {
     // App Links vérifiés (assetlinks.json) : https arrive directement dans l'app
     // sur Android ; ailleurs, referral.html propose le téléchargement.
     // Le schéma fitiapro:// reste accepté à l'ouverture (rétrocompatibilité).
-    return code ? `https://app.fitia.pro/parrainage/${encodeURIComponent(code)}` : '';
+    return code ? `https://fitia-mining-pro.vercel.app/parrainage/${encodeURIComponent(code)}` : '';
   }
 
   async copyMyReferralCode() {

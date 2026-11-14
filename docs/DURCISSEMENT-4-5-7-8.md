@@ -41,7 +41,7 @@ variables d'environnement et la configuration externe (Firebase, Play Console, S
    `FitiaNative.requestIntegrityToken` est donc un **stub documenté** : l'endpoint est prêt à recevoir
    des jetons réels dès qu'une intégration native (migration Gradle + Play Console) sera livrée.
    Jusque-là, toute vérification côté client est advisory.
-5. Test : `curl -s -X POST https://app.fitia.pro/api/integrity/challenge -H 'Content-Type: application/json' -d '{}'`
+5. Test : `curl -s -X POST https://fitia-mining-pro.vercel.app/api/integrity/challenge -H 'Content-Type: application/json' -d '{}'`
 
 ### Item 5 — Push FCM
 
@@ -52,7 +52,7 @@ variables d'environnement et la configuration externe (Firebase, Play Console, S
    Désinscription : `POST /api/push/unregister`.
 5. Envoi opérateur :
    ```
-   curl -s -X POST https://app.fitia.pro/api/push/send \
+   curl -s -X POST https://fitia-mining-pro.vercel.app/api/push/send \
      -H "Content-Type: application/json" \
      -H "x-fitia-admin-token: $PUSH_ADMIN_TOKEN" \
      -d '{"title":"FITIA PRO","body":"Mise à jour disponible"}'

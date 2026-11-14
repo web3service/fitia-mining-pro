@@ -87,7 +87,7 @@ function fromEnv(env = process.env, overrides = {}) {
     });
   }
   if (!store) store = createMemoryNonceStore();
-  const allowedDomains = String(env.SIWE_DOMAINS || env.SIWE_DOMAIN || 'app.fitia.pro')
+  const allowedDomains = String(env.SIWE_DOMAINS || env.SIWE_DOMAIN || 'app.fitia.pro,fitia-mining-pro.vercel.app')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);

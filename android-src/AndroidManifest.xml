@@ -56,7 +56,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="app.fitia.pro"
+                    android:host="fitia-mining-pro.vercel.app"
                     android:pathPrefix="/parrainage" />
             </intent-filter>
         </activity>

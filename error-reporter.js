@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 //  FITIA — error-reporter (item 8, opt-in)
-//  Envoie window.onerror / unhandledrejection vers /api/errors/ingest.
+//  Envoie window.onerror / unhandledrejection vers /api/errors/ingest
+//  sur https://fitia-mining-pro.vercel.app (API de production).
 //  Désactivé par défaut. Activation explicite via :
 //    localStorage.setItem('fitia.errorReporting', 'on')
 //  ou window.FITIA_ERROR_REPORTING = true avant le chargement.
@@ -21,7 +22,7 @@
     return;
   }
 
-  var endpoint = '/api/errors/ingest';
+  var endpoint = 'https://fitia-mining-pro.vercel.app/api/errors/ingest';
   var release = window.FITIA_RELEASE || null;
   var platform = /FITIA|wv|Android/i.test(navigator.userAgent || '') ? 'android-apk' : 'web';
   var budget = 10;

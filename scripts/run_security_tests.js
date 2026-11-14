@@ -1297,12 +1297,12 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(App.formatReferralCode(0), '', 'Sans UID, le format FITIA ne fabrique pas un faux code');
       assert.strictEqual(document.getElementById('my-ref-id-label').textContent, 'FITIA-001042', 'L’UID on-chain 1042 est présenté sous sa forme professionnelle');
       assert.strictEqual(App.getMyReferralCode(), 'FITIA-001042');
-      const expectedLink = 'https://app.fitia.pro/parrainage/FITIA-001042';
+      const expectedLink = 'https://fitia-mining-pro.vercel.app/parrainage/FITIA-001042';
       assert.strictEqual(App.getMyReferralLink(), expectedLink);
       assert.strictEqual(document.getElementById('my-ref-link-label').textContent, expectedLink);
       App.myReferralCode = '';
       assert.strictEqual(App.getMyReferralCode(), App.user, 'Sans code UID, le partage utilise l’adresse complète et non raccourcie');
-      assert.strictEqual(App.getMyReferralLink(), `https://app.fitia.pro/parrainage/${App.user}`, 'Le lien de secours conserve aussi l’adresse complète');
+      assert.strictEqual(App.getMyReferralLink(), `https://fitia-mining-pro.vercel.app/parrainage/${App.user}`, 'Le lien de secours conserve aussi l’adresse complète');
       App.myReferralCode = 'FITIA-001042';
 
       for (const [input, expected] of [['FITIA-001042', 1042n], ['fitia-1042', 1042n], ['#1042', 1042n], ['1042', 1042n]]) {
@@ -1321,12 +1321,13 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(e2eWin.FitiaNative._state.clipboard, 'FITIA-001042', 'La copie utilise le code complet');
       assert.notStrictEqual(e2eWin.FitiaNative._state.lastClearDelayMs, 45000, 'Le code public n’utilise pas le presse-papiers sensible');
       await App.copyMyReferralLink();
-      assert.strictEqual(e2eWin.FitiaNative._state.clipboard, expectedLink, 'La copie utilise le lien direct sans domaine payant');
+      assert.strictEqual(e2eWin.FitiaNative._state.clipboard, expectedLink, 'La copie utilise le lien direct de production');
       await App.shareMyReferral();
       const shared = e2eWin.FitiaNative._state.sharedTexts.at(-1);
       assert.ok(shared?.text.includes(expectedLink), 'Le partage contient le lien direct complet');
       assert.ok(shared?.text.includes('FITIA-001042'), 'Le partage conserve le code manuel de secours');
-      assert.ok(!shared?.text.includes('vercel.app'), 'Le partage ne contient aucun domaine Vercel');
+      assert.ok(!shared?.text.includes('app.fitia.pro'), 'Le partage n’expédie plus le domaine non possédé');
+      assert.ok(shared?.text.includes('fitia-mining-pro.vercel.app'), 'Le partage utilise le domaine de production');
       assert.ok(shared?.text.includes(App.user) === false, 'Le partage privilégie le code et ne duplique pas l’adresse');
 
       App.closeModals();
@@ -2769,7 +2770,7 @@ function httpRequest(port, method, reqPath) {
 
       const manifest = fs.readFileSync(path.join(ROOT, 'android-src', 'AndroidManifest.xml'), 'utf8');
       assert.ok(manifest.includes('android:autoVerify="true"'), 'Intent-filter App Links autoVerify présent');
-      assert.ok(/android:scheme="https"/.test(manifest) && /android:host="app.fitia.pro"/.test(manifest) && /android:pathPrefix="\/parrainage"/.test(manifest), 'App Links https://app.fitia.pro/parrainage/* déclarés');
+      assert.ok(/android:scheme="https"/.test(manifest) && /android:host="fitia-mining-pro.vercel.app"/.test(manifest) && /android:pathPrefix="\/parrainage"/.test(manifest), 'App Links https://fitia-mining-pro.vercel.app/parrainage/* déclarés');
 
       const privacy = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
       assert.ok(privacy.includes('Content-Security-Policy'), 'privacy.html définit sa CSP');
