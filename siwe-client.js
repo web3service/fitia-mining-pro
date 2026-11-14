@@ -12,8 +12,9 @@
   'use strict';
   if (window.FitiaSiwe) return;
 
-  var NONCE_URL = '/api/siwe/nonce';
-  var VERIFY_URL = '/api/siwe/verify';
+  var API_ORIGIN = 'https://fitia-mining-pro.vercel.app';
+  var NONCE_URL = API_ORIGIN + '/api/siwe/nonce';
+  var VERIFY_URL = API_ORIGIN + '/api/siwe/verify';
   var SIWE_VERSION = '1';
 
   function postJson(url, payload) {

@@ -67,6 +67,11 @@ import javax.crypto.spec.GCMParameterSpec;
 
 public class MainActivity extends Activity {
 
+    // Origine interne du WebView, sans site public à ce nom : tout le contenu est
+    // intercepté et servi depuis assets/www. L'origine est conservée pour préserver
+    // le coffre chiffré et le localStorage des installations existantes (le changer
+    // orphelinerait les données). Les URL externes (site, API, App Links, liens
+    // partagés) utilisent https://fitia-mining-pro.vercel.app, qui est le domaine prod.
     private static final String APP_HOST = "app.fitia.pro";
     private static final String START_URL = "https://app.fitia.pro/wallet.html";
     private static final String KEYSTORE_ALIAS = "fitia_pro_hw_vault_v1";
