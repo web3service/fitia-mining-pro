@@ -283,7 +283,6 @@ const i18n = {
     myMachines: "⛏️ Mes Machines",
     myBatteries: "🔋 Mes Batteries",
     magasinTitle: "Magasin",
-    magasinHint: "Mes machines & mes batteries",
     magasinPlug: "🔌 Branchement",
     equipTitle: "Équipement",
     equipModel: "Modèle",
@@ -736,7 +735,6 @@ const i18n = {
     myMachines: "⛏️ My Machines",
     myBatteries: "🔋 My Batteries",
     magasinTitle: "Magasin",
-    magasinHint: "My machines & my batteries",
     magasinPlug: "🔌 Connect",
     equipTitle: "Equipment",
     equipModel: "Model",
@@ -1131,7 +1129,6 @@ const i18n = {
     myMachines: "⛏️ Meine Maschinen",
     myBatteries: "🔋 Meine Batterien",
     magasinTitle: "Magasin",
-    magasinHint: "Meine Maschinen & Batterien",
     magasinPlug: "🔌 Verbinden",
     equipTitle: "Ausrüstung",
     equipModel: "Modell",
@@ -1365,7 +1362,6 @@ const i18n = {
     myMachines: "⛏️ 我的矿机",
     myBatteries: "🔋 我的电池",
     magasinTitle: "Magasin",
-    magasinHint: "我的矿机和电池",
     magasinPlug: "🔌 连接",
     equipTitle: "设备详情",
     equipModel: "型号",
@@ -1570,7 +1566,6 @@ const i18n = {
     noMachines: "No machines yet",
     noBatteries: "No batteries yet",
     magasinTitle: "Magasin",
-    magasinHint: "My machines & my batteries",
     magasinPlug: "🔌 Connect",
     equipTitle: "Equipment",
     equipModel: "Model",
@@ -3882,18 +3877,8 @@ class Application {
 
   buyFromEquipmentDetail(kind) {
     this.closeModals();
-    const panel = document.getElementById('magasin-panel');
-    const shopView = document.getElementById('view-shop');
-    const magasinBtn = document.getElementById('btn-magasin');
-    if (panel && !panel.classList.contains('hidden')) panel.classList.add('hidden');
-    if (shopView) shopView.classList.remove('magasin-open');
-    if (magasinBtn) {
-      magasinBtn.setAttribute('aria-expanded', 'false');
-      magasinBtn.classList.remove('open');
-    }
     if (typeof this.nav === 'function') this.nav('shop');
-    const tabs = document.querySelectorAll('#view-shop .shop-tabs:not(.magasin-tabs) .shop-tab');
-    if (typeof this.setShopView === 'function') this.setShopView(kind, tabs[kind === 'machines' ? 0 : 1] || null);
+    if (typeof this.setShopView === 'function') this.setShopView(kind === 'batteries' ? 'batteries' : 'machines');
   }
 
   renderUserBatteries() {
@@ -4470,26 +4455,21 @@ class Application {
   }
 
   setShopView(v, btnEl) {
-    this.shopViewMode = v;
-    document.querySelectorAll('#view-shop .shop-tabs:not(.magasin-tabs) .shop-tab').forEach((t) => t.classList.remove('active'));
-    if (btnEl) btnEl.classList.add('active');
-    this.renderShop();
-  }
-
-  toggleMagasin(btnEl) {
-    const panel = document.getElementById('magasin-panel');
-    if (!panel) return;
-    const btn = btnEl || document.getElementById('btn-magasin');
-    const willOpen = panel.classList.contains('hidden');
-    panel.classList.toggle('hidden', !willOpen);
-    if (btn) {
-      btn.setAttribute('aria-expanded', String(willOpen));
-      btn.classList.toggle('open', willOpen);
-    }
-    // Mode « uniquement mes équipements » : le catalogue d'achat se masque tant que le Magasin est ouvert.
+    this.shopViewMode = ['machines', 'batteries', 'magasin'].includes(v) ? v : 'machines';
+    const tabs = document.querySelectorAll('#view-shop .shop-tabs:not(.magasin-tabs) .shop-tab');
+    tabs.forEach((t) => t.classList.remove('active'));
+    const fallbackId = this.shopViewMode === 'machines' ? 'tab-shop-machines'
+      : (this.shopViewMode === 'batteries' ? 'tab-shop-batteries' : 'tab-shop-magasin');
+    const active = btnEl || document.getElementById(fallbackId);
+    if (active) active.classList.add('active');
+    // Mode « uniquement mes équipements » : l'onglet Magasin masque le catalogue d'achat.
+    const isMagasin = this.shopViewMode === 'magasin';
     const shopView = document.getElementById('view-shop');
-    if (shopView) shopView.classList.toggle('magasin-open', willOpen);
-    if (willOpen) this.setMagasinView(this.magasinView || 'machines');
+    if (shopView) shopView.classList.toggle('magasin-open', isMagasin);
+    const magasinPanel = document.getElementById('magasin-panel');
+    if (magasinPanel) magasinPanel.classList.toggle('hidden', !isMagasin);
+    if (isMagasin) this.setMagasinView(this.magasinView || 'machines');
+    else this.renderShop();
   }
 
   setMagasinView(v, btnEl) {
@@ -4516,8 +4496,7 @@ class Application {
   // Ouvre le Magasin sur l'onglet « Branchement » et affiche la carte de connexion (pré-remplie)
   openPlugCard() {
     if (typeof this.nav === 'function' && this.nav('shop') === false) return;
-    const panel = document.getElementById('magasin-panel');
-    if (panel && panel.classList.contains('hidden') && typeof this.toggleMagasin === 'function') this.toggleMagasin();
+    this.setShopView('magasin');
     this.setMagasinView('plug');
     const card = document.getElementById('plug-machine-card');
     card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
