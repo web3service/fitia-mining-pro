@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://app.fitia.pro',
   'https://fitia-mining-pro.vercel.app'
 ]);
-const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password', 'delete', 'mfa-status', 'mfa-begin', 'mfa-confirm', 'mfa-disable', 'mfa-verify']);
+const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password', 'delete', 'mfa-status', 'mfa-begin', 'mfa-confirm', 'mfa-disable', 'mfa-verify', 'recover', 'reset-password']);
 
 function setHeaders(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -130,7 +130,7 @@ function createAccountHandler(options = {}) {
       // échecs de cette adresse pendant la fenêtre anti-force-brute.
       return result;
     } catch (error) {
-      if (error.code === 'ACCOUNT_LOGIN' || error.code === 'ACCOUNT_REAUTH') {
+      if (error.code === 'ACCOUNT_LOGIN' || error.code === 'ACCOUNT_REAUTH' || error.code === 'ACCOUNT_RESET_TOKEN') {
         const record = RequestSecurity.recordLoginFailure(failures, key, Date.now(), AUTH_WINDOW_MS);
         if (record.count >= MAX_AUTH_FAILURES) throw new AccountError(429, 'Trop de tentatives. Réessayez dans quelques minutes.', 'ACCOUNT_RATE_LIMIT');
       }
@@ -197,6 +197,16 @@ function createAccountHandler(options = {}) {
         // Suppression de compte self-service (RGPD) : re-authentification par
         // mot de passe + limitation stricte anti brute-force.
         send(res, 200, await withAuthRateLimit(req, () => account().deleteAccount(getAccessToken(req), body)));
+        return;
+      }
+      if (action === 'recover') {
+        // Mot de passe oublié : la réponse ne révèle jamais si l’email existe.
+        send(res, 200, await withAuthRateLimit(req, () => account().recoverPassword(body)));
+        return;
+      }
+      if (action === 'reset-password') {
+        // Session portée par le jeton de récupération Supabase dans le corps.
+        send(res, 200, await withAuthRateLimit(req, () => account().resetPassword(body)));
         return;
       }
     } catch (error) {

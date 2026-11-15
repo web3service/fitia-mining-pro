@@ -171,6 +171,14 @@
     {
       "source": "/api/errors/ingest",
       "destination": "/api/errors?action=ingest"
+    },
+    {
+      "source": "/api/account/recover",
+      "destination": "/api/account?action=recover"
+    },
+    {
+      "source": "/api/account/reset-password",
+      "destination": "/api/account?action=reset-password"
     }
   ],
   "headers": [
@@ -218,6 +226,23 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/reset-password.html",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'self'; frame-ancestors 'none'"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
         }
       ]
     },

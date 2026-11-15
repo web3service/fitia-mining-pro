@@ -582,6 +582,57 @@ async function test(name, fn) {
     }
   });
 
+  await test('Mot de passe oublié : bascule vers le formulaire dédié et retour', async ({ center, win, doc }) => {
+    center.session = null; center.user = null; center.render();
+    assert.strictEqual(doc.getElementById('account-forgot-form').classList.contains('hidden'), true);
+    doc.getElementById('account-forgot-link').click();
+    assert.strictEqual(center.mode, 'forgot');
+    assert.strictEqual(doc.getElementById('account-forgot-form').classList.contains('hidden'), false);
+    assert.strictEqual(doc.getElementById('account-login-form').classList.contains('hidden'), true);
+    assert.strictEqual(doc.activeElement && doc.activeElement.id, 'account-forgot-email');
+    doc.getElementById('account-forgot-back').click();
+    assert.strictEqual(center.mode, 'login');
+    assert.strictEqual(doc.getElementById('account-forgot-form').classList.contains('hidden'), true);
+    assert.strictEqual(doc.getElementById('account-login-form').classList.contains('hidden'), false);
+  });
+
+  await test('Mot de passe oublié : email invalide refusé localement, aucun appel réseau', async ({ center, win, doc }) => {
+    center.session = null; center.user = null; center.render();
+    center.setMode('forgot');
+    const calls = [];
+    center.fetch = async (url, options) => { calls.push({ url: String(url), options }); return result(200, { ok: true }); };
+    input(win, 'account-forgot-email', 'not-an-email');
+    await center.requestPasswordReset();
+    assert.strictEqual(calls.length, 0);
+    assert.strictEqual(doc.getElementById('account-forgot-email').getAttribute('aria-invalid'), 'true');
+    assert.ok(!doc.getElementById('account-message').classList.contains('hidden'));
+  });
+
+  await test('Mot de passe oublié : requête /recover sans jeton, confirmation anti-énumération', async ({ center, win, doc }) => {
+    center.session = null; center.user = null; center.render();
+    center.setMode('forgot');
+    const calls = [];
+    center.fetch = async (url, options) => { calls.push({ action: url.split('/').pop(), options }); return result(200, { ok: true }); };
+    input(win, 'account-forgot-email', 'miner@example.com');
+    await center.requestPasswordReset();
+    assert.deepStrictEqual(calls.map((call) => call.action), ['recover']);
+    assert.strictEqual(JSON.parse(calls[0].options.body).email, 'miner@example.com');
+    assert.strictEqual(calls[0].options.headers.Authorization, undefined, 'Aucun jeton attaché sur une demande anonyme');
+    assert.strictEqual(center.mode, 'login', 'Retour à la connexion après envoi');
+    assert.ok(doc.getElementById('account-confirmation').textContent.includes('reset link'), 'Confirmation générique affichée');
+    assert.ok(doc.getElementById('account-forgot-email').value === '', 'Champ vidé après envoi');
+  });
+
+  await test('Mot de passe oublié : limitation 429 affichée sans détail technique', async ({ center, win, doc }) => {
+    center.session = null; center.user = null; center.render();
+    center.setMode('forgot');
+    center.fetch = async () => ({ ok: false, status: 429, json: async () => ({ error: 'Trop de demandes.', code: 'ACCOUNT_RATE_LIMIT' }) });
+    input(win, 'account-forgot-email', 'miner@example.com');
+    await center.requestPasswordReset();
+    assert.ok(doc.getElementById('account-message').textContent.includes('Too many requests'));
+    assert.strictEqual(doc.getElementById('account-forgot-submit').disabled, false);
+  });
+
   console.log('═'.repeat(68));
   console.log(`📊 ${passed} réussis, ${failed} échoués`);
   if (failed) process.exitCode = 1;

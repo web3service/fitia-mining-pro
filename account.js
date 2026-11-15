@@ -78,6 +78,11 @@
       this.byId('account-signup-form')?.addEventListener('submit', (event) => {
         event.preventDefault(); this.signUp().catch(() => {});
       });
+      this.byId('account-forgot-form')?.addEventListener('submit', (event) => {
+        event.preventDefault(); this.requestPasswordReset().catch(() => {});
+      });
+      this.byId('account-forgot-link')?.addEventListener('click', () => this.setMode('forgot'));
+      this.byId('account-forgot-back')?.addEventListener('click', () => this.setMode('login'));
       this.byId('account-username-form')?.addEventListener('submit', (event) => {
         event.preventDefault(); this.updateUsername().catch(() => {});
       });
@@ -109,7 +114,7 @@
         button.addEventListener('click', () => this.togglePassword(button.getAttribute('data-account-password-toggle')));
       });
       const inputs = {
-        global: ['account-login-email', 'account-login-password', 'account-signup-username', 'account-signup-country', 'account-signup-email', 'account-signup-password', 'account-signup-confirm'],
+        global: ['account-login-email', 'account-login-password', 'account-signup-username', 'account-signup-country', 'account-signup-email', 'account-signup-password', 'account-signup-confirm', 'account-forgot-email'],
         username: ['account-username-input'],
         email: ['account-email-input', 'account-email-current-password'],
         password: ['account-password-current', 'account-password-new', 'account-password-confirm'],
@@ -150,12 +155,13 @@
     }
 
     setMode(mode) {
-      this.mode = mode === 'signup' ? 'signup' : 'login';
+      this.mode = mode === 'signup' ? 'signup' : (mode === 'forgot' ? 'forgot' : 'login');
       this.clearPasswords(['account-login-password', 'account-signup-password', 'account-signup-confirm']);
       ['account-login-email', 'account-signup-username', 'account-signup-email'].forEach((id) => this.byId(id)?.removeAttribute('aria-invalid'));
       this.clearMessage(); this.confirmation = '';
       this.render();
-      this.byId(this.mode === 'signup' ? 'account-signup-username' : 'account-login-email')?.focus();
+      const focusId = this.mode === 'signup' ? 'account-signup-username' : this.mode === 'forgot' ? 'account-forgot-email' : 'account-login-email';
+      this.byId(focusId)?.focus();
     }
 
     clearMessage(scope = null) {
@@ -183,7 +189,7 @@
         'account-username-submit', 'account-email-submit', 'account-password-submit', 'account-copy-wallet',
         'account-link-wallet', 'account-refresh-profile', 'account-logout', 'account-logout-confirm',
         'account-logout-cancel', 'account-delete', 'account-delete-confirm',
-        'account-delete-cancel', 'account-retry'].forEach((id) => {
+        'account-delete-cancel', 'account-retry', 'account-forgot-submit', 'account-forgot-link', 'account-forgot-back'].forEach((id) => {
         const element = this.byId(id);
         if (!element) return;
         element.disabled = busy;
@@ -478,6 +484,33 @@
       } catch (error) { this.showMessage(error.message); }
       finally {
         this.clearPasswords(['account-login-password']);
+        this.setBusy(false);
+      }
+    }
+
+    async requestPasswordReset() {
+      if (this.busy) return;
+      const emailField = this.byId('account-forgot-email');
+      const email = String(emailField?.value || '').trim();
+      if (!validEmail(email)) {
+        this.invalidField('account-forgot-email', this.t('accountEmailInvalid', 'Enter a valid email address.'));
+        return;
+      }
+      this.clearMessage();
+      this.setBusy(true, 'account-forgot-submit');
+      try {
+        await this.request('recover', { auth: false, body: { email } });
+        // Réponse identique quel que soit le résultat (anti-énumération).
+        if (emailField) emailField.value = '';
+        this.setMode('login');
+        this.confirmation = this.t('accountForgotSent', 'If an account exists for this email, a reset link has just been sent. Check your inbox and your spam folder.');
+        this.render();
+      } catch (error) {
+        const message = error?.status === 429
+          ? this.t('accountForgotRateLimited', 'Too many requests. Try again in a few minutes.')
+          : this.t('accountServiceError', 'Account service unavailable. Check your connection and try again.');
+        this.showMessage(message, true);
+      } finally {
         this.setBusy(false);
       }
     }
@@ -851,6 +884,7 @@
       this.byId('account-retry')?.classList.toggle('hidden', connected || !this.canRetry);
       this.byId('account-login-form')?.classList.toggle('hidden', this.mode !== 'login');
       this.byId('account-signup-form')?.classList.toggle('hidden', this.mode !== 'signup');
+      this.byId('account-forgot-form')?.classList.toggle('hidden', this.mode !== 'forgot');
       this.byId('account-show-login')?.classList.toggle('active', this.mode === 'login');
       this.byId('account-show-signup')?.classList.toggle('active', this.mode === 'signup');
       this.byId('account-show-login')?.setAttribute('aria-selected', String(this.mode === 'login'));
