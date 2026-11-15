@@ -840,7 +840,7 @@
 
     <!-- Onglets Portefeuille : Polygon (on-chain) / Compte Minage (interne) -->
     <div class="shop-tabs wallet-tabs" role="tablist" aria-label="Wallet sections">
-      <button type="button" class="shop-tab wallet-tab active" id="tab-wallet-polygon" role="tab" aria-selected="true" aria-controls="panel-wallet-polygon" onclick="App.setWalletTab('polygon', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/><path d="M15.5 12h4.5M4 10h16"/></svg><span data-i18n="walletTabPolygon">Portefeuille Polygon</span></button>
+      <button type="button" class="shop-tab wallet-tab active" id="tab-wallet-polygon" role="tab" aria-selected="true" aria-controls="panel-wallet-polygon" onclick="App.setWalletTab('polygon', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/><path d="M15.5 12h4.5M4 10h16"/></svg><span data-i18n="walletTabPolygon">Wallet</span></button>
       <button type="button" class="shop-tab wallet-tab" id="tab-wallet-mining" role="tab" aria-selected="false" aria-controls="panel-wallet-mining" onclick="App.setWalletTab('mining', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg><span data-i18n="walletTabMining">Compte Minage</span></button>
     </div>
 
@@ -849,7 +849,6 @@
     <div class="card wallet-main-card">
       <div class="wallet-card-header">
         <div>
-          <h3 data-i18n="onchainWalletTitle">🔐 Mon Portefeuille Polygon</h3>
           <div class="wallet-addr-inline" onclick="App.copyReceiveAddress()">
             <span id="wallet-card-addr">0x...</span>
             <span>📋</span>
@@ -928,11 +927,6 @@
     <!-- CARTE 2 : COMPTE MINAGE INTERNE (CONTRAT FITIA CORE) -->
     <div id="panel-wallet-mining" class="wallet-panel hidden" role="tabpanel" aria-labelledby="tab-wallet-mining">
     <div class="card mining-vault-card">
-      <div class="mining-vault-header">
-        <h3 data-i18n="miningVaultTitle">⚡ Compte Minage</h3>
-        <p class="small-text hidden" data-i18n="miningVaultDesc">Solde utilisé pour la boutique, le swap et vos récompenses de minage. Déposez ou retirez vers votre portefeuille à tout moment.</p>
-      </div>
-
       <div class="mining-balances-grid">
         <div class="mining-bal-box">
           <small>USDT Minage</small>
