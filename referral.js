@@ -1,5 +1,5 @@
-// Page de repli du lien de parrainage — aucun secret, aucun tracking.
-// Le code est lu depuis /parrainage/<code> et validé avant usage.
+// Referral fallback page — no secrets, no tracking.
+// The code is read from /parrainage/<code> (legacy path) and validated before use.
 (function () {
   'use strict';
   var match = window.location.pathname.match(/^\/parrainage\/([^\/?#]+)\/?$/i);
@@ -18,6 +18,6 @@
     openBtn.classList.add('referral-disabled');
     openBtn.setAttribute('aria-disabled', 'true');
     openBtn.removeAttribute('href');
-    if (help) help.textContent = 'Lien incomplet ou invalide. Ouvrez le lien complet reçu, ou installez l’application et saisissez le code dans Paramètres : Programme de parrainage.';
+    if (help) help.textContent = 'This invite link is incomplete or invalid. Open the full link you received, or install the app and enter the code in Settings, then Referral Program.';
   }
 })();

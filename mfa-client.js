@@ -35,7 +35,30 @@
         'mfa-disable': 'Disable protection', 'mfa-operation-title': 'Confirm operation',
         'mfa-operation-code-label': 'Authenticator or recovery code', 'mfa-operation-submit': 'Confirm'
       };
-      Object.entries(lang === 'fr' ? fr : en).forEach(([id, text]) => { const node = this.el(id); if (node) node.textContent = text; });
+      const de = {
+        'mfa-password-label': 'Kontopasswort', 'mfa-start': 'Authenticator einrichten',
+        'mfa-setup-help': 'Scannen Sie diesen QR-Code mit Google Authenticator, oder geben Sie den Einrichtungsschlüssel manuell ein.',
+        'mfa-code-label': 'Sechsstelliger Code', 'mfa-confirm': 'Aktivieren',
+        'mfa-recovery-help': 'Bewahren Sie diese Wiederherstellungscodes an einem sicheren Ort auf. Jeder Code funktioniert einmal. Sie werden nicht erneut angezeigt.',
+        'mfa-recovery-done': 'Ich habe meine Codes gespeichert', 'mfa-active-help': 'Schutz ist aktiv.',
+        'mfa-disable-password-label': 'Kontopasswort', 'mfa-disable-code-label': 'Authenticator- oder Wiederherstellungscode',
+        'mfa-disable': 'Schutz deaktivieren', 'mfa-operation-title': 'Vorgang bestätigen',
+        'mfa-operation-code-label': 'Authenticator- oder Wiederherstellungscode', 'mfa-operation-submit': 'Bestätigen'
+      };
+      const zh = {
+        'mfa-password-label': '账户密码', 'mfa-start': '设置身份验证器',
+        'mfa-setup-help': '使用 Google Authenticator 扫描此二维码，或手动输入设置密钥。',
+        'mfa-code-label': '六位验证码', 'mfa-confirm': '激活',
+        'mfa-recovery-help': '请将这些恢复代码保存在安全的地方。每个代码仅可使用一次，且不会再次显示。',
+        'mfa-recovery-done': '我已保存恢复代码', 'mfa-active-help': '保护已启用。',
+        'mfa-disable-password-label': '账户密码', 'mfa-disable-code-label': '身份验证器或恢复代码',
+        'mfa-disable': '关闭保护', 'mfa-operation-title': '确认操作',
+        'mfa-operation-code-label': '身份验证器或恢复代码', 'mfa-operation-submit': '确认'
+      };
+      // Singapour/anglais (sg) : copie anglaise — marché anglophone.
+      const sg = en;
+      const table = { fr, en, de, zh, sg }[lang] || en;
+      Object.entries(table).forEach(([id, text]) => { const node = this.el(id); if (node) node.textContent = text; });
     }
     async refresh() {
       this.translate(this.account.app?.currentLang);

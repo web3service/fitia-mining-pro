@@ -45,7 +45,9 @@
       orderSent: 'Order sent automatically to the seller.', orderOffline: 'The private order service is unavailable. No new payment will be requested automatically.', orderPreparationFailed: 'The order could not be prepared. No payment was made.', trackOrder: 'TRACK ORDER', tracking: 'Tracking', carrier: 'Carrier', trackingNumber: 'Tracking number', progressPaid: 'Payment confirmed', progressPreparing: 'Preparing', progressShipped: 'Shipped', progressDelivered: 'Delivered', emptyCartConfirm: 'Clear all products from your cart?', quantity: 'Quantity', orderItems: 'items',
       cat_electronics: 'Electronics', cat_fashion: 'Fashion', cat_home: 'Home', cat_beauty: 'Beauty', cat_sports: 'Sports',
       cat_toys: 'Toys', cat_automotive: 'Automotive', cat_grocery: 'Grocery', cat_jewelry: 'Jewelry', cat_office: 'Office', cat_other: 'Other',
-      trackedDelivery: 'Tracked delivery', globalNetwork: 'GLOBAL DELIVERY', deliveryCountries: 'Partner & agent countries', catalogTitle: 'Products', lastUpdated: 'Last update'
+      trackedDelivery: 'Tracked delivery', globalNetwork: 'GLOBAL DELIVERY', deliveryCountries: 'Partner & agent countries', catalogTitle: 'Products', lastUpdated: 'Last update',
+      searchLabel: 'Search products', allCategories: 'All categories',
+      openCart: 'Open cart', storeServices: 'Store services', productCategory: 'Product category', fulfillmentType: 'Fulfillment type', paymentToken: 'Payment token'
     },
     fr: {
       tagline: 'Produits physiques, paiement direct en crypto.', privateDelivery: 'Livraison hors blockchain',
@@ -78,13 +80,114 @@
       orderSent: 'Commande transmise automatiquement au vendeur.', orderOffline: 'Le service privé de commandes est indisponible. Aucun nouveau paiement ne sera demandé automatiquement.', orderPreparationFailed: 'La commande n’a pas pu être préparée. Aucun paiement n’a été effectué.', trackOrder: 'SUIVRE LA COMMANDE', tracking: 'Suivi', carrier: 'Transporteur', trackingNumber: 'Numéro de suivi', progressPaid: 'Paiement confirmé', progressPreparing: 'En préparation', progressShipped: 'Expédiée', progressDelivered: 'Livrée', emptyCartConfirm: 'Retirer tous les produits du panier ?', quantity: 'Quantité', orderItems: 'articles',
       cat_electronics: 'Électronique', cat_fashion: 'Mode', cat_home: 'Maison', cat_beauty: 'Beauté', cat_sports: 'Sports',
       cat_toys: 'Jouets', cat_automotive: 'Automobile', cat_grocery: 'Épicerie', cat_jewelry: 'Bijoux', cat_office: 'Bureau', cat_other: 'Autres',
-      trackedDelivery: 'Livraison suivie', globalNetwork: 'LIVRAISON INTERNATIONALE', deliveryCountries: 'Pays des partenaires & agents', catalogTitle: 'Produits', lastUpdated: 'Dernière mise à jour'
+      trackedDelivery: 'Livraison suivie', globalNetwork: 'LIVRAISON INTERNATIONALE', deliveryCountries: 'Pays des partenaires & agents', catalogTitle: 'Produits', lastUpdated: 'Dernière mise à jour',
+      searchLabel: 'Rechercher un produit', allCategories: 'Toutes les catégories',
+      openCart: 'Ouvrir le panier', storeServices: 'Services du magasin', productCategory: 'Catégorie de produit', fulfillmentType: 'Mode de livraison', paymentToken: 'Jeton de paiement'
+    },
+    de: {
+      tagline: 'Physische Produkte, direkte Krypto-Zahlungen.', privateDelivery: 'Lieferdetails bleiben off-chain',
+      myOrders: 'Meine Bestellungen', refresh: 'Aktualisieren', search: 'Produkte suchen…', searchLabel: 'Produkte suchen', allSources: 'Alle Abwicklungen', allCategories: 'Alle Kategorien',
+      ownStock: 'Eigener Bestand', emptyTitle: 'Keine Produkte verfügbar',
+      cartTitle: 'Dein Warenkorb', cartEmpty: 'Dein Warenkorb ist leer.', subtotal: 'Zwischensumme', delivery: 'Versand', total: 'Gesamt',
+      checkout: 'VERSAND & ZAHLUNG', clearCart: 'Warenkorb leeren', singleSeller: 'Ein Verkäufer, eine Krypto und eine Empfangsadresse pro Zahlung.',
+      checkoutTitle: 'Versand und Zahlung', fullName: 'Vollständiger Name', phone: 'Telefon', country: 'Land', city: 'Stadt',
+      postalAddress: 'Vollständige Postadresse', deliveryNotes: 'Lieferhinweis (optional)',
+      consent: 'Ich verstehe, dass die Krypto-Zahlung unwiderruflich ist und meine Lieferdetails für diese Bestellung vertraulich an den Verkäufer gesendet werden.',
+      shippingPrivacy: 'Lieferdetails sind im privaten Bestellservice verschlüsselt. Sie werden weder auf Polygon noch auf GitHub oder im lokalen Bestellverlauf gespeichert.',
+      payNow: 'MIT PIN BEZAHLEN', receiptTitle: 'Bestellstatus', shareRequired: 'Nach der Zahlungsbestätigung wird deine Bestellung automatisch gesendet. Du musst keine Belege oder Kontaktdaten teilen.',
+      done: 'Fertig', ordersTitle: 'Meine Bestellungen',
+      ordersPrivacy: 'Das private Tracking ist mit deinem Wallet verknüpft. Lieferadressen werden niemals im lokalen Bestellverlauf gespeichert.', ordersEmpty: 'Noch keine STORE-Bestellungen.',
+      own: 'EIGENER BESTAND', dropshipping: 'DROPSHIPPING', outOfStock: 'AUSVERKAUFT', add: 'IN DEN WARENKORB', added: 'Zum Warenkorb hinzugefügt.',
+      stock: 'Auf Lager', pieces: 'Einheiten', remove: 'Entfernen', differentSeller: 'Dein Warenkorb enthält bereits einen anderen Verkäufer, eine andere Krypto oder eine andere Empfangsadresse. Leere ihn, bevor du dieses Produkt hinzufügst.',
+      storeClosed: 'FITIA STORE ist noch nicht geöffnet. Schau bald wieder vorbei.', offline: 'Katalog-Update fehlgeschlagen. Zahlung erfordert eine aktuelle Online-Prüfung.',
+      updated: 'Katalog aktualisiert.', refreshing: 'Katalog wird aktualisiert…', noFiltered: 'Kein Produkt entspricht diesen Filtern.',
+      invalidCatalog: 'Der STORE-Katalog ist nicht verfügbar.', paymentReview: 'Prüfe die aktuelle Gesamtsumme vor der Zahlung.',
+      catalogChanged: 'Der Katalog hat sich geändert. Deine Zahlung wurde gestoppt; prüfe den Warenkorb erneut.',
+      shippingMissing: 'Vervollständige alle Pflichtfelder der Lieferdaten und akzeptiere den Zahlungshinweis.',
+      notReady: 'Entsperre dein Wallet, bevor du im STORE bezahlst.', contractBlocked: 'Diese Verkäuferadresse ist für die Zahlung nicht zugelassen.',
+      decimalsBlocked: 'Die Token-Konfiguration hat sich geändert. Die Zahlung wurde zu deiner Sicherheit gestoppt.',
+      paymentSent: 'Zahlung gesendet. Polygon-Bestätigung läuft.',
+      paymentConfirmed: 'Zahlung auf Polygon bestätigt und Bestellung automatisch an den Verkäufer gesendet.', paymentPending: 'Transaktion gesendet; Netzwerkbestätigung steht noch aus.',
+      paymentFailed: 'Die Transaktion ist on-chain fehlgeschlagen. Keine Zahlung wurde bestätigt; prüfe dein Wallet, bevor du es erneut versuchst.',
+      pending: 'AUSSTEHEND', confirmed: 'BESTÄTIGT', submitted: 'GESENDET', failed: 'FEHLGESCHLAGEN', payment_pending: 'ZAHLUNGSPRÜFUNG', paid: 'BEZAHLT · GESENDET', preparing: 'IN VORBEREITUNG', shipped: 'VERSENDET', delivered: 'GELIEFERT', orderRef: 'Bestellreferenz', seller: 'Verkäufer',
+      sellerContact: 'Verkäuferkontakt', payment: 'Zahlung', transaction: 'Transaktion', products: 'Produkte', deliveryTo: 'Lieferdaten',
+      copyHash: 'Hash kopieren', copied: 'Transaktions-Hash kopiert.',
+      orderSent: 'Bestellung automatisch an den Verkäufer gesendet.', orderOffline: 'Der private Bestellservice ist nicht verfügbar. Es wird keine neue Zahlung automatisch angefordert.', orderPreparationFailed: 'Die Bestellung konnte nicht vorbereitet werden. Es wurde keine Zahlung geleistet.', trackOrder: 'BESTELLUNG VERFOLGEN', tracking: 'Sendungsverfolgung', carrier: 'Versanddienstleister', trackingNumber: 'Sendungsnummer', progressPaid: 'Zahlung bestätigt', progressPreparing: 'In Vorbereitung', progressShipped: 'Versendet', progressDelivered: 'Geliefert', emptyCartConfirm: 'Alle Produkte aus deinem Warenkorb entfernen?', quantity: 'Menge', orderItems: 'Artikel',
+      cat_electronics: 'Elektronik', cat_fashion: 'Mode', cat_home: 'Haushalt', cat_beauty: 'Beauty', cat_sports: 'Sport',
+      cat_toys: 'Spielzeug', cat_automotive: 'Auto', cat_grocery: 'Lebensmittel', cat_jewelry: 'Schmuck', cat_office: 'Büro', cat_other: 'Sonstiges',
+      trackedDelivery: 'Sendungsverfolgung inklusive', globalNetwork: 'INTERNATIONALER VERSAND', deliveryCountries: 'Partner- & Agentenländer', catalogTitle: 'Produkte', lastUpdated: 'Letzte Aktualisierung',
+      openCart: 'Warenkorb öffnen', storeServices: 'Store-Services', productCategory: 'Produktkategorie', fulfillmentType: 'Abwicklungstyp', paymentToken: 'Zahlungs-Token'
+    },
+    zh: {
+      tagline: '实体商品，加密货币直接支付。', privateDelivery: '收货信息不上链',
+      myOrders: '我的订单', refresh: '刷新', search: '搜索商品…', searchLabel: '搜索商品', allSources: '全部履约方式', allCategories: '全部分类',
+      ownStock: '自营库存', emptyTitle: '暂无商品',
+      cartTitle: '您的购物车', cartEmpty: '您的购物车是空的。', subtotal: '小计', delivery: '配送', total: '合计',
+      checkout: '配送与支付', clearCart: '清空购物车', singleSeller: '每笔支付对应一位卖家、一种加密货币和一个收款地址。',
+      checkoutTitle: '配送与支付', fullName: '姓名', phone: '电话', country: '国家/地区', city: '城市',
+      postalAddress: '完整邮寄地址', deliveryNotes: '配送备注（可选）',
+      consent: '我理解加密支付不可撤销，并且我的收货信息将私密发送给卖家用于本次订单。',
+      shippingPrivacy: '收货信息在私人订单服务中加密。绝不写入 Polygon、GitHub 或本地订单记录。',
+      payNow: '使用 PIN 支付', receiptTitle: '订单状态', shareRequired: '支付验证后，您的订单将自动发送。无需手动发送收据或联系方式。',
+      done: '完成', ordersTitle: '我的订单',
+      ordersPrivacy: '私密跟踪与您的钱包关联。收货地址绝不会保存到本地订单记录中。', ordersEmpty: '暂无 STORE 订单。',
+      own: '自营', dropshipping: '代发货', outOfStock: '售罄', add: '加入购物车', added: '已加入购物车。',
+      stock: '有货', pieces: '件', remove: '移除', differentSeller: '您的购物车中已有其他卖家、加密货币或收款地址。请先清空购物车再添加此商品。',
+      storeClosed: 'FITIA STORE 尚未开放，请稍后再来。', offline: '目录更新失败。支付需要最新的在线验证。',
+      updated: '目录已更新。', refreshing: '正在刷新目录…', noFiltered: '没有符合这些筛选条件的商品。',
+      invalidCatalog: 'STORE 目录不可用。', paymentReview: '支付前请核对当前总额。',
+      catalogChanged: '目录已变更。支付已被阻止；请重新核对购物车。',
+      shippingMissing: '请填写所有必填的收货信息并同意支付提示。',
+      notReady: '请先解锁您的钱包再进行 STORE 支付。', contractBlocked: '此卖家地址未被授权用于支付。',
+      decimalsBlocked: '代币配置已更改。为安全起见，支付已被阻止。',
+      paymentSent: '支付已提交。正在等待 Polygon 确认。',
+      paymentConfirmed: '支付已在 Polygon 上确认，订单已自动发送给卖家。', paymentPending: '交易已提交；网络确认仍在等待中。',
+      paymentFailed: '交易在链上失败。未确认任何成功付款；重试前请先检查您的钱包。',
+      pending: '待处理', confirmed: '已确认', submitted: '已提交', failed: '失败', payment_pending: '支付核验', paid: '已支付 · 已发送', preparing: '准备中', shipped: '已发货', delivered: '已送达', orderRef: '订单编号', seller: '卖家',
+      sellerContact: '卖家联系方式', payment: '支付', transaction: '交易', products: '商品', deliveryTo: '收货信息',
+      copyHash: '复制哈希', copied: '交易哈希已复制。',
+      orderSent: '订单已自动发送给卖家。', orderOffline: '私人订单服务不可用。不会自动发起新的支付。', orderPreparationFailed: '订单无法准备。未进行任何支付。', trackOrder: '追踪订单', tracking: '物流追踪', carrier: '承运商', trackingNumber: '运单号', progressPaid: '支付已确认', progressPreparing: '准备中', progressShipped: '已发货', progressDelivered: '已送达', emptyCartConfirm: '清空购物车中的所有商品？', quantity: '数量', orderItems: '件商品',
+      cat_electronics: '电子产品', cat_fashion: '时尚服饰', cat_home: '家居', cat_beauty: '美妆', cat_sports: '运动',
+      cat_toys: '玩具', cat_automotive: '汽车', cat_grocery: '食品杂货', cat_jewelry: '珠宝', cat_office: '办公', cat_other: '其他',
+      trackedDelivery: '全程可追踪配送', globalNetwork: '全球配送', deliveryCountries: '合作伙伴和代理国家/地区', catalogTitle: '商品', lastUpdated: '最近更新',
+      openCart: '打开购物车', storeServices: '商店服务', productCategory: '商品分类', fulfillmentType: '履约方式', paymentToken: '支付代币'
+    },
+    sg: {
+      tagline: 'Physical products, direct crypto payments.', privateDelivery: 'Delivery details stay off-chain',
+      myOrders: 'My orders', refresh: 'Refresh', search: 'Search products…', allSources: 'All fulfillment',
+      ownStock: 'Own stock', emptyTitle: 'No products available',
+      cartTitle: 'Your cart', cartEmpty: 'Your cart is empty.', subtotal: 'Subtotal', delivery: 'Delivery', total: 'Total',
+      checkout: 'DELIVERY & PAYMENT', clearCart: 'Clear cart', singleSeller: 'One seller, one crypto and one receiving address per payment.',
+      checkoutTitle: 'Delivery & payment', fullName: 'Full name', phone: 'Phone', country: 'Country', city: 'City',
+      postalAddress: 'Full postal address', deliveryNotes: 'Delivery note (optional)',
+      consent: 'I understand that the crypto payment is irreversible and that my delivery details will be sent privately to the seller for this order.',
+      shippingPrivacy: 'Delivery details are encrypted in the private order service. They are never written to Polygon, GitHub or local order history.',
+      payNow: 'PAY WITH PIN', receiptTitle: 'Order status', shareRequired: 'After payment verification, your order is sent automatically. No receipt or delivery details need to be shared manually.',
+      done: 'Done', ordersTitle: 'My orders',
+      ordersPrivacy: 'Private tracking is linked to your wallet. Delivery addresses are never saved in local order history.', ordersEmpty: 'No store orders yet.',
+      own: 'OWN STOCK', dropshipping: 'DROPSHIPPING', outOfStock: 'SOLD OUT', add: 'ADD TO CART', added: 'Added to cart.',
+      stock: 'In stock', pieces: 'units', remove: 'Remove', differentSeller: 'Your cart already contains another seller, crypto or receiving address. Clear it before adding this product.',
+      storeClosed: 'FITIA STORE is not open yet. Please check back soon.', offline: 'Catalog update failed. Payment requires a fresh online verification.',
+      updated: 'Catalog updated.', refreshing: 'Refreshing the catalog…', noFiltered: 'No product matches these filters.',
+      invalidCatalog: 'The store catalog is unavailable.', paymentReview: 'Review the current total before payment.',
+      catalogChanged: 'The catalog changed. Your payment was stopped; please review the cart again.',
+      shippingMissing: 'Complete all required delivery fields and accept the payment notice.',
+      notReady: 'Unlock your wallet before making a store payment.', contractBlocked: 'This seller address is not allowed for payment.',
+      decimalsBlocked: 'The token configuration changed. Payment was stopped for your safety.',
+      paymentSent: 'Payment submitted. Polygon confirmation is in progress.',
+      paymentConfirmed: 'Payment confirmed on Polygon and order sent automatically to the seller.', paymentPending: 'Transaction submitted; network confirmation is still pending.',
+      paymentFailed: 'The transaction failed on-chain. No successful payment was confirmed; check your wallet before trying again.',
+      pending: 'PENDING', confirmed: 'CONFIRMED', submitted: 'SUBMITTED', failed: 'FAILED', payment_pending: 'PAYMENT VERIFICATION', paid: 'PAID · SENT', preparing: 'PREPARING', shipped: 'SHIPPED', delivered: 'DELIVERED', orderRef: 'Order reference', seller: 'Seller',
+      sellerContact: 'Seller contact', payment: 'Payment', transaction: 'Transaction', products: 'Products', deliveryTo: 'Delivery details',
+      copyHash: 'Copy hash', copied: 'Transaction hash copied.',
+      orderSent: 'Order sent automatically to the seller.', orderOffline: 'The private order service is unavailable. No new payment will be requested automatically.', orderPreparationFailed: 'The order could not be prepared. No payment was made.', trackOrder: 'TRACK ORDER', tracking: 'Tracking', carrier: 'Carrier', trackingNumber: 'Tracking number', progressPaid: 'Payment confirmed', progressPreparing: 'Preparing', progressShipped: 'Shipped', progressDelivered: 'Delivered', emptyCartConfirm: 'Clear all products from your cart?', quantity: 'Quantity', orderItems: 'items',
+      cat_electronics: 'Electronics', cat_fashion: 'Fashion', cat_home: 'Home', cat_beauty: 'Beauty', cat_sports: 'Sports',
+      cat_toys: 'Toys', cat_automotive: 'Automotive', cat_grocery: 'Grocery', cat_jewelry: 'Jewelry', cat_office: 'Office', cat_other: 'Other',
+      trackedDelivery: 'Tracked delivery', globalNetwork: 'GLOBAL DELIVERY', deliveryCountries: 'Partner & agent countries', catalogTitle: 'Products', lastUpdated: 'Last update',
+      searchLabel: 'Search products', allCategories: 'All categories',
+      openCart: 'Open cart', storeServices: 'Store services', productCategory: 'Product category', fulfillmentType: 'Fulfillment type', paymentToken: 'Payment token'
     }
   };
-  COPY.de = COPY.en;
-  COPY.zh = COPY.en;
-  COPY.sg = COPY.en;
-
   const FILTER_ICON_PATHS = {
     category_all: ['M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'],
     category_electronics: ['M7 2h10v20H7zM10 5h4M11 18h2'],
@@ -291,6 +394,9 @@
       document.querySelectorAll('[data-store-i18n]').forEach((element) => {
         element.textContent = this.t(element.dataset.storeI18n);
       });
+      document.querySelectorAll('[data-store-i18n-aria-label]').forEach((element) => {
+        element.setAttribute('aria-label', this.t(element.dataset.storeI18nAriaLabel));
+      });
       document.querySelectorAll('[data-store-i18n-placeholder]').forEach((element) => {
         element.placeholder = this.t(element.dataset.storeI18nPlaceholder);
       });
@@ -300,7 +406,7 @@
         category.textContent = '';
         const all = document.createElement('option');
         all.value = 'all';
-        all.textContent = this.app.currentLang === 'fr' ? 'Toutes les catégories' : 'All categories';
+        all.textContent = this.t('allCategories');
         category.appendChild(all);
         this.catalog.CATEGORIES.forEach((value) => {
           const option = document.createElement('option');

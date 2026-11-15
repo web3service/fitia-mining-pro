@@ -46,10 +46,24 @@ function isAllowedRequestPath(pathname) {
   return ALLOWED_DIRS.some((prefix) => pathname.startsWith(prefix) && !pathname.slice(prefix.length).includes('/..'));
 }
 
+
+// Jeu d'en-têtes commun : réponses d'erreur en texte brut verrouillées.
+function errorHeaders() {
+  return {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+    'Referrer-Policy': 'no-referrer',
+    'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+  };
+}
+
 const server = http.createServer((req, res) => {
   try {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.writeHead(405, errorHeaders());
       res.end('405 Method Not Allowed');
       return;
     }
@@ -59,27 +73,21 @@ const server = http.createServer((req, res) => {
     if (pathname === '/') pathname = '/index.html';
 
     if (!isAllowedRequestPath(pathname)) {
-      res.writeHead(403, {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff'
-      });
+      res.writeHead(403, errorHeaders());
       res.end('403 Forbidden');
       return;
     }
 
     const filePath = path.resolve(ROOT, '.' + pathname);
     if (!filePath.startsWith(ROOT + path.sep)) {
-      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.writeHead(403, errorHeaders());
       res.end('403 Forbidden');
       return;
     }
 
     fs.stat(filePath, (err, stats) => {
       if (err || !stats.isFile()) {
-        res.writeHead(404, {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'X-Content-Type-Options': 'nosniff'
-        });
+        res.writeHead(404, errorHeaders());
         res.end('404 Not Found');
         return;
       }
@@ -90,9 +98,9 @@ const server = http.createServer((req, res) => {
         'Content-Length': stats.size,
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
-        'Content-Security-Policy': "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'none'; connect-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'none'; frame-ancestors 'none'",
+        'Content-Security-Policy': "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; connect-src 'self' https://fitia-mining-pro.vercel.app; style-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'none'; frame-ancestors 'none'",
         'Referrer-Policy': 'no-referrer',
-        'Strict-Transport-Security': 'max-age=63072000',
+        'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
         'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
         'Cache-Control': ext === '.apk' ? 'no-store' : 'no-cache'
       };
