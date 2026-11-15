@@ -2772,8 +2772,8 @@ function httpRequest(port, method, reqPath) {
 
       const privacy = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
       assert.ok(privacy.includes('Content-Security-Policy'), 'privacy.html définit sa CSP');
-      assert.ok(privacy.includes('id="fr"') && privacy.includes('id="en"'), 'privacy.html bilingue FR/EN');
-      for (const needle of ['privacy@fitia.pro', 'Supprimer mon compte', 'Delete my account', 'certification', '30 jours']) {
+      assert.ok(privacy.includes('<html lang="en">'), 'privacy.html déclarée en anglais');
+      for (const needle of ['privacy@fitia.pro', 'Delete my account', 'certification', '30 days']) {
         assert.ok(privacy.includes(needle), `privacy.html contient « ${needle} »`);
       }
 

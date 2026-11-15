@@ -1,6 +1,6 @@
-// FITIA PRO — Reset de mot de passe (lien de récupération Supabase).
-// Aucun secret côté client. Le jeton de récupération est lu depuis le
-// fragment d'URL, conservé en mémoire uniquement, puis envoyé au backend.
+// FITIA PRO — Password reset (Supabase recovery link).
+// No secrets on the client. The recovery token is read from the URL fragment,
+// kept in memory only, then sent to the backend.
 (function () {
   'use strict';
 
@@ -11,30 +11,17 @@
   var TOKEN_PATTERN = /^[A-Za-z0-9._~+\/-]{20,4096}$/;
   var PREFIX_BLACKLIST = /^(password|motdepasse|qwerty|letmein)/i;
 
-  var lang = (typeof navigator !== 'undefined' && /^fr\b/i.test(navigator.language || '')) ? 'fr' : 'en';
   var messages = {
-    fr: {
-      updating: 'Mise à jour…',
-      update: 'Mettre à jour le mot de passe',
-      invalidToken: 'Lien invalide ou expiré. Demandez-en un nouveau depuis l’application.',
-      passwordTooShort: 'Le mot de passe doit contenir entre 12 et 128 caractères.',
-      passwordWeak: 'Le mot de passe doit contenir au moins une lettre et un chiffre, et ne pas être un mot courant.',
-      passwordMismatch: 'Les deux mots de passe ne correspondent pas.',
-      rateLimited: 'Trop de tentatives. Réessayez dans quelques minutes.',
-      generic: 'La réinitialisation a échoué. Réessayez ou demandez un nouveau lien.'
-    },
-    en: {
-      updating: 'Updating…',
-      update: 'Update password',
-      invalidToken: 'Invalid or expired link. Request a new one from the app.',
-      passwordTooShort: 'Password must be 12 to 128 characters long.',
-      passwordWeak: 'Password needs at least one letter and one number, and must not be a common word.',
-      passwordMismatch: 'Both passwords must match.',
-      rateLimited: 'Too many attempts. Try again in a few minutes.',
-      generic: 'Password reset failed. Try again or request a new link.'
-    }
+    updating: 'Updating…',
+    update: 'Update password',
+    invalidToken: 'Invalid or expired link. Request a new one from the app.',
+    passwordTooShort: 'Password must be 12 to 128 characters long.',
+    passwordWeak: 'Password needs at least one letter and one number, and must not be a common word.',
+    passwordMismatch: 'Both passwords must match.',
+    rateLimited: 'Too many attempts. Try again in a few minutes.',
+    generic: 'Password reset failed. Try again or request a new link.'
   };
-  function t(key) { return messages[lang][key] || messages.en[key] || key; }
+  function t(key) { return messages[key] || key; }
 
   function parseRecoveryParams() {
     try {
@@ -73,7 +60,7 @@
   }
 
   var params = parseRecoveryParams();
-  // Le jeton ne doit jamais rester visible dans l’URL ni dans l’historique.
+  // The token must never remain visible in the URL or in the history.
   wipeFragment();
 
   var form = document.getElementById('reset-form');

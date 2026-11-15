@@ -71,7 +71,7 @@
           <label for="account-login-password" data-i18n="accountPassword">Password</label>
           <div class="account-password-field">
             <input id="account-login-password" class="game-input" type="password" autocomplete="current-password" minlength="12" maxlength="128" required>
-            <button class="account-password-toggle" type="button" data-account-password-toggle="account-login-password" aria-controls="account-login-password" aria-pressed="false">Show</button>
+            <button class="account-password-toggle" type="button" data-account-password-toggle="account-login-password" aria-controls="account-login-password" aria-pressed="false" data-i18n="showPassword">Show</button>
           </div>
           <button id="account-login-submit" class="btn-primary" type="submit" data-i18n="accountSignIn">Sign in</button>
           <button id="account-forgot-link" class="auth-link-btn account-forgot-link" type="button" data-i18n="accountForgotPasswordLink">Forgot password?</button>
@@ -87,13 +87,13 @@
           <label for="account-signup-password" data-i18n="accountPassword">Password</label>
           <div class="account-password-field">
             <input id="account-signup-password" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="account-signup-password-help" required>
-            <button class="account-password-toggle" type="button" data-account-password-toggle="account-signup-password" aria-controls="account-signup-password" aria-pressed="false">Show</button>
+            <button class="account-password-toggle" type="button" data-account-password-toggle="account-signup-password" aria-controls="account-signup-password" aria-pressed="false" data-i18n="showPassword">Show</button>
           </div>
           <p id="account-signup-password-help" class="account-form-help" data-i18n="accountPasswordHelp">12–128 characters, including an A–Z letter and a number. Avoid common passwords.</p>
           <label for="account-signup-confirm" data-i18n="accountConfirmPassword">Confirm password</label>
           <div class="account-password-field">
             <input id="account-signup-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
-            <button class="account-password-toggle" type="button" data-account-password-toggle="account-signup-confirm" aria-controls="account-signup-confirm" aria-pressed="false">Show</button>
+            <button class="account-password-toggle" type="button" data-account-password-toggle="account-signup-confirm" aria-controls="account-signup-confirm" aria-pressed="false" data-i18n="showPassword">Show</button>
           </div>
           <button id="account-signup-submit" class="btn-primary" type="submit" data-i18n="accountCreate">Create my account</button>
         </form>
@@ -167,7 +167,7 @@
               <label for="account-email-current-password" data-i18n="accountCurrentPassword">Current password</label>
               <div class="account-password-field">
                 <input id="account-email-current-password" class="game-input" type="password" autocomplete="current-password" maxlength="128" aria-describedby="account-email-message" required>
-                <button class="account-password-toggle" type="button" data-account-password-toggle="account-email-current-password" aria-controls="account-email-current-password" aria-pressed="false">Show</button>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-email-current-password" aria-controls="account-email-current-password" aria-pressed="false" data-i18n="showPassword">Show</button>
               </div>
               <button id="account-email-submit" class="btn-primary" type="submit" data-i18n="accountChangeEmail">Update email</button>
             </form>
@@ -183,18 +183,18 @@
               <label for="account-password-current" data-i18n="accountCurrentPassword">Current password</label>
               <div class="account-password-field">
                 <input id="account-password-current" class="game-input" type="password" autocomplete="current-password" maxlength="128" aria-describedby="account-password-message" required>
-                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-current" aria-controls="account-password-current" aria-pressed="false">Show</button>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-current" aria-controls="account-password-current" aria-pressed="false" data-i18n="showPassword">Show</button>
               </div>
               <label for="account-password-new" data-i18n="accountNewPassword">New password</label>
               <div class="account-password-field">
                 <input id="account-password-new" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="account-password-help account-password-message" required>
-                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-new" aria-controls="account-password-new" aria-pressed="false">Show</button>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-new" aria-controls="account-password-new" aria-pressed="false" data-i18n="showPassword">Show</button>
               </div>
               <p id="account-password-help" class="account-form-help" data-i18n="accountPasswordHelp">12–128 characters, including an A–Z letter and a number. Avoid common passwords.</p>
               <label for="account-password-confirm" data-i18n="accountConfirmNewPassword">Confirm new password</label>
               <div class="account-password-field">
                 <input id="account-password-confirm" class="game-input" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="account-password-message" required>
-                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-confirm" aria-controls="account-password-confirm" aria-pressed="false">Show</button>
+                <button class="account-password-toggle" type="button" data-account-password-toggle="account-password-confirm" aria-controls="account-password-confirm" aria-pressed="false" data-i18n="showPassword">Show</button>
               </div>
               <button id="account-password-submit" class="btn-primary" type="submit" data-i18n="accountChangePassword">Update password</button>
             </form>
@@ -265,12 +265,12 @@
           <div class="account-profile-utilities">
             <button id="account-open-settings" class="account-utility" type="button" onclick="App.openSecurityFromAccount()">
               <span class="account-utility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 8.8 8 11 4.6-2.2 8-5.7 8-11V5l-8-3Z"></path><path d="M9 12h6M12 9v6"></path></svg></span>
-              <span class="account-utility-copy"><strong data-i18n="accountOpenSettings">Wallet & security settings</strong></span>
+              <span class="account-utility-copy"><strong data-i18n="accountOpenSettings">Wallet &amp; security settings</strong></span>
               <svg class="account-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
             </button>
             <button id="account-open-activity" class="account-utility" type="button" onclick="App.openActivityFromAccount()">
               <span class="account-utility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path></svg></span>
-              <span class="account-utility-copy"><strong data-i18n="accountOpenActivity">Activity & notifications</strong></span>
+              <span class="account-utility-copy"><strong data-i18n="accountOpenActivity">Activity &amp; notifications</strong></span>
               <svg class="account-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
             </button>
             <button id="account-lock-wallet" class="account-utility" type="button" onclick="App.lockWallet()">
@@ -285,7 +285,7 @@
         </button>
         <div id="account-logout-confirmation" class="account-logout-confirmation hidden" role="group" aria-labelledby="account-logout-confirm-title">
           <strong id="account-logout-confirm-title" data-i18n="accountLogoutConfirmTitle">Sign out?</strong>
-          <p data-i18n="accountLogoutConfirmHelp">This will also lock your wallet. Your wallet data remains on this device.</p>
+          <p data-i18n="accountLogoutConfirmHelp">Signing out also locks your wallet. Its data remains encrypted on this device.</p>
           <div class="account-confirm-actions">
             <button id="account-logout-cancel" class="btn-secondary" type="button" data-i18n="accountCancel">Cancel</button>
             <button id="account-logout-confirm" class="btn-secondary account-confirm-danger" type="button" data-i18n="accountLogoutConfirmAction">Sign out</button>
@@ -299,11 +299,11 @@
         </button>
         <div id="account-delete-confirmation" class="account-logout-confirmation account-delete-confirmation hidden" role="group" aria-labelledby="account-delete-confirm-title">
           <strong id="account-delete-confirm-title" data-i18n="accountDeleteConfirmTitle">Delete your account permanently?</strong>
-          <p data-i18n="accountDeleteConfirmHelp">This permanently erases your FITIA PRO account: profile, linked wallet and certification history. Your on-device wallet and recovery phrase are not affected and cannot be recovered by us. This action cannot be undone.</p>
+          <p data-i18n="accountDeleteConfirmHelp">Permanently erases your FITIA PRO account: profile, linked wallet and certification history. Your on-device wallet and recovery phrase are not affected and cannot be recovered by us. This action cannot be undone.</p>
           <label for="account-delete-current-password" data-i18n="accountCurrentPassword">Current password</label>
           <div class="account-password-field">
             <input id="account-delete-current-password" class="game-input" type="password" autocomplete="current-password" maxlength="128" aria-describedby="account-delete-message" required>
-            <button class="account-password-toggle" type="button" data-account-password-toggle="account-delete-current-password" aria-controls="account-delete-current-password" aria-pressed="false">Show</button>
+            <button class="account-password-toggle" type="button" data-account-password-toggle="account-delete-current-password" aria-controls="account-delete-current-password" aria-pressed="false" data-i18n="showPassword">Show</button>
           </div>
           <p id="account-delete-message" class="account-message hidden" role="alert" aria-live="assertive"></p>
           <div class="account-confirm-actions">
@@ -336,9 +336,7 @@
           <span class="pulse-ring"></span>
           <span data-i18n="createNewWallet">CREATE NEW WALLET</span>
         </button>
-        <button class="btn-secondary-outline" onclick="App.startImportWallet()" data-i18n="importExistingWallet">
-           I already have a wallet (12 words / Key)
-        </button>
+        <button class="btn-secondary-outline" onclick="App.startImportWallet()" data-i18n="importExistingWallet">I already have a wallet (12 words / Key)</button>
         <a id="welcome-apk-download" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk" class="apk-download-banner">
           <div>
             <strong data-i18n="downloadApkTitle">Download Android App (.APK)</strong>
@@ -387,7 +385,7 @@
 
       <div id="seed-quiz-container" class="seed-quiz-container"></div>
 
-      <button id="btn-verify-next" class="btn-primary" style="margin-top: 16px;" onclick="App.completeSeedVerify()" data-i18n="validateAndSetPin">VERIFY & SET MY PIN</button>
+      <button id="btn-verify-next" class="btn-primary" style="margin-top: 16px;" onclick="App.completeSeedVerify()" data-i18n="validateAndSetPin">VERIFY &amp; SET MY PIN</button>
     </div>
 
     <!-- 4. IMPORTATION DE PORTEFEUILLE (12/24 MOTS OU CLÉ PRIVÉE) -->
@@ -479,15 +477,13 @@
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('7')">7</button>
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('8')">8</button>
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('9')">9</button>
-        <button type="button" id="btn-unlock-bio" class="pin-key pin-key-action hidden" onclick="App.triggerBiometricUnlock()" title="Biométrie">BIO</button>
+        <button type="button" id="btn-unlock-bio" class="pin-key pin-key-action hidden" onclick="App.triggerBiometricUnlock()" title="Biometric Unlock" data-i18n-title="biometricUnlock" data-i18n-aria-label="biometricUnlock">BIO</button>
         <button type="button" id="btn-unlock-spacer" class="pin-key pin-key-empty" disabled></button>
         <button type="button" class="pin-key" onclick="App.onUnlockDigit('0')">0</button>
         <button type="button" class="pin-key pin-key-action" onclick="App.onUnlockBackspace()" aria-label="Delete" data-i18n-aria-label="deleteDigit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg></button>
       </div>
 
-      <button type="button" class="auth-link-btn" onclick="App.promptRestoreFromLock()" data-i18n="forgotPinLink">
-        Forgot PIN? Restore with 12-word phrase / key
-      </button>
+      <button type="button" class="auth-link-btn" onclick="App.promptRestoreFromLock()" data-i18n="forgotPinLink">Forgot PIN? Restore with 12-word phrase / key</button>
     </div>
 
   </div>
@@ -515,7 +511,7 @@
     </div>
     <button id="btn-account-app" class="btn-icon-header account-btn-header" onclick="App.openAccountAccess()" title="My account" data-i18n-title="accountMyAccount" aria-label="My account" data-i18n-aria-label="accountMyAccount" aria-controls="account-access-screen">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6"></path></svg>
-      <span id="activity-unread-badge" class="activity-badge hidden" data-i18n-aria-label="accountOpenActivity" aria-label="Activity & notifications">0</span>
+      <span id="activity-unread-badge" class="activity-badge hidden" data-i18n-aria-label="accountOpenActivity" aria-label="Activity &amp; notifications">0</span>
     </button>
   </div>
 </header>
@@ -523,31 +519,31 @@
 <main id="main-view">
   <!-- ═══ DASHBOARD ═══ -->
   <div id="view-dashboard" class="view active">
-    <section id="announcement-center" class="announcement-center" role="region" aria-roledescription="carousel" aria-label="Annonces officielles FITIA">
+    <section id="announcement-center" class="announcement-center" role="region" aria-roledescription="carousel" aria-label="Official FITIA announcements" data-i18n-aria-label="announcementsBannerLabel">
       <div id="announcement-viewport" class="announcement-viewport">
         <div id="announcement-track" class="announcement-track"></div>
       </div>
-      <div id="announcement-dots" class="announcement-dots" aria-label="Choisir une annonce"></div>
+      <div id="announcement-dots" class="announcement-dots" aria-label="Choose an announcement" data-i18n-aria-label="announcementChooseLabel"></div>
     </section>
 
     <div class="card total-balance-card">
-      <small data-i18n="totalBal">Solde Total Estimé</small>
+      <small data-i18n="totalBal">Estimated Total Balance</small>
       <div class="total-val" id="val-total-usd">$0.00</div>
       <div class="total-breakdown">
-        <span><span data-i18n="walletShort">Portefeuille</span>: <strong id="val-wallet-sub-usd">$0.00</strong></span>
+        <span><span data-i18n="walletShort">Wallet</span>: <strong id="val-wallet-sub-usd">$0.00</strong></span>
         <span>•</span>
-        <span><span data-i18n="miningShort">Minage</span>: <strong id="val-mining-sub-usd">$0.00</strong></span>
+        <span><span data-i18n="miningShort">Mining</span>: <strong id="val-mining-sub-usd">$0.00</strong></span>
       </div>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <small data-i18n="power">PUISSANCE</small>
+        <small data-i18n="power">POWER</small>
         <div class="stat-val" id="val-power">0 H/s</div>
         <small data-i18n="ftaSec">Hashrate</small>
       </div>
       <div class="stat-card accent">
-        <small data-i18n="pending">EN ATTENTE</small>
+        <small data-i18n="pending">PENDING</small>
         <div class="stat-val" id="val-pending">0.00000000</div>
         <small>FTA</small>
       </div>
@@ -567,15 +563,15 @@
     </div>
 
     <div id="active-machines-section" class="card" style="margin-bottom:15px;">
-      <h3 class="section-title" data-i18n="activeMachines">⛏️ Machines Actives</h3>
+      <h3 class="section-title" data-i18n="activeMachines">⛏️ Active Machines</h3>
       <div id="active-machines-list">
-        <p class="small-text" style="text-align:center;" data-i18n="noActiveMachines">Aucune machine active</p>
+        <p class="small-text" style="text-align:center;" data-i18n="noActiveMachines">No active machines</p>
       </div>
     </div>
 
     <button class="btn-mega" onclick="App.claim()">
       <span class="pulse-ring"></span>
-      <span data-i18n="claim">RÉCLAMER</span>
+      <span data-i18n="claim">CLAIM</span>
     </button>
 
   </div>
@@ -595,12 +591,12 @@
     </section>
     <div class="store-assurance" aria-label="Store services">
       <span class="store-payment-pill">USDT</span><span class="store-payment-pill">FTA</span>
-      <span class="store-assurance-tracking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11v11H3zM14 10h4l3 3v4h-7zM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg><span data-store-i18n="trackedDelivery">Tracked delivery</span></span>
+      <span class="store-assurance-tracking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11v11H3zM14 10h4l3 3v4h-7zM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg><span data-store-i18n="trackedDelivery">racked deliver</span></span>
     </div>
     <div class="store-actions-row">
       <button type="button" id="store-orders-button" class="store-text-button store-orders-button" onclick="App.storeCenter.openOrders()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10M8 5l8 4"/></svg>
-        <span data-store-i18n="myOrders">My orders</span><span id="store-order-count" class="store-order-count hidden">0</span>
+        <span data-store-i18n="myOrders">y order</span><span id="store-order-count" class="store-order-count hidden">0</span>
       </button>
       <button type="button" class="store-text-button store-refresh-button" onclick="App.storeCenter.manualRefresh()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7"/></svg><span data-store-i18n="refresh">Refresh</span>
@@ -614,11 +610,11 @@
       <div class="store-country-viewport"><div id="store-country-track" class="store-country-track"></div></div>
     </section>
     <div class="store-filter-panel">
-      <label class="store-search-label"><span class="sr-only">Search products</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="store-search-input" type="search" maxlength="100" data-store-i18n-placeholder="search" placeholder="Search products…" oninput="App.storeCenter.renderProducts()"></label>
+      <label class="store-search-label"><span class="sr-only" data-store-i18n="searchLabel">Search products</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="store-search-input" type="search" maxlength="100" data-store-i18n-placeholder="search" placeholder="Search products…" oninput="App.storeCenter.renderProducts()"></label>
       <div class="store-filter-grid">
-        <select id="store-category-filter" aria-label="Product category" onchange="App.storeCenter.renderProducts()"><option value="all">All categories</option></select>
-        <select id="store-source-filter" aria-label="Fulfillment type" onchange="App.storeCenter.renderProducts()"><option value="all" data-store-i18n="allSources">All sellers</option><option value="own" data-store-i18n="ownStock">Own stock</option><option value="dropshipping">Dropshipping</option></select>
-        <select id="store-token-filter" aria-label="Payment token" onchange="App.storeCenter.renderProducts()"><option value="all">USDT + FTA</option><option value="USDT">USDT</option><option value="FTA">FTA</option></select>
+        <select id="store-category-filter" aria-label="Product category" data-store-i18n-aria-label="productCategory" onchange="App.storeCenter.renderProducts()"><option value="all" data-store-i18n="allCategories">All categories</option></select>
+        <select id="store-source-filter" aria-label="Fulfillment type" data-store-i18n-aria-label="fulfillmentType" onchange="App.storeCenter.renderProducts()"><option value="all" data-store-i18n="allSources">All sellers</option><option value="own" data-store-i18n="ownStock">Own stock</option><option value="dropshipping">Dropshipping</option></select>
+        <select id="store-token-filter" aria-label="Payment token" data-store-i18n-aria-label="paymentToken" onchange="App.storeCenter.renderProducts()"><option value="all">USDT + FTA</option><option value="USDT">USDT</option><option value="FTA">FTA</option></select>
       </div>
     </div>
     <p id="store-catalog-status" class="store-catalog-status" role="status"></p>
@@ -729,16 +725,16 @@
   <!-- ═══ SHOP MINAGE ═══ -->
   <div id="view-shop" class="view">
     <div class="shop-header">
-      <h2 class="view-title" style="margin-bottom:0;" data-i18n="shopTitle">⛏️ Boutique</h2>
+      <h2 class="view-title" style="margin-bottom:0;" data-i18n="shopTitle">⛏️ Shop</h2>
       <div class="toggle-pay">
         <button id="btn-pay-usdt" class="toggle-btn active" onclick="App.setPayMode('USDT')" aria-pressed="true"><img src="assets/usdt.svg" alt="" width="18" height="18" aria-hidden="true"><span>USDT</span></button>
         <button id="btn-pay-fta" class="toggle-btn" onclick="App.setPayMode('FTA')" aria-pressed="false"><img src="assets/fta.png" alt="" width="18" height="18" aria-hidden="true"><span>FTA</span></button>
       </div>
     </div>
     <div class="shop-balance-strip">
-      <span><span data-i18n="availUsdt">Dispo USDT</span>: <strong id="shop-avail-usdt">0.00</strong></span>
+      <span><span data-i18n="availUsdt">Avail USDT</span>: <strong id="shop-avail-usdt">0.00</strong></span>
       <span>•</span>
-      <span><span data-i18n="availFta">Dispo FTA</span>: <strong id="shop-avail-fta">0.0000</strong></span>
+      <span><span data-i18n="availFta">Avail FTA</span>: <strong id="shop-avail-fta">0.0000</strong></span>
     </div>
     <div class="shop-tabs">
       <button class="shop-tab active" id="tab-shop-machines" onclick="App.setShopView('machines', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="12" r="3.5"/><circle cx="16" cy="12" r="2.5"/><path d="M9 8.5v7M5.5 12h7M16 9.5v5M13.5 12h5"/></svg><span data-i18n="machines">Machines</span></button>
@@ -747,19 +743,19 @@
     </div>
     <!-- ═══ MAGASIN — Mes équipements (onglet de la Boutique) ═══ -->
     <div id="magasin-panel" class="magasin-panel hidden">
-        <div class="shop-tabs magasin-tabs" role="tablist" aria-label="Mes équipements">
-          <button type="button" class="shop-tab active" id="tab-magasin-machines" role="tab" aria-selected="true" aria-controls="magasin-machines" onclick="App.setMagasinView('machines', this)"><span data-i18n="myMachines">⛏️ Mes Machines</span></button>
-          <button type="button" class="shop-tab" id="tab-magasin-batteries" role="tab" aria-selected="false" aria-controls="magasin-batteries" onclick="App.setMagasinView('batteries', this)"><span data-i18n="myBatteries">🔋 Mes Batteries</span></button>
-          <button type="button" class="shop-tab" id="tab-magasin-plug" role="tab" aria-selected="false" aria-controls="magasin-plug" onclick="App.setMagasinView('plug', this)"><span data-i18n="magasinPlug">🔌 Brancher</span></button>
+        <div class="shop-tabs magasin-tabs" role="tablist" aria-label="My equipment" data-i18n-aria-label="myEquipmentLabel">
+          <button type="button" class="shop-tab active" id="tab-magasin-machines" role="tab" aria-selected="true" aria-controls="magasin-machines" onclick="App.setMagasinView('machines', this)"><span data-i18n="myMachines">⛏️ My Machines</span></button>
+          <button type="button" class="shop-tab" id="tab-magasin-batteries" role="tab" aria-selected="false" aria-controls="magasin-batteries" onclick="App.setMagasinView('batteries', this)"><span data-i18n="myBatteries">🔋 My Batteries</span></button>
+          <button type="button" class="shop-tab" id="tab-magasin-plug" role="tab" aria-selected="false" aria-controls="magasin-plug" onclick="App.setMagasinView('plug', this)"><span data-i18n="magasinPlug">🔌 Connect</span></button>
         </div>
         <div id="magasin-machines" class="magasin-list" role="tabpanel" aria-labelledby="tab-magasin-machines">
           <div class="card magasin-card">
-            <div id="my-machines-list"><p class="small-text" style="text-align:center;" data-i18n="noMachines">Aucune machine</p></div>
+            <div id="my-machines-list"><p class="small-text" style="text-align:center;" data-i18n="noMachines">No machines yet</p></div>
           </div>
         </div>
         <div id="magasin-batteries" class="magasin-list hidden" role="tabpanel" aria-labelledby="tab-magasin-batteries">
           <div class="card magasin-card">
-            <div id="my-batteries-list"><p class="small-text" style="text-align:center;" data-i18n="noBatteries">Aucune batterie</p></div>
+            <div id="my-batteries-list"><p class="small-text" style="text-align:center;" data-i18n="noBatteries">No batteries yet</p></div>
           </div>
         </div>
         <div id="magasin-plug" class="magasin-list hidden" role="tabpanel" aria-labelledby="tab-magasin-plug">
@@ -770,43 +766,43 @@
           <svg viewBox="0 0 24 24"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
         </div>
         <div class="plug-heading-copy">
-          <h3 data-i18n="plugMachine">Connexion machine &amp; batterie</h3>
+          <h3 data-i18n="plugMachine">Machine &amp; battery connection</h3>
         </div>
       </div>
 
       <div class="plug-selector-block">
         <div class="plug-section-heading">
-          <strong id="plug-machine-step-label" data-i18n="plugMachineStep">1. Choisissez une machine</strong>
+          <strong id="plug-machine-step-label" data-i18n="plugMachineStep">1. Choose a machine</strong>
           <span id="plug-machine-count" class="plug-count" aria-hidden="true">0</span>
         </div>
         <input type="hidden" id="plug-machine-id" value="">
         <div id="plug-machine-options" class="plug-options" role="group" aria-labelledby="plug-machine-step-label">
-          <p class="plug-options-empty" data-i18n="noMachines">Aucune machine</p>
+          <p class="plug-options-empty" data-i18n="noMachines">No machines yet</p>
         </div>
       </div>
 
       <div class="plug-selector-block">
         <div class="plug-section-heading">
-          <strong id="plug-battery-step-label" data-i18n="plugBatteryStep">2. Choisissez une batterie</strong>
+          <strong id="plug-battery-step-label" data-i18n="plugBatteryStep">2. Choose a battery</strong>
           <span id="plug-battery-count" class="plug-count plug-count-battery" aria-hidden="true">0</span>
         </div>
         <input type="hidden" id="plug-battery-type" value="">
         <div id="plug-battery-options" class="plug-options" role="group" aria-labelledby="plug-battery-step-label">
-          <p class="plug-options-empty" data-i18n="noBatteries">Aucune batterie</p>
+          <p class="plug-options-empty" data-i18n="noBatteries">No batteries yet</p>
         </div>
       </div>
 
       <div class="plug-preview">
         <div class="plug-preview-topline">
-          <span data-i18n="plugPreview">Aperçu de connexion</span>
-          <span id="plug-status-badge" class="plug-status-badge" data-i18n="plugNotReady">À configurer</span>
+          <span data-i18n="plugPreview">Connection preview</span>
+          <span id="plug-status-badge" class="plug-status-badge" data-i18n="plugNotReady">Setup required</span>
         </div>
         <div class="plug-preview-flow">
           <div id="plug-preview-machine" class="plug-preview-node">
             <span id="plug-preview-machine-icon" class="plug-preview-icon" aria-hidden="true">
               <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="4" width="40" height="42" rx="7"/><rect x="11" y="12" width="12" height="17" rx="2"/><rect x="27" y="12" width="12" height="17" rx="2"/><circle cx="18" cy="37" r="5"/><circle cx="32" cy="37" r="5"/></svg>
             </span>
-            <strong id="plug-preview-machine-name" data-i18n="selectMachinePrompt">Machine à sélectionner</strong>
+            <strong id="plug-preview-machine-name" data-i18n="selectMachinePrompt">Select a machine</strong>
           </div>
           <div id="plug-connector" class="plug-connector" aria-hidden="true">
             <span class="plug-connector-line"></span>
@@ -817,15 +813,15 @@
             <span id="plug-preview-battery-icon" class="plug-preview-icon" aria-hidden="true">
               <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="15" width="36" height="22" rx="5"/><path d="M43 21v10m-31-5h19"/></svg>
             </span>
-            <strong id="plug-preview-battery-name" data-i18n="selectBatteryPrompt">Batterie à sélectionner</strong>
+            <strong id="plug-preview-battery-name" data-i18n="selectBatteryPrompt">Select a battery</strong>
           </div>
         </div>
-        <p id="plug-summary" class="plug-summary" aria-live="polite" data-i18n="selectMachineToContinue">Sélectionnez une machine disponible.</p>
+        <p id="plug-summary" class="plug-summary" aria-live="polite" data-i18n="selectMachineToContinue">Select an available machine.</p>
       </div>
 
       <button type="button" id="btn-plug-machine" class="plug-submit" onclick="App.plugInMachine()" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
-        <span data-i18n="plugAction">CONNECTER LA MACHINE</span>
+        <span data-i18n="plugAction">CONNECT MACHINE</span>
       </button>
     </div>
         </div>
@@ -836,12 +832,12 @@
 
   <!-- ═══ WALLET & ASSETS ═══ -->
   <div id="view-my-rigs" class="view">
-    <h2 class="view-title" data-i18n="myAssets">⚙️ Portefeuille & Actifs</h2>
+    <h2 class="view-title" data-i18n="myAssets">⚙️ Wallet &amp; Assets</h2>
 
     <!-- Onglets Portefeuille : Polygon (on-chain) / Compte Minage (interne) -->
     <div class="shop-tabs wallet-tabs" role="tablist" aria-label="Wallet sections">
       <button type="button" class="shop-tab wallet-tab active" id="tab-wallet-polygon" role="tab" aria-selected="true" aria-controls="panel-wallet-polygon" onclick="App.setWalletTab('polygon', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/><path d="M15.5 12h4.5M4 10h16"/></svg><span data-i18n="walletTabPolygon">Wallet</span></button>
-      <button type="button" class="shop-tab wallet-tab" id="tab-wallet-mining" role="tab" aria-selected="false" aria-controls="panel-wallet-mining" onclick="App.setWalletTab('mining', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg><span data-i18n="walletTabMining">Compte Minage</span></button>
+      <button type="button" class="shop-tab wallet-tab" id="tab-wallet-mining" role="tab" aria-selected="false" aria-controls="panel-wallet-mining" onclick="App.setWalletTab('mining', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg><span data-i18n="walletTabMining">Mining Account</span></button>
     </div>
 
     <!-- CARTE 1 : PORTEFEUILLE POLYGON ON-CHAIN -->
@@ -855,29 +851,29 @@
           </div>
         </div>
         <div class="wallet-main-actions">
-          <button class="btn-wallet-main btn-wallet-sec" onclick="App.openSecurityModal()" title="Sécurité">🛡️</button>
+          <button class="btn-wallet-main btn-wallet-sec" onclick="App.openSecurityModal()" title="Security" data-i18n-title="accountSecuritySection">🛡️</button>
         </div>
       </div>
 
       <div class="wallet-primary-actions" role="group" aria-label="Wallet actions">
         <button type="button" class="btn-wallet-main btn-wallet-send wallet-primary-action" onclick="App.openSend()">
           <span class="wallet-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="wallet-action-copy"><strong data-i18n="send">Envoyer</strong></span>
+          <span class="wallet-action-copy"><strong data-i18n="send">Send</strong></span>
         </button>
         <button type="button" class="btn-wallet-main btn-wallet-recv wallet-primary-action" onclick="App.openReceive()">
           <span class="wallet-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 7 7 17M17 17H7V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="wallet-action-copy"><strong data-i18n="receive">Recevoir</strong></span>
+          <span class="wallet-action-copy"><strong data-i18n="receive">Receive</strong></span>
         </button>
       </div>
 
       <button class="wallet-history-btn" onclick="App.openActivity('history')">
-        <span>🕘 Historique &amp; activité</span>
-        <span id="wallet-pending-count" class="wallet-pending-count">À jour</span>
+        <span data-i18n="activityButtonLabel">🕘 History &amp; activity</span>
+        <span id="wallet-pending-count" class="wallet-pending-count" data-i18n="activityUpToDate">Up to date</span>
       </button>
 
       <div id="gas-warning-banner" class="gas-warning-banner hidden" onclick="App.openReceive()">
         <span>⛽</span>
-        <span data-i18n="lowPolGasWarn">Ajoutez un peu de POL (~0.05 POL) à votre adresse pour payer les frais réseau Polygon.</span>
+        <span data-i18n="lowPolGasWarn">Add a small amount of POL (~0.05 POL) to your address to cover Polygon network gas fees.</span>
       </div>
 
       <!-- POL -->
@@ -929,12 +925,12 @@
     <div class="card mining-vault-card">
       <div class="mining-balances-grid">
         <div class="mining-bal-box">
-          <small>USDT Minage</small>
+          <small data-i18n="miningUsdtLabel">Mining USDT</small>
           <strong id="bal-usdt">0.00</strong>
           <span id="bal-usdt-usd">≈ $0.00</span>
         </div>
         <div class="mining-bal-box">
-          <small>FTA Minage</small>
+          <small data-i18n="miningFtaLabel">Mining FTA</small>
           <strong id="bal-fta">0.0000</strong>
           <span id="bal-fta-usd">≈ $0.00</span>
         </div>
@@ -952,11 +948,11 @@
           </button>
         </div>
         <div class="amount-max-wrap">
-          <input type="number" id="deposit-amount" class="game-input wallet-amount-input" placeholder="Montant" step="any" data-i18n-placeholder="amount">
+          <input type="number" id="deposit-amount" class="game-input wallet-amount-input" placeholder="Amount" step="any" data-i18n-placeholder="amount">
           <button type="button" class="btn-max-inline" onclick="App.fillMaxDeposit()">MAX</button>
         </div>
-        <button class="btn-wallet-action btn-wallet-deposit" onclick="App.deposit()" data-i18n="depositBtn">DÉPOSER</button>
-        <button class="btn-wallet-action btn-wallet-withdraw" onclick="App.withdraw()" data-i18n="withdrawBtn">RETIRER</button>
+        <button class="btn-wallet-action btn-wallet-deposit" onclick="App.deposit()" data-i18n="depositBtn">DEPOSIT</button>
+        <button class="btn-wallet-action btn-wallet-withdraw" onclick="App.withdraw()" data-i18n="withdrawBtn">WITHDRAW</button>
       </div>
     </div>
     </div>
@@ -965,10 +961,10 @@
 
   <!-- ═══ SWAP ═══ -->
   <div id="view-swap" class="view">
-    <h2 class="view-title" data-i18n="swapTitle">💱 Échange</h2>
+    <h2 class="view-title" data-i18n="swapTitle">💱 Swap</h2>
     <div class="card swap-interface">
       <div class="swap-market">
-        <span class="swap-market-label" id="swap-market-label" data-i18n="swapMarket">Marché</span>
+        <span class="swap-market-label" id="swap-market-label" data-i18n="swapMarket">Market</span>
         <div class="swap-market-options" role="group" aria-labelledby="swap-market-label">
           <button type="button" class="swap-market-option active" data-swap-market="CORE_FTA" onclick="App.setSwapMarket('CORE_FTA')" aria-pressed="true">
             <span class="swap-market-icons" aria-hidden="true">
@@ -989,28 +985,28 @@
         </div>
       </div>
       <div class="swap-header">
-        <span data-i18n="youPay">Vous payez</span>
-        <span class="swap-bal-clickable" onclick="App.fillMaxSwap()"><span data-i18n="balance">Solde:</span> <strong id="swap-bal-from">0</strong> <span class="max-pill">MAX</span></span>
+        <span data-i18n="youPay">You pay</span>
+        <span class="swap-bal-clickable" onclick="App.fillMaxSwap()"><span data-i18n="balance">Balance:</span> <strong id="swap-bal-from">0</strong> <span class="max-pill">MAX</span></span>
       </div>
       <div class="input-wrap">
         <input type="number" id="swap-from-in" placeholder="0.0" min="0" step="any" oninput="App.calcSwap()">
         <div class="token-select" onclick="App.toggleSwap()" id="token-from-display"><img id="token-from-logo" class="swap-token-logo" src="assets/usdt.svg" width="26" height="26" alt="" draggable="false" aria-hidden="true"><span id="token-from-symbol">USDT</span></div>
       </div>
       <div class="swap-arrow-wrap"><div class="swap-arrow" onclick="App.toggleSwap()" role="button" tabindex="0" aria-label="Swap token direction" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.toggleSwap()}"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7-3 3 3 3M4 10h14M17 17l3-3-3-3M20 14H6"/></svg></div></div>
-      <div class="swap-header"><span data-i18n="youReceive">Vous recevez</span><span><span data-i18n="balance">Solde:</span> <span id="swap-bal-to">0</span></span></div>
+      <div class="swap-header"><span data-i18n="youReceive">You receive</span><span><span data-i18n="balance">Balance:</span> <span id="swap-bal-to">0</span></span></div>
       <div class="input-wrap">
         <input type="number" id="swap-to-in" placeholder="0.0" step="any" readonly>
         <div class="token-select token-select-static" id="token-to-display"><img id="token-to-logo" class="swap-token-logo" src="assets/fta.png" width="26" height="26" alt="" draggable="false" aria-hidden="true"><span id="token-to-symbol">FTA</span></div>
       </div>
       <div id="swap-details" class="swap-details hidden">
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="exchangeRate">Taux de change</span><span class="swap-detail-value" id="swap-detail-rate">—</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" id="swap-detail-impact-label" data-i18n="priceImpact">Impact prix</span><span class="swap-detail-value" id="swap-detail-impact">&lt; 2%</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" id="swap-detail-fee-label" data-i18n="swapFee">Frais swap (4%)</span><span class="swap-detail-value" id="swap-detail-fee">—</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="minimumReceived">Minimum reçu</span><span class="swap-detail-value" id="swap-detail-min">—</span></div>
-        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="slippageTolerance">Tolérance slippage</span><span class="swap-detail-value swap-slippage" id="swap-detail-slippage">0.5%</span></div>
+        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="exchangeRate">Exchange Rate</span><span class="swap-detail-value" id="swap-detail-rate">—</span></div>
+        <div class="swap-detail-row"><span class="swap-detail-label" id="swap-detail-impact-label" data-i18n="priceImpact">Price Impact</span><span class="swap-detail-value" id="swap-detail-impact">&lt; 2%</span></div>
+        <div class="swap-detail-row"><span class="swap-detail-label" id="swap-detail-fee-label" data-i18n="swapFee">Swap Fee (4%)</span><span class="swap-detail-value" id="swap-detail-fee">—</span></div>
+        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="minimumReceived">Minimum Received</span><span class="swap-detail-value" id="swap-detail-min">—</span></div>
+        <div class="swap-detail-row"><span class="swap-detail-label" data-i18n="slippageTolerance">Slippage Tolerance</span><span class="swap-detail-value swap-slippage" id="swap-detail-slippage">0.5%</span></div>
       </div>
       <div class="rate-info" id="swap-rate"></div>
-      <button class="btn-primary" id="btn-execute-swap" style="margin-top:12px;" onclick="App.executeSwap()" data-i18n="swap">ÉCHANGER</button>
+      <button class="btn-primary" id="btn-execute-swap" style="margin-top:12px;" onclick="App.executeSwap()" data-i18n="swap">SWAP</button>
     </div>
   </div>
 
@@ -1279,9 +1275,9 @@
 <nav class="bottom-nav" aria-label="Main navigation">
   <button class="nav-item active" data-nav="dashboard" onclick="App.nav('dashboard', this)"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span data-i18n="home">Home</span></button>
   <button class="nav-item" data-nav="shop" onclick="App.nav('shop', this)"><svg viewBox="0 0 24 24"><path d="m14 3-9 12h6l-1 6 9-12h-6l1-6Z"/></svg><span data-i18n="shop">Shop</span></button>
-  <button class="nav-item" data-nav="store" onclick="App.nav('store', this)"><svg viewBox="0 0 24 24"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg><span>STORE</span></button>
+  <button class="nav-item" data-nav="store" onclick="App.nav('store', this)"><svg viewBox="0 0 24 24"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg><span data-i18n="navStore">STORE</span></button>
   <button class="nav-item" data-nav="my-rigs" onclick="App.nav('my-rigs', this)"><svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg><span data-i18n="assets">Wallet</span></button>
-  <button class="nav-item" data-nav="hub" onclick="App.nav('hub', this)"><svg viewBox="0 0 24 24"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg><span>Hub</span></button>
+  <button class="nav-item" data-nav="hub" onclick="App.nav('hub', this)"><svg viewBox="0 0 24 24"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg><span data-i18n="navHub">Hub</span></button>
 </nav>
 </div>
 
@@ -1292,20 +1288,20 @@
 <!-- Lucky Wheel : règles et probabilités -->
 <div id="modal-wheel-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="wheel-info-title">
   <div class="modal-content wheel-info-modal">
-    <div class="modal-header"><h3 id="wheel-info-title">Rules & probabilities</h3><button id="wheel-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
-    <div class="wheel-probability-base"><span>REWARD BASE</span><strong id="wheel-probability-base">50 coins</strong></div>
-    <div class="wheel-probability-header"><span>REWARD</span><span>VALUE</span><span>CHANCE</span></div>
+    <div class="modal-header"><h3 id="wheel-info-title" data-i18n="gameRules">Rules & probabilities</h3><button id="wheel-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="wheel-probability-base"><span data-i18n="gameRewardBase">REWARD BASE</span><strong id="wheel-probability-base">50 coins</strong></div>
+    <div class="wheel-probability-header"><span data-i18n="gameReward">REWARD</span><span data-i18n="gameValue">VALUE</span><span data-i18n="gameChance">CHANCE</span></div>
     <div id="wheel-probability-list" class="wheel-probability-list"></div>
-    <div class="wheel-rule-chips"><span>FREE / 24H</span></div>
+    <div class="wheel-rule-chips"><span data-i18n="gameFree24h">FREE / 24H</span></div>
   </div>
 </div>
 
 <!-- FITA Dice 3D : règles et probabilités -->
 <div id="modal-dice-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="dice-info-title">
   <div class="modal-content dice-info-modal">
-    <div class="modal-header"><h3 id="dice-info-title">Rules & probabilities</h3><button id="dice-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
-    <div class="dice-probability-base"><span>STAKE BASE</span><strong id="dice-probability-base">50 coins</strong></div>
-    <div class="dice-probability-header"><span>WINNING ROLL</span><span>GROSS PAYOUT</span><span>CHANCE</span></div>
+    <div class="modal-header"><h3 id="dice-info-title" data-i18n="gameRules">Rules & probabilities</h3><button id="dice-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="dice-probability-base"><span data-i18n="gameStakeBase">STAKE BASE</span><strong id="dice-probability-base">50 coins</strong></div>
+    <div class="dice-probability-header"><span data-i18n="gameWinningRoll">WINNING ROLL</span><span data-i18n="gameGrossPayout">GROSS PAYOUT</span><span data-i18n="gameChance">CHANCE</span></div>
     <div id="dice-probability-list" class="dice-probability-list"></div>
     <div class="dice-rule-chips"><span>RTP ≤ 95%</span></div>
   </div>
@@ -1314,33 +1310,33 @@
 <!-- FITA Mines 3D : règles et probabilités -->
 <div id="modal-mines-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="mines-info-title">
   <div class="modal-content arcade-info-modal">
-    <div class="modal-header"><h3 id="mines-info-title">Rules & probabilities</h3><button id="mines-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
-    <div class="arcade-probability-base"><span>STAKE BASE</span><strong id="mines-probability-base">50 coins</strong></div>
-    <div class="arcade-probability-header"><span>MINES</span><span>1 SAFE PAYOUT</span><span>FIRST SAFE</span></div>
+    <div class="modal-header"><h3 id="mines-info-title" data-i18n="gameRules">Rules & probabilities</h3><button id="mines-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="arcade-probability-base"><span data-i18n="gameStakeBase">STAKE BASE</span><strong id="mines-probability-base">50 coins</strong></div>
+    <div class="arcade-probability-header"><span>MINES</span><span data-i18n="gameFirstSafePayout">1 SAFE PAYOUT</span><span data-i18n="gameFirstSafe">FIRST SAFE</span></div>
     <div id="mines-probability-list" class="arcade-probability-list"></div>
-    <div class="arcade-rule-chips"><span>RTP ≤ 95%</span><span>25 TILES</span><span>MAX 1,000,000 COINS</span></div>
+    <div class="arcade-rule-chips"><span>RTP ≤ 95%</span><span data-i18n="gameTiles25">25 TILES</span><span data-i18n="gameMaxStake">MAX 1,000,000 COINS</span></div>
   </div>
 </div>
 
 <!-- FITA Aviator : règles, cashout manuel et probabilités -->
 <div id="modal-crash-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="crash-info-title">
   <div class="modal-content arcade-info-modal">
-    <div class="modal-header"><h3 id="crash-info-title">Rules & probabilities</h3><button id="crash-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
-    <div class="arcade-probability-base"><span>STAKE BASE</span><strong id="crash-probability-base">50 coins</strong></div>
-    <div class="arcade-probability-header"><span>AUTO CASHOUT</span><span>GROSS PAYOUT</span><span>CHANCE</span></div>
+    <div class="modal-header"><h3 id="crash-info-title" data-i18n="gameRules">Rules & probabilities</h3><button id="crash-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="arcade-probability-base"><span data-i18n="gameStakeBase">STAKE BASE</span><strong id="crash-probability-base">50 coins</strong></div>
+    <div class="arcade-probability-header"><span data-i18n="gameAutoCashout">AUTO CASHOUT</span><span data-i18n="gameGrossPayout">GROSS PAYOUT</span><span data-i18n="gameChance">CHANCE</span></div>
     <div id="crash-probability-list" class="arcade-probability-list"></div>
-    <div class="arcade-rule-chips"><span>RTP ≤ 95%</span><span>GLOBAL ROUND</span><span>MANUAL CASHOUT</span><span>DUAL BET</span><span>SHA-256</span></div>
+    <div class="arcade-rule-chips"><span>RTP ≤ 95%</span><span data-i18n="gameGlobalRound">GLOBAL ROUND</span><span data-i18n="gameManualCashout">MANUAL CASHOUT</span><span data-i18n="gameDualBet">DUAL BET</span><span>SHA-256</span></div>
   </div>
 </div>
 
 <!-- Coin Flip 3D : règles et probabilités -->
 <div id="modal-coin-flip-info" class="modal" role="dialog" aria-modal="true" aria-labelledby="flip-info-title">
   <div class="modal-content arcade-info-modal">
-    <div class="modal-header"><h3 id="flip-info-title">Rules & probabilities</h3><button id="coin-flip-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
-    <div class="arcade-probability-base"><span>STAKE BASE</span><strong id="flip-probability-base">50 coins</strong></div>
-    <div class="arcade-probability-header"><span>SIDE</span><span>GROSS PAYOUT</span><span>CHANCE</span></div>
+    <div class="modal-header"><h3 id="flip-info-title" data-i18n="gameRules">Rules & probabilities</h3><button id="coin-flip-close-info" type="button" class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+    <div class="arcade-probability-base"><span data-i18n="gameStakeBase">STAKE BASE</span><strong id="flip-probability-base">50 coins</strong></div>
+    <div class="arcade-probability-header"><span data-i18n="gameSide">SIDE</span><span data-i18n="gameGrossPayout">GROSS PAYOUT</span><span data-i18n="gameChance">CHANCE</span></div>
     <div id="flip-probability-list" class="arcade-probability-list"></div>
-    <div class="arcade-rule-chips"><span>RTP 95%</span><span>1.90× PAYOUT</span></div>
+    <div class="arcade-rule-chips"><span>RTP 95%</span><span data-i18n="gamePayout190">1.90× PAYOUT</span></div>
   </div>
 </div>
 
@@ -1348,7 +1344,7 @@
 <div id="modal-equipment" class="modal" role="dialog" aria-modal="true" aria-labelledby="equipment-modal-title">
   <div class="modal-content equipment-modal">
     <div class="modal-header">
-      <h3 id="equipment-modal-title" data-i18n="equipTitle">Équipement</h3>
+      <h3 id="equipment-modal-title" data-i18n="equipTitle">Equipment</h3>
       <button type="button" class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button>
     </div>
     <div id="equipment-hero" class="equipment-hero"></div>
@@ -1359,7 +1355,7 @@
 
 <div id="modal-send" class="modal">
   <div class="modal-content">
-    <div class="modal-header"><h3 data-i18n="send">Envoyer</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
+    <div class="modal-header"><h3 data-i18n="send">Send</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close" data-i18n-aria-label="activityClose">✕</button></div>
     <div id="send-token-select-wrap" class="send-token-select-wrap">
       <input type="hidden" id="send-token-select" value="POL">
       <button type="button" id="send-token-trigger" class="send-token-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="send-token-menu" onclick="App.toggleSendTokenMenu()">
@@ -1382,32 +1378,32 @@
       </div>
     </div>
     <div class="send-bal-row">
-      <span class="small-text"><span data-i18n="availWalletBal">Disponible portefeuille :</span> <strong id="send-bal">0</strong></span>
+      <span class="small-text"><span data-i18n="availWalletBal">Available in wallet:</span> <strong id="send-bal">0</strong></span>
       <button type="button" class="btn-chip sm" onclick="App.fillMaxSend()">MAX</button>
     </div>
     <div class="send-addr-wrap">
-      <input type="text" id="send-to-address" class="game-input" placeholder="Adresse destinataire (0x...)" data-i18n-placeholder="recipientAddr" maxlength="42" autocomplete="off" spellcheck="false" style="text-align:left; padding-right: 74px;" oninput="App.updateSendAddressGuard()">
+      <input type="text" id="send-to-address" class="game-input" placeholder="Recipient address (0x...)" data-i18n-placeholder="recipientAddr" maxlength="42" autocomplete="off" spellcheck="false" style="text-align:left; padding-right: 74px;" oninput="App.updateSendAddressGuard()">
       <button type="button" class="btn-paste-inline" onclick="App.pasteRecipientAddr()">📋 <span data-i18n="paste">Paste</span></button>
     </div>
     <div id="send-addr-warning" class="send-addr-warning hidden" role="alert"></div>
     <label id="send-lookalike-ack-wrap" class="send-lookalike-ack hidden">
       <input type="checkbox" id="send-lookalike-ack" onchange="App.updateSendConfirmGate()">
-      <span data-i18n="antiPoisonAck">Je comprends le risque et je maintiens l'envoi vers cette adresse</span>
+      <span data-i18n="antiPoisonAck">I understand the risk and want to send to this address anyway</span>
     </label>
     <div id="send-amount-usd" class="send-amount-usd hidden" aria-live="polite">≈ $0.00</div>
-    <input type="text" inputmode="decimal" id="send-amount" class="game-input" placeholder="Montant" maxlength="40" autocomplete="off" data-i18n-placeholder="amount" oninput="App.refreshSendFeeAndUsd()">
+    <input type="text" inputmode="decimal" id="send-amount" class="game-input" placeholder="Amount" maxlength="40" autocomplete="off" data-i18n-placeholder="amount" oninput="App.refreshSendFeeAndUsd()">
     <div class="send-fee-hint">
-      <span data-i18n="networkFee">Frais réseau estimés</span>
-      <span id="send-fee-usd" data-i18n="networkFeeEstimating">…</span>
+      <span data-i18n="networkFee">Est. Network Fee</span>
+      <span id="send-fee-usd" data-i18n="networkFeeEstimating">Estimating fees…</span>
     </div>
-    <button type="button" id="send-confirm-button" class="btn-primary send-confirm-button" style="margin-top:10px;" onclick="App.executeSend()" data-i18n="confirmSend">CONFIRMER L'ENVOI</button>
+    <button type="button" id="send-confirm-button" class="btn-primary send-confirm-button" style="margin-top:10px;" onclick="App.executeSend()" data-i18n="confirmSend">CONFIRM SEND</button>
   </div>
 </div>
 
 <!-- Recevoir (avec QR Code intégré hors-ligne) -->
 <div id="modal-receive" class="modal">
   <div class="modal-content" style="text-align: center;">
-    <div class="modal-header"><h3 data-i18n="receive">Recevoir</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
+    <div class="modal-header"><h3 data-i18n="receive">Receive</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close" data-i18n-aria-label="activityClose">✕</button></div>
     <div class="network-pill-badge">🟣 Polygon Mainnet (ERC-20 / POL)</div>
     <div id="receive-qr-box" class="receive-qr-box"></div>
     <div class="receive-addr-box" onclick="App.copyReceiveAddress()">
@@ -1415,8 +1411,8 @@
       <span class="copy-icon">📋</span>
     </div>
     <div class="receive-actions-row">
-      <button class="btn-primary" onclick="App.copyReceiveAddress()">📋 <span data-i18n="copyAddrBtn">Copier l'adresse</span></button>
-      <button class="btn-secondary-outline" style="margin-top:0;" onclick="App.shareReceiveAddress()">📤 <span data-i18n="shareBtn">Partager</span></button>
+      <button class="btn-primary" onclick="App.copyReceiveAddress()">📋 <span data-i18n="copyAddrBtn">Copy Address</span></button>
+      <button class="btn-secondary-outline" style="margin-top:0;" onclick="App.shareReceiveAddress()">📤 <span data-i18n="shareBtn">Share</span></button>
     </div>
   </div>
 </div>
@@ -1424,7 +1420,7 @@
 <!-- FITIA STORE — Panier -->
 <div id="modal-store-cart" class="modal">
   <div class="modal-content modal-scrollable store-modal-content">
-    <div class="modal-header"><h3 data-store-i18n="cartTitle">Your cart</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
+    <div class="modal-header"><h3 data-store-i18n="cartTitle">our car</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
     <p id="store-cart-seller" class="store-modal-subtitle"></p>
     <div id="store-cart-items" class="store-cart-items"></div>
     <p id="store-cart-empty" class="store-empty-copy" data-store-i18n="cartEmpty">Your cart is empty.</p>
@@ -1433,7 +1429,7 @@
       <div><span data-store-i18n="delivery">Delivery</span><strong id="store-cart-shipping">0</strong></div>
       <div class="store-grand-total"><span data-store-i18n="total">Total</span><strong id="store-cart-total">0</strong></div>
     </div>
-    <button type="button" id="store-cart-checkout" class="btn-primary" onclick="App.storeCenter.openCheckout()" data-store-i18n="checkout">DELIVERY & PAYMENT</button>
+    <button type="button" id="store-cart-checkout" class="btn-primary" onclick="App.storeCenter.openCheckout()" data-store-i18n="checkout">ELIVERY &amp; PAYMEN</button>
     <button type="button" id="store-cart-clear" class="btn-secondary-outline" onclick="App.storeCenter.clearCart(true)" data-store-i18n="clearCart">Clear cart</button>
   </div>
 </div>
@@ -1441,7 +1437,7 @@
 <!-- FITIA STORE — Livraison et paiement -->
 <div id="modal-store-checkout" class="modal">
   <div class="modal-content modal-scrollable store-modal-content">
-    <div class="modal-header"><h3 data-store-i18n="checkoutTitle">Delivery & payment</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
+    <div class="modal-header"><h3 data-store-i18n="checkoutTitle">elivery &amp; paymen</h3><button class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button></div>
     <div id="store-checkout-summary" class="store-checkout-summary"></div>
     <form id="store-checkout-form" autocomplete="off">
       <div class="store-form-grid">
@@ -1450,11 +1446,11 @@
         <label><span data-store-i18n="country">Country</span><input id="store-shipping-country" class="game-input" maxlength="60" autocomplete="off" required></label>
         <label><span data-store-i18n="city">City</span><input id="store-shipping-city" class="game-input" maxlength="80" autocomplete="off" required></label>
       </div>
-      <label class="store-form-field"><span data-store-i18n="postalAddress">Full postal address</span><textarea id="store-shipping-address" class="game-input" rows="3" maxlength="240" autocomplete="off" required></textarea></label>
+      <label class="store-form-field"><span data-store-i18n="postalAddress">ull postal addres</span><textarea id="store-shipping-address" class="game-input" rows="3" maxlength="240" autocomplete="off" required></textarea></label>
       <label class="store-form-field"><span data-store-i18n="deliveryNotes">Delivery note (optional)</span><textarea id="store-shipping-notes" class="game-input" rows="2" maxlength="300" autocomplete="off"></textarea></label>
-      <label class="store-consent"><input id="store-checkout-consent" type="checkbox" required><span data-store-i18n="consent">I understand that the crypto payment is irreversible and that my delivery details will be sent privately to the seller for this order.</span></label>
+      <label class="store-consent"><input id="store-checkout-consent" type="checkbox" required><span data-store-i18n="consent"> understand that the crypto payment is irreversible and that my delivery details will be sent privately to the seller for this order</span></label>
       <p id="store-checkout-error" class="store-form-error" role="alert"></p>
-      <button type="submit" id="store-pay-button" class="btn-primary" data-store-i18n="payNow">PAY WITH PIN</button>
+      <button type="submit" id="store-pay-button" class="btn-primary" data-store-i18n="payNow">AY WITH PI</button>
     </form>
   </div>
 </div>
@@ -1466,7 +1462,7 @@
     <div id="store-receipt-status" class="store-receipt-status"></div>
     <div id="store-receipt-content" class="store-receipt-content"></div>
     <button type="button" id="store-receipt-track" class="btn-primary" onclick="App.storeCenter.openOrders()" data-store-i18n="trackOrder">TRACK ORDER</button>
-    <button type="button" class="btn-secondary-outline" onclick="App.closeModals()" data-store-i18n="done">Done</button>
+    <button type="button" class="btn-secondary-outline" onclick="App.closeModals()" data-store-i18n="done">on</button>
   </div>
 </div>
 
@@ -1494,20 +1490,20 @@
 <div id="modal-security" class="modal">
   <div class="modal-content modal-scrollable">
     <div class="modal-header">
-      <h3 data-i18n="securityCenterTitle">Portefeuille & Sécurité</h3>
-      <button class="modal-close" onclick="App.closeModals()">✕</button>
+      <h3 data-i18n="securityCenterTitle">Wallet &amp; Security</h3>
+      <button class="modal-close" onclick="App.closeModals()" aria-label="Close" data-i18n-aria-label="activityClose">✕</button>
     </div>
 
     <div class="sec-wallet-summary">
       <div class="sec-wallet-top hidden">
-        <span class="status-pill active">Polygon (137)</span>
-        <span id="sec-rpc-latency" class="rpc-latency-badge">RPC OK</span>
+        <span class="status-pill active" data-i18n="polygonNetwork">Polygon (137)</span>
+        <span id="sec-rpc-latency" class="rpc-latency-badge" data-i18n="rpcOk">RPC OK</span>
       </div>
       <div class="sec-addr-full" id="sec-full-address">0x...</div>
       <div class="sec-wallet-btns">
-        <button class="btn-chip" onclick="App.copyReceiveAddress()"><span data-i18n="copyAddrShort">Copier</span></button>
+        <button class="btn-chip" onclick="App.copyReceiveAddress()"><span data-i18n="copyAddrShort">Copy</span></button>
         <button class="btn-chip hidden" onclick="App.openPolygonScan()">PolygonScan</button>
-        <button class="btn-chip hidden" onclick="App.lockWallet()"><span data-i18n="lockNow">Verrouiller</span></button>
+        <button class="btn-chip hidden" onclick="App.lockWallet()"><span data-i18n="lockNow">Lock</span></button>
       </div>
     </div>
 
@@ -1518,52 +1514,52 @@
         <div class="ref-brand">
           <img src="assets/fta.png" class="ref-brand-logo" width="38" height="38" alt="">
           <div>
-            <h3 data-i18n="refTitle">Programme de parrainage</h3>
+            <h3 data-i18n="refTitle">Referral program</h3>
           </div>
         </div>
         <span class="ref-network-badge">POLYGON</span>
       </div>
 
       <div class="ref-code-panel">
-        <span class="ref-code-label" data-i18n="yourRefCode">Votre code de parrainage</span>
+        <span class="ref-code-label" data-i18n="yourRefCode">Your referral code</span>
         <strong id="my-ref-id-label" class="ref-code-value">—</strong>
       </div>
       <div class="ref-link-panel">
-        <span class="ref-code-label" data-i18n="yourRefLink">Votre lien de parrainage</span>
+        <span class="ref-code-label" data-i18n="yourRefLink">Your referral link</span>
         <strong id="my-ref-link-label" class="ref-link-value">—</strong>
       </div>
       <div class="ref-actions">
         <button type="button" class="ref-action-btn ref-action-secondary" onclick="App.copyMyReferralLink()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
-          <span data-i18n="copyRefLink">Copier le lien</span>
+          <span data-i18n="copyRefLink">Copy link</span>
         </button>
         <button type="button" class="ref-action-btn ref-action-primary" onclick="App.shareMyReferral()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5"></path></svg>
-          <span data-i18n="shareRef">Partager</span>
+          <span data-i18n="shareRef">Share</span>
         </button>
       </div>
-      <button type="button" class="ref-code-copy" onclick="App.copyMyReferralCode()" data-i18n="copyRefCode">Copier le code</button>
+      <button type="button" class="ref-code-copy" onclick="App.copyMyReferralCode()" data-i18n="copyRefCode">Copy code</button>
 
       <div class="ref-bind-block">
-        <strong class="ref-bind-title" data-i18n="refBindTitle">Vous avez un code ?</strong>
+        <strong class="ref-bind-title" data-i18n="refBindTitle">Have a referral code?</strong>
         <p id="current-referrer-status" class="small-text referral-status"></p>
         <div id="ref-form-wrap" class="ref-input-group">
-          <label class="ref-input-label" for="ref-address-input" data-i18n="refInputLabel">Code ou adresse du parrain</label>
+          <label class="ref-input-label" for="ref-address-input" data-i18n="refInputLabel">Referrer code or address</label>
           <div class="ref-input-row">
-            <input type="text" id="ref-address-input" class="game-input" placeholder="FITIA-001042, #1042 ou 0x..." data-i18n-placeholder="enterRefAddr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
-            <button type="button" class="ref-bind-button" onclick="App.bindReferrer()" data-i18n="bindRef">ASSOCIER</button>
+            <input type="text" id="ref-address-input" class="game-input" placeholder="FITIA-001042, #1042 or 0x..." data-i18n-placeholder="enterRefAddr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+            <button type="button" class="ref-bind-button" onclick="App.bindReferrer()" data-i18n="bindRef">LINK</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="sec-section-title" data-i18n="backupAndKeys">Sauvegarde & Clés Secrètes</div>
+    <div class="sec-section-title" data-i18n="backupAndKeys">Backup &amp; Secret Keys</div>
     <div class="sec-menu-list">
       <button id="btn-export-seed" class="sec-menu-item" onclick="App.exportRecoveryPhrase()">
         <div class="sec-menu-left">
           <div>
             <strong data-i18n="viewSeedPhrase">Recovery Phrase (12 words)</strong>
-            <small class="hidden" data-i18n="reqPinHint">Protégé par code PIN</small>
+            <small class="hidden" data-i18n="reqPinHint">Protected by PIN</small>
           </div>
         </div>
         <span aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></span>
@@ -1571,21 +1567,21 @@
       <button class="sec-menu-item" onclick="App.exportPrivateKey()">
         <div class="sec-menu-left">
           <div>
-            <strong data-i18n="exportPrivKey">Exporter la clé privée</strong>
-            <small class="hidden" data-i18n="reqPinHint">Protégé par code PIN</small>
+            <strong data-i18n="exportPrivKey">Export Private Key</strong>
+            <small class="hidden" data-i18n="reqPinHint">Protected by PIN</small>
           </div>
         </div>
         <span aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></span>
       </button>
     </div>
 
-    <div class="sec-section-title" data-i18n="accessProtection">Protection d'accès</div>
+    <div class="sec-section-title" data-i18n="accessProtection">Access Protection</div>
     <div class="sec-menu-list">
       <button class="sec-menu-item" onclick="App.startChangePin()">
         <div class="sec-menu-left">
           <div>
-            <strong data-i18n="changePinTitle">Modifier le code PIN à 6 chiffres</strong>
-            <small class="hidden" data-i18n="changePinSub">Rechiffrer le coffre-fort AES-256</small>
+            <strong data-i18n="changePinTitle">Change 6-digit PIN</strong>
+            <small class="hidden" data-i18n="changePinSub">Re-encrypt AES-256 vault</small>
           </div>
         </div>
         <span aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></span>
@@ -1594,8 +1590,8 @@
       <div id="sec-bio-row" class="sec-menu-item no-tap hidden">
         <div class="sec-menu-left">
           <div>
-            <strong data-i18n="biometricUnlock">Déverrouillage biométrique</strong>
-            <small data-i18n="biometricSub">Empreinte digitale / Reconnaissance faciale</small>
+            <strong data-i18n="biometricUnlock">Biometric Unlock</strong>
+            <small data-i18n="biometricSub">Fingerprint / Face Unlock</small>
           </div>
         </div>
         <label class="switch-toggle">
@@ -1607,37 +1603,35 @@
       <div class="sec-menu-item no-tap">
         <div class="sec-menu-left">
           <div>
-            <strong data-i18n="autoLockLabel">Verrouillage automatique</strong>
-            <small class="hidden" data-i18n="autoLockSub">Après inactivité en arrière-plan</small>
+            <strong data-i18n="autoLockLabel">Auto-Lock</strong>
+            <small class="hidden" data-i18n="autoLockSub">When app is in background</small>
           </div>
         </div>
         <select id="select-autolock" class="sec-inline-select" onchange="App.onChangeAutoLock(this.value)">
           <option value="1">1 min</option>
           <option value="5">5 min</option>
           <option value="15">15 min</option>
-          <option value="0" data-i18n="never">Jamais</option>
+          <option value="0" data-i18n="never">Never</option>
         </select>
       </div>
     </div>
 
-    <div class="sec-section-title hidden" data-i18n="networkNodeTitle">Réseau Polygon RPC</div>
+    <div class="sec-section-title hidden" data-i18n="networkNodeTitle">Polygon RPC Node</div>
     <div class="sec-rpc-box hidden">
       <select id="select-rpc-node" class="game-input" style="margin-bottom:8px; font-size:0.82rem;" onchange="App.onSelectRpcNode(this.value)"></select>
       <div class="sec-custom-rpc-row">
-        <input type="url" id="custom-rpc-input" class="game-input" placeholder="RPC personnalisé (https://...)" style="margin-bottom:0; font-size:0.8rem; text-align:left;">
+        <input type="url" id="custom-rpc-input" class="game-input" placeholder="Custom RPC (https://...)" data-i18n-placeholder="rpcCustomPlaceholder" style="margin-bottom:0; font-size:0.8rem; text-align:left;">
         <button class="btn-chip accent" onclick="App.saveCustomRpc()">OK</button>
       </div>
     </div>
 
     <a id="sec-apk-download-btn" href="FITIA-PRO-Miner.apk" download="FITIA-PRO-Miner.apk" class="apk-download-banner" style="margin-top:14px;">
       <div>
-        <strong data-i18n="downloadApkTitle">Télécharger l'APK Android</strong>
+        <strong data-i18n="downloadApkTitle">Download Android App (.APK)</strong>
       </div>
     </a>
 
-    <button class="btn-danger-outline" style="margin-top: 16px;" onclick="App.promptResetWallet()" data-i18n="switchOrResetWallet">
-      Changer ou réinitialiser ce portefeuille
-    </button>
+    <button class="btn-danger-outline" style="margin-top: 16px;" onclick="App.promptResetWallet()" data-i18n="switchOrResetWallet">Switch or Reset Wallet</button>
   </div>
 </div>
 
@@ -1649,10 +1643,10 @@
     </div>
     <div class="update-modal-heading">
       <span id="update-required-version" class="update-version">V —</span>
-      <h3 id="update-required-title" data-i18n="updateRequiredTitle">Mise à jour disponible</h3>
+      <h3 id="update-required-title" data-i18n="updateRequiredTitle">Update available</h3>
     </div>
     <button id="update-install-button" class="btn-primary update-install-button" type="button" onclick="App.startUpdateDownload()">
-      <span id="update-install-label" data-i18n="updateDownloadInstall">Télécharger et installer</span>
+      <span id="update-install-label" data-i18n="updateDownloadInstall">Download and install</span>
       <span id="update-download-progress" class="update-download-progress hidden" aria-hidden="true">
         <span id="update-download-progress-fill" class="update-download-progress-fill"></span>
       </span>
@@ -1688,8 +1682,8 @@
         <circle cx="79" cy="98" r="3.1" fill="#F0B90B" opacity="0.5"/>
       </svg>
     </div>
-    <h1 id="update-screen-title" class="update-screen-title" data-i18n="updateDownloadingTitle">La mise à jour est en cours de téléchargement</h1>
-    <p id="update-screen-hint" class="update-screen-hint" data-i18n="updateDownloadingHint">Veuillez ne pas fermer l'application</p>
+    <h1 id="update-screen-title" class="update-screen-title" data-i18n="updateDownloadingTitle">Update download in progress</h1>
+    <p id="update-screen-hint" class="update-screen-hint" data-i18n="updateDownloadingHint">Please don't close the app</p>
     <p id="update-screen-state" class="update-screen-state" role="status" aria-live="polite"></p>
   </div>
   <div class="update-screen-footer">
@@ -1699,7 +1693,7 @@
     </div>
   </div>
   <button id="update-screen-retry" class="btn-primary update-screen-retry" type="button" onclick="App.retryUpdateDownload()" hidden>
-    <span data-i18n="updateRetry">Réessayer</span>
+    <span data-i18n="updateRetry">Try again</span>
   </button>
 </div>
 
@@ -1707,24 +1701,24 @@
 <div id="modal-secret-reveal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h3 id="reveal-modal-title">Secret</h3>
-      <button class="modal-close" onclick="App.closeRevealModal()">✕</button>
+      <h3 id="reveal-modal-title" data-i18n="revealSecretTitle">Secret</h3>
+      <button class="modal-close" onclick="App.closeRevealModal()" aria-label="Close" data-i18n-aria-label="activityClose">✕</button>
     </div>
     <div class="security-warning-box" style="margin-bottom: 12px;">
       <span>🚨</span>
-      <p data-i18n="neverShareSecretWarn">Ne donnez JAMAIS ces informations à personne, même au support. Quiconque les voit peut voler tous vos fonds.</p>
+      <p data-i18n="neverShareSecretWarn">NEVER share this information with anyone, including support. Anyone who sees it can steal your funds.</p>
     </div>
     <div id="reveal-seed-grid" class="seed-grid hidden"></div>
     <div id="reveal-pk-box" class="receive-addr-box hidden" style="margin-bottom: 12px;">
       <span id="reveal-pk-text">0x...</span>
     </div>
-    <button class="btn-primary" onclick="App.copyRevealedSecret()">📋 <span data-i18n="copySecretBtn">Copier dans le presse-papiers</span></button>
+    <button class="btn-primary" onclick="App.copyRevealedSecret()">📋 <span data-i18n="copySecretBtn">Copy to clipboard</span></button>
   </div>
 </div>
 
 <div id="modal-mfa-operation" class="modal modal-high-z" role="dialog" aria-modal="true" aria-labelledby="mfa-operation-title">
   <div class="modal-content">
-    <div class="modal-header"><h3 id="mfa-operation-title">Confirm operation</h3><button id="mfa-operation-cancel" class="modal-close" type="button" aria-label="Cancel">✕</button></div>
+    <div class="modal-header"><h3 id="mfa-operation-title" data-i18n="confirmOperation">Confirm operation</h3><button id="mfa-operation-cancel" class="modal-close" type="button" aria-label="Cancel" data-i18n-aria-label="cancelLabel">✕</button></div>
     <p id="mfa-operation-summary"></p>
     <label id="mfa-operation-code-label" for="mfa-operation-code">Authenticator or recovery code</label>
     <input id="mfa-operation-code" class="game-input" type="text" autocomplete="one-time-code" maxlength="35">
@@ -1737,10 +1731,10 @@
 <div id="modal-pin-confirm" class="modal modal-high-z">
   <div class="modal-content">
     <div class="modal-header">
-      <h3 id="pin-confirm-title" data-i18n="confirmWithPin">Confirmation Sécurité</h3>
-      <button class="modal-close" onclick="App.cancelPinVerification()">✕</button>
+      <h3 id="pin-confirm-title" data-i18n="confirmWithPin">Security Confirmation</h3>
+      <button class="modal-close" onclick="App.cancelPinVerification()" aria-label="Close" data-i18n-aria-label="activityClose">✕</button>
     </div>
-    <p id="pin-confirm-subtitle" class="small-text" style="text-align:center; margin-bottom:10px;" data-i18n="enterPinToContinue">Enter your 6-digit PIN pour autoriser cette opération.</p>
+    <p id="pin-confirm-subtitle" class="small-text" style="text-align:center; margin-bottom:10px;" data-i18n="enterPinToContinue">Enter your 6-digit PIN to authorize this action.</p>
     <div id="confirm-pin-dots" class="pin-dots">
       <span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
@@ -1779,7 +1773,7 @@
 
     <section id="activity-history-panel" role="tabpanel" aria-labelledby="activity-tab-history">
       <div class="activity-toolbar">
-        <span id="activity-history-count" class="activity-count">0 operation</span>
+        <span id="activity-history-count" class="activity-count">0 operations</span>
         <select id="activity-status-filter" class="activity-filter" onchange="App.activity.setFilter(this.value)" aria-label="Filter transactions" data-i18n-aria-label="activityFilterLabel">
           <option value="all" data-i18n="activityAll">All</option>
           <option value="pending" data-i18n="activityStatusPending">Pending</option>
@@ -1802,14 +1796,14 @@
 </div>
 
 <!-- ═══ CHAT ASSISTANT ═══ -->
-<button id="chat-fab-btn" class="chat-fab hidden" onclick="App.toggleChat()">
+<button id="chat-fab-btn" class="chat-fab hidden" onclick="App.toggleChat()" aria-label="Open Fitia Assistant" data-i18n-aria-label="assistantFabLabel">
   <img src="assets/icon-192.png" class="chat-fab-logo" alt="FITIA">
 </button>
 <div id="chat-panel" class="chat-panel">
   <div class="chat-header">
     <div class="chat-header-brand">
       <img src="assets/icon-192.png" class="chat-header-logo" alt="FITIA">
-      <span>Fitia Assistant</span>
+      <span data-i18n="assistantName">Fitia Assistant</span>
     </div>
     <button class="chat-close" onclick="App.toggleChat()" aria-label="Close assistant" data-i18n-aria-label="chatClose">✕</button>
   </div>
