@@ -4,7 +4,10 @@
 (function () {
   'use strict';
 
-  var API_URL = '/api/account/reset-password';
+  // Relative sur Vercel/l'app interne ; absolue (API Vercel) si servie sur le miroir statique.
+  var API_URL = window.location.hostname === 'fitia-pro.pages.dev'
+    ? 'https://fitia-mining-pro.vercel.app/api/account/reset-password'
+    : '/api/account/reset-password';
   var TOKEN_PATTERN = /^[A-Za-z0-9._~+\/-]{20,4096}$/;
   var PREFIX_BLACKLIST = /^(password|motdepasse|qwerty|letmein)/i;
 

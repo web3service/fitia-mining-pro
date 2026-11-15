@@ -71,7 +71,8 @@ public class MainActivity extends Activity {
     // intercepté et servi depuis assets/www. L'origine est conservée pour préserver
     // le coffre chiffré et le localStorage des installations existantes (le changer
     // orphelinerait les données). Les URL externes (site, API, App Links, liens
-    // partagés) utilisent https://fitia-mining-pro.vercel.app, qui est le domaine prod.
+    // partagés) utilisent https://fitia-pro.pages.dev pour ce que voit l'utilisateur ;
+    // l'API et la distribution restent servies par https://fitia-mining-pro.vercel.app.
     private static final String APP_HOST = "app.fitia.pro";
     private static final String START_URL = "https://app.fitia.pro/wallet.html";
     private static final String KEYSTORE_ALIAS = "fitia_pro_hw_vault_v1";

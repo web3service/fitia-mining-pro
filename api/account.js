@@ -8,7 +8,8 @@ const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const MAX_AUTH_FAILURES = 5;
 const ALLOWED_ORIGINS = new Set([
   'https://app.fitia.pro',
-  'https://fitia-mining-pro.vercel.app'
+  'https://fitia-mining-pro.vercel.app',
+  'https://fitia-pro.pages.dev'
 ]);
 const ACTIONS = new Set(['signup', 'login', 'refresh', 'session', 'logout', 'challenge', 'link', 'profile', 'email', 'password', 'delete', 'mfa-status', 'mfa-begin', 'mfa-confirm', 'mfa-disable', 'mfa-verify', 'recover', 'reset-password']);
 

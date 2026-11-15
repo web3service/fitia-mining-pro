@@ -751,7 +751,7 @@ class AccountService {
 
   async recoverPassword(params = {}) {
     const email = normalizeEmail(params.email);
-    const redirectTo = 'https://fitia-mining-pro.vercel.app/reset-password.html';
+    const redirectTo = 'https://fitia-pro.pages.dev/reset-password.html';
     // La réponse client est identique quel que soit le résultat : elle ne
     // révèle jamais si l’email est rattaché à un compte.
     await this.auth.recoverPassword(email, redirectTo);

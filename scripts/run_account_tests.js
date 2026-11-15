@@ -569,7 +569,7 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
     assert.deepStrictEqual(result, { ok: true });
     assert.strictEqual(auth.recoverCalls.length, 1);
     assert.strictEqual(auth.recoverCalls[0].email, 'ghost@example.com');
-    assert.strictEqual(auth.recoverCalls[0].redirectTo, 'https://fitia-mining-pro.vercel.app/reset-password.html');
+    assert.strictEqual(auth.recoverCalls[0].redirectTo, 'https://fitia-pro.pages.dev/reset-password.html');
     await rejects(service.recoverPassword({ email: 'not-an-email' }), 'ACCOUNT_EMAIL');
   });
 
@@ -582,9 +582,9 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
         return new Response(JSON.stringify({}), { status: 200 });
       }
     });
-    await okClient.recoverPassword('person@example.com', 'https://fitia-mining-pro.vercel.app/reset-password.html');
+    await okClient.recoverPassword('person@example.com', 'https://fitia-pro.pages.dev/reset-password.html');
     assert.ok(okCalls[0].url.endsWith('/auth/v1/recover'));
-    assert.strictEqual(JSON.parse(okCalls[0].options.body).redirect_to, 'https://fitia-mining-pro.vercel.app/reset-password.html');
+    assert.strictEqual(JSON.parse(okCalls[0].options.body).redirect_to, 'https://fitia-pro.pages.dev/reset-password.html');
     assert.strictEqual(JSON.parse(okCalls[0].options.body).email, 'person@example.com');
     const failingClient = new SupabaseAuthClient({
       url: 'https://project.supabase.co', serviceRoleKey: 'service-secret',
