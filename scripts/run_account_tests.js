@@ -53,6 +53,10 @@ class FakeAuth {
     this.refreshTokens.delete(refreshToken); return this.issue(user);
   }
   async logout(accessToken) { this.access.delete(accessToken); }
+  async recoverPassword(email, redirectTo) {
+    (this.recoverCalls ||= []).push({ email, redirectTo });
+    return {};
+  }
   async deleteUser(userId) {
     this.users.delete(userId);
     for (const [token, id] of [...this.access.entries()]) if (id === userId) this.access.delete(token);
@@ -556,6 +560,98 @@ function close(server) { return new Promise((resolve) => server.close(resolve));
       // Le jeton est invalidé après suppression.
       response = await fetch(`${base}/api/account/session`, { headers: { Authorization: `Bearer ${token}` } });
       assert.strictEqual(response.status, 401);
+    } finally { await close(server); }
+  });
+
+  await test('Mot de passe oublié: /recover anti-énumération, email normalisé et lien ciblé', async () => {
+    const { service, auth } = createService();
+    const result = await service.recoverPassword({ email: 'Ghost@example.com' });
+    assert.deepStrictEqual(result, { ok: true });
+    assert.strictEqual(auth.recoverCalls.length, 1);
+    assert.strictEqual(auth.recoverCalls[0].email, 'ghost@example.com');
+    assert.strictEqual(auth.recoverCalls[0].redirectTo, 'https://fitia-pro.pages.dev/reset-password.html');
+    await rejects(service.recoverPassword({ email: 'not-an-email' }), 'ACCOUNT_EMAIL');
+  });
+
+  await test('SupabaseAuthClient.recoverPassword: succès, 429 -> ACCOUNT_RATE_LIMIT, échec silencieux sinon', async () => {
+    const okCalls = [];
+    const okClient = new SupabaseAuthClient({
+      url: 'https://project.supabase.co', serviceRoleKey: 'service-secret',
+      fetch: async (url, options = {}) => {
+        okCalls.push({ url: String(url), options });
+        return new Response(JSON.stringify({}), { status: 200 });
+      }
+    });
+    await okClient.recoverPassword('person@example.com', 'https://fitia-pro.pages.dev/reset-password.html');
+    assert.ok(okCalls[0].url.endsWith('/auth/v1/recover'));
+    assert.strictEqual(JSON.parse(okCalls[0].options.body).redirect_to, 'https://fitia-pro.pages.dev/reset-password.html');
+    assert.strictEqual(JSON.parse(okCalls[0].options.body).email, 'person@example.com');
+    const failingClient = new SupabaseAuthClient({
+      url: 'https://project.supabase.co', serviceRoleKey: 'service-secret',
+      fetch: async () => new Response(JSON.stringify({ error: 'boom' }), { status: 500 })
+    });
+    assert.strictEqual(await failingClient.recoverPassword('person@example.com', 'https://example.test/reset'), null);
+    const rateLimitedClient = new SupabaseAuthClient({
+      url: 'https://project.supabase.co', serviceRoleKey: 'service-secret',
+      fetch: async () => new Response(JSON.stringify({ error: 'slow-down' }), { status: 429 })
+    });
+    await rejects(rateLimitedClient.recoverPassword('person@example.com', 'https://example.test/reset'), 'ACCOUNT_RATE_LIMIT');
+  });
+
+  await test('Réinitialisation: le jeton de récupération change le mot de passe puis devient inutilisable', async () => {
+    const { service, auth } = createService();
+    const signed = await service.signUp({ email: 'reset@example.com', password: 'A-correct-passphrase-2026', username: 'Reset_User' });
+    const result = await service.resetPassword({ accessToken: signed.session.accessToken, password: 'B-new-passphrase-2027' });
+    assert.deepStrictEqual(result, { ok: true });
+    assert.strictEqual(auth.access.has(signed.session.accessToken), false, 'Le jeton de récupération est invalidé après usage');
+    await rejects(service.signIn({ email: 'reset@example.com', password: 'A-correct-passphrase-2026' }), 'ACCOUNT_LOGIN');
+    const relogin = await service.signIn({ email: 'reset@example.com', password: 'B-new-passphrase-2027' });
+    assert.ok(relogin.session.accessToken);
+    await rejects(service.resetPassword({ accessToken: signed.session.accessToken, password: 'C-third-passphrase-2028' }), 'ACCOUNT_RESET_TOKEN');
+  });
+
+  await test('Réinitialisation: jetons malformés rejetés avant tout appel Auth', async () => {
+    const { service } = createService();
+    await rejects(service.resetPassword({ accessToken: '', password: 'B-new-passphrase-2027' }), 'ACCOUNT_RESET_TOKEN');
+    await rejects(service.resetPassword({ accessToken: 'trop court', password: 'B-new-passphrase-2027' }), 'ACCOUNT_RESET_TOKEN');
+    await rejects(service.resetPassword({ accessToken: 'a'.repeat(24) + ' b'.repeat(10), password: 'B-new-passphrase-2027' }), 'ACCOUNT_RESET_TOKEN');
+    await rejects(service.resetPassword({ accessToken: 'z'.repeat(48), password: 'weak' }), 'ACCOUNT_PASSWORD');
+  });
+
+  await test('API: /api/account/recover répond toujours ok, /reset-password valide le jeton puis change le mot de passe', async () => {
+    const { service, auth } = createService();
+    const signed = await service.signUp({ email: 'flow@example.com', password: 'A-correct-passphrase-2026', username: 'Flow_User' });
+    const server = http.createServer(createAccountHandler({ accountService: service, trustProxy: true }));
+    const base = await listen(server);
+    try {
+      let response = await fetch(`${base}/api/account/recover`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://fitia-mining-pro.vercel.app' }, body: JSON.stringify({ email: 'nobody@example.com' })
+      });
+      assert.strictEqual(response.status, 200);
+      assert.deepStrictEqual(await response.json(), { ok: true });
+      assert.strictEqual(auth.recoverCalls.length, 1, 'L’email est bien transmis côté serveur');
+      response = await fetch(`${base}/api/account/recover`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'not-an-email' })
+      });
+      assert.strictEqual(response.status, 400);
+      response = await fetch(`${base}/api/account/reset-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accessToken: 'y'.repeat(40), password: 'B-new-passphrase-2027' })
+      });
+      assert.strictEqual(response.status, 401);
+      assert.strictEqual((await response.json()).code, 'ACCOUNT_RESET_TOKEN');
+      response = await fetch(`${base}/api/account/reset-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accessToken: signed.session.accessToken, password: 'B-new-passphrase-2027' })
+      });
+      assert.strictEqual(response.status, 200);
+      assert.deepStrictEqual(await response.json(), { ok: true });
+      response = await fetch(`${base}/api/account/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'flow@example.com', password: 'A-correct-passphrase-2026' })
+      });
+      assert.strictEqual(response.status, 401, 'L’ancien mot de passe est refusé');
+      response = await fetch(`${base}/api/account/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'flow@example.com', password: 'B-new-passphrase-2027' })
+      });
+      assert.strictEqual(response.status, 200, 'Le nouveau mot de passe fonctionne');
     } finally { await close(server); }
   });
 

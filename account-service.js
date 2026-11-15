@@ -288,6 +288,21 @@ class SupabaseAuthClient {
       if (error.supabaseStatus >= 500) throw new AccountError(503, 'Déconnexion temporairement indisponible.', 'ACCOUNT_UNAVAILABLE');
     }
   }
+
+  async recoverPassword(email, redirectTo) {
+    try {
+      return await this.request('recover', {
+        method: 'POST',
+        body: { email, ...(redirectTo ? { redirect_to: redirectTo } : {}) }
+      });
+    } catch (error) {
+      if (error.code === 'ACCOUNT_UNAVAILABLE') throw error;
+      if (error.supabaseStatus === 429) throw new AccountError(429, 'Trop de demandes. Réessayez dans quelques minutes.', 'ACCOUNT_RATE_LIMIT');
+      // Anti-énumération : ne jamais distinguer « email inconnu » d’un échec.
+      console.error('FITIA recover email suppressed:', error.supabaseStatus || 'unknown');
+      return null;
+    }
+  }
 }
 
 class SupabaseAccountRepository {
@@ -732,6 +747,36 @@ class AccountService {
     const freshSession = await this.reauthenticate(current, currentPassword);
     await this.auth.updatePassword(current.userId, newPassword);
     return this.sessionPayload(freshSession, current);
+  }
+
+  async recoverPassword(params = {}) {
+    const email = normalizeEmail(params.email);
+    const redirectTo = 'https://fitia-pro.pages.dev/reset-password.html';
+    // La réponse client est identique quel que soit le résultat : elle ne
+    // révèle jamais si l’email est rattaché à un compte.
+    await this.auth.recoverPassword(email, redirectTo);
+    return { ok: true };
+  }
+
+  async resetPassword(params = {}) {
+    const accessToken = String(params.accessToken || '');
+    if (!/^[A-Za-z0-9._~+\/-]{20,4096}$/.test(accessToken)) {
+      throw new AccountError(401, 'Le lien de réinitialisation est invalide ou a expiré. Demandez-en un nouveau depuis l’application.', 'ACCOUNT_RESET_TOKEN');
+    }
+    const password = normalizePassword(params.password);
+    // Vérifie la session de récupération issue du lien envoyé par Supabase.
+    let authUser;
+    try {
+      authUser = await this.auth.getUser(accessToken);
+    } catch (error) {
+      if (error && error.code === 'ACCOUNT_UNAVAILABLE') throw error;
+      throw new AccountError(401, 'Le lien de réinitialisation est invalide ou a expiré. Demandez-en un nouveau depuis l’application.', 'ACCOUNT_RESET_TOKEN');
+    }
+    const userId = authUserId(authUser);
+    await this.auth.updatePassword(userId, password);
+    // Invalide le jeton de récupération restant : il ne sert qu’une fois.
+    try { await this.auth.logout(accessToken); } catch (_) { /* échec non bloquant */ }
+    return { ok: true };
   }
 
   async deleteAccount(accessToken, params = {}) {

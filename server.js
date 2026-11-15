@@ -18,7 +18,10 @@ const ALLOWED_ROOT_FILES = new Set([
   '/privacy.css',
   '/referral.html',
   '/referral.css',
-  '/referral.js'
+  '/referral.js',
+  '/reset-password.html',
+  '/reset-password.css',
+  '/reset-password.js'
 ]);
 
 const ALLOWED_DIRS = ['/assets/'];

@@ -74,6 +74,7 @@
             <button class="account-password-toggle" type="button" data-account-password-toggle="account-login-password" aria-controls="account-login-password" aria-pressed="false">Show</button>
           </div>
           <button id="account-login-submit" class="btn-primary" type="submit" data-i18n="accountSignIn">Sign in</button>
+          <button id="account-forgot-link" class="auth-link-btn account-forgot-link" type="button" data-i18n="accountForgotPasswordLink">Forgot password?</button>
         </form>
         <form id="account-signup-form" class="account-form hidden" novalidate>
           <label for="account-signup-username" data-i18n="accountUsername">Username</label>
@@ -95,6 +96,13 @@
             <button class="account-password-toggle" type="button" data-account-password-toggle="account-signup-confirm" aria-controls="account-signup-confirm" aria-pressed="false">Show</button>
           </div>
           <button id="account-signup-submit" class="btn-primary" type="submit" data-i18n="accountCreate">Create my account</button>
+        </form>
+        <form id="account-forgot-form" class="account-form hidden" novalidate>
+          <p id="account-forgot-intro" class="account-form-help" data-i18n="accountForgotIntro">Enter the email of your account. We will send you a secure link to choose a new password.</p>
+          <label for="account-forgot-email" data-i18n="accountEmail">Email address</label>
+          <input id="account-forgot-email" class="game-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" required>
+          <button id="account-forgot-submit" class="btn-primary" type="submit" data-i18n="accountForgotSubmit">Send the link</button>
+          <button id="account-forgot-back" class="auth-link-btn account-forgot-link" type="button" data-i18n="accountBackToLogin">Back to sign in</button>
         </form>
         <p id="account-confirmation" class="account-confirmation hidden" role="status"></p>
         <button id="account-retry" class="btn-secondary account-retry-button hidden" type="button" data-i18n="accountRetry">Retry</button>
