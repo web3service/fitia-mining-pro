@@ -744,7 +744,105 @@
       <button class="shop-tab active" onclick="App.setShopView('machines', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="12" r="3.5"/><circle cx="16" cy="12" r="2.5"/><path d="M9 8.5v7M5.5 12h7M16 9.5v5M13.5 12h5"/></svg><span data-i18n="machines">Machines</span></button>
       <button class="shop-tab" onclick="App.setShopView('batteries', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="15" rx="3"/><path d="M9 3h6v3M12 10v7M8.5 13.5h7"/></svg><span data-i18n="batteries">Batteries</span></button>
     </div>
+    <!-- ═══ MAGASIN — Mes machines & mes batteries ═══ -->
+    <div class="magasin-section">
+      <button type="button" id="btn-magasin" class="magasin-toggle" aria-expanded="false" aria-controls="magasin-panel" onclick="App.toggleMagasin(this)">
+        <span class="magasin-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 10v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10M3 6.2 4.6 3h14.8L21 6.2a2.5 2.5 0 0 1 0 4.3 2.6 2.6 0 0 1-3.25 0 2.5 2.5 0 0 1-3.25 0 2.6 2.6 0 0 1-3.5 0 2.5 2.5 0 0 1-3.5 0 2.5 2.5 0 0 1-3.5 0 2.5 2.5 0 0 1-3.5 0A2.5 2.5 0 0 1 3 6.2Z"/></svg>
+        </span>
+        <span class="magasin-copy">
+          <strong data-i18n="magasinTitle">Magasin</strong>
+          <small data-i18n="magasinHint">Mes machines &amp; mes batteries</small>
+        </span>
+        <svg class="magasin-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div id="magasin-panel" class="magasin-panel hidden">
+        <div class="shop-tabs magasin-tabs" role="tablist" aria-label="Mes équipements">
+          <button type="button" class="shop-tab active" id="tab-magasin-machines" role="tab" aria-selected="true" aria-controls="magasin-machines" onclick="App.setMagasinView('machines', this)"><span data-i18n="myMachines">⛏️ Mes Machines</span></button>
+          <button type="button" class="shop-tab" id="tab-magasin-batteries" role="tab" aria-selected="false" aria-controls="magasin-batteries" onclick="App.setMagasinView('batteries', this)"><span data-i18n="myBatteries">🔋 Mes Batteries</span></button>
+          <button type="button" class="shop-tab" id="tab-magasin-plug" role="tab" aria-selected="false" aria-controls="magasin-plug" onclick="App.setMagasinView('plug', this)"><span data-i18n="magasinPlug">🔌 Brancher</span></button>
+        </div>
+        <div id="magasin-machines" class="magasin-list" role="tabpanel" aria-labelledby="tab-magasin-machines">
+          <div class="card magasin-card">
+            <div id="my-machines-list"><p class="small-text" style="text-align:center;" data-i18n="noMachines">Aucune machine</p></div>
+          </div>
+        </div>
+        <div id="magasin-batteries" class="magasin-list hidden" role="tabpanel" aria-labelledby="tab-magasin-batteries">
+          <div class="card magasin-card">
+            <div id="my-batteries-list"><p class="small-text" style="text-align:center;" data-i18n="noBatteries">Aucune batterie</p></div>
+          </div>
+        </div>
+        <div id="magasin-plug" class="magasin-list hidden" role="tabpanel" aria-labelledby="tab-magasin-plug">
+    <!-- Connexion visuelle Machine / Batterie -->
+    <div id="plug-machine-card" class="card plug-machine-card">
+      <div class="plug-card-header">
+        <div class="plug-heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
+        </div>
+        <div class="plug-heading-copy">
+          <h3 data-i18n="plugMachine">Connexion machine &amp; batterie</h3>
+        </div>
+      </div>
+
+      <div class="plug-selector-block">
+        <div class="plug-section-heading">
+          <strong id="plug-machine-step-label" data-i18n="plugMachineStep">1. Choisissez une machine</strong>
+          <span id="plug-machine-count" class="plug-count" aria-hidden="true">0</span>
+        </div>
+        <input type="hidden" id="plug-machine-id" value="">
+        <div id="plug-machine-options" class="plug-options" role="group" aria-labelledby="plug-machine-step-label">
+          <p class="plug-options-empty" data-i18n="noMachines">Aucune machine</p>
+        </div>
+      </div>
+
+      <div class="plug-selector-block">
+        <div class="plug-section-heading">
+          <strong id="plug-battery-step-label" data-i18n="plugBatteryStep">2. Choisissez une batterie</strong>
+          <span id="plug-battery-count" class="plug-count plug-count-battery" aria-hidden="true">0</span>
+        </div>
+        <input type="hidden" id="plug-battery-type" value="">
+        <div id="plug-battery-options" class="plug-options" role="group" aria-labelledby="plug-battery-step-label">
+          <p class="plug-options-empty" data-i18n="noBatteries">Aucune batterie</p>
+        </div>
+      </div>
+
+      <div class="plug-preview">
+        <div class="plug-preview-topline">
+          <span data-i18n="plugPreview">Aperçu de connexion</span>
+          <span id="plug-status-badge" class="plug-status-badge" data-i18n="plugNotReady">À configurer</span>
+        </div>
+        <div class="plug-preview-flow">
+          <div id="plug-preview-machine" class="plug-preview-node">
+            <span id="plug-preview-machine-icon" class="plug-preview-icon" aria-hidden="true">
+              <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="4" width="40" height="42" rx="7"/><rect x="11" y="12" width="12" height="17" rx="2"/><rect x="27" y="12" width="12" height="17" rx="2"/><circle cx="18" cy="37" r="5"/><circle cx="32" cy="37" r="5"/></svg>
+            </span>
+            <strong id="plug-preview-machine-name" data-i18n="selectMachinePrompt">Machine à sélectionner</strong>
+          </div>
+          <div id="plug-connector" class="plug-connector" aria-hidden="true">
+            <span class="plug-connector-line"></span>
+            <span class="plug-connector-bolt"><svg viewBox="0 0 24 24"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg></span>
+            <span class="plug-energy-pulse"></span>
+          </div>
+          <div id="plug-preview-battery" class="plug-preview-node">
+            <span id="plug-preview-battery-icon" class="plug-preview-icon" aria-hidden="true">
+              <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="15" width="36" height="22" rx="5"/><path d="M43 21v10m-31-5h19"/></svg>
+            </span>
+            <strong id="plug-preview-battery-name" data-i18n="selectBatteryPrompt">Batterie à sélectionner</strong>
+          </div>
+        </div>
+        <p id="plug-summary" class="plug-summary" aria-live="polite" data-i18n="selectMachineToContinue">Sélectionnez une machine disponible.</p>
+      </div>
+
+      <button type="button" id="btn-plug-machine" class="plug-submit" onclick="App.plugInMachine()" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
+        <span data-i18n="plugAction">CONNECTER LA MACHINE</span>
+      </button>
+    </div>
+        </div>
+      </div>
+    </div>
     <div id="shop-list" class="grid-list"></div>
+
   </div>
 
   <!-- ═══ WALLET & ASSETS ═══ -->
@@ -870,83 +968,6 @@
       </div>
     </div>
 
-    <!-- Mes Machines -->
-    <div class="card" style="margin-bottom: 15px; border-color: rgba(16, 185, 129, 0.2);">
-      <h3 class="section-title" id="title-my-machines" data-i18n="myMachines">⛏️ Mes Machines</h3>
-      <div id="my-machines-list"><p class="small-text" style="text-align:center;" data-i18n="noMachines">Aucune machine</p></div>
-    </div>
-
-    <!-- Mes Batteries -->
-    <div class="card" style="margin-bottom: 15px; border-color: rgba(139, 92, 246, 0.2);">
-      <h3 class="section-title" id="title-my-batteries" data-i18n="myBatteries">🔋 Mes Batteries</h3>
-      <div id="my-batteries-list"><p class="small-text" style="text-align:center;" data-i18n="noBatteries">Aucune batterie</p></div>
-    </div>
-
-    <!-- Connexion visuelle Machine / Batterie -->
-    <div id="plug-machine-card" class="card plug-machine-card">
-      <div class="plug-card-header">
-        <div class="plug-heading-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
-        </div>
-        <div class="plug-heading-copy">
-          <h3 data-i18n="plugMachine">Connexion machine &amp; batterie</h3>
-        </div>
-      </div>
-
-      <div class="plug-selector-block">
-        <div class="plug-section-heading">
-          <strong id="plug-machine-step-label" data-i18n="plugMachineStep">1. Choisissez une machine</strong>
-          <span id="plug-machine-count" class="plug-count" aria-hidden="true">0</span>
-        </div>
-        <input type="hidden" id="plug-machine-id" value="">
-        <div id="plug-machine-options" class="plug-options" role="group" aria-labelledby="plug-machine-step-label">
-          <p class="plug-options-empty" data-i18n="noMachines">Aucune machine</p>
-        </div>
-      </div>
-
-      <div class="plug-selector-block">
-        <div class="plug-section-heading">
-          <strong id="plug-battery-step-label" data-i18n="plugBatteryStep">2. Choisissez une batterie</strong>
-          <span id="plug-battery-count" class="plug-count plug-count-battery" aria-hidden="true">0</span>
-        </div>
-        <input type="hidden" id="plug-battery-type" value="">
-        <div id="plug-battery-options" class="plug-options" role="group" aria-labelledby="plug-battery-step-label">
-          <p class="plug-options-empty" data-i18n="noBatteries">Aucune batterie</p>
-        </div>
-      </div>
-
-      <div class="plug-preview">
-        <div class="plug-preview-topline">
-          <span data-i18n="plugPreview">Aperçu de connexion</span>
-          <span id="plug-status-badge" class="plug-status-badge" data-i18n="plugNotReady">À configurer</span>
-        </div>
-        <div class="plug-preview-flow">
-          <div id="plug-preview-machine" class="plug-preview-node">
-            <span id="plug-preview-machine-icon" class="plug-preview-icon" aria-hidden="true">
-              <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="4" width="40" height="42" rx="7"/><rect x="11" y="12" width="12" height="17" rx="2"/><rect x="27" y="12" width="12" height="17" rx="2"/><circle cx="18" cy="37" r="5"/><circle cx="32" cy="37" r="5"/></svg>
-            </span>
-            <strong id="plug-preview-machine-name" data-i18n="selectMachinePrompt">Machine à sélectionner</strong>
-          </div>
-          <div id="plug-connector" class="plug-connector" aria-hidden="true">
-            <span class="plug-connector-line"></span>
-            <span class="plug-connector-bolt"><svg viewBox="0 0 24 24"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg></span>
-            <span class="plug-energy-pulse"></span>
-          </div>
-          <div id="plug-preview-battery" class="plug-preview-node">
-            <span id="plug-preview-battery-icon" class="plug-preview-icon" aria-hidden="true">
-              <svg viewBox="0 0 50 50" class="plug-placeholder-svg"><rect x="5" y="15" width="36" height="22" rx="5"/><path d="M43 21v10m-31-5h19"/></svg>
-            </span>
-            <strong id="plug-preview-battery-name" data-i18n="selectBatteryPrompt">Batterie à sélectionner</strong>
-          </div>
-        </div>
-        <p id="plug-summary" class="plug-summary" aria-live="polite" data-i18n="selectMachineToContinue">Sélectionnez une machine disponible.</p>
-      </div>
-
-      <button type="button" id="btn-plug-machine" class="plug-submit" onclick="App.plugInMachine()" disabled>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5M8 8V3m8 5V3M6 8h12v3a6 6 0 0 1-12 0V8Z"/></svg>
-        <span data-i18n="plugAction">CONNECTER LA MACHINE</span>
-      </button>
-    </div>
   </div>
 
   <!-- ═══ SWAP ═══ -->
@@ -1331,6 +1352,18 @@
 </div>
 
 <!-- Envoyer -->
+<div id="modal-equipment" class="modal" role="dialog" aria-modal="true" aria-labelledby="equipment-modal-title">
+  <div class="modal-content equipment-modal">
+    <div class="modal-header">
+      <h3 id="equipment-modal-title" data-i18n="equipTitle">Équipement</h3>
+      <button type="button" class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button>
+    </div>
+    <div id="equipment-hero" class="equipment-hero"></div>
+    <div id="equipment-rows" class="equipment-rows"></div>
+    <button type="button" id="equipment-action" class="btn-primary equipment-action"></button>
+  </div>
+</div>
+
 <div id="modal-send" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h3 data-i18n="send">Envoyer</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>

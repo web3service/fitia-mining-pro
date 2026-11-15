@@ -282,6 +282,22 @@ const i18n = {
     activeMachines: "⛏️ Machines Actives",
     myMachines: "⛏️ Mes Machines",
     myBatteries: "🔋 Mes Batteries",
+    magasinTitle: "Magasin",
+    magasinHint: "Mes machines & mes batteries",
+    magasinPlug: "🔌 Branchement",
+    equipTitle: "Équipement",
+    equipModel: "Modèle",
+    equipPower: "Puissance",
+    equipStatus: "État",
+    equipRemaining: "Temps restant",
+    equipDuration: "Durée",
+    equipQuantity: "Quantité",
+    equipNeverPlugged: "Jamais branchée",
+    equipPlugMachine: "Brancher cette machine",
+    equipPlugBattery: "Brancher une machine",
+    equipDashboard: "Voir sur le tableau de bord",
+    equipBuyBattery: "Acheter une batterie",
+    equipBuyMachine: "Acheter une machine",
     active: "Actif",
     expired: "Expiré",
     inactive: "Inactif",
@@ -719,6 +735,22 @@ const i18n = {
     activeMachines: "⛏️ Active Machines",
     myMachines: "⛏️ My Machines",
     myBatteries: "🔋 My Batteries",
+    magasinTitle: "Magasin",
+    magasinHint: "My machines & my batteries",
+    magasinPlug: "🔌 Connect",
+    equipTitle: "Equipment",
+    equipModel: "Model",
+    equipPower: "Power",
+    equipStatus: "Status",
+    equipRemaining: "Time remaining",
+    equipDuration: "Duration",
+    equipQuantity: "Quantity",
+    equipNeverPlugged: "Never plugged in",
+    equipPlugMachine: "Plug this machine",
+    equipPlugBattery: "Plug a machine",
+    equipDashboard: "View on dashboard",
+    equipBuyBattery: "Buy a battery",
+    equipBuyMachine: "Buy a machine",
     active: "Active",
     expired: "Expired",
     inactive: "Inactive",
@@ -1098,6 +1130,22 @@ const i18n = {
     activeMachines: "⛏️ Aktive Maschinen",
     myMachines: "⛏️ Meine Maschinen",
     myBatteries: "🔋 Meine Batterien",
+    magasinTitle: "Magasin",
+    magasinHint: "Meine Maschinen & Batterien",
+    magasinPlug: "🔌 Verbinden",
+    equipTitle: "Ausrüstung",
+    equipModel: "Modell",
+    equipPower: "Leistung",
+    equipStatus: "Status",
+    equipRemaining: "Verbleibende Zeit",
+    equipDuration: "Laufzeit",
+    equipQuantity: "Menge",
+    equipNeverPlugged: "Noch nie verbunden",
+    equipPlugMachine: "Diese Maschine anschließen",
+    equipPlugBattery: "Maschine anschließen",
+    equipDashboard: "Auf dem Dashboard ansehen",
+    equipBuyBattery: "Akku kaufen",
+    equipBuyMachine: "Maschine kaufen",
     active: "Aktiv",
     expired: "Abgelaufen",
     inactive: "Inaktiv",
@@ -1316,6 +1364,22 @@ const i18n = {
     activeMachines: "⛏️ 运行中矿机",
     myMachines: "⛏️ 我的矿机",
     myBatteries: "🔋 我的电池",
+    magasinTitle: "Magasin",
+    magasinHint: "我的矿机和电池",
+    magasinPlug: "🔌 连接",
+    equipTitle: "设备详情",
+    equipModel: "型号",
+    equipPower: "算力",
+    equipStatus: "状态",
+    equipRemaining: "剩余时间",
+    equipDuration: "时长",
+    equipQuantity: "数量",
+    equipNeverPlugged: "从未连接",
+    equipPlugMachine: "连接此矿机",
+    equipPlugBattery: "连接一台矿机",
+    equipDashboard: "前往控制台查看",
+    equipBuyBattery: "购买电池",
+    equipBuyMachine: "购买矿机",
     active: "运行中",
     expired: "已过期",
     inactive: "未激活",
@@ -1505,6 +1569,22 @@ const i18n = {
     available: "Available",
     noMachines: "No machines yet",
     noBatteries: "No batteries yet",
+    magasinTitle: "Magasin",
+    magasinHint: "My machines & my batteries",
+    magasinPlug: "🔌 Connect",
+    equipTitle: "Equipment",
+    equipModel: "Model",
+    equipPower: "Power",
+    equipStatus: "Status",
+    equipRemaining: "Time remaining",
+    equipDuration: "Duration",
+    equipQuantity: "Quantity",
+    equipNeverPlugged: "Never plugged in",
+    equipPlugMachine: "Plug this machine",
+    equipPlugBattery: "Plug a machine",
+    equipDashboard: "View on dashboard",
+    equipBuyBattery: "Buy a battery",
+    equipBuyMachine: "Buy a machine",
     errNoBattery: "No battery of this type available",
     errRunning: "This machine is already running"
   }
@@ -3697,10 +3777,10 @@ class Application {
         extra = `<div class="battery-bar-wrap"><div class="battery-bar-header"><span class="battery-bar-label">${this.t('timeRemaining')}</span><span class="battery-bar-time green">${this.formatTimeRemaining(rem)}</span></div><div class="battery-bar"><div class="battery-bar-fill green" style="width:65%"></div></div></div>`;
       }
       const quickPlugBtn = !isRunning
-        ? `<button class="btn-chip accent sm" onclick="App.quickSelectMachineToPlug(${i})">${this.t('plug')}</button>`
+        ? `<button class="btn-chip accent sm" onclick="event.stopPropagation(); App.quickSelectMachineToPlug(${i})">${this.t('plug')}</button>`
         : '';
 
-      return `<div class="asset-row">${this.getMachineMiniSVG(m.tid)}
+      return `<div class="asset-row asset-row-action" role="button" tabindex="0" onclick="App.openMachineDetail(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.openMachineDetail(${i})}">${this.getMachineMiniSVG(m.tid)}
         <div class="asset-info">
           <div class="asset-name">#${i} ${tierNames[m.tid % 8]} <span class="status-pill ${statusClass}">● ${statusText}</span></div>
           <div class="asset-detail">${isRunning ? this.t('plugged') : this.t('notPlugged')}</div>
@@ -3713,13 +3793,107 @@ class Application {
 
   quickSelectMachineToPlug(machineIdx) {
     if (!this.selectPlugMachine(machineIdx)) return;
-    const card = document.getElementById('plug-machine-card');
-    card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    const options = document.getElementById('plug-machine-options');
-    const selected = options?.querySelector(`[data-plug-machine="${Number(machineIdx)}"]`);
-    if (options && selected) {
-      options.scrollLeft = Math.max(0, selected.offsetLeft - (options.clientWidth - selected.offsetWidth) / 2);
+    this.openPlugCard();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  FICHE ÉQUIPEMENT — Machine / Batterie (option C : fiche + action)
+  // ═══════════════════════════════════════════════════════════════
+  async openMachineDetail(machineIdx) {
+    const index = Number(machineIdx);
+    const machine = this.userMachines[index];
+    if (!machine) return;
+    if (!this.shopMachinesData.length) { try { await this.fetchMachines(); } catch (_) {} }
+    const now = Math.floor(Date.now() / 1000);
+    const tierName = this.getMachineTierName(machine.tid);
+    const isRunning = machine.exp > 0 && machine.exp >= now; // même règle que selectPlugMachine
+    const statusClass = isRunning ? 'active' : (machine.exp > 0 ? 'expired' : 'inactive');
+    const statusText = isRunning ? this.t('active') : (machine.exp > 0 ? this.t('expired') : this.t('inactive'));
+    const power = this.shopMachinesData[machine.tid]?.power;
+
+    const hero = document.getElementById('equipment-hero');
+    hero.innerHTML = `<span class="equipment-hero-icon" aria-hidden="true">${this.getMachineMiniSVG(machine.tid)}</span>
+      <strong class="equipment-hero-name">#${index} · ${tierName}</strong>
+      <span class="status-pill ${statusClass}">● ${statusText}</span>`;
+
+    const rows = [
+      `<div class="equipment-row"><span class="equipment-label">${this.t('equipModel')}</span><span class="equipment-value">${tierName}</span></div>`
+    ];
+    if (Number.isFinite(power) && power > 0) {
+      rows.push(`<div class="equipment-row"><span class="equipment-label">${this.t('equipPower')}</span><span class="equipment-value">${this.formatHashrate(power)}</span></div>`);
     }
+    rows.push(`<div class="equipment-row"><span class="equipment-label">${this.t('equipStatus')}</span><span class="equipment-value">${statusText}</span></div>`);
+    const remainingLabel = isRunning ? this.formatTimeRemaining(machine.exp - now) : (machine.exp > 0 ? this.t('expired') : this.t('equipNeverPlugged'));
+    rows.push(`<div class="equipment-row"><span class="equipment-label">${this.t('equipRemaining')}</span><span class="equipment-value">${remainingLabel}</span></div>`);
+    document.getElementById('equipment-rows').innerHTML = rows.join('');
+
+    const actionBtn = document.getElementById('equipment-action');
+    if (!isRunning) {
+      const batteryType = Object.entries(this.batteryInventory).find(([, qty]) => qty > 0)?.[0];
+      if (batteryType !== undefined) {
+        actionBtn.textContent = this.t('equipPlugMachine');
+        actionBtn.onclick = () => this.plugFromEquipmentDetail(index, Number(batteryType));
+      } else {
+        actionBtn.textContent = this.t('equipBuyBattery');
+        actionBtn.onclick = () => this.buyFromEquipmentDetail('batteries');
+      }
+    } else {
+      actionBtn.textContent = this.t('equipDashboard');
+      actionBtn.onclick = () => { this.closeModals(); if (typeof this.nav === 'function') this.nav('dashboard'); };
+    }
+    document.getElementById('modal-equipment').classList.add('active');
+  }
+
+  openBatteryDetail(typeId) {
+    const tid = Number(typeId);
+    const qty = Number(this.batteryInventory[tid] || 0);
+    if (!Number.isFinite(tid) || qty <= 0) return;
+    const days = this.getBatteryDuration(tid);
+    const now = Math.floor(Date.now() / 1000);
+
+    const hero = document.getElementById('equipment-hero');
+    hero.innerHTML = `${this.getPlugBatteryVisual(days)}
+      <strong class="equipment-hero-name">${days} ${this.t('days')}</strong>
+      <span class="status-pill available">● ${this.t('available')}</span>`;
+
+    document.getElementById('equipment-rows').innerHTML = [
+      `<div class="equipment-row"><span class="equipment-label">${this.t('equipDuration')}</span><span class="equipment-value">${days} ${this.t('days')}</span></div>`,
+      `<div class="equipment-row"><span class="equipment-label">${this.t('equipQuantity')}</span><span class="equipment-value">×${qty}</span></div>`
+    ].join('');
+
+    const actionBtn = document.getElementById('equipment-action');
+    const eligibleMachine = this.userMachines.findIndex((m) => !(m.exp > 0 && m.exp >= now)); // aligné sur selectPlugMachine
+    if (eligibleMachine >= 0) {
+      actionBtn.textContent = this.t('equipPlugBattery');
+      actionBtn.onclick = () => this.plugFromEquipmentDetail(eligibleMachine, tid);
+    } else {
+      actionBtn.textContent = this.t('equipBuyMachine');
+      actionBtn.onclick = () => this.buyFromEquipmentDetail('machines');
+    }
+    document.getElementById('modal-equipment').classList.add('active');
+  }
+
+  plugFromEquipmentDetail(machineIdx, batteryTypeId) {
+    if (!this.selectPlugMachine(machineIdx)) return;
+    this.selectPlugBattery(batteryTypeId);
+    this.closeModals();
+    this.openPlugCard();
+  }
+
+  buyFromEquipmentDetail(kind) {
+    this.closeModals();
+    const panel = document.getElementById('magasin-panel');
+    const shopView = document.getElementById('view-shop');
+    const magasinBtn = document.getElementById('btn-magasin');
+    if (panel && !panel.classList.contains('hidden')) panel.classList.add('hidden');
+    if (shopView) shopView.classList.remove('magasin-open');
+    if (magasinBtn) {
+      magasinBtn.setAttribute('aria-expanded', 'false');
+      magasinBtn.classList.remove('open');
+    }
+    if (typeof this.nav === 'function') this.nav('shop');
+    const tabs = document.querySelectorAll('#view-shop .shop-tabs:not(.magasin-tabs) .shop-tab');
+    if (typeof this.setShopView === 'function') this.setShopView(kind, tabs[kind === 'machines' ? 0 : 1] || null);
   }
 
   renderUserBatteries() {
@@ -3732,7 +3906,7 @@ class Application {
     }
     container.innerHTML = entries.map(([typeId, qty]) => {
       const dur = this.getBatteryDuration(Number(typeId));
-      return `<div class="asset-row">
+      return `<div class="asset-row asset-row-action" role="button" tabindex="0" onclick="App.openBatteryDetail(${typeId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.openBatteryDetail(${typeId})}">
         <div class="real-battery">
           <div class="battery-cap"></div>
           <div class="battery-body">
@@ -4297,9 +4471,65 @@ class Application {
 
   setShopView(v, btnEl) {
     this.shopViewMode = v;
-    document.querySelectorAll('#view-shop .shop-tab').forEach((t) => t.classList.remove('active'));
+    document.querySelectorAll('#view-shop .shop-tabs:not(.magasin-tabs) .shop-tab').forEach((t) => t.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
     this.renderShop();
+  }
+
+  toggleMagasin(btnEl) {
+    const panel = document.getElementById('magasin-panel');
+    if (!panel) return;
+    const btn = btnEl || document.getElementById('btn-magasin');
+    const willOpen = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !willOpen);
+    if (btn) {
+      btn.setAttribute('aria-expanded', String(willOpen));
+      btn.classList.toggle('open', willOpen);
+    }
+    // Mode « uniquement mes équipements » : le catalogue d'achat se masque tant que le Magasin est ouvert.
+    const shopView = document.getElementById('view-shop');
+    if (shopView) shopView.classList.toggle('magasin-open', willOpen);
+    if (willOpen) this.setMagasinView(this.magasinView || 'machines');
+  }
+
+  setMagasinView(v, btnEl) {
+    this.magasinView = ['machines', 'batteries', 'plug'].includes(v) ? v : 'machines';
+    document.querySelectorAll('.magasin-tabs .shop-tab').forEach((t) => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    const fallbackId = this.magasinView === 'machines' ? 'tab-magasin-machines'
+      : (this.magasinView === 'batteries' ? 'tab-magasin-batteries' : 'tab-magasin-plug');
+    const active = btnEl || document.getElementById(fallbackId);
+    if (active) {
+      active.classList.add('active');
+      active.setAttribute('aria-selected', 'true');
+    }
+    const machines = document.getElementById('magasin-machines');
+    const batteries = document.getElementById('magasin-batteries');
+    const plug = document.getElementById('magasin-plug');
+    if (machines) machines.classList.toggle('hidden', this.magasinView !== 'machines');
+    if (batteries) batteries.classList.toggle('hidden', this.magasinView !== 'batteries');
+    if (plug) plug.classList.toggle('hidden', this.magasinView !== 'plug');
+  }
+
+  // Ouvre le Magasin sur l'onglet « Branchement » et affiche la carte de connexion (pré-remplie)
+  openPlugCard() {
+    if (typeof this.nav === 'function' && this.nav('shop') === false) return;
+    const panel = document.getElementById('magasin-panel');
+    if (panel && panel.classList.contains('hidden') && typeof this.toggleMagasin === 'function') this.toggleMagasin();
+    this.setMagasinView('plug');
+    const card = document.getElementById('plug-machine-card');
+    card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const machineInput = document.getElementById('plug-machine-id');
+    const selectedIdx = machineInput ? Number(machineInput.value) : NaN;
+    const options = document.getElementById('plug-machine-options');
+    const selected = options && Number.isSafeInteger(selectedIdx) && machineInput.value !== ''
+      ? options.querySelector(`[data-plug-machine="${selectedIdx}"]`)
+      : null;
+    if (options && selected) {
+      options.scrollLeft = Math.max(0, selected.offsetLeft - (options.clientWidth - selected.offsetWidth) / 2);
+    }
   }
 
   async renderShop() {
