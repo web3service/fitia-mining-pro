@@ -2167,7 +2167,7 @@ function httpRequest(port, method, reqPath) {
       assert.strictEqual(document.querySelector('[data-swap-market="POL_USDT"]').getAttribute('aria-pressed'), 'false');
     });
 
-    await runTest('MINING-UI', 'Compte Minage : titre corrigé, vrai logo FTA, sélecteur visuel et boutons sans suffixe', async () => {
+    await runTest('MINING-UI', 'Compte Minage : onglet dédié, vrai logo FTA, sélecteur visuel et boutons sans suffixe', async () => {
       const document = e2eWin.document;
       const originalLang = App.currentLang;
       const tokenInput = document.getElementById('deposit-token-select');
@@ -2179,11 +2179,9 @@ function httpRequest(port, method, reqPath) {
 
       try {
         App.setLanguage('fr');
-        const title = document.querySelector('[data-i18n="miningVaultTitle"]');
+        assert.ok(document.getElementById('tab-wallet-mining'), 'L’onglet Compte Minage est présent (le titre interne a été retiré)');
         const depositButton = document.querySelector('[data-i18n="depositBtn"]');
         const withdrawButton = document.querySelector('[data-i18n="withdrawBtn"]');
-        assert.strictEqual(title.textContent.trim(), '⚡ Compte Minage');
-        assert.ok(!title.textContent.includes('Contrat FITIA'));
         assert.strictEqual(depositButton.textContent.trim(), 'DÉPOSER');
         assert.ok(!depositButton.textContent.includes('↓'));
         assert.strictEqual(withdrawButton.textContent.trim(), 'RETIRER');
@@ -2249,7 +2247,7 @@ function httpRequest(port, method, reqPath) {
 
         for (const [lang, depositLabel] of Object.entries({ en: 'DEPOSIT', de: 'EINZAHLEN', zh: '存入' })) {
           App.setLanguage(lang);
-          assert.ok(!title.textContent.includes('FITIA Contract') && !title.textContent.includes('(FITIA)') && !title.textContent.includes('FITIA 合约'));
+          assert.ok(document.getElementById('tab-wallet-mining'), 'Onglet Compte Minage présent en ' + lang);
           assert.strictEqual(depositButton.textContent.trim(), depositLabel);
           assert.ok(!depositButton.textContent.includes('↓'));
           assert.ok(!withdrawButton.textContent.includes('↑'));

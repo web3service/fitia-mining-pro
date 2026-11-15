@@ -1014,7 +1014,6 @@ main::-webkit-scrollbar { display: none; }
   flex-wrap: wrap;
   gap: 10px;
 }
-.wallet-card-header h3 { margin: 0; font-size: 0.98rem; }
 .wallet-addr-inline {
   display: inline-flex;
   align-items: center;
@@ -1167,7 +1166,6 @@ main::-webkit-scrollbar { display: none; }
   border-color: rgba(240, 185, 11, 0.25);
   background: linear-gradient(160deg, #1e293b, #172032);
 }
-.mining-vault-header h3 { margin: 0 0 4px 0; font-size: 0.98rem; color: var(--primary); }
 .mining-balances-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
