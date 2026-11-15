@@ -3642,3 +3642,6 @@ main::-webkit-scrollbar { display: none; }
 .equipment-label { color: var(--text-muted); font-size: 0.78rem; }
 .equipment-value { font-weight: 700; font-size: 0.85rem; text-align: right; font-family: 'JetBrains Mono', monospace; }
 .equipment-action { width: 100%; margin-top: 14px; }
+
+/* 3 onglets dans le Magasin sur petit écran */
+.magasin-tabs .shop-tab { font-size: 0.78rem; padding: 9px 4px; white-space: nowrap; }

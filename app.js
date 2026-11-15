@@ -284,6 +284,7 @@ const i18n = {
     myBatteries: "🔋 Mes Batteries",
     magasinTitle: "Magasin",
     magasinHint: "Mes machines & mes batteries",
+    magasinPlug: "🔌 Branchement",
     equipTitle: "Équipement",
     equipModel: "Modèle",
     equipPower: "Puissance",
@@ -736,6 +737,7 @@ const i18n = {
     myBatteries: "🔋 My Batteries",
     magasinTitle: "Magasin",
     magasinHint: "My machines & my batteries",
+    magasinPlug: "🔌 Connect",
     equipTitle: "Equipment",
     equipModel: "Model",
     equipPower: "Power",
@@ -1130,6 +1132,7 @@ const i18n = {
     myBatteries: "🔋 Meine Batterien",
     magasinTitle: "Magasin",
     magasinHint: "Meine Maschinen & Batterien",
+    magasinPlug: "🔌 Verbinden",
     equipTitle: "Ausrüstung",
     equipModel: "Modell",
     equipPower: "Leistung",
@@ -1363,6 +1366,7 @@ const i18n = {
     myBatteries: "🔋 我的电池",
     magasinTitle: "Magasin",
     magasinHint: "我的矿机和电池",
+    magasinPlug: "🔌 连接",
     equipTitle: "设备详情",
     equipModel: "型号",
     equipPower: "算力",
@@ -1567,6 +1571,7 @@ const i18n = {
     noBatteries: "No batteries yet",
     magasinTitle: "Magasin",
     magasinHint: "My machines & my batteries",
+    magasinPlug: "🔌 Connect",
     equipTitle: "Equipment",
     equipModel: "Model",
     equipPower: "Power",
@@ -3788,14 +3793,7 @@ class Application {
 
   quickSelectMachineToPlug(machineIdx) {
     if (!this.selectPlugMachine(machineIdx)) return;
-    if (typeof this.nav === 'function' && this.nav('my-rigs') === false) return;
-    const card = document.getElementById('plug-machine-card');
-    card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    const options = document.getElementById('plug-machine-options');
-    const selected = options?.querySelector(`[data-plug-machine="${Number(machineIdx)}"]`);
-    if (options && selected) {
-      options.scrollLeft = Math.max(0, selected.offsetLeft - (options.clientWidth - selected.offsetWidth) / 2);
-    }
+    this.openPlugCard();
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -3879,9 +3877,7 @@ class Application {
     if (!this.selectPlugMachine(machineIdx)) return;
     this.selectPlugBattery(batteryTypeId);
     this.closeModals();
-    if (typeof this.nav === 'function') this.nav('my-rigs');
-    const card = document.getElementById('plug-machine-card');
-    card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    this.openPlugCard();
   }
 
   buyFromEquipmentDetail(kind) {
@@ -4497,12 +4493,13 @@ class Application {
   }
 
   setMagasinView(v, btnEl) {
-    this.magasinView = v === 'batteries' ? 'batteries' : 'machines';
+    this.magasinView = ['machines', 'batteries', 'plug'].includes(v) ? v : 'machines';
     document.querySelectorAll('.magasin-tabs .shop-tab').forEach((t) => {
       t.classList.remove('active');
       t.setAttribute('aria-selected', 'false');
     });
-    const fallbackId = this.magasinView === 'machines' ? 'tab-magasin-machines' : 'tab-magasin-batteries';
+    const fallbackId = this.magasinView === 'machines' ? 'tab-magasin-machines'
+      : (this.magasinView === 'batteries' ? 'tab-magasin-batteries' : 'tab-magasin-plug');
     const active = btnEl || document.getElementById(fallbackId);
     if (active) {
       active.classList.add('active');
@@ -4510,8 +4507,29 @@ class Application {
     }
     const machines = document.getElementById('magasin-machines');
     const batteries = document.getElementById('magasin-batteries');
+    const plug = document.getElementById('magasin-plug');
     if (machines) machines.classList.toggle('hidden', this.magasinView !== 'machines');
     if (batteries) batteries.classList.toggle('hidden', this.magasinView !== 'batteries');
+    if (plug) plug.classList.toggle('hidden', this.magasinView !== 'plug');
+  }
+
+  // Ouvre le Magasin sur l'onglet « Branchement » et affiche la carte de connexion (pré-remplie)
+  openPlugCard() {
+    if (typeof this.nav === 'function' && this.nav('shop') === false) return;
+    const panel = document.getElementById('magasin-panel');
+    if (panel && panel.classList.contains('hidden') && typeof this.toggleMagasin === 'function') this.toggleMagasin();
+    this.setMagasinView('plug');
+    const card = document.getElementById('plug-machine-card');
+    card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const machineInput = document.getElementById('plug-machine-id');
+    const selectedIdx = machineInput ? Number(machineInput.value) : NaN;
+    const options = document.getElementById('plug-machine-options');
+    const selected = options && Number.isSafeInteger(selectedIdx) && machineInput.value !== ''
+      ? options.querySelector(`[data-plug-machine="${selectedIdx}"]`)
+      : null;
+    if (options && selected) {
+      options.scrollLeft = Math.max(0, selected.offsetLeft - (options.clientWidth - selected.offsetWidth) / 2);
+    }
   }
 
   async renderShop() {
