@@ -2216,7 +2216,7 @@ function httpRequest(port, method, reqPath) {
 
         assert.strictEqual(document.getElementById('btn-pay-usdt').querySelector('img').getAttribute('src'), 'assets/usdt.svg');
         assert.strictEqual(document.getElementById('btn-pay-fta').querySelector('img').getAttribute('src'), 'assets/fta.png');
-        assert.strictEqual(document.querySelectorAll('#view-shop .shop-tab svg').length, 2);
+        assert.strictEqual(document.querySelectorAll('#view-shop .shop-tab svg').length, 3); // Machines + Batteries + Magasin (onglet unique)
         assert.strictEqual(document.querySelectorAll('#mining-rig-stage .mining-rig').length, 3);
         assert.strictEqual(document.querySelectorAll('#mining-rig-stage .rig-gpu').length, 9, 'Chaque rig embarque trois GPU détaillés');
         assert.strictEqual(document.querySelectorAll('#mining-rig-stage .rig-control-screen').length, 3);
