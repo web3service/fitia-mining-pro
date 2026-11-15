@@ -56,7 +56,7 @@ et l'admin sont restés hors périmètre.
 - **Secrets** : aucun fichier suivi contenant `.env`, keystore (`android-src/keystore/` ignoré),
   clé privée ou secret client ; aucune clé API/service-role dans le code client (grep exhaustif).
 - **Contenu mixte** : aucune ressource `http://` (uniquement namespaces SVG/URLs de test).
-- **Comparaison APK ↔ sources** : voir §4 (échec attendu de `[APK-BINARY]`).
+- **Comparaison APK ↔ sources** : voir §4 (résolue en v3.7.21).
 
 ## 2. Points vérifiés sans changement (déjà conformes)
 
@@ -93,14 +93,26 @@ et l'admin sont restés hors périmètre.
 | store (18/18) / store-orders (12/12) / hardening (34/34) | ✅ verts |
 | `[HTTP-SERVER]` avec le nouveau `server.js` | ✅ vert |
 | `[UI-GLYPHS]`, `[APPLINKS-PRIVACY]` | ✅ verts après correctifs |
-| `[APK-BINARY]` | ❌ **attendu** : l'APK commité date de la v3.7.20 (pré-branche) (pré-branche) ; l'assertion
-  « wallet embarqué == `android-src/wallet.html` » ne peut passer qu'après **rebuild signé** de l'APK
-  depuis ces sources (CI `build-apk.yml` avec `commit_build=true`, puis merge/release — clé de signature
-  hors de ce sandbox). Aucune autre assertion d'APK-BINARY n'échoue. |
+| `[APK-BINARY]` | ❌ attendu avant release ; ✅ **résolue en v3.7.21** : APK rebuildé signé par la
+  CI `build-apk.yml` (déclencheur push TEMP sur la branche, retiré après le build), embarquant
+  `android-src/wallet.html` de cette branche ; l'assertion passe dans la CI. Aucune autre assertion
+  d'APK-BINARY n'échoue. |
 
-Note : la suite `npm test` s'arrête à `run_security_tests.js` (chaînage `&&`) à cause d'APK-BINARY ;
-les suites situées après dans la chaîne (`store_order`, `store`, `hardening`) ont été exécutées
-directement et sont vertes. Le déclenchement CI de l'APK depuis ce sandbox renvoie HTTP 403.
+Note : au moment de l'audit (avant release), la suite `npm test` s'arrêtait à
+`run_security_tests.js` (chaînage `&&`) à cause d'APK-BINARY ; les suites situées après dans la chaîne
+ont été exécutées directement et étaient vertes. La CI v3.7.21 a rejoué la suite complète avec l'APK
+frais. Le déclenchement manuel depuis ce sandbox renvoyait HTTP 403 ; le build a été lancé via le
+déclencheur push TEMP (retiré ensuite).
+
+## Mise à jour — v3.7.21 publiée (2026-11-15)
+
+- Branche mergée sur `main` (PR #101, merge commit `716aa74`).
+- CI `build-apk.yml` : run `43748739670` ✅ (npm test + admin inclus) → commit signé
+  `0cf3b3e` (« Build signed Android APK and update current manifest ») : APK + `update-current.json`,
+  SHA-256 `e9d44d5797d91dc8ca18fa299dbb35224f770ebc8f9128a1899a5a58e886371e`.
+- `publish-apk.yml` : run `43748958242` ✅ → tag `v3.7.21` créé, APK attaché, release publiée
+  (non-draft, 2026-11-15T18:50:04Z).
+- Notes de release FR renseignées sur le tag (i18n, pages satellite EN-only, durcissement en-têtes).
 
 ## 5. Risques acceptés / à traiter plus tard
 
@@ -115,7 +127,6 @@ directement et sont vertes. Le déclenchement CI de l'APK depuis ce sandbox renv
    custom si besoin (l'apex *.vercel.app est déjà HTTPS/HSTS côté plateforme).
 5. `assistant.js` : détection de "secret" en entrée heuristique (regex + longueur) — meilleure approche :
    blocage strict des 6/12/24 mots sans question, à évaluer.
-6. **Release** : APK v3.7.20 embarque l'ancien client (avant cette branche). La v3.7.21 est construite par la CI depuis ce commit avant publication des notes de version.
 
 ## 6. Recommandations
 
@@ -123,4 +134,4 @@ directement et sont vertes. Le déclenchement CI de l'APK depuis ce sandbox renv
 - Planifier la migration `unsafe-inline` → nonces (point 1) ; mesurer d'abord la part des handlers inline.
 - Ajouter un linter `i18n:parity` (script VM comme celui utilisé ici) en pré-commit pour éviter la
   régression de parité constatée (526×5).
-- Rejouer `[APK-BINARY]` après rebuild CI ; publier v3.7.21 avec notes « i18n FR/EN/DE/ZH/SG, durcissement en-têtes statiques ».
+- Fait (v3.7.21) : rebuild CI + release publiée. Prochaine étape : observer les remontées crash/integrity de la release (`errors-service`, `integrity-service`) avant la mise à jour 3.7.22.
