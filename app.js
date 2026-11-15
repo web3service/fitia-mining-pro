@@ -282,6 +282,8 @@ const i18n = {
     activeMachines: "⛏️ Machines Actives",
     myMachines: "⛏️ Mes Machines",
     myBatteries: "🔋 Mes Batteries",
+    magasinTitle: "Magasin",
+    magasinHint: "Mes machines & mes batteries",
     active: "Actif",
     expired: "Expiré",
     inactive: "Inactif",
@@ -719,6 +721,8 @@ const i18n = {
     activeMachines: "⛏️ Active Machines",
     myMachines: "⛏️ My Machines",
     myBatteries: "🔋 My Batteries",
+    magasinTitle: "Magasin",
+    magasinHint: "My machines & my batteries",
     active: "Active",
     expired: "Expired",
     inactive: "Inactive",
@@ -1098,6 +1102,8 @@ const i18n = {
     activeMachines: "⛏️ Aktive Maschinen",
     myMachines: "⛏️ Meine Maschinen",
     myBatteries: "🔋 Meine Batterien",
+    magasinTitle: "Magasin",
+    magasinHint: "Meine Maschinen & Batterien",
     active: "Aktiv",
     expired: "Abgelaufen",
     inactive: "Inaktiv",
@@ -1316,6 +1322,8 @@ const i18n = {
     activeMachines: "⛏️ 运行中矿机",
     myMachines: "⛏️ 我的矿机",
     myBatteries: "🔋 我的电池",
+    magasinTitle: "Magasin",
+    magasinHint: "我的矿机和电池",
     active: "运行中",
     expired: "已过期",
     inactive: "未激活",
@@ -1505,6 +1513,8 @@ const i18n = {
     available: "Available",
     noMachines: "No machines yet",
     noBatteries: "No batteries yet",
+    magasinTitle: "Magasin",
+    magasinHint: "My machines & my batteries",
     errNoBattery: "No battery of this type available",
     errRunning: "This machine is already running"
   }
@@ -3713,6 +3723,7 @@ class Application {
 
   quickSelectMachineToPlug(machineIdx) {
     if (!this.selectPlugMachine(machineIdx)) return;
+    if (typeof this.nav === 'function' && this.nav('my-rigs') === false) return;
     const card = document.getElementById('plug-machine-card');
     card?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
     const options = document.getElementById('plug-machine-options');
@@ -4297,9 +4308,43 @@ class Application {
 
   setShopView(v, btnEl) {
     this.shopViewMode = v;
-    document.querySelectorAll('#view-shop .shop-tab').forEach((t) => t.classList.remove('active'));
+    document.querySelectorAll('#view-shop .shop-tabs:not(.magasin-tabs) .shop-tab').forEach((t) => t.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
     this.renderShop();
+  }
+
+  toggleMagasin(btnEl) {
+    const panel = document.getElementById('magasin-panel');
+    if (!panel) return;
+    const btn = btnEl || document.getElementById('btn-magasin');
+    const willOpen = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !willOpen);
+    if (btn) {
+      btn.setAttribute('aria-expanded', String(willOpen));
+      btn.classList.toggle('open', willOpen);
+    }
+    // Mode « uniquement mes équipements » : le catalogue d'achat se masque tant que le Magasin est ouvert.
+    const shopView = document.getElementById('view-shop');
+    if (shopView) shopView.classList.toggle('magasin-open', willOpen);
+    if (willOpen) this.setMagasinView(this.magasinView || 'machines');
+  }
+
+  setMagasinView(v, btnEl) {
+    this.magasinView = v === 'batteries' ? 'batteries' : 'machines';
+    document.querySelectorAll('.magasin-tabs .shop-tab').forEach((t) => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    const fallbackId = this.magasinView === 'machines' ? 'tab-magasin-machines' : 'tab-magasin-batteries';
+    const active = btnEl || document.getElementById(fallbackId);
+    if (active) {
+      active.classList.add('active');
+      active.setAttribute('aria-selected', 'true');
+    }
+    const machines = document.getElementById('magasin-machines');
+    const batteries = document.getElementById('magasin-batteries');
+    if (machines) machines.classList.toggle('hidden', this.magasinView !== 'machines');
+    if (batteries) batteries.classList.toggle('hidden', this.magasinView !== 'batteries');
   }
 
   async renderShop() {
