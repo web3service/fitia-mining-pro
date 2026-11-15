@@ -93,7 +93,7 @@ et l'admin sont restés hors périmètre.
 | store (18/18) / store-orders (12/12) / hardening (34/34) | ✅ verts |
 | `[HTTP-SERVER]` avec le nouveau `server.js` | ✅ vert |
 | `[UI-GLYPHS]`, `[APPLINKS-PRIVACY]` | ✅ verts après correctifs |
-| `[APK-BINARY]` | ❌ **attendu** : l'APK commité date de la v3.7.20 (pré-branche) ; l'assertion
+| `[APK-BINARY]` | ❌ **attendu** : l'APK commité date de la v3.7.20 (pré-branche) (pré-branche) ; l'assertion
   « wallet embarqué == `android-src/wallet.html` » ne peut passer qu'après **rebuild signé** de l'APK
   depuis ces sources (CI `build-apk.yml` avec `commit_build=true`, puis merge/release — clé de signature
   hors de ce sandbox). Aucune autre assertion d'APK-BINARY n'échoue. |
@@ -115,8 +115,7 @@ directement et sont vertes. Le déclenchement CI de l'APK depuis ce sandbox renv
    custom si besoin (l'apex *.vercel.app est déjà HTTPS/HSTS côté plateforme).
 5. `assistant.js` : détection de "secret" en entrée heuristique (regex + longueur) — meilleure approche :
    blocage strict des 6/12/24 mots sans question, à évaluer.
-6. **Release** : APK v3.7.20 embarque l'ancien client (avant cette branche). La v3.7.21 devra être
-   construite par la CI depuis ce commit avant publication des notes de version.
+6. **Release** : APK v3.7.20 embarque l'ancien client (avant cette branche). La v3.7.21 est construite par la CI depuis ce commit avant publication des notes de version.
 
 ## 6. Recommandations
 
