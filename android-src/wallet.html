@@ -838,7 +838,14 @@
   <div id="view-my-rigs" class="view">
     <h2 class="view-title" data-i18n="myAssets">⚙️ Portefeuille & Actifs</h2>
 
+    <!-- Onglets Portefeuille : Polygon (on-chain) / Compte Minage (interne) -->
+    <div class="shop-tabs wallet-tabs" role="tablist" aria-label="Wallet sections">
+      <button type="button" class="shop-tab wallet-tab active" id="tab-wallet-polygon" role="tab" aria-selected="true" aria-controls="panel-wallet-polygon" onclick="App.setWalletTab('polygon', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/><path d="M15.5 12h4.5M4 10h16"/></svg><span data-i18n="walletTabPolygon">Portefeuille Polygon</span></button>
+      <button type="button" class="shop-tab wallet-tab" id="tab-wallet-mining" role="tab" aria-selected="false" aria-controls="panel-wallet-mining" onclick="App.setWalletTab('mining', this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg><span data-i18n="walletTabMining">Compte Minage</span></button>
+    </div>
+
     <!-- CARTE 1 : PORTEFEUILLE POLYGON ON-CHAIN -->
+    <div id="panel-wallet-polygon" class="wallet-panel" role="tabpanel" aria-labelledby="tab-wallet-polygon">
     <div class="card wallet-main-card">
       <div class="wallet-card-header">
         <div>
@@ -916,8 +923,10 @@
         </div>
       </div>
     </div>
+    </div>
 
     <!-- CARTE 2 : COMPTE MINAGE INTERNE (CONTRAT FITIA CORE) -->
+    <div id="panel-wallet-mining" class="wallet-panel hidden" role="tabpanel" aria-labelledby="tab-wallet-mining">
     <div class="card mining-vault-card">
       <div class="mining-vault-header">
         <h3 data-i18n="miningVaultTitle">⚡ Compte Minage</h3>
@@ -955,6 +964,7 @@
         <button class="btn-wallet-action btn-wallet-deposit" onclick="App.deposit()" data-i18n="depositBtn">DÉPOSER</button>
         <button class="btn-wallet-action btn-wallet-withdraw" onclick="App.withdraw()" data-i18n="withdrawBtn">RETIRER</button>
       </div>
+    </div>
     </div>
 
   </div>
