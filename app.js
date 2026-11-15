@@ -216,6 +216,8 @@ const i18n = {
     myAssets: "⚙️ Portefeuille & Actifs",
     onchainWalletTitle: "🔐 Mon Portefeuille Polygon",
     miningVaultTitle: "⚡ Compte Minage",
+    walletTabPolygon: "Portefeuille Polygon",
+    walletTabMining: "Compte Minage",
     miningVaultDesc: "Solde utilisé pour la boutique, le swap et vos récompenses de minage. Déposez ou retirez vers votre portefeuille à tout moment.",
     lowPolGasWarn: "Ajoutez un peu de POL (~0.05 POL) à votre adresse pour payer les frais réseau Polygon.",
     noGasPolErr: "⛽ Solde POL insuffisant pour payer les frais réseau Polygon (~0.01 POL requis). Appuyez sur Recevoir pour déposer un peu de POL.",
@@ -668,6 +670,8 @@ const i18n = {
     myAssets: "⚙️ Wallet & Assets",
     onchainWalletTitle: "🔐 My Polygon Wallet",
     miningVaultTitle: "⚡ Mining Account",
+    walletTabPolygon: "Polygon Wallet",
+    walletTabMining: "Mining Account",
     miningVaultDesc: "Balance used for shop, swap and mining rewards. Deposit or withdraw to your wallet anytime.",
     lowPolGasWarn: "Add a small amount of POL (~0.05 POL) to your address to cover Polygon network gas fees.",
     noGasPolErr: "⛽ Insufficient POL for Polygon gas fees (~0.01 POL needed). Tap Receive to add POL.",
@@ -1090,6 +1094,8 @@ const i18n = {
     myAssets: "⚙️ Wallet & Assets",
     onchainWalletTitle: "🔐 Meine Polygon Wallet",
     miningVaultTitle: "⚡ Mining-Konto",
+    walletTabPolygon: "Polygon-Wallet",
+    walletTabMining: "Mining-Konto",
     plugMachine: "Maschine & Akku verbinden",
     plugDesc: "Wählen Sie eine verfügbare Maschine und ihre Laufzeit.",
     machineId: "Maschinen-Index (0, 1...)",
@@ -1323,6 +1329,8 @@ const i18n = {
     myAssets: "⚙️ 钱包与资产",
     onchainWalletTitle: "🔐 我的 Polygon 钱包",
     miningVaultTitle: "⚡ 挖矿账户",
+    walletTabPolygon: "Polygon 钱包",
+    walletTabMining: "挖矿账户",
     plugMachine: "连接矿机与电池",
     plugDesc: "选择可用矿机和电池续航时间。",
     machineId: "矿机索引 (0, 1...)",
@@ -4452,6 +4460,22 @@ class Application {
     document.getElementById('btn-pay-usdt').setAttribute('aria-pressed', String(mode === 'USDT'));
     document.getElementById('btn-pay-fta').setAttribute('aria-pressed', String(mode === 'FTA'));
     this.renderShop();
+  }
+
+  // Onglets du Portefeuille : Polygon (on-chain) / Compte Minage (interne)
+  setWalletTab(v, btnEl) {
+    const mode = v === 'mining' ? 'mining' : 'polygon';
+    this.walletTab = mode;
+    const fallbackId = mode === 'polygon' ? 'tab-wallet-polygon' : 'tab-wallet-mining';
+    document.querySelectorAll('#view-my-rigs .wallet-tabs .shop-tab').forEach((t) => {
+      const selected = btnEl ? t === btnEl : t.id === fallbackId;
+      t.classList.toggle('active', selected);
+      t.setAttribute('aria-selected', String(selected));
+    });
+    const polygon = document.getElementById('panel-wallet-polygon');
+    const mining = document.getElementById('panel-wallet-mining');
+    if (polygon) polygon.classList.toggle('hidden', mode !== 'polygon');
+    if (mining) mining.classList.toggle('hidden', mode !== 'mining');
   }
 
   setShopView(v, btnEl) {

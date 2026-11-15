@@ -3635,3 +3635,8 @@ main::-webkit-scrollbar { display: none; }
 .magasin-tabs .shop-tab { font-size: 0.78rem; padding: 9px 4px; white-space: nowrap; }
 /* Rangée racine de la Boutique : 3 onglets égaux sur une ligne */
 #view-shop .shop-tabs:not(.magasin-tabs) .shop-tab { white-space: nowrap; font-size: 0.8rem; padding-left: 4px; padding-right: 4px; }
+
+/* ═══ PORTEFEUILLE — 2 onglets : Polygon / Compte Minage ═══ */
+.wallet-tabs { margin: 12px 0 12px; }
+.wallet-tabs .shop-tab { white-space: nowrap; font-size: 0.8rem; padding: 9px 4px; }
+.wallet-panel.hidden { display: none; }
