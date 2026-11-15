@@ -3627,3 +3627,18 @@ main::-webkit-scrollbar { display: none; }
 #view-shop.magasin-open #shop-list {
   display: none;
 }
+
+/* ═══ FICHE ÉQUIPEMENT — machine / batterie (modale) ═══ */
+.asset-row-action { cursor: pointer; border-radius: 12px; transition: background 0.15s; }
+.asset-row-action:hover { background: rgba(255, 255, 255, 0.03); }
+.asset-row-action:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.equipment-modal { max-width: 430px; width: 100%; }
+.equipment-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 14px; text-align: center; }
+.equipment-hero-icon svg { width: 84px; height: 84px; }
+.equipment-hero-name { font-size: 1.05rem; font-weight: 800; }
+.equipment-hero .real-battery { transform: scale(1.5); margin: 8px 0 12px; }
+.equipment-rows { display: flex; flex-direction: column; }
+.equipment-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 10px 2px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.equipment-label { color: var(--text-muted); font-size: 0.78rem; }
+.equipment-value { font-weight: 700; font-size: 0.85rem; text-align: right; font-family: 'JetBrains Mono', monospace; }
+.equipment-action { width: 100%; margin-top: 14px; }

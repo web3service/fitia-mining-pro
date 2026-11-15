@@ -1349,6 +1349,18 @@
 </div>
 
 <!-- Envoyer -->
+<div id="modal-equipment" class="modal" role="dialog" aria-modal="true" aria-labelledby="equipment-modal-title">
+  <div class="modal-content equipment-modal">
+    <div class="modal-header">
+      <h3 id="equipment-modal-title" data-i18n="equipTitle">Équipement</h3>
+      <button type="button" class="modal-close" onclick="App.closeModals()" aria-label="Close">✕</button>
+    </div>
+    <div id="equipment-hero" class="equipment-hero"></div>
+    <div id="equipment-rows" class="equipment-rows"></div>
+    <button type="button" id="equipment-action" class="btn-primary equipment-action"></button>
+  </div>
+</div>
+
 <div id="modal-send" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h3 data-i18n="send">Envoyer</h3><button class="modal-close" onclick="App.closeModals()">✕</button></div>
