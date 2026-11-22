@@ -100,17 +100,22 @@
     },
     {
       "id": "information-mvoq3w03-c03b8486",
-      "category": "information",
+      "category": "welcome",
       "enabled": false,
       "title": {
-        "fr": "FITIA-CORE"
+        "fr": "FITIA-CORE",
+        "en": "FITIA-CORE",
+        "de": "FITIA-CORE"
       },
       "message": {
-        "fr": "Décentralisée, Libre de droits, Brise des barrières, Autonome....."
+        "fr": "Décentralisée, Libre de droits, Brise des barrières, Autonome.....",
+        "en": "Decentralized, Royalty-free, Breaking down barriers, Autonomous...",
+        "de": "Dezentralisiert, lizenzgebührenfrei, barrierefrei, autonom..."
       },
       "theme": "violet",
       "font": "elegant",
-      "backgroundImage": "assets/announcements/announcement-b5c16d7e0818902e027a571d.webp"
+      "backgroundImage": "assets/announcements/announcement-b5c16d7e0818902e027a571d.webp",
+      "backgroundDim": 20
     }
   ]
 }
