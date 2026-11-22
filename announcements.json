@@ -116,6 +116,25 @@
       "font": "elegant",
       "backgroundImage": "assets/announcements/announcement-b5c16d7e0818902e027a571d.webp",
       "backgroundDim": 20
+    },
+    {
+      "id": "information-mwrsnwuk-b3fa4b17",
+      "category": "information",
+      "enabled": true,
+      "title": {
+        "fr": "FITIA Shop",
+        "en": "FITIA Shop",
+        "de": "FITIA Shop"
+      },
+      "message": {
+        "fr": "Le dernier réunion sur l'ouverture du marché FITIA Shop serait tenue le 19 Décembre 2026",
+        "en": "The final meeting regarding the opening of the FITIA Shop market is scheduled for December 19, 2026.",
+        "de": "Das abschließende Treffen bezüglich der Eröffnung des FITIA Shop-Marktes ist für den 19. Dezember 2026 geplant."
+      },
+      "theme": "aurora",
+      "font": "mono",
+      "backgroundImage": "assets/announcements/announcement-c650183a0f89bf9f15156d5f.webp",
+      "backgroundPosition": "top"
     }
   ]
 }
